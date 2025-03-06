@@ -14,7 +14,7 @@
 	}
 
 	// Enforce stack limit to 1, if item has potential to have variation between instances
-	if (Item->IsDataMutable()) return 1;
+	if (Item->CanMutate()) return 1;
 
 	if (auto&& Limiter = Item->GetToken<UFaerieStackLimiterToken>())
 	{

@@ -23,6 +23,13 @@ void UFaerieItemAsset::PreSave(FObjectPreSaveContext SaveContext)
 		Item = NewObject<UFaerieItem>(this);
 	}
 
+	Item->MutabilityFlags = EFaerieItemMutabilityFlags::None;
+
+	if (AlwaysMutable)
+	{
+		EnumAddFlags(Item->MutabilityFlags, EFaerieItemMutabilityFlags::AlwaysTokenMutable);
+	}
+
 	Item->Tokens.Empty();
 	for (auto&& Token : Tokens)
 	{
@@ -86,7 +93,10 @@ bool UFaerieItemAsset::CanBeMutable() const
 {
 	if (IsValid(Item))
 	{
-		return Item->IsInstanceMutable();
+		// Item is part of this asset, which will cannot have InstanceMutable set. Assets are never InstanceMutable, as
+		// they are non-instanced templates that get duplicates made from them if they are supposed to be modifiable.
+		// Checking for DataMutable lets us know if this item has tokens that can mutate.
+		return Item->IsDataMutable();
 	}
 	return false;
 }
@@ -102,42 +112,14 @@ FFaerieAssetInfo UFaerieItemAsset::GetSourceInfo() const
 	return FFaerieAssetInfo();
 }
 
-UFaerieItem* UFaerieItemAsset::CreateItemInstance(UObject* Outer) const
+UFaerieItem* UFaerieItemAsset::CreateItemInstance(const UItemInstancingContext* Context) const
 {
 	if (!IsValidChecked(Item)) return nullptr;
-
-	UFaerieItem* NewInstance;
-
-	if (Item->IsDataMutable())
-	{
-		// Make a copy of the static item stored in this asset if we might need to modify the data
-		NewInstance = Item->CreateDuplicate();
-	}
-	else
-	{
-		// If the item is not mutable, we can just reference the single copy of it.
-		NewInstance = Item;
-	}
-
-	return NewInstance;
+	return Item->CreateInstance(Context->Flags);
 }
 
 UFaerieItem* UFaerieItemAsset::GetItemInstance(const bool MutableInstance) const
 {
 	if (!IsValidChecked(Item)) return nullptr;
-
-	UFaerieItem* NewInstance;
-
-	if (Item->IsDataMutable() || MutableInstance)
-	{
-		// Make a copy of the static item stored in this asset if we might need to modify the data
-		NewInstance = Item->CreateDuplicate();
-	}
-	else
-	{
-		// If the item is not mutable, we can just reference the single copy of it.
-		NewInstance = Item;
-	}
-
-	return NewInstance;
+	return Item->CreateInstance(MutableInstance ? EFaerieItemMutabilityFlags::AlwaysTokenMutable : EFaerieItemMutabilityFlags::None);
 }

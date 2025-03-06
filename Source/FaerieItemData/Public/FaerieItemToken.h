@@ -22,6 +22,10 @@ public:
 	// handled. An item with *any* mutable data cannot be stacked.
 	virtual bool IsMutable() const;
 
+#if WITH_EDITOR
+	virtual void PostCDOCompiled(const FPostCDOCompiledContext& Context) override;
+#endif
+
 protected:
 	/*
 	 * Compare the data of this token to another. Most of the time, there is no need to override this. This function is
@@ -64,6 +68,6 @@ protected:
 	UFaerieItem* BP_GetFaerieItem() const;
 
 	/** Attempt to modify this token. Pass in a predicate that must perform the edit. */
-	UFUNCTION(BlueprintCallable, Category = "FaerieItemToken", meta = (DisplayName = "Edit Token"))
+	UFUNCTION(BlueprintCallable, Category = "FaerieItemToken", meta = (DisplayName = "Edit Token"), BlueprintAuthorityOnly)
 	void BP_EditToken(const FBlueprintTokenEdit& Edit);
 };

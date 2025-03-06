@@ -41,7 +41,6 @@ void UGenerationAction_CraftItems::Run()
 
 	UItemInstancingContext_Crafting* Context = NewObject<UItemInstancingContext_Crafting>(this);
 
-	Context->Outer = Executor;
 	Context->Squirrel = Config->Squirrel;
 	Context->InputEntryData = FilledSlots;
 

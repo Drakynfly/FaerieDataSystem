@@ -16,18 +16,11 @@
 
 DEFINE_LOG_CATEGORY(LogItemGeneratorSubsystem)
 
-void UFaerieItemCraftingSubsystem::Initialize(FSubsystemCollectionBase& Collection)
-{
-	Super::Initialize(Collection);
-
-	Initialized = true;
-}
-
 void UFaerieItemCraftingSubsystem::BeginRunningAction(UCraftingActionBase* Action)
 {
 	check(Action);
 	ActiveAction = Action;
-	ActiveAction->OnCompletedCallback.BindUObject(this, &ThisClass::OnActionCompleted);
+	ActiveAction->GetOnCompletedCallback().BindUObject(this, &ThisClass::OnActionCompleted);
 	ActiveAction->Start();
 }
 

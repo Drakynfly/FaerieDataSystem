@@ -76,7 +76,17 @@ FInventoryEntryView UInventoryEntryStorageProxy::GetInventoryEntry() const
 
 void UInventoryEntryStorageProxy::NotifyCreation()
 {
-	LocalItemVersion = 0;
+	// If we are created on the server, or on a client for a pre-existing item, set Version to 0.
+	// For clients that do not have the item replicated yet, -1 denotes awaiting initial replication.
+	if (IsValid(GetItemObject()))
+	{
+		LocalItemVersion = 0;
+	}
+	else
+	{
+		LocalItemVersion = -1;
+	}
+
 	OnCacheUpdatedNative.Broadcast(this);
 	OnCacheUpdated.Broadcast(this);
 }

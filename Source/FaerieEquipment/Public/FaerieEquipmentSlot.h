@@ -64,7 +64,7 @@ public:
 	virtual void ForEachKey(const TFunctionRef<void(FEntryKey)>& Func) const override;
 
 protected:
-	virtual void OnItemMutated(const UFaerieItem* InItem, const UFaerieItemToken* Token) override;
+	virtual void OnItemMutated(const UFaerieItem* InItem, const UFaerieItemToken* Token, FGameplayTag EditTag) override;
 
 private:
 	virtual FFaerieItemStackView View(FEntryKey Key) const override;

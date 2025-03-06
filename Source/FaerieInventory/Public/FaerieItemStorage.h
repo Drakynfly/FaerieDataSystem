@@ -86,7 +86,7 @@ public:
 	virtual int32 GetStack(FEntryKey Key) const override;
 
 protected:
-	virtual void OnItemMutated(const UFaerieItem* Item, const UFaerieItemToken* Token) override;
+	virtual void OnItemMutated(const UFaerieItem* Item, const UFaerieItemToken* Token, FGameplayTag EditTag) override;
 	//~ UFaerieItemContainerBase
 
 public:

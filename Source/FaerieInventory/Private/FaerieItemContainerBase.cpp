@@ -128,8 +128,26 @@ void UFaerieItemContainerBase::TryApplyUnclaimedSaveData(UItemContainerExtension
 	}
 }
 
-void UFaerieItemContainerBase::OnItemMutated(const UFaerieItem* Item, const UFaerieItemToken* Token)
+void UFaerieItemContainerBase::OnItemMutated(const UFaerieItem* Item, const UFaerieItemToken* Token, const FGameplayTag EditTag)
 {
+	if (EditTag == Faerie::Tags::TokenAdd)
+	{
+		if (AActor* Actor = GetTypedOuter<AActor>();
+			IsValid(Actor) && Actor->IsUsingRegisteredSubObjectList())
+		{
+			Actor->AddReplicatedSubObject(const_cast<UFaerieItemToken*>(Token));
+		}
+		return;
+	}
+	if (EditTag == Faerie::Tags::TokenRemove)
+	{
+		if (AActor* Actor = GetTypedOuter<AActor>();
+			IsValid(Actor) && Actor->IsUsingRegisteredSubObjectList())
+		{
+			Actor->RemoveReplicatedSubObject(const_cast<UFaerieItemToken*>(Token));
+		}
+		return;
+	}
 }
 
 void UFaerieItemContainerBase::ReleaseOwnership(UFaerieItem* Item)
@@ -139,6 +157,18 @@ void UFaerieItemContainerBase::ReleaseOwnership(UFaerieItem* Item)
 	// When Items are potentially mutable, undo any modifications that rely on this owner.
 	if (Item->IsInstanceMutable())
 	{
+		if (AActor* Actor = GetTypedOuter<AActor>();
+			IsValid(Actor) && Actor->IsUsingRegisteredSubObjectList())
+		{
+			Actor->RemoveReplicatedSubObject(Item);
+			Item->ForEachToken(
+				[Actor](const TObjectPtr<UFaerieItemToken>& Token)
+				{
+					Actor->RemoveReplicatedSubObject(ConstCast(Token));
+					return true;
+				});
+		}
+
 		// If we renamed the item to ourself when we took ownership of this item, then we need to release that now.
 		if (Item->GetOuter() == this)
 		{
@@ -169,6 +199,18 @@ void UFaerieItemContainerBase::TakeOwnership(UFaerieItem* Item)
 		if (GetDefault<UFaerieInventorySettings>()->ContainerMutableBehavior == EFaerieContainerOwnershipBehavior::Rename)
 		{
 			Item->Rename(nullptr, this, REN_DontCreateRedirectors);
+		}
+
+		if (AActor* Actor = GetTypedOuter<AActor>();
+			IsValid(Actor) && Actor->IsUsingRegisteredSubObjectList())
+		{
+			Actor->AddReplicatedSubObject(Item);
+			Item->ForEachToken(
+				[Actor](const TObjectPtr<UFaerieItemToken>& Token)
+				{
+					Actor->AddReplicatedSubObject(ConstCast(Token));
+					return true;
+				});
 		}
 
 		// Add our group of extensions to any sub-storages

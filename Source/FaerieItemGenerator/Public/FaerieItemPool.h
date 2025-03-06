@@ -53,9 +53,8 @@ public:
 
 public:
 	//~ IFaerieItemSource
-	virtual bool CanBeMutable() const override { return HasMutableDrops; }
+	virtual bool CanBeMutable() const override;
 	virtual FFaerieAssetInfo GetSourceInfo() const override;
-	virtual UFaerieItem* CreateItemInstance(UObject* Outer) const override;
 	virtual UFaerieItem* CreateItemInstance(const UItemInstancingContext* Context) const override;
 	//~ IFaerieItemSource
 
@@ -71,13 +70,13 @@ protected:
 	FTableDrop GenerateDrop_Seeded(USquirrel* Squirrel) const;
 
 protected:
-	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Table", meta = (Pr))
+	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Table")
 	FFaerieAssetInfo TableInfo;
 
 	UPROPERTY(EditAnywhere, Category = "Table")
 	FFaerieWeightedDropPool DropPool;
 
 private:
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere)
 	bool HasMutableDrops = false;
 };

@@ -52,7 +52,6 @@ void UGenerationAction_GenerateItems::Run()
 	}
 
  	UItemInstancingContext_Crafting* Context = NewObject<UItemInstancingContext_Crafting>(this);
-	Context->Outer = Executor;
 
 	for (auto&& Generation : PendingGenerations)
 	{
@@ -84,7 +83,7 @@ void UGenerationAction_GenerateItems::Run()
 				}
 			}
 		}
-		// Generate a single entry stack when immutable, as there is no change of uniqueness.
+		// Generate a single entry stack when immutable, as there is no chance of uniqueness.
 		else
 		{
 			FFaerieItemStack NewStack;

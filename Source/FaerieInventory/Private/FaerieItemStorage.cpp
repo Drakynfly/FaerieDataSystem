@@ -134,9 +134,9 @@ int32 UFaerieItemStorage::GetStack(const FEntryKey Key) const
 	return GetEntryViewImpl(Key).Get().StackSum();
 }
 
-void UFaerieItemStorage::OnItemMutated(const UFaerieItem* Item, const UFaerieItemToken* Token)
+void UFaerieItemStorage::OnItemMutated(const UFaerieItem* Item, const UFaerieItemToken* Token, const FGameplayTag EditTag)
 {
-	Super::OnItemMutated(Item, Token);
+	Super::OnItemMutated(Item, Token, EditTag);
 
 	// @todo annoying but acceptable
 	for (const FKeyedInventoryEntry& Element : EntryMap)
@@ -408,7 +408,7 @@ Faerie::Inventory::FEventLog UFaerieItemStorage::AddStackImpl(const FFaerieItemS
 
 	// Mutables cannot stack, due to, well, being mutable, meaning that each individual retains the ability to
 	// uniquely mutate from others.
-	if (!InStack.Item->IsDataMutable())
+	if (!InStack.Item->CanMutate())
 	{
 		Event.EntryTouched = QueryFirst(
 			[InStack](const FFaerieItemProxy& Other)
@@ -700,9 +700,12 @@ UInventoryStackProxy* UFaerieItemStorage::GetStackProxy_New(const FInventoryKey 
 
 bool UFaerieItemStorage::GetStackProxy(const FInventoryKey Key, FFaerieItemProxy& Proxy)
 {
-	UInventoryStackProxy* StackProxy = GetStackProxy_New(Key);
-	Proxy = {StackProxy};
-	return Proxy.IsValid();
+	if (UInventoryStackProxy* StackProxy = GetStackProxy_New(Key))
+	{
+		Proxy = {StackProxy};
+		return Proxy.IsValid();
+	}
+	return false;
 }
 
 void UFaerieItemStorage::GetEntryArray(const TArray<FEntryKey>& Keys, TArray<FInventoryEntry>& Entries) const
@@ -830,7 +833,7 @@ bool UFaerieItemStorage::CanAddStack(const FFaerieItemStackView Stack, const EFa
 		return false;
 	}
 
-	if (Stack.Item->IsDataMutable())
+	if (Stack.Item->CanMutate())
 	{
 		// Prevent recursive storage for mutable items
 		// @todo this only checks one layer of depth. Theoretically, these storage tokens could point to other ItemStorages,

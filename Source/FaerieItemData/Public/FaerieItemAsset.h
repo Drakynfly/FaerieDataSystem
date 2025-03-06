@@ -29,7 +29,7 @@ public:
 	//~ IFaerieItemSource
 	virtual bool CanBeMutable() const override;
 	virtual FFaerieAssetInfo GetSourceInfo() const override;
-	virtual UFaerieItem* CreateItemInstance(UObject* Outer) const override;
+	virtual UFaerieItem* CreateItemInstance(const UItemInstancingContext* Context) const override;
 	//~ IFaerieItemSource
 
 	// Get the item instance this asset represents. By default, this will return the immutable asset if possible.
@@ -55,5 +55,11 @@ protected:
 	// Item template, used to verify that the generated item follows an expected pattern.
 	UPROPERTY(EditInstanceOnly, Category = "ItemAsset")
 	TObjectPtr<UFaerieItemTemplate> Template;
+
+	// Enable to make all instances of this item mutable, even if no current Tokens request mutability. This is usually
+	// required when making an item template expected to have a mutable token added dynamically at runtime, but
+	// doesn't have any mutable tokens added by the editor.
+	UPROPERTY(EditInstanceOnly, Category = "ItemAsset")
+	bool AlwaysMutable = false;
 #endif
 };

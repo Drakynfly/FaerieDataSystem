@@ -20,7 +20,7 @@ class FAERIEITEMGENERATOR_API UFaerieItemCraftingSubsystem : public UWorldSubsys
 	GENERATED_BODY()
 
 public:
-	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+	//virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 
 private:
 	void BeginRunningAction(UCraftingActionBase* Action);
@@ -83,8 +83,6 @@ public:
 	void PreviewCraftingRequest(const FCraftingRequest& Request);
 
 private:
-	bool Initialized = false;
-
 	// The Action currently running.
 	UPROPERTY(Transient)
 	TObjectPtr<UCraftingActionBase> ActiveAction;

@@ -79,7 +79,7 @@ void UCraftingActionBase::Finish(const EGenerationActionResult Result)
 
 	GetTimerManager().ClearTimer(TimerHandle);
 
-	OnCompletedCallback.ExecuteIfBound(Result);
+	(void)OnCompletedCallback.ExecuteIfBound(Result);
 
 	OnCompleted.Broadcast(Result, ProcessStacks);
 }
@@ -130,7 +130,7 @@ void UCraftingActionBase::Start()
 	else
 	{
 		// Immediately load all objects and continue.
-		for (FSoftObjectPath Object : ObjectsToLoad)
+		for (const FSoftObjectPath& Object : ObjectsToLoad)
 		{
 			Object.TryLoad();
 		}

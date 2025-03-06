@@ -7,6 +7,7 @@
 
 #include "FaerieItemSource.generated.h"
 
+enum class EFaerieItemMutabilityFlags : uint8;
 class UFaerieItem;
 
 UCLASS(Const)
@@ -14,9 +15,12 @@ class FAERIEITEMDATA_API UItemInstancingContext : public UObject
 {
 	GENERATED_BODY()
 
+	friend class UFaerieItem;
+
 public:
+	// Flags to mark instances with
 	UPROPERTY()
-	TObjectPtr<UObject> Outer = nullptr;
+	EFaerieItemMutabilityFlags Flags;
 };
 
 // This class does not need to be modified.
@@ -41,11 +45,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemSource")
 	virtual FFaerieAssetInfo GetSourceInfo() const { return FFaerieAssetInfo(); }
 
-	// Creates an item with the given outer.
-	virtual UFaerieItem* CreateItemInstance(UObject* Outer = GetTransientPackage()) const;
-
-	// Creates an item that can utilize contextual data given to it by the requester of the item.
-	virtual UFaerieItem* CreateItemInstance(const UItemInstancingContext* Context) const;
+	// Create a item instance from this source.
+	// An InstancingContext may be required to provide contextual data from the requester of the item.
+	virtual UFaerieItem* CreateItemInstance(const UItemInstancingContext* Context) const
+		PURE_VIRTUAL(IFaerieItemSource::CreateItemInstance, return nullptr; )
 };
 
 /**

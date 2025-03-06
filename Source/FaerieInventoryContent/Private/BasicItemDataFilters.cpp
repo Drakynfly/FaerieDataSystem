@@ -165,7 +165,7 @@ EItemDataMutabilityStatus UFilterRule_Mutability::GetMutabilityStatus() const
 
 bool UFilterRule_Mutability::Exec(const FFaerieItemStackView View) const
 {
-	return View.Item->IsDataMutable() == RequireMutable;
+	return View.Item->CanMutate() == RequireMutable;
 }
 
 #if WITH_EDITOR

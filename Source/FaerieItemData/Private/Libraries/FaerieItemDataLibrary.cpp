@@ -4,6 +4,7 @@
 #include "FaerieItem.h"
 #include "FaerieItemAsset.h"
 #include "FaerieItemToken.h"
+#include "FlakesJsonSerializer.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemDataLibrary)
 
@@ -24,4 +25,10 @@ UFaerieItem* UFaerieItemDataLibrary::GetItemInstance(const UFaerieItemAsset* Ass
 		return Asset->GetItemInstance(MutableInstance);
 	}
 	return nullptr;
+}
+
+FString UFaerieItemDataLibrary::DebugEmitItemJson(const UFaerieItem* Item, const bool Pretty)
+{
+	const FJsonObjectWrapper Json = UFlakesJsonLibrary::CreateFlake_Json(Item);
+	return UFlakesJsonLibrary::ToString(Json, Pretty);
 }

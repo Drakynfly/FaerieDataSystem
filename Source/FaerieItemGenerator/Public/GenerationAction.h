@@ -79,6 +79,9 @@ private:
 protected:
 	void Configure(FActionArgs& Args);
 
+public:
+	FNativeGenerationActionCompletedCallback::RegistrationType& GetOnCompletedCallback() { return OnCompletedCallback; }
+
 protected:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|CraftingAction")
 	void Complete();
@@ -90,14 +93,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|CraftingAction")
 	void Start();
 
-public:
-	FNativeGenerationActionCompletedCallback OnCompletedCallback;
-
+protected:
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FGenerationActionCompleted OnCompleted;
 
-protected:
 	// The object who requested this action to run
+	// DEPRECATED, remove eventually
 	UPROPERTY()
 	TObjectPtr<UObject> Executor;
 
@@ -117,6 +118,8 @@ private:
 	UPROPERTY()
 	FDateTime TimeStarted;
 #endif
+
+	FNativeGenerationActionCompletedCallback OnCompletedCallback;
 };
 
 UCLASS(Abstract)

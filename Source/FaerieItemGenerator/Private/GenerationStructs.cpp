@@ -2,7 +2,6 @@
 
 #include "GenerationStructs.h"
 #include "FaerieItem.h"
-#include "FaerieItemAsset.h"
 #include "FaerieItemDataProxy.h"
 #include "ItemInstancingContext_Crafting.h"
 #include "Squirrel.h"
@@ -36,7 +35,6 @@ UFaerieItem* FTableDrop::Resolve(const UItemInstancingContext_Crafting* Context)
 
 		// Instead of creating millions of these, reuse them somehow. probably have Context contain a temp
 		UItemInstancingContext_Crafting* ChildContext = NewObject<UItemInstancingContext_Crafting>();
-		ChildContext->Outer = Context->Outer;
 		ChildContext->Squirrel = Context->Squirrel;
 
 		if (UFaerieItem* StaticInstanceItem = ChildDrop.Resolve(ChildContext))

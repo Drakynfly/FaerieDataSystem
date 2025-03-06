@@ -3,6 +3,7 @@
 #include "FaerieEquipmentManager.h"
 #include "FaerieEquipmentSlot.h"
 #include "FaerieItemStorage.h"
+#include "FaerieUtils.h"
 #include "ItemContainerExtensionBase.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
@@ -86,7 +87,9 @@ void UFaerieEquipmentManager::AddDefaultSlots()
 
 		if (IsValid(Element.ExtensionGroup))
 		{
-			DefaultSlot->AddExtension(DuplicateObject(Element.ExtensionGroup, DefaultSlot));
+			// The default ExtensionGroups are "Assets" in that they are default instanced baked into the objects, and
+			// need to be fixed before they can replicate.
+			DefaultSlot->AddExtension(Faerie::DuplicateObjectFromDiskForReplication(Element.ExtensionGroup, DefaultSlot));
 		}
 	}
 }

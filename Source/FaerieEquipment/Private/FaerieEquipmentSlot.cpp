@@ -78,9 +78,9 @@ void UFaerieEquipmentSlot::ForEachKey(const TFunctionRef<void(FEntryKey)>& Func)
 	}
 }
 
-void UFaerieEquipmentSlot::OnItemMutated(const UFaerieItem* InItem, const UFaerieItemToken* Token)
+void UFaerieEquipmentSlot::OnItemMutated(const UFaerieItem* InItem, const UFaerieItemToken* Token, const FGameplayTag EditTag)
 {
-	Super::OnItemMutated(InItem, Token);
+	Super::OnItemMutated(InItem, Token, EditTag);
 	check(ItemStack.Item == InItem);
 
 	BroadcastDataChange();
@@ -279,6 +279,8 @@ void UFaerieEquipmentSlot::SetItemInSlot(const FFaerieItemStack Stack)
 		StoredKey = KeyGen.NextKey();
 
 		ItemStack = Stack;
+
+		// Take ownership of the new item.
 		TakeOwnership(ItemStack.Item);
 
 		Event.EntryTouched = StoredKey;
@@ -337,7 +339,7 @@ FFaerieItemStack UFaerieEquipmentSlot::TakeItemFromSlot(int32 Copies)
 		// Our local Item ptr must be nullptr before calling ReleaseOwnership
 		ItemStack = FFaerieItemStack();
 
-		// Take ownership of new items.
+		// Release ownership of this item.
 		ReleaseOwnership(OutStack.Item);
 
 		Extensions->PostRemoval(this, Event);

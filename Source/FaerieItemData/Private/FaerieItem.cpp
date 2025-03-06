@@ -2,11 +2,19 @@
 
 #include "FaerieItem.h"
 #include "FaerieItemToken.h"
+#include "FaerieUtils.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "UObject/ObjectSaveContext.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItem)
+
+namespace Faerie::Tags
+{
+	UE_DEFINE_GAMEPLAY_TAG(TokenAdd, "Fae.Token.Add")
+	UE_DEFINE_GAMEPLAY_TAG(TokenRemove, "Fae.Token.Remove")
+	UE_DEFINE_GAMEPLAY_TAG(TokenGenericPropertyEdit, "Fae.Token.GenericPropertyEdit")
+}
 
 #if WITH_EDITOR
 // This is really the module startup time, since this is set whenever this module loads :)
@@ -32,7 +40,11 @@ void UFaerieItem::PreSave(FObjectPreSaveContext SaveContext)
 void UFaerieItem::PostLoad()
 {
 	Super::PostLoad();
+
+#if WITH_EDITOR
+	// Items loaded from disk in shipping builds don't need to re-cache this.
 	CacheTokenMutability();
+#endif
 }
 
 void UFaerieItem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -41,12 +53,37 @@ void UFaerieItem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifet
 
 	FDoRepLifetimeParams SharedParams;
 	SharedParams.bIsPushBased = true;
+
+	// For Tokens & LastModified, they only need to replicate past the initial bunch if they are mutable.
+	SharedParams.Condition = COND_None;
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, Tokens, SharedParams);
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, LastModified, SharedParams);
+
+	// Mutability doesn't change after the initial token setup, so it only needs to be sent on the first rep.
+	SharedParams.Condition = COND_InitialOnly;
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, MutabilityFlags, SharedParams);
 }
 
-void UFaerieItem::ForEachToken(const TFunctionRef<bool(const UFaerieItemToken*)>& Iter) const
+
+void UFaerieItem::GetReplicatedCustomConditionState(FCustomPropertyConditionState& OutActiveState) const
+{
+	Super::GetReplicatedCustomConditionState(OutActiveState);
+
+	if (IsDataMutable())
+	{
+		// Replicate mutable data unconditionally.
+		DOREPDYNAMICCONDITION_INITCONDITION_FAST(ThisClass, Tokens, COND_None);
+		DOREPDYNAMICCONDITION_INITCONDITION_FAST(ThisClass, LastModified, COND_None);
+	}
+	else
+	{
+		// Replicate immutable data only in the initial bunch.
+		DOREPDYNAMICCONDITION_INITCONDITION_FAST(ThisClass, Tokens, COND_InitialOnly);
+		DOREPDYNAMICCONDITION_INITCONDITION_FAST(ThisClass, LastModified, COND_InitialOnly);
+	}
+}
+
+void UFaerieItem::ForEachToken(const TFunctionRef<bool(const TObjectPtr<UFaerieItemToken>&)>& Iter) const
 {
 	for (auto&& Token : Tokens)
 	{
@@ -60,7 +97,7 @@ void UFaerieItem::ForEachToken(const TFunctionRef<bool(const UFaerieItemToken*)>
 	}
 }
 
-void UFaerieItem::ForEachTokenOfClass(const TFunctionRef<bool(const UFaerieItemToken*)>& Iter, const TSubclassOf<UFaerieItemToken> Class) const
+void UFaerieItem::ForEachTokenOfClass(const TFunctionRef<bool(const TObjectPtr<UFaerieItemToken>&)>& Iter, const TSubclassOf<UFaerieItemToken>& Class) const
 {
 	for (auto&& Token : Tokens)
 	{
@@ -74,25 +111,81 @@ void UFaerieItem::ForEachTokenOfClass(const TFunctionRef<bool(const UFaerieItemT
 	}
 }
 
-UFaerieItem* UFaerieItem::CreateInstance()
+UFaerieItem* UFaerieItem::CreateEmptyInstance(const EFaerieItemMutabilityFlags Flags)
 {
-	UFaerieItem* Instance = NewObject<UFaerieItem>(GetTransientPackage());
-	EnumAddFlags(Instance->MutabilityFlags, EFaerieItemMutabilityFlags::InstanceMutability);
+	UFaerieItem* Instance = NewObject<UFaerieItem>();
+	EnumAddFlags(Instance->MutabilityFlags, Flags | EFaerieItemMutabilityFlags::InstanceMutability);
 	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, MutabilityFlags, Instance);
 	Instance->LastModified = FDateTime::UtcNow();
 	return Instance;
 }
 
-UFaerieItem* UFaerieItem::CreateDuplicate() const
+UFaerieItem* UFaerieItem::CreateInstance(const EFaerieItemMutabilityFlags Flags) const
 {
-	UFaerieItem* Duplicate = DuplicateObject(this, GetTransientPackage());
-	EnumAddFlags(Duplicate->MutabilityFlags, EFaerieItemMutabilityFlags::InstanceMutability);
+	const bool ShouldCreateDuplicate = [this, Flags]
+	{
+		if (EnumHasAnyFlags(Flags, EFaerieItemMutabilityFlags::ForbidTokenMutability))
+		{
+			return false;
+		}
+		if (EnumHasAnyFlags(Flags, EFaerieItemMutabilityFlags::AlwaysTokenMutable))
+		{
+			return true;
+		}
+
+		// Default to cached state.
+		return IsDataMutable();
+	}();
+
+	UFaerieItem* NewInstance;
+
+	if (ShouldCreateDuplicate)
+	{
+		// Make a copy of the static item stored in this asset if we might need to modify the data
+		NewInstance = CreateDuplicate(Flags);
+	}
+	else
+	{
+		// If the item is not mutable, we can just reference the single copy of it.
+		// @todo instead of const_cast, return const safe struct wrapper.
+		NewInstance = const_cast<ThisClass*>(this);
+	}
+
+	return NewInstance;
+}
+
+UFaerieItem* UFaerieItem::CreateDuplicate(const EFaerieItemMutabilityFlags Flags) const
+{
+	UFaerieItem* Duplicate = NewObject<UFaerieItem>();
+	EnumAddFlags(Duplicate->MutabilityFlags, Flags | EFaerieItemMutabilityFlags::InstanceMutability);
 	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, MutabilityFlags, Duplicate);
+
+	// Add our tokens to the new object.
+	ForEachToken(
+		[Duplicate](const TObjectPtr<UFaerieItemToken>& Token)
+		{
+			// Mutable tokens must be duplicated.
+			if (Token->IsMutable())
+			{
+				Duplicate->Tokens.Add(Faerie::DuplicateObjectFromDiskForReplication(Token, Duplicate));
+			}
+			// Immutable tokens can be referenced from the asset directly.
+			else
+			{
+				Duplicate->Tokens.Add(Token);
+			}
+			return true;
+		});
+
+	// Initialize token mutability.
+	Duplicate->CacheTokenMutability();
+
 	Duplicate->LastModified = FDateTime::UtcNow();
+
 	return Duplicate;
 }
 
-const UFaerieItemToken* UFaerieItem::GetToken(const TSubclassOf<UFaerieItemToken> Class) const
+const UFaerieItemToken* UFaerieItem::GetToken(const TSubclassOf<UFaerieItemToken>& Class) const
 {
 	if (!ensure(IsValid(Class)))
 	{
@@ -115,7 +208,7 @@ const UFaerieItemToken* UFaerieItem::GetToken(const TSubclassOf<UFaerieItemToken
 	return nullptr;
 }
 
-TArray<const UFaerieItemToken*> UFaerieItem::GetTokens(const TSubclassOf<UFaerieItemToken> Class) const
+TArray<const UFaerieItemToken*> UFaerieItem::GetTokens(const TSubclassOf<UFaerieItemToken>& Class) const
 {
 	if (!ensure(IsValid(Class)))
 	{
@@ -138,7 +231,7 @@ TArray<const UFaerieItemToken*> UFaerieItem::GetTokens(const TSubclassOf<UFaerie
 	return OutTokens;
 }
 
-UFaerieItemToken* UFaerieItem::GetMutableToken(const TSubclassOf<UFaerieItemToken> Class)
+UFaerieItemToken* UFaerieItem::GetMutableToken(const TSubclassOf<UFaerieItemToken>& Class)
 {
 	if (!ensure(IsValid(Class)) ||
 		!ensure(Class != UFaerieItemToken::StaticClass()) ||
@@ -158,7 +251,7 @@ UFaerieItemToken* UFaerieItem::GetMutableToken(const TSubclassOf<UFaerieItemToke
 	return nullptr;
 }
 
-TArray<UFaerieItemToken*> UFaerieItem::GetMutableTokens(const TSubclassOf<UFaerieItemToken> Class)
+TArray<UFaerieItemToken*> UFaerieItem::GetMutableTokens(const TSubclassOf<UFaerieItemToken>& Class)
 {
 	if (!ensure(IsValid(Class)) ||
 		!ensure(Class != UFaerieItemToken::StaticClass()) ||
@@ -274,7 +367,7 @@ void UFaerieItem::AddToken(UFaerieItemToken* Token)
 		return;
 	}
 
-	if (!ensure(IsInstanceMutable()))
+	if (!ensure(CanMutate()))
 	{
 		return;
 	}
@@ -289,7 +382,7 @@ void UFaerieItem::AddToken(UFaerieItemToken* Token)
 	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Tokens, this);
 	Tokens.Add(Token);
 
-	CacheTokenMutability();
+	(void)NotifyOwnerOfSelfMutation.ExecuteIfBound(this, Token, Faerie::Tags::TokenAdd);
 }
 
 bool UFaerieItem::RemoveToken(UFaerieItemToken* Token)
@@ -299,7 +392,7 @@ bool UFaerieItem::RemoveToken(UFaerieItemToken* Token)
 		return false;
 	}
 
-	if (!ensure(IsInstanceMutable()))
+	if (!ensure(CanMutate()))
 	{
 		return false;
 	}
@@ -310,6 +403,8 @@ bool UFaerieItem::RemoveToken(UFaerieItemToken* Token)
 
 		LastModified = FDateTime::UtcNow();
 		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, LastModified, this);
+
+		(void)NotifyOwnerOfSelfMutation.ExecuteIfBound(this, Token, Faerie::Tags::TokenRemove);
 
 		return true;
 	}
@@ -329,15 +424,22 @@ int32 UFaerieItem::RemoveTokensByClass(const TSubclassOf<UFaerieItemToken> Class
 		return 0;
 	}
 
-	if (!ensure(IsInstanceMutable()))
+	if (!ensure(CanMutate()))
 	{
 		return 0;
 	}
 
+	TArray<const UFaerieItemToken*> TokensRemoved;
+
 	if (const int32 Removed = Tokens.RemoveAll(
-		[Class](const UFaerieItemToken* Token)
+		[Class, this, &TokensRemoved](const UFaerieItemToken* Token)
 		{
-			return IsValid(Token) && Token->GetClass() == Class;
+			const bool Removing = IsValid(Token) && Token->GetClass() == Class;
+			if (Removing)
+			{
+				TokensRemoved.Add(Token);
+			}
+			return Removing;
 		}))
 	{
 		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Tokens, this);
@@ -345,11 +447,33 @@ int32 UFaerieItem::RemoveTokensByClass(const TSubclassOf<UFaerieItemToken> Class
 		LastModified = FDateTime::UtcNow();
 		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, LastModified, this);
 
+		for (auto&& Token : TokensRemoved)
+		{
+			(void)NotifyOwnerOfSelfMutation.ExecuteIfBound(this, Token, Faerie::Tags::TokenRemove);
+		}
+
 		return Removed;
 	}
 
 	return 0;
 }
+
+/*
+EFaerieItemSourceType UFaerieItem::GetSourceType() const
+{
+	if (GetTypedOuter())
+	{
+		// @todo how to determine Dynamic / Asset outer
+	}
+	if (GetPackage() == GetTransientPackage())
+	{
+		// We are a dynamic that is currently unowned.
+		return EFaerieItemSourceType::Dynamic;
+	}
+
+	return EFaerieItemSourceType::Asset;
+}
+*/
 
 bool UFaerieItem::IsInstanceMutable() const
 {
@@ -361,34 +485,64 @@ bool UFaerieItem::IsDataMutable() const
 	return EnumHasAllFlags(MutabilityFlags, EFaerieItemMutabilityFlags::TokenMutability);
 }
 
+bool UFaerieItem::CanMutate() const
+{
+	return EnumHasAllFlags(MutabilityFlags, EFaerieItemMutabilityFlags::InstanceMutability | EFaerieItemMutabilityFlags::TokenMutability);
+}
+
 void UFaerieItem::OnTokenEdited(const UFaerieItemToken* Token)
 {
-	check(IsDataMutable())
+	check(CanMutate())
 	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, LastModified, this);
 	LastModified = FDateTime::UtcNow();
-	NotifyOwnerOfSelfMutation.ExecuteIfBound(this, Token);
+	(void)NotifyOwnerOfSelfMutation.ExecuteIfBound(this, Token, Faerie::Tags::TokenGenericPropertyEdit);
 }
 
 void UFaerieItem::CacheTokenMutability()
 {
-	// If any token has mutable data, mark this item with the TokenMutability flag.
-	for (auto&& Token : Tokens)
+	const bool DeterminedToBeMutable = [this]
 	{
-		if (IsValid(Token) && Token->IsMutable())
+		if (EnumHasAnyFlags(MutabilityFlags, EFaerieItemMutabilityFlags::ForbidTokenMutability))
 		{
-			if (!EnumHasAnyFlags(MutabilityFlags, EFaerieItemMutabilityFlags::TokenMutability))
+			return false;
+		}
+
+		if (EnumHasAnyFlags(MutabilityFlags, EFaerieItemMutabilityFlags::AlwaysTokenMutable))
+		{
+			return true;
+		}
+
+		// If any token has mutable data, mark this item with the TokenMutability flag.
+		for (auto&& Token : Tokens)
+		{
+			if (IsValid(Token) && Token->IsMutable())
 			{
-				MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, MutabilityFlags, this);
-				EnumAddFlags(MutabilityFlags, EFaerieItemMutabilityFlags::TokenMutability);
+				return true;
 			}
-			return;
+		}
+
+		// No token needs mutability, so without a flag to say otherwise, assume mutability as false.
+		return false;
+	}();
+
+	if (DeterminedToBeMutable)
+	{
+		// If determined to be true, mark this item with the TokenMutability flag.
+		if (!EnumHasAnyFlags(MutabilityFlags, EFaerieItemMutabilityFlags::TokenMutability))
+		{
+			MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, MutabilityFlags, this);
+			EnumAddFlags(MutabilityFlags, EFaerieItemMutabilityFlags::TokenMutability);
+			(void)MarkPackageDirty();
 		}
 	}
-
-	// Otherwise, make sure we *don't* have that flag.
-	if (EnumHasAnyFlags(MutabilityFlags, EFaerieItemMutabilityFlags::TokenMutability))
+	else
 	{
-		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, MutabilityFlags, this);
-		EnumRemoveFlags(MutabilityFlags, EFaerieItemMutabilityFlags::TokenMutability);
+		// Otherwise, make sure we *don't* have that flag.
+		if (EnumHasAnyFlags(MutabilityFlags, EFaerieItemMutabilityFlags::TokenMutability))
+		{
+			MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, MutabilityFlags, this);
+			EnumRemoveFlags(MutabilityFlags, EFaerieItemMutabilityFlags::TokenMutability);
+			(void)MarkPackageDirty();
+		}
 	}
 }

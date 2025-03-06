@@ -67,7 +67,7 @@ public:
 	virtual int32 GetStack(FEntryKey Key) const PURE_VIRTUAL(UFaerieItemContainerBase::GetStack, return 0; )
 
 protected:
-	virtual void OnItemMutated(const UFaerieItem* Item, const UFaerieItemToken* Token);
+	virtual void OnItemMutated(const UFaerieItem* Item, const UFaerieItemToken* Token, FGameplayTag EditTag);
 
 	// This function must be called by child classes when binding items to new keys.
 	void ReleaseOwnership(UFaerieItem* Item);

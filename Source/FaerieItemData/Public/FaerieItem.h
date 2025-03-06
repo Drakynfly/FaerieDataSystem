@@ -3,28 +3,60 @@
 #pragma once
 
 #include "FaerieItemToken.h"
+#include "GameplayTagContainer.h"
+#include "NativeGameplayTags.h"
 #include "TypeCastingUtils.h"
 
 #include "FaerieItem.generated.h"
 
-UENUM()
+UENUM(Meta = (Bitflags, UseEnumValuesAsMaskValuesInEditor = "true"))
 enum class EFaerieItemMutabilityFlags : uint8
 {
-	None,
+	None = 0,
 
 	// 'Instance Mutability' is a required flag for item instances to be changed after construction. Without this flag,
 	// items are understood to be forever immutable because it either lives in a package, or other outer that is static
 	// and itself cannot be changed, regardless of whether the instance has Token Mutability enabled.
 	// Items created at runtime or duplicated from static instances have this flag enabled by default.
 	// (See the definitions of CreateInstance / CreateDuplicate)
-	InstanceMutability,
+	InstanceMutability = 1 << 0,
 
 	// 'Token Mutability' says that this item has one or more tokens that request the ability to mutate their internal state.
-	TokenMutability
+	// Mutability at runtime is only allowed if InstanceMutability is also enabled.
+	TokenMutability = 1 << 1,
+
+	// Enable to make all instances of this item mutable, even if no current Tokens request mutability. This is usually
+	// required when making an item template expected to have a mutable token added dynamically at runtime, but
+	// doesn't have any mutable tokens added by the editor.
+	AlwaysTokenMutable = 1 << 2,
+
+	// Prevent token mutation at runtime, even if TokenMutability is enabled.
+	ForbidTokenMutability = 1 << 3,
 };
 ENUM_CLASS_FLAGS(EFaerieItemMutabilityFlags)
 
-using FNotifyOwnerOfSelfMutation = TDelegate<void(const class UFaerieItem*, const class UFaerieItemToken*)>;
+/*
+UENUM(BlueprintType)
+enum class EFaerieItemSourceType : uint8
+{
+	// This item instance is a reference to an asset that lives on disk. Replication is by name/netguid only, thus mutation is disallowed.
+	// To add/remove/edit tokens, a duplicate of this item must be made. (UFaerieItem::CreateDuplicate)
+	Asset,
+
+	// This item instance was dynamically created at runtime, and lives only in memory. The entire object is replicated,
+	// and token editing is enabled if TokenMutability is set on the MutabilityFlags (determined by source asset if ever allowable).
+	Dynamic
+};
+*/
+
+using FNotifyOwnerOfSelfMutation = TDelegate<void(const class UFaerieItem*, const class UFaerieItemToken*, FGameplayTag)>;
+
+namespace Faerie::Tags
+{
+	FAERIEITEMDATA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TokenAdd)
+	FAERIEITEMDATA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TokenRemove)
+	FAERIEITEMDATA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TokenGenericPropertyEdit)
+}
 
 /**
  * A runtime instance of an item.
@@ -38,22 +70,25 @@ class FAERIEITEMDATA_API UFaerieItem : public UNetSupportedObject
 	friend class UFaerieItemAsset;
 
 public:
+	//~ Begin UObject interface
 	virtual void PreSave(FObjectPreSaveContext SaveContext) override;
 	virtual void PostLoad() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void GetReplicatedCustomConditionState(FCustomPropertyConditionState& OutActiveState) const override;
+	//~ Emd UObject interface
 
 	// Iterates over each contained token. Return true in the delegate to continue iterating.
-	void ForEachToken(const TFunctionRef<bool(const UFaerieItemToken*)>& Iter) const;
+	void ForEachToken(const TFunctionRef<bool(const TObjectPtr<UFaerieItemToken>&)>& Iter) const;
 
 	// Iterates over each contained token. Return true in the delegate to continue iterating.
-	void ForEachTokenOfClass(const TFunctionRef<bool(const UFaerieItemToken*)>& Iter, TSubclassOf<UFaerieItemToken> Class) const;
+	void ForEachTokenOfClass(const TFunctionRef<bool(const TObjectPtr<UFaerieItemToken>&)>& Iter, const TSubclassOf<UFaerieItemToken>& Class) const;
 
 	// Iterates over each contained token. Return true in the delegate to continue iterating.
 	template <
 		typename TFaerieItemToken
 		UE_REQUIRES(TIsDerivedFrom<TFaerieItemToken, UFaerieItemToken>::Value)
 	>
-	void ForEachToken(const TFunctionRef<bool(const TFaerieItemToken*)>& Iter) const
+	void ForEachToken(const TFunctionRef<bool(const TObjectPtr<TFaerieItemToken>&)>& Iter) const
 	{
 		for (auto&& Token : Tokens)
 		{
@@ -67,18 +102,21 @@ public:
 		}
 	}
 
-	// Creates a new faerie item object. These are instance-mutable by default.
-	static UFaerieItem* CreateInstance();
+	// Creates a new faerie item object with no tokens. These are instance-mutable by default.
+	static UFaerieItem* CreateEmptyInstance(EFaerieItemMutabilityFlags Flags = EFaerieItemMutabilityFlags::None);
+
+	// Creates a new faerie item object using this instance as a template. Instance-mutable only if required by item or flags.
+	UFaerieItem* CreateInstance(EFaerieItemMutabilityFlags Flags = EFaerieItemMutabilityFlags::None) const;
 
 	// Creates a new faerie item object using this instance as a template. Duplicates are instance-mutable by default.
-	UFaerieItem* CreateDuplicate() const;
+	UFaerieItem* CreateDuplicate(EFaerieItemMutabilityFlags Flags = EFaerieItemMutabilityFlags::None) const;
 
 	TConstArrayView<TObjectPtr<UFaerieItemToken>> GetTokens() const { return Tokens; }
 
-	const UFaerieItemToken* GetToken(TSubclassOf<UFaerieItemToken> Class) const;
-	TArray<const UFaerieItemToken*> GetTokens(TSubclassOf<UFaerieItemToken> Class) const;
-	UFaerieItemToken* GetMutableToken(TSubclassOf<UFaerieItemToken> Class);
-	TArray<UFaerieItemToken*> GetMutableTokens(TSubclassOf<UFaerieItemToken> Class);
+	const UFaerieItemToken* GetToken(const TSubclassOf<UFaerieItemToken>& Class) const;
+	TArray<const UFaerieItemToken*> GetTokens(const TSubclassOf<UFaerieItemToken>& Class) const;
+	UFaerieItemToken* GetMutableToken(const TSubclassOf<UFaerieItemToken>& Class);
+	TArray<UFaerieItemToken*> GetMutableTokens(const TSubclassOf<UFaerieItemToken>& Class);
 
 	template <
 		typename TFaerieItemToken
@@ -129,33 +167,44 @@ protected:
 	void FindTokens(TSubclassOf<UFaerieItemToken> Class, TArray<UFaerieItemToken*>& FoundTokens) const;
 
 public:
-	UFUNCTION(BlueprintCallable, Category = "FaerieItem")
+	UFUNCTION(BlueprintCallable, Category = "FaerieItem", BlueprintAuthorityOnly)
 	void AddToken(UFaerieItemToken* Token);
 
-	UFUNCTION(BlueprintCallable, Category = "FaerieItem")
+	UFUNCTION(BlueprintCallable, Category = "FaerieItem", BlueprintAuthorityOnly)
 	bool RemoveToken(UFaerieItemToken* Token);
 
-	UFUNCTION(BlueprintCallable, Category = "FaerieItem")
+	UFUNCTION(BlueprintCallable, Category = "FaerieItem", BlueprintAuthorityOnly)
 	int32 RemoveTokensByClass(TSubclassOf<UFaerieItemToken> Class);
 
 	UFUNCTION(BlueprintCallable, Category = "FaerieItem")
 	FDateTime GetLastModified() const { return LastModified; }
 
-	// Can this item object be changed whatsoever at runtime? This is not available for static or precached items.
+	/*
+	UFUNCTION(BlueprintCallable, Category = "FaerieItem")
+	EFaerieItemSourceType GetSourceType() const;
+	*/
+
+	// Can this item object be changed whatsoever at runtime? This is not available for asset-referenced or precached items.
 	UFUNCTION(BlueprintCallable, Category = "FaerieItem")
 	bool IsInstanceMutable() const;
 
-	// Can the data in the tokens of this item change at runtime? Only true if also instance mutable.
+	// Are the tokens in this item capable of being changed at runtime?
 	UFUNCTION(BlueprintCallable, Category = "FaerieItem")
 	bool IsDataMutable() const;
 
+	// Does this item instance meet all requirements to have its tokens mutated at runtime? See EFaerieItemMutabilityFlags.
+	// This is equivalent to IsInstanceMutable && IsDataMutable.
+	UFUNCTION(BlueprintCallable, Category = "FaerieItem")
+	bool CanMutate() const;
+
 protected:
+	// Called by our own tokens when they are edited.
 	void OnTokenEdited(const UFaerieItemToken* Token);
 
 	void CacheTokenMutability();
 
 public:
-	FNotifyOwnerOfSelfMutation& GetNotifyOwnerOfSelfMutation() { return NotifyOwnerOfSelfMutation; }
+	FNotifyOwnerOfSelfMutation::RegistrationType& GetNotifyOwnerOfSelfMutation() { return NotifyOwnerOfSelfMutation; }
 
 protected:
 	UPROPERTY(Replicated, VisibleInstanceOnly, Category = "FaerieItem")
@@ -169,9 +218,11 @@ protected:
 
 	// Mutability flags.
 	// In order for an item instance to be changed at runtime, it must have no mutually exclusive flags.
+	// This is only set once at item creation, and cannot change after.
 	UPROPERTY(Replicated, VisibleInstanceOnly, Category = "FaerieItem")
 	EFaerieItemMutabilityFlags MutabilityFlags;
 
+private:
 	// Delegate for owners to bind to, for detecting when tokens are mutated outside their knowledge
 	FNotifyOwnerOfSelfMutation NotifyOwnerOfSelfMutation;
 };

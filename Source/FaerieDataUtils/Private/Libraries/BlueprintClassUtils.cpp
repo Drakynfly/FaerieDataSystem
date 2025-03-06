@@ -4,13 +4,19 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(BlueprintClassUtils)
 
-UObject* UBlueprintClassUtils::GetTypedOuter(UObject* Object, const TSubclassOf<UObject> Class)
+UPackage* UBlueprintClassUtils::GetPackage(const UObject* Object)
+{
+	if (!IsValid(Object)) return nullptr;
+	return Object->GetPackage();
+}
+
+UObject* UBlueprintClassUtils::GetTypedOuter(const UObject* Object, const TSubclassOf<UObject> Class)
 {
 	if (!IsValid(Object)) return nullptr;
 	return Object->GetTypedOuter(Class);
 }
 
-USceneComponent* UBlueprintClassUtils::GetTypedParent(USceneComponent* Component, const TSubclassOf<USceneComponent> Class)
+USceneComponent* UBlueprintClassUtils::GetTypedParent(const USceneComponent* Component, const TSubclassOf<USceneComponent> Class)
 {
 	if (!IsValid(Component)) return nullptr;
 

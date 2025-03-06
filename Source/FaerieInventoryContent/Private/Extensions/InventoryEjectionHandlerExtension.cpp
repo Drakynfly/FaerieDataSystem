@@ -39,7 +39,7 @@ void UInventoryEjectionHandlerExtension::PostRemoval(const UFaerieItemContainerB
 	FFaerieItemStack Stack;
 	Stack.Copies = Event.Amount;
 
-	if (Event.Item->IsDataMutable())
+	if (Event.Item->CanMutate())
 	{
 		// @todo figure out handling ejection of stacks
 		check(Stack.Copies == 1);

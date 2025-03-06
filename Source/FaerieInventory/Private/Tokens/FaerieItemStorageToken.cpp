@@ -28,7 +28,7 @@ TSet<UFaerieItemContainerBase*> UFaerieItemContainerToken::GetAllContainersInIte
 	TSet<UFaerieItemContainerBase*> Containers;
 
 	Item->ForEachToken<UFaerieItemContainerToken>(
-		[&Containers](const UFaerieItemContainerToken* Token)
+		[&Containers](const TObjectPtr<UFaerieItemContainerToken>& Token)
 		{
 			Containers.Add(Token->ItemContainer);
 			return true;
@@ -45,7 +45,7 @@ TSet<UFaerieItemContainerBase*> UFaerieItemContainerToken::GetContainersInItemOf
 	TSet<UFaerieItemContainerBase*> Containers;
 
 	Item->ForEachToken<UFaerieItemContainerToken>(
-		[&Containers, Class](const UFaerieItemContainerToken* Token)
+		[&Containers, Class](const TObjectPtr<UFaerieItemContainerToken>& Token)
 		{
 			if (Token->ItemContainer->IsA(Class))
 			{

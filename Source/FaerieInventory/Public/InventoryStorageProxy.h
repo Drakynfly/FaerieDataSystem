@@ -81,6 +81,8 @@ protected:
 	// -1 means that this Entry has never received a NotifyCreation and is not-yet-valid or invalid.
 	// 0 means that this Entry has received a NotifyCreation, but no NotifyUpdate.
 	// Numbers greater increment the Updates we have received.
+	// This number is not guaranteed to match between server and client, or between clients. It is purely the record of
+	// how many times a machine has received a new version.
 	UPROPERTY(BlueprintReadOnly, Category = "Entry Cache")
 	int32 LocalItemVersion = -1;
 

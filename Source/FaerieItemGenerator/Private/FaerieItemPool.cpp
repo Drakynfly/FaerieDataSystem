@@ -65,6 +65,20 @@ void FFaerieWeightedDropPool::SortTable()
 {
 	Algo::SortBy(DropList, &FWeightedDrop::Weight);
 }
+
+namespace Faerie::Editor
+{
+	bool HasMutableDrops(const TArray<FWeightedDrop>& Table)
+	{
+		return Algo::AnyOf(Table,
+			[](const FWeightedDrop& Drop)
+			{
+				auto&& Interface = Cast<IFaerieItemSource>(Drop.Drop.Asset.Object.LoadSynchronous());
+				return Interface && Interface->CanBeMutable();
+			});
+	}
+}
+
 #endif
 
 UFaerieItemPool::UFaerieItemPool()
@@ -79,12 +93,7 @@ void UFaerieItemPool::PreSave(FObjectPreSaveContext SaveContext)
 #if WITH_EDITOR
 	DropPool.SortTable();
 
-	HasMutableDrops = Algo::AnyOf(DropPool.DropList,
-		[](const FWeightedDrop& Drop)
-		{
-			auto&& Interface = Cast<IFaerieItemSource>(Drop.Drop.Asset.Object.LoadSynchronous());
-			return Interface && Interface->CanBeMutable();
-		});
+	HasMutableDrops = Faerie::Editor::HasMutableDrops(DropPool.DropList);
 #endif
 }
 
@@ -143,41 +152,47 @@ void UFaerieItemPool::PostEditChangeChainProperty(FPropertyChangedChainEvent& Pr
 	Super::PostEditChangeChainProperty(PropertyChangedEvent);
 	DropPool.CalculatePercentages();
 }
+
 #endif
+
+bool UFaerieItemPool::CanBeMutable() const
+{
+#if WITH_EDITOR
+	// In the editor, return a value made on the fly. This is so that this works in PIE even after editing an item,
+	// but without re-saving this pool yet.
+	return Faerie::Editor::HasMutableDrops(DropPool.DropList);
+#else
+	// At runtime, return the precalculated value.
+	return HasMutableDrops;
+#endif
+}
 
 FFaerieAssetInfo UFaerieItemPool::GetSourceInfo() const
 {
 	return TableInfo;
 }
 
-UFaerieItem* UFaerieItemPool::CreateItemInstance(UObject* Outer) const
-{
-	return nullptr;
-}
-
 UFaerieItem* UFaerieItemPool::CreateItemInstance(const UItemInstancingContext* Context) const
 {
 	const UItemInstancingContext_Crafting* CraftingContent = Cast<UItemInstancingContext_Crafting>(Context);
-
 	if (!IsValid(CraftingContent))
 	{
+		UE_LOG(LogTemp, Error, TEXT("UFaerieItemPool requires a Content of type UItemInstancingContext_Crafting!"));
 		return nullptr;
 	}
 
-	FTableDrop Drop;
+	const FTableDrop* Drop = [this, CraftingContent]
+		{
+			if (IsValid(CraftingContent->Squirrel))
+			{
+				return GetDrop_Seeded(CraftingContent->Squirrel);
+			}
+			return GetDrop(FMath::FRand());
+		}();
 
-	if (IsValid(CraftingContent->Squirrel))
+	if (Drop && Drop->IsValid())
 	{
-		Drop = GenerateDrop(CraftingContent->Squirrel->NextReal());
-	}
-	else
-	{
-		Drop = GenerateDrop(FMath::FRand());
-	}
-
-	if (Drop.IsValid())
-	{
-		return Drop.Resolve(CraftingContent);
+		return Drop->Resolve(CraftingContent);
 	}
 
 	return nullptr;
