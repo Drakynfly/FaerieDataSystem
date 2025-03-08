@@ -29,15 +29,15 @@ class FAERIEITEMDATA_API IFaerieItemDataProxy
 public:
 	// Get the Item Definition Object that this proxy represents.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataProxy")
-	virtual const UFaerieItem* GetItemObject() const PURE_VIRTUAL(UFaerieItemDataProxy::GetItemData, return nullptr; )
+	virtual const UFaerieItem* GetItemObject() const PURE_VIRTUAL(IFaerieItemDataProxy::GetItemData, return nullptr; )
 
 	// Get the number of copies this proxy may access.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataProxy")
-	virtual int32 GetCopies() const PURE_VIRTUAL(UFaerieItemDataProxy::GetCopies, return -1; )
+	virtual int32 GetCopies() const PURE_VIRTUAL(IFaerieItemDataProxy::GetCopies, return -1; )
 
 	// Get the Object that owns the item this proxy represents.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataProxy")
-	virtual TScriptInterface<IFaerieItemOwnerInterface> GetOwner() const PURE_VIRTUAL(UFaerieItemDataProxy::GetOwner, return nullptr; )
+	virtual TScriptInterface<IFaerieItemOwnerInterface> GetOwner() const PURE_VIRTUAL(IFaerieItemDataProxy::GetOwner, return nullptr; )
 };
 
 

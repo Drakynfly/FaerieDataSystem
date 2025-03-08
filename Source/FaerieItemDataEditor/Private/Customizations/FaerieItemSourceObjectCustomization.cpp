@@ -8,7 +8,7 @@
 
 TSharedRef<IPropertyTypeCustomization> FFaerieItemSourceObjectCustomization::MakeInstance()
 {
-	return MakeShareable(new FFaerieItemSourceObjectCustomization());
+	return MakeShared<FFaerieItemSourceObjectCustomization>();
 }
 
 void FFaerieItemSourceObjectCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> PropertyHandle,

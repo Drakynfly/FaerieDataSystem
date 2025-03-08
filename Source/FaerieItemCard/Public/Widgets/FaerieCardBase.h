@@ -17,14 +17,22 @@ class FAERIEITEMCARD_API UFaerieCardBase : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	virtual void NativeConstruct() override;
+	//~ UObject
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
+	//~ UObject
+
+	//~ UUserWidget
+	virtual void NativeConstruct() override;
+	//~ UUserWidget
 
 	void SetItemData(FFaerieItemProxy InItemProxy, bool bRefresh);
 
 	FFaerieItemProxy GetItemData() const { return ItemProxy; }
 
 	FOnCardRefreshed::RegistrationType& GetOnCardRefreshed() { return OnCardRefreshed; }
+
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemCard")
+	FFaerieItemStackView GetStackView() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemCard")
 	void Refresh();

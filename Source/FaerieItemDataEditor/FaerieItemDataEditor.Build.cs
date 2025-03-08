@@ -13,16 +13,23 @@ public class FaerieItemDataEditor : ModuleRules
             {
                 "Core",
                 "FaerieItemData",
-                "FaerieDataSystemEditor"
+                "FaerieDataSystemEditor",
+                "GameplayTags",
+                "InputCore",
+                "UMG",
+                "UMGWidgetPreview"
             }
         );
 
         PrivateDependencyModuleNames.AddRange(
             new []
             {
+                "AdvancedPreviewScene",
                 "AssetDefinition",
                 "CoreUObject",
                 "Engine",
+                "FaerieItemCard",
+                "FaerieItemMesh",
                 "Slate",
                 "SlateCore",
                 "UnrealEd"

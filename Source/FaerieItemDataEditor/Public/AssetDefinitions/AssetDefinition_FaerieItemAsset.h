@@ -31,5 +31,6 @@ public:
 	{
 		return Faerie::Editor::DefaultCategories;
 	}
+	virtual EAssetCommandResult OpenAssets(const FAssetOpenArgs& OpenArgs) const override;
 	// UAssetDefinition End
 };

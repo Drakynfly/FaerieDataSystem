@@ -59,9 +59,10 @@ const UFaerieItem* UFaerieCardTokenBase::GetItem() const
 {
 	if (auto&& Card = GetOwningCard())
 	{
-		if (auto&& ItemObj = Card->GetItemData().GetItemObject())
+		if (auto&& ItemObj = Card->GetStackView().Item;
+			ItemObj.IsValid())
 		{
-			return ItemObj;
+			return ItemObj.Get();
 		}
 	}
 	return nullptr;

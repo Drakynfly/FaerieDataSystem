@@ -5,9 +5,16 @@
 #include "FaerieDataSystemEditorModule.h"
 #include "Modules/ModuleManager.h"
 
+class FExtensibilityManager;
+
 class FFaerieItemDataEditorModule : public IFaerieDataSystemEditorModuleBase
 {
 public:
     virtual void StartupModule() override;
     virtual void ShutdownModule() override;
+
+    TSharedPtr<FExtensibilityManager> GetEditorToolbarExtensibilityManager() { return ToolbarExtensibilityManager; }
+
+private:
+    TSharedPtr<FExtensibilityManager> ToolbarExtensibilityManager;
 };

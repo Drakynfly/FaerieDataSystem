@@ -41,6 +41,7 @@ public:
 	// Gets a const ptr to the archetype item this asset generates.
 	// ONLY AVAILABLE IN EDITOR!
 	const UFaerieItem* GetEditorItemView() const { return Item; }
+	TConstArrayView<TObjectPtr<UFaerieItemToken>> GetEditorTokensView() const { return Tokens; }
 #endif
 
 protected:
