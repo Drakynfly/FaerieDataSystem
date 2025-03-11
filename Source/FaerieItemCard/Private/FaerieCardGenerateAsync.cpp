@@ -10,8 +10,7 @@
 
 bool UFaerieCardGenerateAsync::GenerateItemCard(APlayerController* OwningPlayer,
 												const TScriptInterface<IFaerieCardGeneratorInterface> Generator,
-												const FFaerieItemProxy Proxy, const FGameplayTag Tag,
-												const TSubclassOf<UFaerieItemCardToken> Type,
+												const FFaerieItemProxy Proxy, const FFaerieItemCardType Tag,
 												UFaerieCardBase*& Widget)
 {
 	if (Generator.GetInterface() == nullptr) return false;
@@ -23,14 +22,13 @@ bool UFaerieCardGenerateAsync::GenerateItemCard(APlayerController* OwningPlayer,
 		return false;
 	}
 
-	Widget = GeneratorImpl->Generate(Faerie::Card::FSyncGeneration(OwningPlayer, Proxy, Tag, Type));
+	Widget = GeneratorImpl->Generate(Faerie::Card::FSyncGeneration(OwningPlayer, Proxy, Tag));
 	return IsValid(Widget);
 }
 
 UFaerieCardGenerateAsync* UFaerieCardGenerateAsync::GenerateItemCardAsync(APlayerController* OwningPlayer,
 	const TScriptInterface<IFaerieCardGeneratorInterface> Generator, const FFaerieItemProxy Proxy,
-	const FGameplayTag Tag,
-	const TSubclassOf<UFaerieItemCardToken> Type)
+	const FFaerieItemCardType Tag)
 {
 	if (!IsValid(Generator.GetObject()))
 	{
@@ -48,14 +46,13 @@ UFaerieCardGenerateAsync* UFaerieCardGenerateAsync::GenerateItemCardAsync(APlaye
 	AsyncAction->OwningPlayer = OwningPlayer;
 	AsyncAction->Proxy = Proxy;
 	AsyncAction->Tag = Tag;
-	AsyncAction->Class = Type;
 
 	return AsyncAction;
 }
 
 void UFaerieCardGenerateAsync::Activate()
 {
-	Generator->GenerateAsync(Faerie::Card::FAsyncGeneration(OwningPlayer, Proxy, Class, FFaerieCardGenerationResult::CreateUObject(this, &ThisClass::OnCardGenerationFinished)));
+	Generator->GenerateAsync(Faerie::Card::FAsyncGeneration(OwningPlayer, Proxy, Tag, FFaerieCardGenerationResult::CreateUObject(this, &ThisClass::OnCardGenerationFinished)));
 }
 
 void UFaerieCardGenerateAsync::OnCardGenerationFinished(const bool Success, UFaerieCardBase* Widget)

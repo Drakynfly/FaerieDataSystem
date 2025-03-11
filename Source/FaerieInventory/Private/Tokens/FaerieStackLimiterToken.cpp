@@ -13,13 +13,14 @@
 		return 0;
 	}
 
-	// Enforce stack limit to 1, if item has potential to have variation between instances
-	if (Item->CanMutate()) return 1;
-
+	// If the item has its own Limiter Token, defer to member function.
 	if (auto&& Limiter = Item->GetToken<UFaerieStackLimiterToken>())
 	{
 		return Limiter->GetStackLimit();
 	}
+
+	// Enforce stack limit to 1, if item has potential to have variation between instances
+	if (Item->CanMutate()) return 1;
 
 	// If no stack limiter is present, and the item is immutable, it can always stack
 	return Faerie::ItemData::UnlimitedStack;

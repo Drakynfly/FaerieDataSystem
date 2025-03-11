@@ -10,7 +10,7 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieCardGenerator)
 
-TSoftClassPtr<UFaerieCardBase> UFaerieCardGenerator::GetCardClassFromProxy(const FFaerieItemProxy Proxy, const FGameplayTag& Type) const
+TSoftClassPtr<UFaerieCardBase> UFaerieCardGenerator::GetCardClassFromProxy(const FFaerieItemProxy Proxy, const FFaerieItemCardType& Type) const
 {
 	auto&& Item = Proxy.GetItemObject();
 
@@ -45,7 +45,7 @@ UFaerieCardBase* UFaerieCardGenerator::Generate(const Faerie::Card::FSyncGenerat
 {
 	if (!Params.Proxy.IsValid() ||
 		!IsValid(Params.Player) ||
-		IsValid(Params.CardType))
+		!Params.Tag.IsValid())
 	{
 		UE_LOG(LogFaerieItemCard, Warning, TEXT("Invalid Params for generation!"))
 		return nullptr;
@@ -70,7 +70,7 @@ void UFaerieCardGenerator::GenerateAsync(const Faerie::Card::FAsyncGeneration& P
 {
 	if (!Params.Proxy.IsValid() ||
 		!IsValid(Params.Player) ||
-		!IsValid(Params.CardType))
+		!Params.Tag.IsValid())
 	{
 		UE_LOG(LogFaerieItemCard, Warning, TEXT("Invalid Params for generation!"))
 		Params.Callback.ExecuteIfBound(false, nullptr);

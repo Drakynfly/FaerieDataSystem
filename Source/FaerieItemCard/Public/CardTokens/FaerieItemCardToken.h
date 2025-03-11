@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "FaerieItemCardTags.h"
 #include "FaerieItemToken.h"
 #include "FaerieItemCardToken.generated.h"
 
@@ -16,14 +17,14 @@ class FAERIEITEMCARD_API UFaerieItemCardToken : public UFaerieItemToken
 	GENERATED_BODY()
 
 public:
-	TSoftClassPtr<UFaerieCardBase> GetCardClass(FGameplayTag Tag) const;
+	TSoftClassPtr<UFaerieCardBase> GetCardClass(FFaerieItemCardType Tag) const;
 
 	UE_DEPRECATED(5.5, "Use overload that takes an FGameplayTag")
 	TSoftClassPtr<UFaerieCardBase> GetCardClass() const { return CardClass; }
 
 protected:
 	UPROPERTY(EditInstanceOnly, Category = "ItemCardToken")
-	TMap<FGameplayTag, TSoftClassPtr<UFaerieCardBase>> CardClasses;
+	TMap<FFaerieItemCardType, TSoftClassPtr<UFaerieCardBase>> CardClasses;
 
 	UE_DEPRECATED(5.5, "Replaced with Tag-based map, CardClasses")
 	UPROPERTY(EditInstanceOnly)

@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "FaerieItemCardTags.h"
 #include "UObject/Object.h"
 
 #include "Widgets/FaerieCardBase.h"
@@ -19,24 +20,23 @@ namespace Faerie::Card
 	{
 		APlayerController* Player;
 		FFaerieItemProxy Proxy;
-		FGameplayTag Tag;
-		TSubclassOf<UFaerieItemCardToken> CardType;
+		FFaerieItemCardType Tag;
 	};
 
 	struct FAsyncGeneration
 	{
-		FAsyncGeneration(APlayerController* Player, const FFaerieItemProxy ItemProxy,
-						 const TSubclassOf<UFaerieItemCardToken>& Type, const FFaerieCardGenerationResult& Callback)
+		FAsyncGeneration(APlayerController* Player, const FFaerieItemProxy ItemProxy, const FFaerieItemCardType Tag,
+						 const FFaerieCardGenerationResult& Callback)
 		  : Player(Player),
 			Proxy(ItemProxy),
-			CardType(Type),
+			Tag(Tag),
 			Callback(Callback) {}
 
-		FAsyncGeneration(APlayerController* Player, const FFaerieItemProxy ItemProxy,
-						 const TSubclassOf<UFaerieItemCardToken>& Type, const FFaerieCardGenerationResultDynamic& InCallback)
+		FAsyncGeneration(APlayerController* Player, const FFaerieItemProxy ItemProxy, const FFaerieItemCardType Tag,
+						 const FFaerieCardGenerationResultDynamic& InCallback)
 		  : Player(Player),
 			Proxy(ItemProxy),
-			CardType(Type)
+			Tag(Tag)
 		{
 			if (Callback.IsBound())
 			{
@@ -49,8 +49,7 @@ namespace Faerie::Card
 
 		APlayerController* Player;
 		FFaerieItemProxy Proxy;
-		FGameplayTag Tag;
-		TSubclassOf<UFaerieItemCardToken> CardType;
+		FFaerieItemCardType Tag;
 		FFaerieCardGenerationResult Callback;
 	};
 }
@@ -67,7 +66,7 @@ class FAERIEITEMCARD_API UFaerieCardGenerator : public UObject
 	friend class UFaerieCardSubsystem;
 
 public:
-	TSoftClassPtr<UFaerieCardBase> GetCardClassFromProxy(FFaerieItemProxy Proxy, const FGameplayTag& Type) const;
+	TSoftClassPtr<UFaerieCardBase> GetCardClassFromProxy(FFaerieItemProxy Proxy, const FFaerieItemCardType& Type) const;
 
 	UFaerieCardBase* Generate(const Faerie::Card::FSyncGeneration& Params);
 	void GenerateAsync(const Faerie::Card::FAsyncGeneration& Params);
@@ -85,5 +84,5 @@ private:
 
 protected:
 	UPROPERTY()
-	TMap<FGameplayTag, TSoftClassPtr<UFaerieCardBase>> DefaultClasses;
+	TMap<FFaerieItemCardType, TSoftClassPtr<UFaerieCardBase>> DefaultClasses;
 };

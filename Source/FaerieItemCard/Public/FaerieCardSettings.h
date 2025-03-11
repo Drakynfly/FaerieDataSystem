@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "GameplayTagContainer.h"
+#include "FaerieItemCardTags.h"
 #include "Engine/DeveloperSettings.h"
 #include "FaerieCardSettings.generated.h"
 
@@ -31,5 +31,5 @@ public:
 
 	// Item Card classes to use when an item doesn't specify one.
 	UPROPERTY(Config, EditAnywhere, Category = "Classes")
-	TMap<FGameplayTag, TSoftClassPtr<UFaerieCardBase>> FallbackClasses;
+	TMap<FFaerieItemCardType, TSoftClassPtr<UFaerieCardBase>> FallbackClasses;
 };

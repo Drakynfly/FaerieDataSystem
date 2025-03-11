@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "FaerieItemCardTags.h"
 #include "FaerieItemDataProxy.h"
 #include "Kismet/BlueprintAsyncActionBase.h"
 
@@ -25,10 +26,10 @@ class FAERIEITEMCARD_API UFaerieCardGenerateAsync : public UBlueprintAsyncAction
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemCards", meta = (ExpandBoolAsExecs = "ReturnValue"))
-	static bool GenerateItemCard(APlayerController* OwningPlayer, TScriptInterface<IFaerieCardGeneratorInterface> Generator, FFaerieItemProxy Proxy, FGameplayTag Tag, TSubclassOf<UFaerieItemCardToken> Type, UFaerieCardBase*& Widget);
+	static bool GenerateItemCard(APlayerController* OwningPlayer, TScriptInterface<IFaerieCardGeneratorInterface> Generator, FFaerieItemProxy Proxy, FFaerieItemCardType Tag, UFaerieCardBase*& Widget);
 
 	UFUNCTION(BlueprintCallable, meta = (BlueprintInternalUseOnly = "true", WorldContext = "WorldContextObject"), Category = "Faerie|ItemCards", DisplayName = "Generate Item Card (async)")
-	static UFaerieCardGenerateAsync* GenerateItemCardAsync(APlayerController* OwningPlayer, TScriptInterface<IFaerieCardGeneratorInterface> Generator, FFaerieItemProxy Proxy, FGameplayTag Tag, TSubclassOf<UFaerieItemCardToken> Type);
+	static UFaerieCardGenerateAsync* GenerateItemCardAsync(APlayerController* OwningPlayer, TScriptInterface<IFaerieCardGeneratorInterface> Generator, FFaerieItemProxy Proxy, FFaerieItemCardType Tag);
 
 	// UBlueprintAsyncActionBase interface
 	virtual void Activate() override;
@@ -51,12 +52,9 @@ private:
 	UPROPERTY()
 	TObjectPtr<APlayerController> OwningPlayer;
 
-	UPROPERTY();
+	UPROPERTY()
 	FFaerieItemProxy Proxy;
 
-	UPROPERTY();
-	FGameplayTag Tag;
-
-	UPROPERTY();
-	TSubclassOf<UFaerieItemCardToken> Class;
+	UPROPERTY()
+	FFaerieItemCardType Tag;
 };
