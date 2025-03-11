@@ -17,6 +17,7 @@ public class FaerieItemDataEditor : ModuleRules
                 "GameplayTags",
                 "InputCore",
                 "UMG",
+                "UMGEditor",
                 "UMGWidgetPreview"
             }
         );

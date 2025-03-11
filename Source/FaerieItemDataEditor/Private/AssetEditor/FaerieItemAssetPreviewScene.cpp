@@ -1,12 +1,10 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "AssetEditor/FaerieItemAssetPreviewScene.h"
 #include "AssetEditor/FaerieItemAssetEditor.h"
 
 #include "FaerieItem.h"
 #include "FaerieItemAsset.h"
-#include "NaniteSceneProxy.h"
 
 #include "GameFramework/WorldSettings.h"
 #include "Tokens/FaerieMeshToken.h"
@@ -14,6 +12,7 @@
 FFaerieItemAssetPreviewScene::FFaerieItemAssetPreviewScene(ConstructionValues CVS, const TSharedRef<FFaerieItemAssetEditor>& EditorToolkit)
 	: FAdvancedPreviewScene(CVS)
 	, EditorPtr(EditorToolkit)
+
 {
 	// Disable killing actors outside of the world
 	AWorldSettings* WorldSettings = GetWorld()->GetWorldSettings(true);
@@ -38,9 +37,20 @@ FFaerieItemAssetPreviewScene::~FFaerieItemAssetPreviewScene()
 {
 }
 
-void FFaerieItemAssetPreviewScene::Tick(float InDeltaTime)
+void FFaerieItemAssetPreviewScene::Tick(const float InDeltaTime)
 {
 	FAdvancedPreviewScene::Tick(InDeltaTime);
+
+	if (const TSharedPtr<FFaerieItemAssetEditor> Toolkit = EditorPtr.Pin())
+	{
+		if (GEditor->bIsSimulatingInEditor ||
+			GEditor->PlayWorld != nullptr)
+		{
+			return;
+		}
+
+		GetWorld()->Tick(LEVELTICK_All, InDeltaTime);
+	}
 }
 
 void FFaerieItemAssetPreviewScene::RefreshMesh()

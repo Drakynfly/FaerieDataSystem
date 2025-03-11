@@ -1,7 +1,7 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieCardGenerator.h"
-#include "CardTokens/CustomCardClass.h"
+#include "CardTokens/FaerieItemCardToken.h"
 
 #include "FaerieItemDataProxy.h"
 #include "FaerieItem.h"
@@ -10,7 +10,7 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieCardGenerator)
 
-TSoftClassPtr<UFaerieCardBase> UFaerieCardGenerator::GetCardClassFromProxy(const FFaerieItemProxy Proxy, const TSubclassOf<UCustomCardClass>& Type) const
+TSoftClassPtr<UFaerieCardBase> UFaerieCardGenerator::GetCardClassFromProxy(const FFaerieItemProxy Proxy, const FGameplayTag& Type) const
 {
 	auto&& Item = Proxy.GetItemObject();
 
@@ -20,15 +20,15 @@ TSoftClassPtr<UFaerieCardBase> UFaerieCardGenerator::GetCardClassFromProxy(const
 		return nullptr;
 	}
 
-	if (auto&& CardClassProvider = Cast<UCustomCardClass>(Item->GetToken(Type)))
+	if (auto&& CardClassProvider = Item->GetToken<UFaerieItemCardToken>())
 	{
-		if (auto&& Class = CardClassProvider->GetCardClass();
+		if (auto&& Class = CardClassProvider->GetCardClass(Type);
 			Class.IsValid())
 		{
 			return Class;
 		}
 
-		UE_LOG(LogFaerieItemCard, Warning, TEXT("CustomCard token contained invalid class (%s). Reverting to default!"), *Type->GetName())
+		UE_LOG(LogFaerieItemCard, Warning, TEXT("CustomCard token contained invalid class (%s). Reverting to default!"), *Type.GetTagName().ToString())
 	}
 
 	if (auto&& Class = DefaultClasses.Find(Type))
@@ -36,7 +36,7 @@ TSoftClassPtr<UFaerieCardBase> UFaerieCardGenerator::GetCardClassFromProxy(const
 		return *Class;
 	}
 
-	UE_LOG(LogFaerieItemCard, Warning, TEXT("Unable to determine card class: No default for '%s'!"), *Type->GetName())
+	UE_LOG(LogFaerieItemCard, Warning, TEXT("Unable to determine card class: No default for '%s'!"), *Type.GetTagName().ToString())
 
 	return nullptr;
 }
@@ -51,7 +51,7 @@ UFaerieCardBase* UFaerieCardGenerator::Generate(const Faerie::Card::FSyncGenerat
 		return nullptr;
 	}
 
-	if (const TSoftClassPtr<UFaerieCardBase> CardClass = GetCardClassFromProxy(Params.Proxy, Params.CardType);
+	if (const TSoftClassPtr<UFaerieCardBase> CardClass = GetCardClassFromProxy(Params.Proxy, Params.Tag);
 		IsValid(CardClass.LoadSynchronous()))
 	{
 		UFaerieCardBase* CardWidget = CreateWidget<UFaerieCardBase>(Params.Player, CardClass.Get());
@@ -77,7 +77,7 @@ void UFaerieCardGenerator::GenerateAsync(const Faerie::Card::FAsyncGeneration& P
 		return;
 	}
 
-	if (const TSoftClassPtr<UFaerieCardBase> CardClass = GetCardClassFromProxy(Params.Proxy, Params.CardType);
+	if (const TSoftClassPtr<UFaerieCardBase> CardClass = GetCardClassFromProxy(Params.Proxy, Params.Tag);
 		!CardClass.IsNull())
 	{
 		UAssetManager::GetStreamableManager().RequestAsyncLoad(CardClass.ToSoftObjectPath(),

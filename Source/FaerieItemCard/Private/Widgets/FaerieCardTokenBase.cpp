@@ -9,9 +9,9 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieCardTokenBase)
 
-void UFaerieCardTokenBase::NativeOnInitialized()
+void UFaerieCardTokenBase::NativeConstruct()
 {
-	Super::NativeOnInitialized();
+	Super::NativeConstruct();
 
 	if (auto&& OuterCard = GetTypedOuter<UFaerieCardBase>())
 	{
@@ -31,7 +31,7 @@ void UFaerieCardTokenBase::NativeDestruct()
 
 void UFaerieCardTokenBase::OnCardRefreshed()
 {
-	if (!IsValid(GetTokenClass()))
+	if (!ensure(IsValid(GetTokenClass())))
 	{
 		return;
 	}

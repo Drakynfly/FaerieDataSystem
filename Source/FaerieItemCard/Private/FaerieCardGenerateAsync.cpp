@@ -5,13 +5,13 @@
 #include "FaerieCardGeneratorInterface.h"
 #include "FaerieItemCardModule.h"
 #include "FaerieItemDataProxy.h"
-#include "CardTokens/CustomCardClass.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieCardGenerateAsync)
 
 bool UFaerieCardGenerateAsync::GenerateItemCard(APlayerController* OwningPlayer,
 												const TScriptInterface<IFaerieCardGeneratorInterface> Generator,
-												const FFaerieItemProxy Proxy, const TSubclassOf<UCustomCardClass> Type,
+												const FFaerieItemProxy Proxy, const FGameplayTag Tag,
+												const TSubclassOf<UFaerieItemCardToken> Type,
 												UFaerieCardBase*& Widget)
 {
 	if (Generator.GetInterface() == nullptr) return false;
@@ -23,13 +23,14 @@ bool UFaerieCardGenerateAsync::GenerateItemCard(APlayerController* OwningPlayer,
 		return false;
 	}
 
-	Widget = GeneratorImpl->Generate(Faerie::Card::FSyncGeneration(OwningPlayer, Proxy, Type));
+	Widget = GeneratorImpl->Generate(Faerie::Card::FSyncGeneration(OwningPlayer, Proxy, Tag, Type));
 	return IsValid(Widget);
 }
 
 UFaerieCardGenerateAsync* UFaerieCardGenerateAsync::GenerateItemCardAsync(APlayerController* OwningPlayer,
 	const TScriptInterface<IFaerieCardGeneratorInterface> Generator, const FFaerieItemProxy Proxy,
-	const TSubclassOf<UCustomCardClass> Type)
+	const FGameplayTag Tag,
+	const TSubclassOf<UFaerieItemCardToken> Type)
 {
 	if (!IsValid(Generator.GetObject()))
 	{
@@ -46,6 +47,7 @@ UFaerieCardGenerateAsync* UFaerieCardGenerateAsync::GenerateItemCardAsync(APlaye
 
 	AsyncAction->OwningPlayer = OwningPlayer;
 	AsyncAction->Proxy = Proxy;
+	AsyncAction->Tag = Tag;
 	AsyncAction->Class = Type;
 
 	return AsyncAction;

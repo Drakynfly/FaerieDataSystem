@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #pragma once
 
@@ -8,53 +8,17 @@
 #include "UObject/GCObject.h"
 
 enum class EWidgetPreviewWidgetChangeType : uint8;
-class UFaerieItemDataStackLiteral;
-class FFaerieItemAssetEditor;
-
-namespace Faerie::UMGWidgetPreview
-{
-	class SWidgetPreview
-		: public SCompoundWidget
-	{
-	public:
-		SLATE_BEGIN_ARGS(SWidgetPreview) {}
-		SLATE_END_ARGS()
-
-		void Construct(const FArguments& Args, const TSharedRef<FFaerieItemAssetEditor>& InToolkit);
-
-		virtual ~SWidgetPreview() override;
-
-		virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
-
-	private:
-		//void OnStateChanged(FWidgetPreviewToolkitStateBase* InOldState, FWidgetPreviewToolkitStateBase* InNewState);
-		void OnWidgetChanged(const EWidgetPreviewWidgetChangeType InChangeType);
-
-		/** Convenience method to get world from the associated viewport. */
-		UWorld* GetWorld() const;
-
-		TSharedRef<SWidget> GetCreatedSlateWidget() const;
-
-	private:
-		TWeakPtr<FFaerieItemAssetEditor> WeakToolkit;
-
-		TSharedPtr<SRetainerWidget> RetainerWidget;
-		TSharedPtr<SBorder> ContainerWidget;
-		TWeakPtr<SWidget> CreatedSlateWidget;
-
-		bool bClearWidgetOnNextPaint = false;
-		bool bIsRetainedRender = false;
-
-		FDelegateHandle OnStateChangedHandle;
-		FDelegateHandle OnWidgetChangedHandle;
-	};
-}
-
-
 class UFaerieWidgetPreview;
 class FFaerieItemAssetPreviewScene;
 class SFaerieItemAssetViewport;
 class UFaerieItemAsset;
+
+namespace Faerie::UMGWidgetPreview
+{
+	struct FWidgetPreviewToolkitStateBase;
+}
+
+using FOnStateChanged = TMulticastDelegate<void(Faerie::UMGWidgetPreview::FWidgetPreviewToolkitStateBase* InOldState, Faerie::UMGWidgetPreview::FWidgetPreviewToolkitStateBase* InNewState)>;
 
 /**
  * 
@@ -63,7 +27,7 @@ class FFaerieItemAssetEditor : public FAssetEditorToolkit, public FGCObject, pub
 {
 public:
 	FFaerieItemAssetEditor() = default;
-	virtual ~FFaerieItemAssetEditor() override = default;
+	virtual ~FFaerieItemAssetEditor() override;
 
 protected:
 	//~ Begin IToolkit interface
@@ -76,6 +40,7 @@ protected:
 	//~ FAssetEditorToolkit
 	virtual void RegisterTabSpawners(const TSharedRef<FTabManager>& InTabManager) override;
 	virtual void UnregisterTabSpawners(const TSharedRef<FTabManager>& InTabManager) override;
+	virtual void PostInitAssetEditor() override;
 	virtual void OnClose() override;
 	//~ FAssetEditorToolkit
 
@@ -104,9 +69,29 @@ protected:
 	TSharedRef<SDockTab> SpawnTab_Viewport(const FSpawnTabArgs& Args) const;
 	TSharedRef<SDockTab> SpawnTab_WidgetPreview(const FSpawnTabArgs& Args) const;
 
+	bool ShouldUpdate() const;
+
+	void OnBlueprintPrecompile(UBlueprint* InBlueprint);
+
+	void OnWidgetChanged(const EWidgetPreviewWidgetChangeType InChangeType);
+
+	void OnFocusChanging(
+		const FFocusEvent& InFocusEvent,
+		const FWeakWidgetPath& InOldWidgetPath, const TSharedPtr<SWidget>& InOldWidget,
+		const FWidgetPath& InNewWidgetPath, const TSharedPtr<SWidget>& InNewWidget);
+
+	/** Resolve and set the current state based on various conditions. */
+	void ResolveState();
+
+	/** Resets to the default state. */
+	void ResetPreview();
+
 
 	/**		 GETTERS		 */
 public:
+	FOnStateChanged::RegistrationType& OnStateChanged() { return OnStateChangedDelegate; }
+	Faerie::UMGWidgetPreview::FWidgetPreviewToolkitStateBase* GetState() const { return CurrentState; }
+
 	UFaerieItemAsset* GetItemAsset() const { return ItemAsset; }
 	UFaerieWidgetPreview* GetPreview() const { return WidgetPreview; }
 
@@ -117,6 +102,9 @@ public:
 protected:
 	void FocusViewport() const;
 
+	/** If the given state is different to the current state, this will handle transitions and events. */
+	void SetState(Faerie::UMGWidgetPreview::FWidgetPreviewToolkitStateBase* InNewState);
+
 private:
 	TObjectPtr<UFaerieItemAsset> ItemAsset = nullptr;
 
@@ -125,4 +113,14 @@ private:
 
 	TSharedPtr<SFaerieItemAssetViewport> MeshViewportWidget;
 	TSharedPtr<SWidget> WidgetPreviewWidget;
+
+	FOnStateChanged OnStateChangedDelegate;
+
+	Faerie::UMGWidgetPreview::FWidgetPreviewToolkitStateBase* CurrentState = nullptr;
+
+	bool bIsFocused = false;
+
+	FDelegateHandle OnBlueprintPrecompileHandle;
+	FDelegateHandle OnWidgetChangedHandle;
+	FDelegateHandle OnFocusChangingHandle;
 };

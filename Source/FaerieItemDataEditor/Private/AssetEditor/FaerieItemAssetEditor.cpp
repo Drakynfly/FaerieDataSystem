@@ -4,177 +4,48 @@
 #include "FaerieAssetEditorCommands.h"
 #include "FaerieCardSettings.h"
 #include "FaerieItemAsset.h"
+#include "FaerieItemCardTags.h"
 #include "FaerieItemDataEditorModule.h"
+#include "SWidgetPreview.h"
+#include "SWidgetPreviewStatus.h"
 #include "AssetEditor/FaerieItemAssetPreviewScene.h"
 #include "AssetEditor/FaerieItemAssetViewport.h"
 #include "AssetEditor/FaerieWidgetPreview.h"
 #include "Blueprint/UserWidget.h"
-#include "CardTokens/CustomCardClass.h"
-#include "Slate/SRetainerWidget.h"
-#include "Widgets/FaerieCardBase.h"
+#include "CardTokens/FaerieItemCardToken.h"
 
 #define LOCTEXT_NAMESPACE "FaerieItemAssetEditor"
-
-namespace Faerie::UMGWidgetPreview
-{
-	void SWidgetPreview::Construct(const FArguments& Args, const TSharedRef<FFaerieItemAssetEditor>& InToolkit)
-	{
-		WeakToolkit = InToolkit;
-
-		//OnStateChangedHandle = InToolkit->OnStateChanged().AddSP(this, &SWidgetPreview::OnStateChanged);
-		OnWidgetChangedHandle = InToolkit->GetPreview()->OnWidgetChanged().AddSP(this, &SWidgetPreview::OnWidgetChanged);
-
-		CreatedSlateWidget = SNullWidget::NullWidget;
-
-		ContainerWidget = SNew(SBorder)
-		[
-			GetCreatedSlateWidget()
-		];
-
-		OnWidgetChanged(EWidgetPreviewWidgetChangeType::Assignment);
-
-		ChildSlot
-		[
-			SNew(SOverlay)
-			+ SOverlay::Slot()
-			[
-				SAssignNew(RetainerWidget, SRetainerWidget)
-				.RenderOnPhase(false)
-				.RenderOnInvalidation(false)
-				[
-					ContainerWidget.ToSharedRef()
-				]
-			]
-		];
-	}
-
-	SWidgetPreview::~SWidgetPreview()
-	{
-		ContainerWidget->ClearContent();
-
-		if (const TSharedPtr<FFaerieItemAssetEditor> Toolkit = WeakToolkit.Pin())
-		{
-			//Toolkit->OnStateChanged().Remove(OnStateChangedHandle);
-
-			if (UWidgetPreview* Preview = Toolkit->GetPreview())
-			{
-				Preview->OnWidgetChanged().Remove(OnWidgetChangedHandle);
-			}
-		}
-	}
-
-	int32 SWidgetPreview::OnPaint(
-		const FPaintArgs& Args,
-		const FGeometry& AllottedGeometry,
-		const FSlateRect& MyCullingRect,
-		FSlateWindowElementList& OutDrawElements,
-		int32 LayerId,
-		const FWidgetStyle& InWidgetStyle,
-		bool bParentEnabled) const
-	{
-		const int32 Result = SCompoundWidget::OnPaint(
-			Args,
-			AllottedGeometry,
-			MyCullingRect,
-			OutDrawElements,
-			LayerId,
-			InWidgetStyle,
-			bParentEnabled);
-
-		if (bClearWidgetOnNextPaint)
-		{
-			SWidgetPreview* MutableThis = const_cast<SWidgetPreview*>(this);
-
-			MutableThis->CreatedSlateWidget = SNullWidget::NullWidget;
-			ContainerWidget->SetContent(GetCreatedSlateWidget());
-			MutableThis->bClearWidgetOnNextPaint = false;
-		}
-
-		return Result;
-	}
-
-	/*
-	void SWidgetPreview::OnStateChanged(FWidgetPreviewToolkitStateBase* InOldState, FWidgetPreviewToolkitStateBase* InNewState)
-	{
-		const bool bShouldUseLiveWidget = InNewState->CanTick();
-		bIsRetainedRender = !bShouldUseLiveWidget;
-		bClearWidgetOnNextPaint = bIsRetainedRender;
-		RetainerWidget->RequestRender();
-		RetainerWidget->SetRetainedRendering(bIsRetainedRender);
-
-		if (bShouldUseLiveWidget)
-		{
-			OnWidgetChanged(EWidgetPreviewWidgetChangeType::Assignment);
-		}
-	}
-	*/
-
-	void SWidgetPreview::OnWidgetChanged(const EWidgetPreviewWidgetChangeType InChangeType)
-	{
-		// Disallow widget assignment if retaining (cached thumbnail)
-		if (bIsRetainedRender)
-		{
-			return;
-		}
-
-		if (InChangeType != EWidgetPreviewWidgetChangeType::Destroyed)
-		{
-			if (const TSharedPtr<FFaerieItemAssetEditor> Toolkit = WeakToolkit.Pin())
-			{
-				if (UFaerieWidgetPreview* Preview = Toolkit->GetPreview())
-				{
-					UWorld* World = GetWorld();
-					if (const TSharedPtr<SWidget> PreviewSlateWidget = Preview->GetSlateWidgetInstance())
-					{
-						CreatedSlateWidget = PreviewSlateWidget;
-					}
-					else if (UUserWidget* PreviewWidget = Preview->GetOrCreateWidgetInstance(World))
-					{
-						if (UFaerieCardBase* Card = Cast<UFaerieCardBase>(PreviewWidget))
-						{
-							// Allow blueprint code to run here.
-							FEditorScriptExecutionGuard EditorScriptGuard;
-							Card->SetItemData(FFaerieItemProxy(Preview), true);
-						}
-
-						CreatedSlateWidget = PreviewWidget->TakeWidget();
-					}
-					else
-					{
-						CreatedSlateWidget = SNullWidget::NullWidget;
-					}
-
-					ContainerWidget->SetContent(GetCreatedSlateWidget());
-				}
-			}
-		}
-	}
-
-	UWorld* SWidgetPreview::GetWorld() const
-	{
-		if (const TSharedPtr<FFaerieItemAssetEditor> Toolkit = WeakToolkit.Pin())
-		{
-			return Toolkit->GetPreviewWorld();
-		}
-
-		return nullptr;
-	}
-
-	TSharedRef<SWidget> SWidgetPreview::GetCreatedSlateWidget() const
-	{
-		if (TSharedPtr<SWidget> SlateWidget = CreatedSlateWidget.Pin())
-		{
-			return SlateWidget.ToSharedRef();
-		}
-
-		return SNullWidget::NullWidget;
-	}
-}
-
 
 static const FLazyName Faerie_DetailsTab("FaerieItemAssetDetailsTab");
 static const FLazyName Faerie_ViewportTab("FaerieItemAssetViewportTab");
 static const FLazyName Faerie_PreviewTab("FaerieItemAssetPreviewTab");
+
+static Faerie::UMGWidgetPreview::FWidgetPreviewToolkitPausedState PausedState;
+static Faerie::UMGWidgetPreview::FWidgetPreviewToolkitBackgroundState BackgroundState;
+static Faerie::UMGWidgetPreview::FWidgetPreviewToolkitUnsupportedWidgetState UnsupportedWidgetState;
+static Faerie::UMGWidgetPreview::FWidgetPreviewToolkitRunningState RunningState;
+
+FFaerieItemAssetEditor::~FFaerieItemAssetEditor()
+{
+	if (GEditor)
+	{
+		GEditor->OnBlueprintPreCompile().Remove(OnBlueprintPrecompileHandle);
+	}
+
+	if (WidgetPreview)
+	{
+		WidgetPreview->ClearWidgetInstance();
+		WidgetPreview->OnWidgetChanged().Remove(OnWidgetChangedHandle);
+	}
+
+	// Ensure remaining references to the update state stop ticking
+	SetState(&PausedState);
+
+	if (FSlateApplication::IsInitialized())
+	{
+		FSlateApplication::Get().OnFocusChanging().Remove(OnFocusChangingHandle);
+	}
+}
 
 void FFaerieItemAssetEditor::RegisterTabSpawners(const TSharedRef<FTabManager>& InTabManager)
 {
@@ -210,6 +81,37 @@ void FFaerieItemAssetEditor::UnregisterTabSpawners(const TSharedRef<FTabManager>
 	InTabManager->UnregisterTabSpawner(Faerie_DetailsTab);
 	InTabManager->UnregisterTabSpawner(Faerie_ViewportTab);
 	InTabManager->UnregisterTabSpawner(Faerie_PreviewTab);
+}
+
+void FFaerieItemAssetEditor::PostInitAssetEditor()
+{
+	FAssetEditorToolkit::PostInitAssetEditor();
+
+	if (GEditor)
+	{
+		OnBlueprintPrecompileHandle = GEditor->OnBlueprintPreCompile().AddRaw(this, &FFaerieItemAssetEditor::OnBlueprintPrecompile);
+	}
+
+	OnWidgetChangedHandle = WidgetPreview->OnWidgetChanged().AddSP(this, &FFaerieItemAssetEditor::OnWidgetChanged);
+
+	if (FSlateApplication::IsInitialized())
+	{
+		OnFocusChangingHandle = FSlateApplication::Get().OnFocusChanging().AddSP(this, &FFaerieItemAssetEditor::OnFocusChanging);
+	}
+
+	// Bind Commands
+	{
+		// @todo
+		/*
+		const FWidgetPreviewCommands& Commands = FWidgetPreviewCommands::Get();
+
+		ToolkitCommands->MapAction(
+			Commands.ResetPreview,
+			FExecuteAction::CreateSP(this, &FFaerieItemAssetEditor::ResetPreview));
+			*/
+	}
+
+	ResolveState();
 }
 
 void FFaerieItemAssetEditor::OnClose()
@@ -285,7 +187,9 @@ void FFaerieItemAssetEditor::InitAssetEditor(const EToolkitMode::Type Mode, cons
 	MeshViewportWidget = SNew(SFaerieItemAssetViewport, Args);
 
 	WidgetPreview = CreateWidgetPreview();
-	WidgetPreviewWidget = SNew(Faerie::UMGWidgetPreview::SWidgetPreview, SharedThis(this));
+	WidgetPreviewWidget =
+		SNew(Faerie::UMGWidgetPreview::SWidgetPreview, SharedThis(this))
+		.IsEnabled(this, &FFaerieItemAssetEditor::ShouldUpdate);
 	
 	const TSharedRef<FTabManager::FLayout> Layout = FTabManager::NewLayout("FaerieItemAssetEditor_Layout_v0.2")
 		->AddArea
@@ -395,9 +299,9 @@ UFaerieWidgetPreview* FFaerieItemAssetEditor::CreateWidgetPreview()
 
 		for (auto&& Element : ItemAsset->GetEditorTokensView())
 		{
-			if (const UCustomCardClass* CardToken = Cast<UCustomCardClass>(Element))
+			if (const UFaerieItemCardToken* CardToken = Cast<UFaerieItemCardToken>(Element))
 			{
-				WidgetType.ObjectPath = CardToken->GetCardClass().ToSoftObjectPath();
+				WidgetType.ObjectPath = CardToken->GetCardClass(Faerie::CardType_Full).ToSoftObjectPath();
 				break;
 			}
 		}
@@ -405,13 +309,18 @@ UFaerieWidgetPreview* FFaerieItemAssetEditor::CreateWidgetPreview()
 		if (WidgetType.ObjectPath.IsNull())
 		{
 			// @todo temp
-			if (auto Default = GetDefault<UFaerieCardSettings>()->DefaultClasses.FindArbitraryElement())
+			if (auto Default = GetDefault<UFaerieCardSettings>()->FallbackClasses.Find(Faerie::CardType_Full))
 			{
-				WidgetType.ObjectPath = Default->Value.ToSoftObjectPath();
+				WidgetType.ObjectPath = Default->ToSoftObjectPath();
 			}
 		}
 
 		WidgetPreview->SetWidgetType(WidgetType);
+	}
+
+	if (WidgetPreview)
+	{
+		WidgetPreview->GetOrCreateWidgetInstance(GetPreviewWorld(), true);
 	}
 
 	return WidgetPreview;
@@ -419,6 +328,8 @@ UFaerieWidgetPreview* FFaerieItemAssetEditor::CreateWidgetPreview()
 
 TSharedRef<SDockTab> FFaerieItemAssetEditor::SpawnTab_Details(const FSpawnTabArgs& Args) const
 {
+	check(Args.GetTabId().TabType == Faerie_DetailsTab);
+
 	FDetailsViewArgs DetailsViewArgs;
 	DetailsViewArgs.NotifyHook = (FNotifyHook*)this;
 	DetailsViewArgs.NameAreaSettings = FDetailsViewArgs::HideNameArea;
@@ -431,10 +342,20 @@ TSharedRef<SDockTab> FFaerieItemAssetEditor::SpawnTab_Details(const FSpawnTabArg
 	[
 		DetailsView
 	];
+
+	// @todo
+	//const TSharedRef<FWidgetPreviewToolkitTemp>& Self = SharedThis(this);
+
+	//return SNew(SDockTab)
+	//[
+	//	SNew(SWidgetPreviewDetails, Self)
+	//];
 }
 
 TSharedRef<SDockTab> FFaerieItemAssetEditor::SpawnTab_Viewport(const FSpawnTabArgs& Args) const
 {
+	check(Args.GetTabId().TabType == Faerie_ViewportTab);
+
 	TSharedRef<SDockTab> SpawnedTab = SNew(SDockTab).Label(LOCTEXT("ViewportTab_Title", "Viewport"));
 
 	if (MeshViewportWidget.IsValid())
@@ -450,12 +371,117 @@ TSharedRef<SDockTab> FFaerieItemAssetEditor::SpawnTab_WidgetPreview(const FSpawn
 {
 	TSharedRef<SDockTab> SpawnedTab = SNew(SDockTab).Label(LOCTEXT("WidgetTab_Title", "Widget"));
 
+	TSharedRef<FFaerieItemAssetEditor, ESPMode::ThreadSafe> Self = ConstCastSharedRef<FFaerieItemAssetEditor>( SharedThis(this) );
+
 	if (WidgetPreviewWidget.IsValid())
 	{
-		SpawnedTab->SetContent(WidgetPreviewWidget.ToSharedRef());
+		SpawnedTab->SetContent(
+			SNew(SOverlay)
+			+ SOverlay::Slot()
+				.HAlign(HAlign_Fill)
+				.VAlign(VAlign_Fill)
+				[
+					WidgetPreviewWidget.ToSharedRef()
+				]
+			+ SOverlay::Slot()
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				[
+					SNew(Faerie::UMGWidgetPreview::SWidgetPreviewStatus, Self)
+				]);
 	}
 
 	return SpawnedTab;
+}
+
+bool FFaerieItemAssetEditor::ShouldUpdate() const
+{
+	if (CurrentState)
+	{
+		return CurrentState->CanTick();
+	}
+
+	return bIsFocused;
+}
+
+void FFaerieItemAssetEditor::OnBlueprintPrecompile(UBlueprint* InBlueprint)
+{
+	if (WidgetPreview)
+	{
+		if (const UUserWidget* WidgetCDO = WidgetPreview->GetWidgetCDO())
+		{
+			if (InBlueprint && InBlueprint->GeneratedClass
+				&& WidgetCDO->IsA(InBlueprint->GeneratedClass))
+			{
+				WidgetPreview->ClearWidgetInstance();
+			}
+		}
+	}
+}
+
+void FFaerieItemAssetEditor::OnWidgetChanged(const EWidgetPreviewWidgetChangeType InChangeType)
+{
+	ResolveState();
+}
+
+void FFaerieItemAssetEditor::OnFocusChanging(
+	const FFocusEvent& InFocusEvent,
+	const FWeakWidgetPath& InOldWidgetPath, const TSharedPtr<SWidget>& InOldWidget,
+	const FWidgetPath& InNewWidgetPath, const TSharedPtr<SWidget>& InNewWidget)
+{
+	if (IsHosted())
+	{
+		const SWidget* ToolkitParentWidget = GetToolkitHost()->GetParentWidget().ToSharedPtr().Get();
+		const bool bToolkitInNewWidgetPath = InNewWidgetPath.ContainsWidget(ToolkitParentWidget);
+		if (bIsFocused && !bToolkitInNewWidgetPath)
+		{
+			// Focus lost
+			bIsFocused = false;
+			ResolveState();
+		}
+		else if (!bIsFocused && bToolkitInNewWidgetPath)
+		{
+			// Focus received
+			bIsFocused = true;
+			ResolveState();
+		}
+	}
+}
+
+void FFaerieItemAssetEditor::ResolveState()
+{
+	Faerie::UMGWidgetPreview::FWidgetPreviewToolkitStateBase* NewState = nullptr;
+
+	if (!bIsFocused)
+	{
+		NewState = &BackgroundState;
+	}
+	else
+	{
+		TArray<const UUserWidget*> FailedWidgets;
+		if (!GetPreview()->CanCallInitializedWithoutPlayerContext(true, FailedWidgets))
+		{
+			UnsupportedWidgetState.SetUnsupportedWidgets(FailedWidgets);
+			NewState = &UnsupportedWidgetState;
+		}
+
+		// If we're here, the current state should be valid/running
+		if (NewState == nullptr)
+		{
+			NewState = &RunningState;
+		}
+	}
+
+	SetState(NewState);
+}
+
+void FFaerieItemAssetEditor::ResetPreview()
+{
+	if (WidgetPreview)
+	{
+		// Don't need the returned instance, just need to have it rebuild
+		WidgetPreview->GetOrCreateWidgetInstance(GetPreviewWorld(), true);
+	}
 }
 
 UWorld* FFaerieItemAssetEditor::GetPreviewWorld() const
@@ -475,4 +501,27 @@ void FFaerieItemAssetEditor::FocusViewport() const
 	}
 }
 
+void FFaerieItemAssetEditor::SetState(Faerie::UMGWidgetPreview::FWidgetPreviewToolkitStateBase* InNewState)
+{
+	Faerie::UMGWidgetPreview::FWidgetPreviewToolkitStateBase* OldState = CurrentState;
+	Faerie::UMGWidgetPreview::FWidgetPreviewToolkitStateBase* NewState = InNewState;
+
+	if (OldState != NewState)
+	{
+		if (OldState)
+		{
+			OldState->OnExit(NewState);
+		}
+
+		if (NewState)
+		{
+			NewState->OnEnter(OldState);
+		}
+
+		CurrentState = NewState;
+		OnStateChangedDelegate.Broadcast(OldState, NewState);
+	}
+}
+
 #undef LOCTEXT_NAMESPACE
+

@@ -2,10 +2,10 @@
 
 #pragma once
 
+#include "GameplayTagContainer.h"
 #include "Engine/DeveloperSettings.h"
 #include "FaerieCardSettings.generated.h"
 
-class UCustomCardClass;
 class UFaerieCardBase;
 
 /**
@@ -25,6 +25,11 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Generator")
 	bool CreateCardGeneratorPlayerSubsystems = true;
 
+	UE_DEPRECATED(5.5, "Use FallbackClasses instead")
 	UPROPERTY(Config, EditAnywhere, Category = "Classes")
-	TMap<TSubclassOf<UCustomCardClass>, TSoftClassPtr<UFaerieCardBase>> DefaultClasses;
+	TMap<TSubclassOf<class UFaerieItemCardToken>, TSoftClassPtr<UFaerieCardBase>> DefaultClasses;
+
+	// Item Card classes to use when an item doesn't specify one.
+	UPROPERTY(Config, EditAnywhere, Category = "Classes")
+	TMap<FGameplayTag, TSoftClassPtr<UFaerieCardBase>> FallbackClasses;
 };

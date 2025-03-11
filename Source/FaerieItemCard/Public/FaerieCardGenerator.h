@@ -3,13 +3,12 @@
 #pragma once
 
 #include "UObject/Object.h"
-#include "Engine/StreamableManager.h"
 
 #include "Widgets/FaerieCardBase.h"
 
 #include "FaerieCardGenerator.generated.h"
 
-class UCustomCardClass;
+class UFaerieItemCardToken;
 
 using FFaerieCardGenerationResult = TDelegate<void(bool, UFaerieCardBase*)>;
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FFaerieCardGenerationResultDynamic, bool, Success, UFaerieCardBase*, Widget);
@@ -20,20 +19,21 @@ namespace Faerie::Card
 	{
 		APlayerController* Player;
 		FFaerieItemProxy Proxy;
-		TSubclassOf<UCustomCardClass> CardType;
+		FGameplayTag Tag;
+		TSubclassOf<UFaerieItemCardToken> CardType;
 	};
 
 	struct FAsyncGeneration
 	{
 		FAsyncGeneration(APlayerController* Player, const FFaerieItemProxy ItemProxy,
-						 const TSubclassOf<UCustomCardClass>& Type, const FFaerieCardGenerationResult& Callback)
+						 const TSubclassOf<UFaerieItemCardToken>& Type, const FFaerieCardGenerationResult& Callback)
 		  : Player(Player),
 			Proxy(ItemProxy),
 			CardType(Type),
 			Callback(Callback) {}
 
 		FAsyncGeneration(APlayerController* Player, const FFaerieItemProxy ItemProxy,
-						 const TSubclassOf<UCustomCardClass>& Type, const FFaerieCardGenerationResultDynamic& InCallback)
+						 const TSubclassOf<UFaerieItemCardToken>& Type, const FFaerieCardGenerationResultDynamic& InCallback)
 		  : Player(Player),
 			Proxy(ItemProxy),
 			CardType(Type)
@@ -49,7 +49,8 @@ namespace Faerie::Card
 
 		APlayerController* Player;
 		FFaerieItemProxy Proxy;
-		TSubclassOf<UCustomCardClass> CardType;
+		FGameplayTag Tag;
+		TSubclassOf<UFaerieItemCardToken> CardType;
 		FFaerieCardGenerationResult Callback;
 	};
 }
@@ -66,7 +67,7 @@ class FAERIEITEMCARD_API UFaerieCardGenerator : public UObject
 	friend class UFaerieCardSubsystem;
 
 public:
-	TSoftClassPtr<UFaerieCardBase> GetCardClassFromProxy(FFaerieItemProxy Proxy, const TSubclassOf<UCustomCardClass>& Type) const;
+	TSoftClassPtr<UFaerieCardBase> GetCardClassFromProxy(FFaerieItemProxy Proxy, const FGameplayTag& Type) const;
 
 	UFaerieCardBase* Generate(const Faerie::Card::FSyncGeneration& Params);
 	void GenerateAsync(const Faerie::Card::FAsyncGeneration& Params);
@@ -84,5 +85,5 @@ private:
 
 protected:
 	UPROPERTY()
-	TMap<TSubclassOf<UCustomCardClass>, TSoftClassPtr<UFaerieCardBase>> DefaultClasses;
+	TMap<FGameplayTag, TSoftClassPtr<UFaerieCardBase>> DefaultClasses;
 };

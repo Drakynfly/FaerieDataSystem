@@ -7,10 +7,10 @@
 
 #include "FaerieCardGenerateAsync.generated.h"
 
+class UFaerieItemCardToken;
 class UFaerieCardGenerator;
 class IFaerieCardGeneratorInterface;
 class UFaerieCardBase;
-class UCustomCardClass;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FCardGenerateFailed);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FCardGenerateSuccess, UFaerieCardBase*, Card);
@@ -25,10 +25,10 @@ class FAERIEITEMCARD_API UFaerieCardGenerateAsync : public UBlueprintAsyncAction
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemCards", meta = (ExpandBoolAsExecs = "ReturnValue"))
-	static bool GenerateItemCard(APlayerController* OwningPlayer, TScriptInterface<IFaerieCardGeneratorInterface> Generator, FFaerieItemProxy Proxy, TSubclassOf<UCustomCardClass> Type, UFaerieCardBase*& Widget);
+	static bool GenerateItemCard(APlayerController* OwningPlayer, TScriptInterface<IFaerieCardGeneratorInterface> Generator, FFaerieItemProxy Proxy, FGameplayTag Tag, TSubclassOf<UFaerieItemCardToken> Type, UFaerieCardBase*& Widget);
 
 	UFUNCTION(BlueprintCallable, meta = (BlueprintInternalUseOnly = "true", WorldContext = "WorldContextObject"), Category = "Faerie|ItemCards", DisplayName = "Generate Item Card (async)")
-	static UFaerieCardGenerateAsync* GenerateItemCardAsync(APlayerController* OwningPlayer, TScriptInterface<IFaerieCardGeneratorInterface> Generator, FFaerieItemProxy Proxy, TSubclassOf<UCustomCardClass> Type);
+	static UFaerieCardGenerateAsync* GenerateItemCardAsync(APlayerController* OwningPlayer, TScriptInterface<IFaerieCardGeneratorInterface> Generator, FFaerieItemProxy Proxy, FGameplayTag Tag, TSubclassOf<UFaerieItemCardToken> Type);
 
 	// UBlueprintAsyncActionBase interface
 	virtual void Activate() override;
@@ -55,5 +55,8 @@ private:
 	FFaerieItemProxy Proxy;
 
 	UPROPERTY();
-	TSubclassOf<UCustomCardClass> Class;
+	FGameplayTag Tag;
+
+	UPROPERTY();
+	TSubclassOf<UFaerieItemCardToken> Class;
 };

@@ -27,11 +27,11 @@ class FAERIEITEMCARD_API UFaerieCardTokenBase : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	virtual void NativeOnInitialized() override;
+	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
 
 protected:
-	void OnCardRefreshed();
+	virtual void OnCardRefreshed();
 
 	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Faerie|ItemCardToken")
 	const UFaerieItem* GetItem() const;

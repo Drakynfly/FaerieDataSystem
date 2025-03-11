@@ -15,7 +15,7 @@ FDS is primarily designed for:
 
 ### FaerieItemData (+ Editor)
 - The core module of FaerieDataSystem, that implements the item data classes, that underpin every other system in the plugins.
-  - Important types include: `UFaerieItem`, `UFaerieItemToken`, `UFaerieItemDataProxyBase`.
+  - Important types include: `UFaerieItem`, `UFaerieItemToken`, `IFaerieItemDataProxy`.
   - Items are UObject based, completely modular, and support replication.
   - Item ownership is trackable, and enforced via the use of proxies that respect ownership so-as to only allow permitted access to modification rights. See `IFaerieItemOwnerInterface` for this.
   - Item data is sortable and filterable via a set of classes `UFaerieItemDataFilter` and `UFaerieItemDataComparator`, and `UFaerieItemTemplate` is used to define "abstract" item definitions that can be compared with to describe item "types" such as 'Equipment', 'Consumable', etc.
@@ -78,10 +78,17 @@ These default plugins are forcibly enabled by FDS:
 ### GeometryScripting `&&` SkeletalMerging
   - Required for implementing FaerieItemMesh. If, for some reason, you take issue with this requirement, reimplement `UFaerieMeshSubsystem` however you want to.
 
+### UMGWidgetPreview
+ - This is an editor-only plugin, used to render UMG widgets inside an asset editor. While this is considered a Beta plugin by Epic, its editor-only, so even if it has issues, they shouldn't effect shipping builds.
+
 ## Links
 Discord:      [![Discord](https://img.shields.io/discord/996247217314738286.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)](https://discord.gg/AAk9yNwKk8) (Drakynfly's Plugins)
 
 Demo:         https://github.com/Drakynfly/FaerieDataSystemDemo
+
+
+## Acknowledgments
+- [Sythenz's AssetEditorTemplate](https://github.com/Sythenz/AssetEditorTemplate): Adapted for my own uses.
 
 
 Aaaaand, that's it folks!

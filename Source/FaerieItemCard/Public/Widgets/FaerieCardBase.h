@@ -35,7 +35,7 @@ public:
 	FFaerieItemStackView GetStackView() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemCard")
-	void Refresh();
+	virtual void Refresh();
 
 protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Faerie|ItemCard", meta = (DisplayName = "Refresh"))

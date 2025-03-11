@@ -14,6 +14,7 @@ public class FaerieItemCard : ModuleRules
                 "Core",
                 "DeveloperSettings",
                 "FaerieItemData",
+                "GameplayTags",
                 "UMG"
             }
         );

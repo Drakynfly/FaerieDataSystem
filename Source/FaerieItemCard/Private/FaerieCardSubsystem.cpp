@@ -19,7 +19,7 @@ void UFaerieCardSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	auto&& CardSettings = GetDefault<UFaerieCardSettings>();
 
 	Generator = NewObject<UFaerieCardGenerator>(this);
-	Generator->DefaultClasses = CardSettings->DefaultClasses;
+	Generator->DefaultClasses = CardSettings->FallbackClasses;
 }
 
 UFaerieCardGenerator* UFaerieCardSubsystem::GetGenerator() const
