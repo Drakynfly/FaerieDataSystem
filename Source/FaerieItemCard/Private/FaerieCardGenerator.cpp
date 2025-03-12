@@ -69,7 +69,7 @@ UFaerieCardBase* UFaerieCardGenerator::Generate(const Faerie::Card::FSyncGenerat
 void UFaerieCardGenerator::GenerateAsync(const Faerie::Card::FAsyncGeneration& Params)
 {
 	if (!Params.Proxy.IsValid() ||
-		!IsValid(Params.Player) ||
+		!Params.Player.IsValid() ||
 		!Params.Tag.IsValid())
 	{
 		UE_LOG(LogFaerieItemCard, Warning, TEXT("Invalid Params for generation!"))
@@ -92,9 +92,9 @@ void UFaerieCardGenerator::GenerateAsync(const Faerie::Card::FAsyncGeneration& P
 void UFaerieCardGenerator::OnCardClassLoaded(FAsyncCallback Params)
 {
 	if (const TSubclassOf<UFaerieCardBase> LoadedClass = Params.CardClass.Get();
-		IsValid(LoadedClass) && IsValid(Params.Player))
+		IsValid(LoadedClass) && Params.Player.IsValid())
 	{
-		UFaerieCardBase* CardWidget = CreateWidget<UFaerieCardBase>(Params.Player, LoadedClass);
+		UFaerieCardBase* CardWidget = CreateWidget<UFaerieCardBase>(Params.Player.Get(), LoadedClass);
 
 		if (IsValid(CardWidget))
 		{

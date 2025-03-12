@@ -47,7 +47,7 @@ namespace Faerie::Card
 			}
 		}
 
-		APlayerController* Player;
+		TWeakObjectPtr<APlayerController> Player;
 		FFaerieItemProxy Proxy;
 		FFaerieItemCardType Tag;
 		FFaerieCardGenerationResult Callback;
@@ -74,7 +74,7 @@ public:
 private:
 	struct FAsyncCallback
     {
-    	APlayerController* Player;
+    	TWeakObjectPtr<APlayerController> Player;
     	FFaerieItemProxy Proxy;
     	TSoftClassPtr<UFaerieCardBase> CardClass;
     	FFaerieCardGenerationResult Callback;
