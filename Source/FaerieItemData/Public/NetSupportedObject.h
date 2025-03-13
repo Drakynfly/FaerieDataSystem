@@ -23,6 +23,11 @@ public:
 	virtual bool IsSupportedForNetworking() const override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
+#if UE_WITH_IRIS
+	// Register replication fragments
+	virtual void RegisterReplicationFragments(UE::Net::FFragmentRegistrationContext& Context, UE::Net::EFragmentRegistrationFlags RegistrationFlags) override;
+#endif
+
 	// Implement this to add internal subobjects for replication
 	virtual void AddSubobjectsForReplication(AActor* Actor) {}
 };

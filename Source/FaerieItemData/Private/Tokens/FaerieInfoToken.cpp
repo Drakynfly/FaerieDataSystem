@@ -5,13 +5,13 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieInfoToken)
 
-#define LOCTEXT_NAMESPACE "FaerieInfoToken"
-
-void UFaerieInfoToken::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+void UFaerieInfoToken::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	DOREPLIFETIME_CONDITION(ThisClass, Info, COND_InitialOnly);
+	FDoRepLifetimeParams Params;
+	Params.bIsPushBased = true;
+	Params.Condition = COND_InitialOnly;
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, Info, Params);
 }
 
 bool UFaerieInfoToken::CompareWithImpl(const UFaerieItemToken* Other) const
@@ -51,5 +51,3 @@ TSoftObjectPtr<UTexture2D> UFaerieInfoToken::GetIcon() const
 {
 	return Info.Icon;
 }
-
-#undef LOCTEXT_NAMESPACE

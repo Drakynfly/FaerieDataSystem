@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "FaerieDefinitions.h"
 #include "BinarySearchOptimizedArray.h"
 #include "FaerieFastArraySerializerHack.h"
 #include "FaerieItemStackView.h"
@@ -329,7 +330,7 @@ struct FKeyedInventoryEntry : public FFastArraySerializerItem
  * are used to keep Entries in numeric order, allowing for binary-search accelerated accessors.
  */
 USTRUCT()
-struct FInventoryContent : public FFastArraySerializer,
+struct FInventoryContent : public FFaerieFastArraySerializer,
                            public TBinarySearchOptimizedArray<FInventoryContent, FKeyedInventoryEntry>
 {
 	GENERATED_BODY()

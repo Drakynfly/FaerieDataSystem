@@ -1,10 +1,10 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
+
 #pragma once
 
 #include "FaerieHash.h"
 
 class UFaerieItem;
-class UFaerieItemContainerBase;
 
 namespace Faerie::Hash
 {

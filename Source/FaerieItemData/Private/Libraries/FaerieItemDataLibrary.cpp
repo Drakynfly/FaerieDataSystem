@@ -32,3 +32,10 @@ FString UFaerieItemDataLibrary::DebugEmitItemJson(const UFaerieItem* Item, const
 	const FJsonObjectWrapper Json = UFlakesJsonLibrary::CreateFlake_Json(Item);
 	return UFlakesJsonLibrary::ToString(Json, Pretty);
 }
+
+bool UFaerieItemDataLibrary::DebugCompareItemsByJson(const UFaerieItem* ItemA, const UFaerieItem* ItemB)
+{
+	const FJsonObjectWrapper JsonA = UFlakesJsonLibrary::CreateFlake_Json(ItemA);
+	const FJsonObjectWrapper JsonB = UFlakesJsonLibrary::CreateFlake_Json(ItemB);
+	return UFlakesJsonLibrary::ToString(JsonA, false) == UFlakesJsonLibrary::ToString(JsonB, false);
+}

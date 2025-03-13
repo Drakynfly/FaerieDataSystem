@@ -20,7 +20,9 @@ public:
 	TSoftClassPtr<UFaerieCardBase> GetCardClass(FFaerieItemCardType Tag) const;
 
 	UE_DEPRECATED(5.5, "Use overload that takes an FGameplayTag")
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	TSoftClassPtr<UFaerieCardBase> GetCardClass() const { return CardClass; }
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 protected:
 	UPROPERTY(EditInstanceOnly, Category = "ItemCardToken")
@@ -31,16 +33,16 @@ protected:
 	TSoftClassPtr<UFaerieCardBase> CardClass;
 };
 
+class UE_DEPRECATED(5.5, "This class is deprecated, use FaerieItemCardToken") UCustomInfoCard;
 UCLASS(DisplayName = "Token - Card Class: Info (DEPRECATED)")
-class UE_DEPRECATED(5.5, "This class is deprecated, use FaerieItemCardToken")
-FAERIEITEMCARD_API UCustomInfoCard : public UFaerieItemCardToken
+class FAERIEITEMCARD_API UCustomInfoCard : public UFaerieItemCardToken
 {
 	GENERATED_BODY()
 };
 
+class UE_DEPRECATED(5.5, "This class is deprecated, use FaerieItemCardToken") UCustomPaletteCard;
 UCLASS(DisplayName = "Token - Card Class: Palette (DEPRECATED)")
-class UE_DEPRECATED(5.5, "This class is deprecated, use FaerieItemCardToken")
-FAERIEITEMCARD_API UCustomPaletteCard : public UFaerieItemCardToken
+class FAERIEITEMCARD_API UCustomPaletteCard : public UFaerieItemCardToken
 {
 	GENERATED_BODY()
 };

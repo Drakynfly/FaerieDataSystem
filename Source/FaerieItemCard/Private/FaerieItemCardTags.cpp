@@ -2,6 +2,8 @@
 
 #include "FaerieItemCardTags.h"
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemCardTags)
+
 namespace Faerie
 {
 	UE_DEFINE_GAMEPLAY_TAG_TYPED(FFaerieItemCardType, CardTypeBase, "Fae.CardType")

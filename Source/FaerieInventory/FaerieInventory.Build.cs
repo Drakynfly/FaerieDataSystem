@@ -30,5 +30,7 @@ public class FaerieInventory : ModuleRules
                 "FaerieItemData",
                 "Flakes"
             });
+
+        SetupIrisSupport(Target);
     }
 }

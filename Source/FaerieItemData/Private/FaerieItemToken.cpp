@@ -5,11 +5,6 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemToken)
 
-bool UFaerieItemToken::IsMutable() const
-{
-	return false;
-}
-
 #if WITH_EDITOR
 void UFaerieItemToken::PostCDOCompiled(const FPostCDOCompiledContext& Context)
 {
@@ -38,6 +33,27 @@ void UFaerieItemToken::PostCDOCompiled(const FPostCDOCompiledContext& Context)
 	}
 }
 #endif
+
+bool UFaerieItemToken::IsMutable() const
+{
+	return false;
+}
+
+void UFaerieItemToken::ReplicateAllPropertiesInitialOnly(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	for (TFieldIterator<FProperty> It(GetClass(), EFieldIteratorFlags::ExcludeSuper); It; ++It)
+	{
+		const FProperty* Prop = *It;
+		if (Prop != nullptr)
+		{
+			OutLifetimeProps.AddUnique(
+				FLifetimeProperty(Prop->RepIndex,
+					COND_InitialOnly,
+					REPNOTIFY_OnChanged,
+					true));
+		}
+	}
+}
 
 bool UFaerieItemToken::CompareWithImpl(const UFaerieItemToken* Other) const
 {

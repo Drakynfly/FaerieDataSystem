@@ -2,6 +2,10 @@
 
 #include "NetSupportedObject.h"
 
+#if UE_WITH_IRIS
+#include "Iris/ReplicationSystem/ReplicationFragmentUtil.h"
+#endif
+
 #include UE_INLINE_GENERATED_CPP_BY_NAME(NetSupportedObject)
 
 bool UNetSupportedObject::IsSupportedForNetworking() const
@@ -19,6 +23,15 @@ void UNetSupportedObject::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 		BPClass->GetLifetimeBlueprintReplicationList(OutLifetimeProps);
 	}
 }
+
+#if UE_WITH_IRIS
+void UNetSupportedObject::RegisterReplicationFragments(UE::Net::FFragmentRegistrationContext& Context,
+													   const UE::Net::EFragmentRegistrationFlags RegistrationFlags)
+{
+	// Build descriptors and allocate PropertyReplicationFragments for this object
+	UE::Net::FReplicationFragmentUtil::CreateAndRegisterFragmentsForObject(this, Context, RegistrationFlags);
+}
+#endif
 
 UWorld* UActorSubobjectBase::GetWorld() const
 {

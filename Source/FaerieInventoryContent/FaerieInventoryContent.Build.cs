@@ -40,5 +40,7 @@ public class FaerieInventoryContent : ModuleRules
                 "GeometryFramework",
                 "Squirrel"
             });
+
+        SetupIrisSupport(Target);
     }
 }

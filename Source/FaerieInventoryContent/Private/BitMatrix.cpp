@@ -1,3 +1,5 @@
+// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
+
 #include "BitMatrix.h"
 
 namespace Faerie

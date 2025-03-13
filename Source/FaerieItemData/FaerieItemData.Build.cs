@@ -29,5 +29,7 @@ public class FaerieItemData : ModuleRules
                 "FlakesJson"
             }
         );
+
+        SetupIrisSupport(Target);
     }
 }

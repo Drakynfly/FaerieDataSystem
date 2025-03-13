@@ -1,4 +1,6 @@
-﻿#include "FaerieInventoryHashStatics.h"
+﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
+
+#include "FaerieInventoryHashStatics.h"
 #include "FaerieItemContainerBase.h"
 
 namespace Faerie::Hash

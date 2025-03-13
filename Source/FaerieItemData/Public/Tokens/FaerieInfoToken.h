@@ -13,7 +13,7 @@ class FAERIEITEMDATA_API UFaerieInfoToken : public UFaerieItemToken
 	GENERATED_BODY()
 
 public:
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
 protected:
 	// This is usually the first and only token needed to determine equivalency, by a simple check of the item's name.

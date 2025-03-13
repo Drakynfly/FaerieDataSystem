@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "FaerieDefinitions.h"
 #include "FaerieFastArraySerializerHack.h"
 #include "ItemContainerExtensionBase.h"
 #include "StructUtils/InstancedStruct.h"
@@ -36,7 +37,7 @@ class URepDataArrayWrapper;
 class UInventoryReplicatedDataExtensionBase;
 
 USTRUCT()
-struct FRepDataFastArray : public FFastArraySerializer,
+struct FRepDataFastArray : public FFaerieFastArraySerializer,
 						   public TBinarySearchOptimizedArray<FRepDataFastArray, FRepDataPerEntryBase>
 {
 	GENERATED_BODY()

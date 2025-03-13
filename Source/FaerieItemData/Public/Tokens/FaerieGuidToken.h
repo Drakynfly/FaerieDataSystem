@@ -15,6 +15,9 @@ class FAERIEITEMDATA_API UFaerieGuidToken : public UFaerieItemToken
 {
 	GENERATED_BODY()
 
+public:
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+
 protected:
 	virtual bool CompareWithImpl(const UFaerieItemToken* Other) const override
 	{
@@ -25,6 +28,6 @@ public:
 	const FGuid& GetGuid() const { return Guid; }
 
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Faerie|GuidToken")
+	UPROPERTY(EditAnywhere, Replicated, BlueprintReadOnly, Category = "Faerie|GuidToken")
 	FGuid Guid;
 };

@@ -15,6 +15,9 @@ class FAERIEITEMDATA_API UFaerieTagToken : public UFaerieItemToken
 {
 	GENERATED_BODY()
 
+public:
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+
 protected:
 	/**
 	 * As noted in the parent class, this function rarely needs to be implemented. In this case, gameplay tags might
@@ -30,6 +33,6 @@ public:
 	const FGameplayTagContainer& GetTags() const { return Tags; }
 
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Faerie|TagToken")
+	UPROPERTY(EditAnywhere, Replicated, BlueprintReadOnly, Category = "Faerie|TagToken")
 	FGameplayTagContainer Tags;
 };

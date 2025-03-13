@@ -18,15 +18,21 @@ class FAERIEITEMDATA_API UFaerieItemToken : public UNetSupportedObject
 	GENERATED_BODY()
 
 public:
+	//~ Begin UObject interface
+#if WITH_EDITOR
+	virtual void PostCDOCompiled(const FPostCDOCompiledContext& Context) override;
+#endif
+	//~ End UObject interface
+
 	// Can the data contained be this token by changed after initialization. This plays a major role on how items are
 	// handled. An item with *any* mutable data cannot be stacked.
 	virtual bool IsMutable() const;
 
-#if WITH_EDITOR
-	virtual void PostCDOCompiled(const FPostCDOCompiledContext& Context) override;
-#endif
-
 protected:
+	// This is a utility provided to replicate all the properties of a token class using COND_InitialOnly. This is
+	// typically all that an immutable token needs to call in GetLifetimeReplicatedProps.
+	void ReplicateAllPropertiesInitialOnly(TArray<class FLifetimeProperty>& OutLifetimeProps) const;
+
 	/*
 	 * Compare the data of this token to another. Most of the time, there is no need to override this. This function is
 	 * used to determine if two items are identical, data-wise, but since only *one* token on an item needs to differ for

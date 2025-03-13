@@ -4,7 +4,8 @@
 
 #include "FaerieGridEnums.h"
 #include "InventoryDataStructs.h"
-#include "Net/Serialization/FastArraySerializer.h"
+
+#include "FaerieDefinitions.h"
 #include "FaerieFastArraySerializerHack.h"
 
 #include "FaerieGridStructs.generated.h"
@@ -66,7 +67,7 @@ struct FFaerieGridKeyedStack : public FFastArraySerializerItem
 
 
 USTRUCT(BlueprintType)
-struct FFaerieGridContent : public FFastArraySerializer,
+struct FFaerieGridContent : public FFaerieFastArraySerializer,
 							public TBinarySearchOptimizedArray<FFaerieGridContent, FFaerieGridKeyedStack>
 {
 	GENERATED_BODY()

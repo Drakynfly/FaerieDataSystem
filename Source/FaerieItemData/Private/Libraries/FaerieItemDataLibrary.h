@@ -32,4 +32,8 @@ public:
 	// Spits out an item in Json form for debugging.
 	UFUNCTION(BlueprintPure, Category = "Faerie|ItemAsset", meta = (DevelopmentOnly))
 	static FString DebugEmitItemJson(const UFaerieItem* Item, bool Pretty);
+
+	// Compare two items by their Json form.
+	UFUNCTION(BlueprintPure, Category = "Faerie|ItemAsset", meta = (DevelopmentOnly))
+	static bool DebugCompareItemsByJson(const UFaerieItem* ItemA, const UFaerieItem* ItemB);
 };

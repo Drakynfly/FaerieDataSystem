@@ -3,6 +3,8 @@
 #include "AssetEditor/FaerieWidgetPreview.h"
 #include "FaerieItemAsset.h"
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieWidgetPreview)
+
 const UFaerieItem* UFaerieWidgetPreview::GetItemObject() const
 {
 	return Asset->GetEditorItemView();
