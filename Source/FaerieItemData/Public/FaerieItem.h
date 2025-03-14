@@ -9,6 +9,8 @@
 
 #include "FaerieItem.generated.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(LogFaerieItem, Log, All);
+
 UENUM(Meta = (Bitflags, UseEnumValuesAsMaskValuesInEditor = "true"))
 enum class EFaerieItemMutabilityFlags : uint8
 {
@@ -90,6 +92,8 @@ public:
 	>
 	void ForEachToken(const TFunctionRef<bool(const TObjectPtr<TFaerieItemToken>&)>& Iter) const
 	{
+		TScopeCounter<uint32> IterationLock(WriteLock);
+
 		for (auto&& Token : Tokens)
 		{
 			if (IsValid(Token) && Token->IsA<TFaerieItemToken>())
@@ -225,4 +229,7 @@ protected:
 private:
 	// Delegate for owners to bind to, for detecting when tokens are mutated outside their knowledge
 	FNotifyOwnerOfSelfMutation NotifyOwnerOfSelfMutation;
+
+	// Is writing to Tokens locked?
+	mutable uint32 WriteLock = 0;
 };

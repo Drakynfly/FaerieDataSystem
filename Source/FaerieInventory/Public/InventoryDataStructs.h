@@ -349,6 +349,9 @@ private:
 	UPROPERTY()
 	TWeakObjectPtr<UFaerieItemStorage> ChangeListener;
 
+	// Is writing to Entries locked? Enabled while ItemHandles are active.
+	uint32 WriteLock = 0;
+
 public:
 	/**
 	 * Adds a new key and entry to the end of the Items array. Performs a quick check that the new key is sequentially
@@ -379,10 +382,7 @@ public:
 
 	struct FScopedItemHandle : FNoncopyable
 	{
-		FScopedItemHandle(const FEntryKey Key, FInventoryContent& Source)
-		  : Handle(Source.Entries[Source.IndexOf(Key)]),
-			Source(Source) {}
-
+		FScopedItemHandle(const FEntryKey Key, FInventoryContent& Source);
 		~FScopedItemHandle();
 
 	protected:

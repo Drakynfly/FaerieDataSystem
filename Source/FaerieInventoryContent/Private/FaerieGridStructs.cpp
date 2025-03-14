@@ -20,8 +20,17 @@ void FFaerieGridKeyedStack::PostReplicatedChange(const FFaerieGridContent& InArr
 	InArraySerializer.PostStackReplicatedChange(*this);
 }
 
+FFaerieGridContent::FScopedStackHandle::FScopedStackHandle(const FInventoryKey Key, FFaerieGridContent& Source)
+  : Handle(Source.Items[Source.IndexOf(Key)]),
+	Source(Source)
+{
+	Source.WriteLock++;
+}
+
 FFaerieGridContent::FScopedStackHandle::~FScopedStackHandle()
 {
+	Source.WriteLock--;
+
 	// Propagate change to client
 	Source.MarkItemDirty(Handle);
 
@@ -56,6 +65,7 @@ void FFaerieGridContent::PostStackReplicatedChange(const FFaerieGridKeyedStack& 
 void FFaerieGridContent::Insert(FInventoryKey Key, const FFaerieGridPlacement& Value)
 {
 	check(Key.IsValid())
+	check(WriteLock == 0);
 
 	FFaerieGridKeyedStack& NewStack = BSOA::Insert({Key, Value});
 
@@ -65,6 +75,8 @@ void FFaerieGridContent::Insert(FInventoryKey Key, const FFaerieGridPlacement& V
 
 void FFaerieGridContent::Remove(const FInventoryKey Key)
 {
+	check(WriteLock == 0);
+
 	if (BSOA::Remove(Key))
 	{
 		// Notify clients of this removal.

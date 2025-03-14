@@ -85,6 +85,9 @@ private:
 	UPROPERTY()
 	TWeakObjectPtr<UInventoryGridExtensionBase> ChangeListener;
 
+	// Is writing to Items locked? Enabled while StackHandles are active.
+	uint32 WriteLock = 0;
+
 public:
 	template <typename Predicate>
 	const FFaerieGridKeyedStack* FindByPredicate(Predicate Pred) const
@@ -94,10 +97,7 @@ public:
 
 	struct FScopedStackHandle : FNoncopyable
 	{
-		FScopedStackHandle(const FInventoryKey Key, FFaerieGridContent& Source)
-		  : Handle(Source.Items[Source.IndexOf(Key)]),
-			Source(Source) {}
-
+		FScopedStackHandle(const FInventoryKey Key, FFaerieGridContent& Source);
 		~FScopedStackHandle();
 
 	protected:

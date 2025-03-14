@@ -9,6 +9,8 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItem)
 
+DEFINE_LOG_CATEGORY(LogFaerieItem)
+
 namespace Faerie::Tags
 {
 	UE_DEFINE_GAMEPLAY_TAG(TokenAdd, "Fae.Token.Add")
@@ -85,6 +87,8 @@ void UFaerieItem::GetReplicatedCustomConditionState(FCustomPropertyConditionStat
 
 void UFaerieItem::ForEachToken(const TFunctionRef<bool(const TObjectPtr<UFaerieItemToken>&)>& Iter) const
 {
+	TScopeCounter<uint32> IterationLock(WriteLock);
+
 	for (auto&& Token : Tokens)
 	{
 		if (IsValid(Token))
@@ -99,6 +103,8 @@ void UFaerieItem::ForEachToken(const TFunctionRef<bool(const TObjectPtr<UFaerieI
 
 void UFaerieItem::ForEachTokenOfClass(const TFunctionRef<bool(const TObjectPtr<UFaerieItemToken>&)>& Iter, const TSubclassOf<UFaerieItemToken>& Class) const
 {
+	TScopeCounter<uint32> IterationLock(WriteLock);
+
 	for (auto&& Token : Tokens)
 	{
 		if (IsValid(Token) && Token->IsA(Class))
@@ -372,6 +378,12 @@ void UFaerieItem::AddToken(UFaerieItemToken* Token)
 		return;
 	}
 
+	if (!ensure(WriteLock == 0))
+	{
+		UE_LOG(LogFaerieItem, Error, TEXT("Cannot AddToken while iterating in ForEachToken. Please correct code."))
+		return;
+	}
+
 	// If this check fails, then whatever code tried to add the token didn't create it with us as the outer, or needs to
 	// either duplicate or rename the token with us as the outer.
 	check(Token->GetOuter() == this);
@@ -394,6 +406,12 @@ bool UFaerieItem::RemoveToken(UFaerieItemToken* Token)
 
 	if (!ensure(CanMutate()))
 	{
+		return false;
+	}
+
+	if (!ensure(WriteLock == 0))
+	{
+		UE_LOG(LogFaerieItem, Error, TEXT("Cannot AddToken while iterating in ForEachToken. Please correct code."))
 		return false;
 	}
 
@@ -427,6 +445,12 @@ int32 UFaerieItem::RemoveTokensByClass(const TSubclassOf<UFaerieItemToken> Class
 	if (!ensure(CanMutate()))
 	{
 		return 0;
+	}
+
+	if (!ensure(WriteLock == 0))
+	{
+		UE_LOG(LogFaerieItem, Error, TEXT("Cannot AddToken while iterating in ForEachToken. Please correct code."))
+		return false;
 	}
 
 	TArray<const UFaerieItemToken*> TokensRemoved;

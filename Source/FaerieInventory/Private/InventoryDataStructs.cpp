@@ -299,6 +299,7 @@ void FKeyedInventoryEntry::PostReplicatedChange(const FInventoryContent& InArray
 FKeyedInventoryEntry& FInventoryContent::Append(const FEntryKey Key, const FInventoryEntry& Entry)
 {
 	check(Key.IsValid());
+	check(WriteLock == 0);
 
 	LLM_SCOPE_BYTAG(ItemStorage);
 
@@ -318,6 +319,7 @@ FKeyedInventoryEntry& FInventoryContent::Append(const FEntryKey Key, const FInve
 FKeyedInventoryEntry& FInventoryContent::AppendUnsafe(FEntryKey Key, const FInventoryEntry& Entry)
 {
 	check(Key.IsValid());
+	check(WriteLock == 0);
 
 	LLM_SCOPE_BYTAG(ItemStorage);
 
@@ -330,6 +332,7 @@ FKeyedInventoryEntry& FInventoryContent::AppendUnsafe(FEntryKey Key, const FInve
 void FInventoryContent::Insert(const FEntryKey Key, const FInventoryEntry& Entry)
 {
 	check(Key.IsValid());
+	check(WriteLock == 0);
 
 	LLM_SCOPE_BYTAG(ItemStorage);
 
@@ -341,6 +344,8 @@ void FInventoryContent::Insert(const FEntryKey Key, const FInventoryEntry& Entry
 
 void FInventoryContent::Remove(const FEntryKey Key)
 {
+	check(WriteLock == 0);
+
 	if (BSOA::Remove(Key,
 		[this](const FKeyedInventoryEntry& Entry)
 		{
@@ -353,8 +358,17 @@ void FInventoryContent::Remove(const FEntryKey Key)
 	}
 }
 
+FInventoryContent::FScopedItemHandle::FScopedItemHandle(const FEntryKey Key, FInventoryContent& Source)
+  : Handle(Source.Entries[Source.IndexOf(Key)]),
+	Source(Source)
+{
+	Source.WriteLock++;
+}
+
 FInventoryContent::FScopedItemHandle::~FScopedItemHandle()
 {
+	Source.WriteLock--;
+
 	// Propagate change to client
 	Source.MarkItemDirty(Handle);
 
