@@ -413,7 +413,7 @@ Faerie::Inventory::FEventLog UFaerieItemStorage::AddStackImpl(const FFaerieItemS
 		Event.EntryTouched = QueryFirst(
 			[InStack](const FFaerieItemProxy& Other)
 			{
-				return InStack.Item->CompareWith(Other.GetItemObject());
+				return InStack.Item->CompareWith(Other.GetItemObject(), EFaerieItemComparisonFlags::Default);
 			}).Key;
 	}
 
@@ -662,7 +662,7 @@ FEntryKey UFaerieItemStorage::FindItem(const UFaerieItem* Item, const EFaerieIte
 	case EFaerieItemEqualsCheck::UseCompareWith:
 		for (const FKeyedInventoryEntry& Entry : EntryMap)
 		{
-			if (Entry.Value.ItemObject->CompareWith(Item))
+			if (Entry.Value.ItemObject->CompareWith(Item, EFaerieItemComparisonFlags::Default))
 			{
 				return Entry.Key;
 			}

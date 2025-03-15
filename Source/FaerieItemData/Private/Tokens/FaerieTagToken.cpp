@@ -5,6 +5,11 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieTagToken)
 
+UFaerieTagToken::UFaerieTagToken()
+{
+	GetFaerieItemTokenSparseClassStruct()->ClassTags.AddTag(Faerie::Tags::PrimaryIdentifierToken);
+}
+
 void UFaerieTagToken::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);

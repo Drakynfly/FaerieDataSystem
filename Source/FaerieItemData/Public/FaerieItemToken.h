@@ -2,17 +2,39 @@
 
 #pragma once
 
+#include "GameplayTagContainer.h"
+#include "NativeGameplayTags.h"
 #include "NetSupportedObject.h"
 #include "FaerieItemToken.generated.h"
 
 class UFaerieItem;
+
+/**
+ * Per-class data for Faerie Item Tokens
+ */
+USTRUCT()
+struct FFaerieItemTokenSparseClassStruct
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly, Category = "Filtering")
+	FGameplayTagContainer ClassTags;
+};
+
+namespace Faerie::Tags
+{
+	// Tag assigned to "Primary" identifiers. Primary tokens are used to distinguish items without doing full comparisons.
+	// See UFaerieItem::CompareWith
+	FAERIEITEMDATA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(PrimaryIdentifierToken);
+}
 
 DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(bool, FBlueprintTokenEdit, UFaerieItemToken*, Token);
 
 /**
  * A fragment of an inventory item, encapsulating a single feature of the item.
  */
-UCLASS(BlueprintType, DefaultToInstanced, EditInlineNew, Abstract, CollapseCategories, HideDropdown)
+UCLASS(BlueprintType, DefaultToInstanced, EditInlineNew, Abstract,
+	SparseClassDataTypes = "FaerieItemTokenSparseClassStruct", CollapseCategories, HideDropdown, meta = (DontUseGenericSpawnObject = "True"))
 class FAERIEITEMDATA_API UFaerieItemToken : public UNetSupportedObject
 {
 	GENERATED_BODY()

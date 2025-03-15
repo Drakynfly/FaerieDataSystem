@@ -16,6 +16,8 @@ class FAERIEITEMDATA_API UFaerieTagToken : public UFaerieItemToken
 	GENERATED_BODY()
 
 public:
+	UFaerieTagToken();
+
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
 protected:

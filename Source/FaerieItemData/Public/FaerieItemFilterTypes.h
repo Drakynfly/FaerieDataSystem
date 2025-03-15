@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "FaerieItemDataTypes.generated.h"
+#include "FaerieItemFilterTypes.generated.h"
 
 UENUM()
 enum class EItemDataMutabilityStatus : uint8

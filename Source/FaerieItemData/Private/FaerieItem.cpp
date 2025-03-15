@@ -1,6 +1,8 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieItem.h"
+#include "FaerieHash.h"
+#include "FaerieHashStatics.h"
 #include "FaerieItemToken.h"
 #include "FaerieUtils.h"
 #include "Net/UnrealNetwork.h"
@@ -22,6 +24,87 @@ namespace Faerie::Tags
 // This is really the module startup time, since this is set whenever this module loads :)
 static FDateTime EditorStartupTime = FDateTime::UtcNow();
 #endif
+
+namespace Faerie
+{
+	FTokenFilter& FTokenFilter::ByClass(const TSubclassOf<UFaerieItemToken>& Class)
+	{
+		if (!IsValid(Class) ||
+			Class == UFaerieItemToken::StaticClass()) return *this;
+
+		Tokens.RemoveAllSwap(
+			[Class](const TObjectPtr<UFaerieItemToken>& Token)
+			{
+				return !Token.IsA(Class);
+			});
+
+		return *this;
+	}
+
+	FTokenFilter& FTokenFilter::ByTag(const FGameplayTag& Tag, const bool Exact)
+	{
+		Tokens.RemoveAllSwap(
+			[&](const TObjectPtr<UFaerieItemToken>& Token)
+			{
+				if (Exact)
+				{
+					return !Token->GetClassTags().HasTagExact(Tag);
+				}
+				return !Token->GetClassTags().HasTag(Tag);
+			});
+		return *this;
+	}
+
+	FTokenFilter& FTokenFilter::ByTags(const FGameplayTagContainer& Tags, const bool All, const bool Exact)
+	{
+		Tokens.RemoveAllSwap(
+			[&](const TObjectPtr<UFaerieItemToken>& Token)
+			{
+				if (Exact)
+				{
+					if (All)
+					{
+						return !Token->GetClassTags().HasAllExact(Tags);
+					}
+					return !Token->GetClassTags().HasAnyExact(Tags);
+				}
+
+				if (All)
+				{
+					return !Token->GetClassTags().HasAll(Tags);
+				}
+				return !Token->GetClassTags().HasAny(Tags);
+			});
+		return *this;
+	}
+
+	FTokenFilter& FTokenFilter::ByTagQuery(const FGameplayTagQuery& Query)
+	{
+		Tokens.RemoveAllSwap(
+			[&](const TObjectPtr<UFaerieItemToken>& Token)
+			{
+				return !Token->GetClassTags().MatchesQuery(Query);
+			});
+		return *this;
+	}
+
+	FTokenFilter& FTokenFilter::ForEach(const TFunctionRef<bool(const TObjectPtr<UFaerieItemToken>&)>& Iter)
+	{
+		for (auto&& Token : Tokens)
+		{
+			if (IsValid(Token))
+			{
+				if (!Iter(Token))
+				{
+					return *this;
+				}
+			}
+		}
+
+		return *this;
+	}
+}
+
 
 void UFaerieItem::PreSave(FObjectPreSaveContext SaveContext)
 {
@@ -277,13 +360,18 @@ TArray<UFaerieItemToken*> UFaerieItem::GetMutableTokens(const TSubclassOf<UFaeri
 	return OutTokens;
 }
 
-bool UFaerieItem::Compare(const UFaerieItem* A, const UFaerieItem* B)
+Faerie::FTokenFilter UFaerieItem::FilterTokens() const
 {
-	if (!A || !B) return A == B;
-	return A->CompareWith(B);
+	return Faerie::FTokenFilter(Tokens);
 }
 
-bool UFaerieItem::CompareWith(const UFaerieItem* Other) const
+bool UFaerieItem::Compare(const UFaerieItem* A, const UFaerieItem* B, const EFaerieItemComparisonFlags Flags)
+{
+	if (!A || !B) return A == B;
+	return A->CompareWith(B, Flags);
+}
+
+bool UFaerieItem::CompareWith(const UFaerieItem* Other, const EFaerieItemComparisonFlags Flags) const
 {
 	// If we are the same object, then we already know we're identical
 	if (this == Other)
@@ -291,15 +379,71 @@ bool UFaerieItem::CompareWith(const UFaerieItem* Other) const
 		return true;
 	}
 
-	// If either is mutable then they are considered "unequivocable" and therefor, mutually exclusive.
-	if (IsDataMutable() || Other->IsDataMutable())
+	// Mutability comparison
+	if (!EnumHasAnyFlags(Flags, EFaerieItemComparisonFlags::Mutability_Ignore))
 	{
-		return false;
+		if (EnumHasAnyFlags(Flags, EFaerieItemComparisonFlags::Mutability_TreatAsUnequivocable))
+		{
+			// If either is mutable, then they are considered "unequivocable" and therefor, mutually exclusive.
+			if (IsDataMutable() || Other->IsDataMutable())
+			{
+				return false;
+			}
+		}
+		else if (EnumHasAnyFlags(Flags, EFaerieItemComparisonFlags::Mutability_Compare))
+		{
+			// If mutability doesn't match, then the items fail comparison.
+			if (IsDataMutable() != Other->IsDataMutable())
+			{
+				return false;
+			}
+		}
 	}
 
-	// Resort to comparing tokens ...
-	const TConstArrayView<TObjectPtr<UFaerieItemToken>> TokensA = GetTokens();
-	const TConstArrayView<TObjectPtr<UFaerieItemToken>> TokensB = Other->GetTokens();
+	// Compare primary identifiers.
+	// This is a quicker comparison that uses the CompareWith virtual function implemented by those tokens.
+	if (EnumHasAnyFlags(Flags, EFaerieItemComparisonFlags::Tokens_ComparePrimaryIdentifiers))
+	{
+		TArray<const TObjectPtr<UFaerieItemToken>> ItemAPrimaries = *FilterTokens().ByTag(Faerie::Tags::PrimaryIdentifierToken);
+
+		Faerie::FTokenFilter Filter(Other->FilterTokens());
+		Filter.ByTag(Faerie::Tags::PrimaryIdentifierToken);
+
+		// This already indicates they are not equal.
+		if (Filter.GetNum() != ItemAPrimaries.Num())
+		{
+			return false;
+		}
+
+		bool ComparisonFailed = false;
+
+		Filter.ForEach([&ItemAPrimaries, &ComparisonFailed](const TObjectPtr<UFaerieItemToken>& TokenB)
+			{
+				// Each token from Other must find a token in ItemAPrimaries that it compares to.
+				for (auto It =
+					(*reinterpret_cast<TArray<TObjectPtr<UFaerieItemToken>>*>(&ItemAPrimaries)) // This is a hack to allow us to use RemoveCurrentSwap
+					.CreateIterator(); It; ++It)
+				{
+					if (TokenB->CompareWith(*It))
+					{
+						// The token is a match! Remove from the ItemA list, and exit iteration.
+						It.RemoveCurrentSwap();
+						return false;
+					}
+					// Okay, continue to the next token.
+				}
+
+				// No match was found, marked comparison as failed, and exit.
+				ComparisonFailed = true;
+				return false;
+			});
+
+		return !ComparisonFailed;
+	}
+
+	// Resort to comparing all tokens. Since most tokens don't implement CompareWith, fallback on hashing the objects.
+	TArray<TObjectPtr<UFaerieItemToken>> TokensA = Tokens;
+	TArray<TObjectPtr<UFaerieItemToken>> TokensB = Other->Tokens;
 
 	// This already indicates they are not equal.
 	if (TokensA.Num() != TokensB.Num())
@@ -307,35 +451,40 @@ bool UFaerieItem::CompareWith(const UFaerieItem* Other) const
 		return false;
 	}
 
-	TMap<UClass*, TObjectPtr<UFaerieItemToken>> TokenMapA;
-
-	// Get the classes of tokens in A
-	for (auto&& Token : TokensA)
+	// First pass is to remove direct pointer copies (asset referenced tokens)
+	for (auto ItA(TokensA.CreateIterator()); ItA; ++ItA)
 	{
-		TokenMapA.Add(Token.GetClass(), Token);
+		for (auto ItB(TokensB.CreateIterator()); ItB; ++ItB)
+		{
+			if (*ItA == *ItB)
+			{
+				ItA.RemoveCurrentSwap();
+				ItB.RemoveCurrentSwap();
+				break;
+			}
+		}
 	}
 
-	TArray<TPair<TObjectPtr<UFaerieItemToken>, TObjectPtr<UFaerieItemToken>>> TokenPairs;
+	// Hash all of A's tokens
+	TArray<uint32> TokenAHashes;
+	TokenAHashes.Reserve(TokensA.Num());
+	for (auto&& TokenA : TokensA)
+	{
+		TokenAHashes.Add(Faerie::Hash::HashObjectByProps(TokenA, true));
+	}
 
-	// Check that for every token in A, there is one that matches class in B
+	// While hashing all of B's tokens, check that they all have a match.
 	for (auto&& TokenB : TokensB)
 	{
-		auto&& TokenA = TokenMapA.Find(TokenB.GetClass());
-
-		if (TokenA == nullptr)
+		if (const uint32 TokenBHash = Faerie::Hash::HashObjectByProps(TokenB, true);
+			TokenAHashes.RemoveSwap(TokenBHash))
 		{
-			return false;
+			// The token was matched! Continue iteration.
+			continue;
 		}
 
-		TokenPairs.Add({*TokenA, TokenB});
-	}
-
-	for (auto&& [AToken, BToken] : TokenPairs)
-	{
-		if (!AToken->CompareWith(BToken))
-		{
-			return false;
-		}
+		// No match was found, exit.
+		return false;
 	}
 
 	// They are equal then :)
@@ -455,7 +604,7 @@ int32 UFaerieItem::RemoveTokensByClass(const TSubclassOf<UFaerieItemToken> Class
 
 	TArray<const UFaerieItemToken*> TokensRemoved;
 
-	if (const int32 Removed = Tokens.RemoveAll(
+	if (const int32 Removed = Tokens.RemoveAllSwap(
 		[Class, this, &TokensRemoved](const UFaerieItemToken* Token)
 		{
 			const bool Removing = IsValid(Token) && Token->GetClass() == Class;

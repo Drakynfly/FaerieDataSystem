@@ -5,6 +5,11 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemToken)
 
+namespace Faerie::Tags
+{
+	UE_DEFINE_GAMEPLAY_TAG(PrimaryIdentifierToken, "Fae.Token.PrimaryIdentifier");
+}
+
 #if WITH_EDITOR
 void UFaerieItemToken::PostCDOCompiled(const FPostCDOCompiledContext& Context)
 {

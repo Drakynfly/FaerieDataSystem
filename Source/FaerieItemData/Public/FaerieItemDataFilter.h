@@ -4,7 +4,7 @@
 
 #include "UObject/Object.h"
 #include "FaerieItemDataProxy.h"
-#include "FaerieItemDataTypes.h"
+#include "FaerieItemFilterTypes.h"
 #include "FaerieItemDataFilter.generated.h"
 
 namespace Faerie::ItemData

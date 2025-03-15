@@ -10,7 +10,7 @@
 
 bool UFaerieItemDataLibrary::Equal_ItemData(const UFaerieItem* A, const UFaerieItem* B)
 {
-	return UFaerieItem::Compare(A, B);
+	return UFaerieItem::Compare(A, B, EFaerieItemComparisonFlags::Default);
 }
 
 bool UFaerieItemDataLibrary::Equal_ItemToken(const UFaerieItemToken* A, const UFaerieItemToken* B)
