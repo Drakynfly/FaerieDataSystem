@@ -17,7 +17,9 @@ class UFaerieItem;
  * Do not serialize this struct, it is only designed for runtime use.
  * The pointer is held as weak, emphasizing that this is only a handle for the Blueprint API, not valid storage for an item.
  */
-USTRUCT(BlueprintType, meta = (DisableSplitPin))
+USTRUCT(BlueprintType, meta = (DisableSplitPin,
+	HasNativeMake = "/Script/FaerieItemData.FaerieItemDataLibrary.TryGetEditHandle",
+	HasNativeBreak = "/Script/FaerieItemData.FaerieItemDataLibrary.GetItem"))
 struct FAERIEITEMDATA_API FFaerieItemEditHandle
 {
 	GENERATED_BODY()

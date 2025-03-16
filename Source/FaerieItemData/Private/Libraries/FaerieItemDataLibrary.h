@@ -42,6 +42,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Faerie|EditHandle")
 	static bool IsValidHandle(const FFaerieItemEditHandle& Handle);
 
+	UFUNCTION(BlueprintPure, Category = "Faerie|EditHandle")
+	static UFaerieItem* GetItem(const FFaerieItemEditHandle& Handle);
+
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EditHandle")
 	static bool AddToken(const FFaerieItemEditHandle& Handle, UFaerieItemToken* Token);
 

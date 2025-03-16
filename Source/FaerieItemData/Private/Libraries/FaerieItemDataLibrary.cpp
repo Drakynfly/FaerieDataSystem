@@ -39,6 +39,11 @@ bool UFaerieItemDataLibrary::IsValidHandle(const FFaerieItemEditHandle& Handle)
 	return Handle.IsValid();
 }
 
+UFaerieItem* UFaerieItemDataLibrary::GetItem(const FFaerieItemEditHandle& Handle)
+{
+	return Handle.GetItem();
+}
+
 bool UFaerieItemDataLibrary::AddToken(const FFaerieItemEditHandle& Handle, UFaerieItemToken* Token)
 {
 	if (Handle.IsValid())
