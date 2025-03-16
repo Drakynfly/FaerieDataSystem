@@ -7,7 +7,7 @@
 
 #include "FaerieItemSource.generated.h"
 
-enum class EFaerieItemMutabilityFlags : uint8;
+enum class EFaerieItemInstancingMutability : uint8;
 class UFaerieItem;
 
 UCLASS(Const)
@@ -20,7 +20,7 @@ class FAERIEITEMDATA_API UItemInstancingContext : public UObject
 public:
 	// Flags to mark instances with
 	UPROPERTY()
-	EFaerieItemMutabilityFlags Flags;
+	EFaerieItemInstancingMutability Flags;
 };
 
 // This class does not need to be modified.

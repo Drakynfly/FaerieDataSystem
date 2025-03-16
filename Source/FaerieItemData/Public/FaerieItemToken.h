@@ -35,7 +35,7 @@ DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(bool, FBlueprintTokenEdit, UFaerieItemT
 /**
  * A fragment of an inventory item, encapsulating a single feature of the item.
  */
-UCLASS(BlueprintType, DefaultToInstanced, EditInlineNew, Abstract,
+UCLASS(BlueprintType, Blueprintable, DefaultToInstanced, EditInlineNew, Abstract,
 	SparseClassDataTypes = "FaerieItemTokenSparseClassStruct", CollapseCategories, HideDropdown, meta = (DontUseGenericSpawnObject = "True"))
 class FAERIEITEMDATA_API UFaerieItemToken : public UNetSupportedObject
 {
@@ -100,4 +100,8 @@ protected:
 	/** Attempt to modify this token. Pass in a predicate that must perform the edit. */
 	UFUNCTION(BlueprintCallable, Category = "FaerieItemToken", meta = (DisplayName = "Edit Token"), meta = (DeprecatedFunction, DeprecationMessage = "Use UFaerieItemDataLibrary::EditToken"))
 	void BP_EditToken(const FBlueprintTokenEdit& Edit);
+
+	friend class UK2Node_CreateFaerieItemToken;
+	UFUNCTION(BlueprintCallable, Category = "InternalUseOnly", meta = (BlueprintInternalUseOnly = "true"))
+	static UFaerieItemToken* CreateFaerieItemToken(TSubclassOf<UFaerieItemToken> TokenClass);
 };

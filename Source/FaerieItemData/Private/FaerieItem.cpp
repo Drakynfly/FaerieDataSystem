@@ -200,24 +200,47 @@ void UFaerieItem::ForEachTokenOfClass(const TFunctionRef<bool(const TObjectPtr<U
 	}
 }
 
-UFaerieItem* UFaerieItem::CreateEmptyInstance(const EFaerieItemMutabilityFlags Flags)
+UFaerieItem* UFaerieItem::CreateNewInstance(const TConstArrayView<UFaerieItemToken*> Tokens, const EFaerieItemInstancingMutability Mutability)
 {
 	UFaerieItem* Instance = NewObject<UFaerieItem>();
-	EnumAddFlags(Instance->MutabilityFlags, Flags | EFaerieItemMutabilityFlags::InstanceMutability);
+	EnumAddFlags(Instance->MutabilityFlags, ToFlags(Mutability) | EFaerieItemMutabilityFlags::InstanceMutability);
 	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, MutabilityFlags, Instance);
+
+	for (auto&& Token : Tokens)
+	{
+		// Mutable tokens have to be owned by us.
+		if (Token->IsMutable())
+		{
+			check(Token->GetPackage() == GetTransientPackage())
+			Token->Rename(nullptr, Instance);
+		}
+		else
+		{
+			if (Token->GetPackage() == GetTransientPackage())
+			{
+				Token->Rename(nullptr, Instance);
+			}
+		}
+
+		Instance->Tokens.Add(Token);
+	}
+	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Tokens, Instance);
+
 	Instance->LastModified = FDateTime::UtcNow();
+	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, LastModified, Instance);
+
 	return Instance;
 }
 
-UFaerieItem* UFaerieItem::CreateInstance(const EFaerieItemMutabilityFlags Flags) const
+UFaerieItem* UFaerieItem::CreateInstance(const EFaerieItemInstancingMutability Mutability) const
 {
-	const bool ShouldCreateDuplicate = [this, Flags]
+	const bool ShouldCreateDuplicate = [this, Mutability]
 	{
-		if (EnumHasAnyFlags(Flags, EFaerieItemMutabilityFlags::ForbidTokenMutability))
+		if (EnumHasAnyFlags(Mutability, EFaerieItemInstancingMutability::Immutable))
 		{
 			return false;
 		}
-		if (EnumHasAnyFlags(Flags, EFaerieItemMutabilityFlags::AlwaysTokenMutable))
+		if (EnumHasAnyFlags(Mutability, EFaerieItemInstancingMutability::Mutable))
 		{
 			return true;
 		}
@@ -231,7 +254,7 @@ UFaerieItem* UFaerieItem::CreateInstance(const EFaerieItemMutabilityFlags Flags)
 	if (ShouldCreateDuplicate)
 	{
 		// Make a copy of the static item stored in this asset if we might need to modify the data
-		NewInstance = CreateDuplicate(Flags);
+		NewInstance = CreateDuplicate(Mutability);
 	}
 	else
 	{
@@ -243,10 +266,10 @@ UFaerieItem* UFaerieItem::CreateInstance(const EFaerieItemMutabilityFlags Flags)
 	return NewInstance;
 }
 
-UFaerieItem* UFaerieItem::CreateDuplicate(const EFaerieItemMutabilityFlags Flags) const
+UFaerieItem* UFaerieItem::CreateDuplicate(const EFaerieItemInstancingMutability Mutability) const
 {
 	UFaerieItem* Duplicate = NewObject<UFaerieItem>();
-	EnumAddFlags(Duplicate->MutabilityFlags, Flags | EFaerieItemMutabilityFlags::InstanceMutability);
+	EnumAddFlags(Duplicate->MutabilityFlags, ToFlags(Mutability) | EFaerieItemMutabilityFlags::InstanceMutability);
 	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, MutabilityFlags, Duplicate);
 
 	// Add our tokens to the new object.

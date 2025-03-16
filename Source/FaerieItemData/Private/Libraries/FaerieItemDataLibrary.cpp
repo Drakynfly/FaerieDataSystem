@@ -19,13 +19,18 @@ bool UFaerieItemDataLibrary::Equal_ItemToken(const UFaerieItemToken* A, const UF
 	return A->CompareWith(B);
 }
 
-UFaerieItem* UFaerieItemDataLibrary::GetItemInstance(const UFaerieItemAsset* Asset, const bool MutableInstance)
+UFaerieItem* UFaerieItemDataLibrary::GetItemInstance(const UFaerieItemAsset* Asset, const EFaerieItemInstancingMutability Mutability)
 {
 	if (IsValid(Asset))
 	{
-		return Asset->GetItemInstance(MutableInstance);
+		return Asset->GetItemInstance(Mutability);
 	}
 	return nullptr;
+}
+
+UFaerieItem* UFaerieItemDataLibrary::NewItemInstance(const TArray<UFaerieItemToken*>& Tokens, const EFaerieItemInstancingMutability Mutability)
+{
+	return UFaerieItem::CreateNewInstance(Tokens, Mutability);
 }
 
 bool UFaerieItemDataLibrary::TryGetEditHandle(const UFaerieItem* Item, FFaerieItemEditHandle& Handle)
@@ -80,6 +85,11 @@ bool UFaerieItemDataLibrary::EditToken(const FFaerieItemEditHandle& Handle, UFae
 	}
 
 	if (!ensure(Edit.IsBound()))
+	{
+		return false;
+	}
+
+	if (!ensure(Token->GetOuterItem() == Handle.GetItem()))
 	{
 		return false;
 	}

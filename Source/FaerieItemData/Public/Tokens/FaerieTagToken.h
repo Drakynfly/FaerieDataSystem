@@ -32,9 +32,11 @@ protected:
 	}
 
 public:
+	static UFaerieTagToken* CreateInstance(const FGameplayTagContainer& Tags);
+
 	const FGameplayTagContainer& GetTags() const { return Tags; }
 
 protected:
-	UPROPERTY(EditAnywhere, Replicated, BlueprintReadOnly, Category = "Faerie|TagToken")
+	UPROPERTY(EditAnywhere, Replicated, BlueprintReadOnly, Category = "TagToken", meta = (ExposeOnSpawn))
 	FGameplayTagContainer Tags;
 };

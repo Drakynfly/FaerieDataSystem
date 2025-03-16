@@ -27,10 +27,12 @@ public class FaerieItemDataEditor : ModuleRules
             {
                 "AdvancedPreviewScene",
                 "AssetDefinition",
+                "BlueprintGraph",
                 "CoreUObject",
                 "Engine",
                 "FaerieItemCard",
                 "FaerieItemMesh",
+                "KismetCompiler",
                 "Slate",
                 "SlateCore",
                 "UnrealEd"

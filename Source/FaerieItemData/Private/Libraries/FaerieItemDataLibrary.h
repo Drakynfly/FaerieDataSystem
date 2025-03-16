@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "FaerieItemDataEnums.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "FaerieItemDataLibrary.generated.h"
 
@@ -27,9 +28,11 @@ public:
 	static bool Equal_ItemToken(const UFaerieItemToken* A, const UFaerieItemToken* B);
 
 	// Get the item instance this asset represents. By default, this will return the immutable asset if possible.
-	// If the item needs to allow changes, enable MutableInstance.
 	UFUNCTION(BlueprintPure, Category = "Faerie|ItemAsset")
-	static UFaerieItem* GetItemInstance(const UFaerieItemAsset* Asset, bool MutableInstance);
+	static UFaerieItem* GetItemInstance(const UFaerieItemAsset* Asset, const EFaerieItemInstancingMutability Mutability);
+
+	UFUNCTION(BlueprintPure, Category = "Faerie|ItemInstance")
+	static UFaerieItem* NewItemInstance(const TArray<UFaerieItemToken*>& Tokens, EFaerieItemInstancingMutability Mutability);
 
 	// Try to get access to the editing API of a faerie item. This will only succeed if the item is Mutable, meaning
 	// that the item instance is not an asset-reference, and that token mutability was enabled during instancing.
@@ -55,6 +58,7 @@ public:
 	static int32 RemoveTokensByClass(const FFaerieItemEditHandle& Handle, TSubclassOf<UFaerieItemToken> Class);
 
 	/** Attempt to modify this token. Pass in a predicate that performs the edit. */
+	// @todo remove this as well, this is to hard to enforce safe usage. Just add UFUNC setters/getters on tokens that can mutate
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EditHandle")
 	static bool EditToken(const FFaerieItemEditHandle& Handle, UFaerieItemToken* Token, const FBlueprintTokenEdit& Edit);
 

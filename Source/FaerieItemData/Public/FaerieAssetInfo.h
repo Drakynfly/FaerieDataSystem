@@ -17,18 +17,18 @@ struct FFaerieAssetInfo
 	GENERATED_BODY()
 
 	// A name or very short description of the object.
-	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "FaerieAssetInfo")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FaerieAssetInfo")
 	FText ObjectName;
 
 	// A single line description, such as a "blurb", or subtitle.
-	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "FaerieAssetInfo")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FaerieAssetInfo")
 	FText ShortDescription;
 
 	// A potentially long, multi-line description, ala, flavor text.
-	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "FaerieAssetInfo", meta = (Multiline = true))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FaerieAssetInfo", meta = (Multiline = true))
 	FText LongDescription;
 
 	// An item for representing this object.
-	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "FaerieAssetInfo")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FaerieAssetInfo")
 	TSoftObjectPtr<UTexture2D> Icon;
 };

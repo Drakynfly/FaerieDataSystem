@@ -18,15 +18,23 @@ class FAERIEITEMDATA_API UFaerieGuidToken : public UFaerieItemToken
 public:
 	UFaerieGuidToken();
 
+	//~ UObject
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void PostInitProperties() override;
+	virtual void PostDuplicate(EDuplicateMode::Type DuplicateMode) override;
+	//~ UObject
 
 protected:
+	//~ UFaerieItemToken
 	virtual bool CompareWithImpl(const UFaerieItemToken* Other) const override
 	{
 		return CastChecked<ThisClass>(Other)->Guid == Guid;
 	}
+	//~ UFaerieItemToken
 
 public:
+	static UFaerieGuidToken* CreateInstance(const FGuid* ExistingGuid = nullptr);
+
 	const FGuid& GetGuid() const { return Guid; }
 
 protected:

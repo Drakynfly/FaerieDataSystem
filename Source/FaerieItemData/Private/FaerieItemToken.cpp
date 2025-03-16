@@ -125,3 +125,12 @@ void UFaerieItemToken::BP_EditToken(const FBlueprintTokenEdit& Edit)
 			return Edit.Execute(Token);
 		});
 }
+
+UFaerieItemToken* UFaerieItemToken::CreateFaerieItemToken(const TSubclassOf<UFaerieItemToken> TokenClass)
+{
+	if (TokenClass)
+	{
+		return NewObject<UFaerieItemToken>(GetTransientPackage(), TokenClass);
+	}
+	return nullptr;
+}

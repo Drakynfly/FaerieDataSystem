@@ -18,3 +18,10 @@ void UFaerieTagToken::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>
 	Params.Condition = COND_InitialOnly;
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, Tags, Params);
 }
+
+UFaerieTagToken* UFaerieTagToken::CreateInstance(const FGameplayTagContainer& Tags)
+{
+	UFaerieTagToken* NewToken = NewObject<UFaerieTagToken>();
+	NewToken->Tags = Tags;
+	return NewToken;
+}

@@ -32,6 +32,13 @@ bool UFaerieInfoToken::CompareWithImpl(const UFaerieItemToken* Other) const
 	return true;
 }
 
+UFaerieInfoToken* UFaerieInfoToken::CreateInstance(const FFaerieAssetInfo& AssetInfo)
+{
+	UFaerieInfoToken* NewToken = NewObject<UFaerieInfoToken>();
+	NewToken->Info = AssetInfo;
+	return NewToken;
+}
+
 const FFaerieAssetInfo& UFaerieInfoToken::GetAssetInfo() const
 {
 	return Info;

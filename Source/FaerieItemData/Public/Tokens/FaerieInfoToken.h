@@ -24,7 +24,9 @@ protected:
 	virtual bool CompareWithImpl(const UFaerieItemToken* Other) const override;
 
 public:
-	UFUNCTION(BlueprintCallable, Category = "Faerie|InfoToken")
+	static UFaerieInfoToken* CreateInstance(const FFaerieAssetInfo& Info);
+
+	UFUNCTION(BlueprintCallable, BlueprintGetter, Category = "Faerie|InfoToken")
 	const FFaerieAssetInfo& GetAssetInfo() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|InfoToken")
@@ -40,6 +42,6 @@ public:
 	TSoftObjectPtr<UTexture2D> GetIcon() const;
 
 protected:
-	UPROPERTY(EditAnywhere, Replicated, Category = "StaticInfoToken", NoClear)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated, Category = "InfoToken", NoClear, meta = (ExposeOnSpawn))
 	FFaerieAssetInfo Info;
 };

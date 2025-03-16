@@ -35,7 +35,7 @@ public:
 	// Get the item instance this asset represents. By default, this will return the immutable asset if possible.
 	// If the item needs to allow changes, enable MutableInstance.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemAsset")
-	UFaerieItem* GetItemInstance(bool MutableInstance) const;
+	UFaerieItem* GetItemInstance(EFaerieItemInstancingMutability Mutability) const;
 
 #if WITH_EDITOR
 	// Gets a const ptr to the archetype item this asset generates.

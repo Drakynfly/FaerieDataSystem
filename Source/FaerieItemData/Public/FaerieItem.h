@@ -106,14 +106,14 @@ public:
 			, TFaerieItemToken::StaticClass());
 	}
 
-	// Creates a new faerie item object with no tokens. These are instance-mutable by default.
-	static UFaerieItem* CreateEmptyInstance(EFaerieItemMutabilityFlags Flags = EFaerieItemMutabilityFlags::None);
+	// Creates a new faerie item object with the given tokens. These are instance-mutable by default.
+	static UFaerieItem* CreateNewInstance(TConstArrayView<UFaerieItemToken*> Tokens, EFaerieItemInstancingMutability Mutability = EFaerieItemInstancingMutability::Automatic);
 
 	// Creates a new faerie item object using this instance as a template. Instance-mutable only if required by item or flags.
-	UFaerieItem* CreateInstance(EFaerieItemMutabilityFlags Flags = EFaerieItemMutabilityFlags::None) const;
+	UFaerieItem* CreateInstance(EFaerieItemInstancingMutability Mutability = EFaerieItemInstancingMutability::Automatic) const;
 
 	// Creates a new faerie item object using this instance as a template. Duplicates are instance-mutable by default.
-	UFaerieItem* CreateDuplicate(EFaerieItemMutabilityFlags Flags = EFaerieItemMutabilityFlags::None) const;
+	UFaerieItem* CreateDuplicate(EFaerieItemInstancingMutability Mutability = EFaerieItemInstancingMutability::Automatic) const;
 
 	TConstArrayView<TObjectPtr<UFaerieItemToken>> GetTokens() const { return Tokens; }
 

@@ -118,8 +118,8 @@ UFaerieItem* UFaerieItemAsset::CreateItemInstance(const UItemInstancingContext* 
 	return Item->CreateInstance(Context->Flags);
 }
 
-UFaerieItem* UFaerieItemAsset::GetItemInstance(const bool MutableInstance) const
+UFaerieItem* UFaerieItemAsset::GetItemInstance(const EFaerieItemInstancingMutability Mutability) const
 {
 	if (!IsValidChecked(Item)) return nullptr;
-	return Item->CreateInstance(MutableInstance ? EFaerieItemMutabilityFlags::AlwaysTokenMutable : EFaerieItemMutabilityFlags::None);
+	return Item->CreateInstance(Mutability);
 }

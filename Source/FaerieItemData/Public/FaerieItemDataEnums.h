@@ -30,6 +30,32 @@ enum class EFaerieItemMutabilityFlags : uint8
 };
 ENUM_CLASS_FLAGS(EFaerieItemMutabilityFlags)
 
+// Options to enable Mutability flags on newly instanced items
+UENUM(BlueprintType)
+enum class EFaerieItemInstancingMutability : uint8
+{
+	// Determine mutability from the tokens the item is created with.
+	Automatic,
+
+	// The item will be mutable even if the tokens don't need it.
+	Mutable,
+
+	// The item will be immutable even if the tokens need it. Note that this will interfere with some behavior, so only
+	// use if you are sure you want to disable them.
+	Immutable,
+};
+
+FORCEINLINE EFaerieItemMutabilityFlags ToFlags(const EFaerieItemInstancingMutability Mutability)
+{
+	switch (Mutability)
+	{
+	case EFaerieItemInstancingMutability::Mutable: return EFaerieItemMutabilityFlags::AlwaysTokenMutable;
+	case EFaerieItemInstancingMutability::Immutable: return EFaerieItemMutabilityFlags::ForbidTokenMutability;
+	case EFaerieItemInstancingMutability::Automatic:
+		default: return EFaerieItemMutabilityFlags::None;
+	}
+}
+
 UENUM(Meta = (Bitflags, UseEnumValuesAsMaskValuesInEditor = "true"))
 enum class EFaerieItemComparisonFlags : uint8
 {
