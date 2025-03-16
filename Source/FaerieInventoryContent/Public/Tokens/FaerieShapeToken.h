@@ -20,6 +20,6 @@ public:
 	const FFaerieGridShape& GetShape() const { return Shape; }
 
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated, meta = (ShowOnlyInnerProperties))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated, meta = (ShowOnlyInnerProperties, ExposeOnSpawn))
 	FFaerieGridShape Shape;
 };

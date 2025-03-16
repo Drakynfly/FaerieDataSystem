@@ -51,7 +51,7 @@ public:
 	virtual bool GetSkeletalItemMesh(const FGameplayTagContainer& SearchPurposes, FFaerieSkeletalMeshData& Skeletal) const override;
 
 protected:
-	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "MeshToken", meta = (ShowOnlyInnerProperties))
+	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "MeshToken", meta = (ShowOnlyInnerProperties, ExposeOnSpawn))
 	FFaerieMeshContainer MeshContainer;
 };
 
@@ -66,6 +66,6 @@ public:
 	virtual EDataValidationResult IsDataValid(FDataValidationContext& Context) const override;
 #endif
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "MeshToken")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "MeshToken", meta = (ShowOnlyInnerProperties, ExposeOnSpawn))
 	FFaerieDynamicMeshContainer DynamicMeshContainer;
 };

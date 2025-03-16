@@ -25,7 +25,7 @@ PRAGMA_DISABLE_DEPRECATION_WARNINGS
 PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 protected:
-	UPROPERTY(EditInstanceOnly, Category = "ItemCardToken")
+	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "ItemCardToken", meta = (ExposeOnSpawn))
 	TMap<FFaerieItemCardType, TSoftClassPtr<UFaerieCardBase>> CardClasses;
 
 	UE_DEPRECATED(5.5, "Replaced with Tag-based map, CardClasses")

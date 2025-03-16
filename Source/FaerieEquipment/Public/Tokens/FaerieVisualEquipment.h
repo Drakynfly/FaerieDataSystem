@@ -19,6 +19,6 @@ public:
 	const TSoftClassPtr<AItemRepresentationActor>& GetActorClass() const { return ActorClass; }
 
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Faerie|VisualEquipment")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Faerie|VisualEquipment", meta = (ExposeOnSpawn))
 	TSoftClassPtr<AItemRepresentationActor> ActorClass;
 };

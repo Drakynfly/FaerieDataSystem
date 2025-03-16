@@ -33,6 +33,6 @@ public:
 	FWeightAndVolume GetWeightAndVolumeOfStackForRemoval(const int32 Current, const int32 Removal) const;
 
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated, meta = (ShowOnlyInnerProperties))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated, meta = (ShowOnlyInnerProperties, ExposeOnSpawn))
 	FItemCapacity Capacity;
 };

@@ -56,9 +56,9 @@ public:
 	void SetMaxUses(const int32 NewMax, bool ClampRemainingToMax = true);
 
 protected:
-	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Replicated, Category = "ItemUses")
+	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Replicated, Category = "ItemUses", meta = (ExposeOnSpawn))
 	int32 MaxUses;
 
-	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Replicated, Category = "ItemUses")
+	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Replicated, Category = "ItemUses", meta = (ExposeOnSpawn))
 	int32 UsesRemaining;
 };

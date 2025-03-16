@@ -21,6 +21,6 @@ public:
 	TSubclassOf<AItemRepresentationActor> LoadActorClassSynchronous() const;
 
 protected:
-	UPROPERTY(EditAnywhere, Category = "VisualActorClassToken")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VisualActorClassToken", meta = (ExposeOnSpawn))
 	TSoftClassPtr<AItemRepresentationActor> ActorClass;
 };

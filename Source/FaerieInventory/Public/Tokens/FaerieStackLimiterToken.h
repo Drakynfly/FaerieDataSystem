@@ -19,6 +19,6 @@ public:
 
 protected:
 	// Max stack size
-	UPROPERTY(EditAnywhere, meta = (ClampMin = 0))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ClampMin = 0), meta = (ExposeOnSpawn))
 	int32 MaxStackSize;
 };
