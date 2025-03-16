@@ -5,6 +5,7 @@
 #include "GameplayTagContainer.h"
 #include "NativeGameplayTags.h"
 #include "NetSupportedObject.h"
+#include "TypeCastingUtils.h"
 #include "FaerieItemToken.generated.h"
 
 class UFaerieItem;
@@ -28,6 +29,7 @@ namespace Faerie::Tags
 	FAERIEITEMDATA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(PrimaryIdentifierToken);
 }
 
+// @todo move this delegate to UFaerieItemDataLibrary after removing BP_EditToken
 DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(bool, FBlueprintTokenEdit, UFaerieItemToken*, Token);
 
 /**
@@ -51,10 +53,6 @@ public:
 	virtual bool IsMutable() const;
 
 protected:
-	// This is a utility provided to replicate all the properties of a token class using COND_InitialOnly. This is
-	// typically all that an immutable token needs to call in GetLifetimeReplicatedProps.
-	void ReplicateAllPropertiesInitialOnly(TArray<class FLifetimeProperty>& OutLifetimeProps) const;
-
 	/*
 	 * Compare the data of this token to another. Most of the time, there is no need to override this. This function is
 	 * used to determine if two items are identical, data-wise, but since only *one* token on an item needs to differ for
@@ -68,6 +66,10 @@ protected:
 
 	// Are we in an item that is mutable?
 	bool IsOuterItemMutable() const;
+
+	// This is a utility provided to replicate all the properties of a token class using COND_InitialOnly. This is
+	// typically all that an immutable token needs to call in GetLifetimeReplicatedProps.
+	void ReplicateAllPropertiesInitialOnly(TArray<class FLifetimeProperty>& OutLifetimeProps) const;
 
 	void NotifyOuterOfChange();
 
@@ -85,7 +87,7 @@ public:
 	>
 	void EditToken(const TFunctionRef<bool(TFaerieItemToken*)>& EditFunc)
 	{
-		EditToken(EditFunc);
+		EditToken(*reinterpret_cast<const TFunctionRef<bool(UFaerieItemToken*)>*>(&EditFunc));
 	}
 
 protected:
@@ -96,6 +98,6 @@ protected:
 	UFaerieItem* BP_GetFaerieItem() const;
 
 	/** Attempt to modify this token. Pass in a predicate that must perform the edit. */
-	UFUNCTION(BlueprintCallable, Category = "FaerieItemToken", meta = (DisplayName = "Edit Token"), BlueprintAuthorityOnly)
+	UFUNCTION(BlueprintCallable, Category = "FaerieItemToken", meta = (DisplayName = "Edit Token"), meta = (DeprecatedFunction, DeprecationMessage = "Use UFaerieItemDataLibrary::EditToken"))
 	void BP_EditToken(const FBlueprintTokenEdit& Edit);
 };

@@ -491,46 +491,31 @@ bool UFaerieItem::CompareWith(const UFaerieItem* Other, const EFaerieItemCompari
 	return true;
 }
 
-bool UFaerieItem::FindToken(const TSubclassOf<UFaerieItemToken> Class, UFaerieItemToken*& FoundToken) const
+UFaerieItem* UFaerieItem::MutateCast() const
 {
-	if (!IsValid(Class))
+	if (CanMutate())
+	{
+		return const_cast<UFaerieItem*>(this);
+	}
+	return nullptr;
+}
+
+bool UFaerieItem::AddToken(UFaerieItemToken* Token)
+{
+	if (!ensure(IsValid(Token)))
 	{
 		return false;
 	}
 
-	// @todo This function is breaking const safety ...
-	FoundToken = const_cast<UFaerieItemToken*>(GetToken(Class));
-	return FoundToken != nullptr;
-}
-
-void UFaerieItem::FindTokens(const TSubclassOf<UFaerieItemToken> Class, TArray<UFaerieItemToken*>& FoundTokens) const
-{
-	if (!IsValid(Class))
-	{
-		return;
-	}
-
-	// Can't use GetMutableTokens here because it'd fail to return anything if *this* is not data mutable as a precaution.
-	// @todo This function is breaking const safety anyways...
-	FoundTokens = Type::Cast<TArray<UFaerieItemToken*>>(GetTokens(Class));
-}
-
-void UFaerieItem::AddToken(UFaerieItemToken* Token)
-{
-	if (!ensure(IsValid(Token)))
-	{
-		return;
-	}
-
 	if (!ensure(CanMutate()))
 	{
-		return;
+		return false;
 	}
 
 	if (!ensure(WriteLock == 0))
 	{
 		UE_LOG(LogFaerieItem, Error, TEXT("Cannot AddToken while iterating in ForEachToken. Please correct code."))
-		return;
+		return false;
 	}
 
 	// If this check fails, then whatever code tried to add the token didn't create it with us as the outer, or needs to
@@ -544,6 +529,7 @@ void UFaerieItem::AddToken(UFaerieItemToken* Token)
 	Tokens.Add(Token);
 
 	(void)NotifyOwnerOfSelfMutation.ExecuteIfBound(this, Token, Faerie::Tags::TokenAdd);
+	return true;
 }
 
 bool UFaerieItem::RemoveToken(UFaerieItemToken* Token)
@@ -629,6 +615,51 @@ int32 UFaerieItem::RemoveTokensByClass(const TSubclassOf<UFaerieItemToken> Class
 	}
 
 	return 0;
+}
+
+TArray<UFaerieItemToken*> UFaerieItem::GetAllTokens() const
+{
+	return Tokens;
+}
+
+bool UFaerieItem::FindToken(const TSubclassOf<UFaerieItemToken> Class, UFaerieItemToken*& FoundToken) const
+{
+	if (!IsValid(Class))
+	{
+		return false;
+	}
+
+	// @todo This function is breaking const safety ...
+	FoundToken = const_cast<UFaerieItemToken*>(GetToken(Class));
+	return FoundToken != nullptr;
+}
+
+void UFaerieItem::FindTokens(const TSubclassOf<UFaerieItemToken> Class, TArray<UFaerieItemToken*>& FoundTokens) const
+{
+	if (!IsValid(Class))
+	{
+		return;
+	}
+
+	// Can't use GetMutableTokens here because it'd fail to return anything if *this* is not data mutable as a precaution.
+	// @todo This function is breaking const safety anyways...
+	FoundTokens = Type::Cast<TArray<UFaerieItemToken*>>(GetTokens(Class));
+}
+
+TArray<UFaerieItemToken*> UFaerieItem::FindTokensByTag(const FGameplayTag& Tag, const bool Exact) const
+{
+	return FilterTokens().ByTag(Tag, Exact).BlueprintOnlyAccess();
+}
+
+TArray<UFaerieItemToken*> UFaerieItem::FindTokensByTags(const FGameplayTagContainer& Tags, const bool All,
+	const bool Exact) const
+{
+	return FilterTokens().ByTags(Tags, All, Exact).BlueprintOnlyAccess();
+}
+
+TArray<UFaerieItemToken*> UFaerieItem::FindTokensByTagQuery(const FGameplayTagQuery& Query) const
+{
+	return FilterTokens().ByTagQuery(Query).BlueprintOnlyAccess();
 }
 
 /*

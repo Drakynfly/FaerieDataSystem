@@ -44,6 +44,17 @@ bool UFaerieItemToken::IsMutable() const
 	return false;
 }
 
+bool UFaerieItemToken::CompareWithImpl(const UFaerieItemToken* Other) const
+{
+	return true;
+}
+
+bool UFaerieItemToken::IsOuterItemMutable() const
+{
+	auto&& OuterItem = GetOuterItem();
+	return IsValid(OuterItem) ? OuterItem->CanMutate() : false;
+}
+
 void UFaerieItemToken::ReplicateAllPropertiesInitialOnly(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	for (TFieldIterator<FProperty> It(GetClass(), EFieldIteratorFlags::ExcludeSuper); It; ++It)
@@ -58,17 +69,6 @@ void UFaerieItemToken::ReplicateAllPropertiesInitialOnly(TArray<class FLifetimeP
 					true));
 		}
 	}
-}
-
-bool UFaerieItemToken::CompareWithImpl(const UFaerieItemToken* Other) const
-{
-	return true;
-}
-
-bool UFaerieItemToken::IsOuterItemMutable() const
-{
-	auto&& OuterItem = GetOuterItem();
-	return IsValid(OuterItem) ? OuterItem->CanMutate() : false;
 }
 
 void UFaerieItemToken::NotifyOuterOfChange()

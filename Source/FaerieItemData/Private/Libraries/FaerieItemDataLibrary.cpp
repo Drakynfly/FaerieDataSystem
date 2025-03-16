@@ -3,6 +3,7 @@
 #include "FaerieItemDataLibrary.h"
 #include "FaerieItem.h"
 #include "FaerieItemAsset.h"
+#include "FaerieItemEditHandle.h"
 #include "FaerieItemToken.h"
 #include "FlakesJsonSerializer.h"
 
@@ -25,6 +26,65 @@ UFaerieItem* UFaerieItemDataLibrary::GetItemInstance(const UFaerieItemAsset* Ass
 		return Asset->GetItemInstance(MutableInstance);
 	}
 	return nullptr;
+}
+
+bool UFaerieItemDataLibrary::TryGetEditHandle(const UFaerieItem* Item, FFaerieItemEditHandle& Handle)
+{
+	Handle = FFaerieItemEditHandle(Item);
+	return Handle.IsValid();
+}
+
+bool UFaerieItemDataLibrary::IsValidHandle(const FFaerieItemEditHandle& Handle)
+{
+	return Handle.IsValid();
+}
+
+bool UFaerieItemDataLibrary::AddToken(const FFaerieItemEditHandle& Handle, UFaerieItemToken* Token)
+{
+	if (Handle.IsValid())
+	{
+		return Handle->AddToken(Token);
+	}
+	return false;
+}
+
+bool UFaerieItemDataLibrary::RemoveToken(const FFaerieItemEditHandle& Handle, UFaerieItemToken* Token)
+{
+	if (Handle.IsValid())
+	{
+		return Handle->RemoveToken(Token);
+	}
+	return false;
+}
+
+int32 UFaerieItemDataLibrary::RemoveTokensByClass(const FFaerieItemEditHandle& Handle, const TSubclassOf<UFaerieItemToken> Class)
+{
+	if (Handle.IsValid())
+	{
+		return Handle->RemoveTokensByClass(Class);
+	}
+	return false;
+}
+
+bool UFaerieItemDataLibrary::EditToken(const FFaerieItemEditHandle& Handle, UFaerieItemToken* Token,
+	const FBlueprintTokenEdit& Edit)
+{
+	if (!Handle.IsValid())
+	{
+		return false;
+	}
+
+	if (!ensure(Edit.IsBound()))
+	{
+		return false;
+	}
+
+	Token->EditToken(
+		[Edit](UFaerieItemToken* PassThrough)
+		{
+			return Edit.Execute(PassThrough);
+		});
+	return true;
 }
 
 FString UFaerieItemDataLibrary::DebugEmitItemJson(const UFaerieItem* Item, const bool Pretty)

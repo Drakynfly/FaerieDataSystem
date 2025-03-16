@@ -4,6 +4,7 @@
 #include "FaerieHashStatics.h"
 #include "FaerieItem.h"
 #include "FaerieItemDataFilter.h"
+#include "FaerieItemToken.h"
 #include "Squirrel.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(BasicItemHashInstructions)
