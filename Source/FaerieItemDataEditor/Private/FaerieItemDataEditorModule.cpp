@@ -2,9 +2,11 @@
 
 #include "FaerieItemDataEditorModule.h"
 #include "FaerieAssetEditorCommands.h"
+#include "FaerieItemCardTags.h"
 #include "FaerieItemDataFilter.h"
 
 #include "FaerieItemSource.h"
+#include "GameplayTagsEditorModule.h"
 #include "PropertyEditorModule.h"
 #include "Customizations/OnTheFlyConfigCustomization.h"
 #include "Customizations/FaerieItemSourceObjectCustomization.h"
@@ -25,6 +27,9 @@ void FFaerieItemDataEditorModule::StartupModule()
 		FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FFaerieItemSourceObjectCustomization::MakeInstance));
 	StructCustomizations.Add(FInlineFaerieItemDataFilter::StaticStruct()->GetFName(),
 		FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FOnTheFlyConfigCustomization::MakeInstance));
+
+	StructCustomizations.Add(FFaerieItemCardType::StaticStruct()->GetFName(),
+		FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FGameplayTagCustomizationPublic::MakeInstance));
 
 	RegisterPropertyCustomizations(StructCustomizations);
 }

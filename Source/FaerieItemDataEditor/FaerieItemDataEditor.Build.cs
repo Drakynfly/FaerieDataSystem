@@ -32,6 +32,7 @@ public class FaerieItemDataEditor : ModuleRules
                 "Engine",
                 "FaerieItemCard",
                 "FaerieItemMesh",
+                "GameplayTagsEditor",
                 "KismetCompiler",
                 "Slate",
                 "SlateCore",

@@ -30,6 +30,6 @@ public:
 	TMap<TSubclassOf<class UFaerieItemCardToken>, TSoftClassPtr<UFaerieCardBase>> DefaultClasses;
 
 	// Item Card classes to use when an item doesn't specify one.
-	UPROPERTY(Config, EditAnywhere, Category = "Classes")
+	UPROPERTY(Config, EditAnywhere, Category = "Classes", meta = (ForceInlineRow))
 	TMap<FFaerieItemCardType, TSoftClassPtr<UFaerieCardBase>> FallbackClasses;
 };
