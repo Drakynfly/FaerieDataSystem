@@ -114,6 +114,16 @@ void FFaerieItemAssetEditor::PostInitAssetEditor()
 	ResolveState();
 }
 
+void FFaerieItemAssetEditor::SaveAsset_Execute()
+{
+	FAssetEditorToolkit::SaveAsset_Execute();
+
+	if (PreviewScene.IsValid())
+	{
+		PreviewScene->RefreshMesh();
+	}
+}
+
 void FFaerieItemAssetEditor::OnClose()
 {
 	ItemAsset = nullptr;
@@ -361,7 +371,10 @@ TSharedRef<SDockTab> FFaerieItemAssetEditor::SpawnTab_Viewport(const FSpawnTabAr
 	if (MeshViewportWidget.IsValid())
 	{
 		SpawnedTab->SetContent(MeshViewportWidget.ToSharedRef());
-		PreviewScene->RefreshMesh();
+		if (PreviewScene.IsValid())
+		{
+			PreviewScene->RefreshMesh();
+		}
 	}
 
 	return SpawnedTab;

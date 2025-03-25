@@ -176,7 +176,7 @@ struct FInventoryKey
 
 	FORCEINLINE friend uint32 GetTypeHash(const FInventoryKey Key)
 	{
-		return HashCombine(GetTypeHash(Key.EntryKey), GetTypeHash(Key.StackKey));
+		return HashCombineFast(GetTypeHash(Key.EntryKey), GetTypeHash(Key.StackKey));
 	}
 
 	bool IsValid() const { return EntryKey.IsValid() && StackKey.IsValid(); }

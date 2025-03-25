@@ -86,9 +86,6 @@ void UCraftingActionBase::Finish(const EGenerationActionResult Result)
 
 void UCraftingActionBase::Configure(FActionArgs& Args)
 {
-	check(Args.Executor);
-
-	Executor = Args.Executor;
 	OnCompleted.Add(DYNAMIC_TO_SCRIPT(Args.Callback));
 }
 
@@ -190,9 +187,11 @@ void UCraftingActionWithSlots::ConsumeSlotCosts(const IFaerieItemSlotInterface* 
 		{
 			auto&& ItemProxy = *FilledSlots.Find(Slot.Key);
 
-			// This *is* safe to const_cast because we have already checked (twice) that it's mutable, but still.
-			// There should be a "correct" way in the API to get a mutable Item pointer.
-			UFaerieItem* Item = const_cast<UFaerieItem*>(ItemProxy->GetItemObject());
+			UFaerieItem* Item = ItemProxy->GetItemObject()->MutateCast();
+			if (!ensure(IsValid(Item)))
+			{
+				return;
+			}
 
 			bool RemovedUse = false;
 

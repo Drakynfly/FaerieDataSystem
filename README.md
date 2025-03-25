@@ -76,7 +76,7 @@ These default plugins are forcibly enabled by FDS:
   - Prerequisite for making children of FGameplayTag.
 
 ### GeometryScripting `&&` SkeletalMerging
-  - Required for implementing FaerieItemMesh. If, for some reason, you take issue with this requirement, reimplement `UFaerieMeshSubsystem` however you want to.
+  - Required for implementing FaerieItemMesh. If, for some reason, you take issue with this requirement, reimplement `UFaerieItemMeshLoader` however you want to.
 
 ### UMGWidgetPreview
  - This is an editor-only plugin, used to render UMG widgets inside an asset editor. While this is considered a Beta plugin by Epic, its editor-only, so even if it has issues, they shouldn't effect shipping builds.

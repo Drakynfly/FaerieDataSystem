@@ -2,8 +2,9 @@
 
 #pragma once
 
-#include "FaerieItemToken.h"
 #include "FaerieMeshStructs.h"
+#include "FaerieDynamicMeshStructs.h"
+#include "FaerieItemToken.h"
 
 #include "FaerieMeshToken.generated.h"
 
@@ -18,15 +19,25 @@ class FAERIEITEMMESH_API UFaerieMeshTokenBase : public UFaerieItemToken
 	GENERATED_BODY()
 
 public:
-	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Inventory Asset|Item Info", meta = (AutoCreateRefTerm = "SearchPurposes"))
-	virtual bool GetStaticItemMesh(UPARAM(meta = (Categories = "MeshPurpose")) const FGameplayTagContainer& SearchPurposes,
+	virtual TConstStructView<FFaerieStaticMeshData> GetStaticItemMesh(const FGameplayTagContainer& SearchPurposes) const
+		PURE_VIRTUAL(UFaerieMeshTokenBase::GetStaticItemMesh, return TConstStructView<FFaerieStaticMeshData>(); )
+	virtual TConstStructView<FFaerieSkeletalMeshData> GetSkeletalItemMesh(const FGameplayTagContainer& SearchPurposes) const
+		PURE_VIRTUAL(UFaerieMeshTokenBase::GetSkeletalItemMesh, return TConstStructView<FFaerieSkeletalMeshData>(); )
+
+	void GetMeshes(const FGameplayTagContainer& SearchPurposes,
+		TConstStructView<FFaerieStaticMeshData>& Static,
+		TConstStructView<FFaerieSkeletalMeshData>& Skeletal) const;
+
+protected:
+	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Faerie|MeshToken", meta = (AutoCreateRefTerm = "SearchPurposes"))
+	bool GetStaticItemMesh(UPARAM(meta = (Categories = "MeshPurpose")) const FGameplayTagContainer& SearchPurposes,
 		FFaerieStaticMeshData& Static) const { return false; }
 
-	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Inventory Asset|Item Info", meta = (AutoCreateRefTerm = "SearchPurposes"))
-	virtual bool GetSkeletalItemMesh(UPARAM(meta = (Categories = "MeshPurpose")) const FGameplayTagContainer& SearchPurposes,
+	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Faerie|MeshToken", meta = (AutoCreateRefTerm = "SearchPurposes"))
+	bool GetSkeletalItemMesh(UPARAM(meta = (Categories = "MeshPurpose")) const FGameplayTagContainer& SearchPurposes,
 		FFaerieSkeletalMeshData& Skeletal) const { return false; }
 
-	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Inventory Asset|Item Info", meta = (AutoCreateRefTerm = "SearchPurposes"))
+	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Faerie|MeshToken", meta = (AutoCreateRefTerm = "SearchPurposes"))
 	void GetMeshes(UPARAM(meta = (Categories = "MeshPurpose")) const FGameplayTagContainer& SearchPurposes, bool& FoundStatic,
 		FFaerieStaticMeshData& Static, bool& FoundSkeletal, FFaerieSkeletalMeshData& Skeletal) const;
 };
@@ -47,8 +58,8 @@ public:
 	virtual EDataValidationResult IsDataValid(FDataValidationContext& Context) const override;
 #endif
 
-	virtual bool GetStaticItemMesh(const FGameplayTagContainer& SearchPurposes, FFaerieStaticMeshData& Static) const override;
-	virtual bool GetSkeletalItemMesh(const FGameplayTagContainer& SearchPurposes, FFaerieSkeletalMeshData& Skeletal) const override;
+	virtual TConstStructView<FFaerieStaticMeshData> GetStaticItemMesh(const FGameplayTagContainer& SearchPurposes) const override;
+	virtual TConstStructView<FFaerieSkeletalMeshData> GetSkeletalItemMesh(const FGameplayTagContainer& SearchPurposes) const override;
 
 protected:
 	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "MeshToken", meta = (ShowOnlyInnerProperties, ExposeOnSpawn))
@@ -66,6 +77,13 @@ public:
 	virtual EDataValidationResult IsDataValid(FDataValidationContext& Context) const override;
 #endif
 
+	virtual TConstStructView<FFaerieStaticMeshData> GetStaticItemMesh(const FGameplayTagContainer& SearchPurposes) const override;
+	virtual TConstStructView<FFaerieSkeletalMeshData> GetSkeletalItemMesh(const FGameplayTagContainer& SearchPurposes) const override;
+
+	TConstStructView<FFaerieDynamicStaticMesh> GetDynamicStaticItemMesh(const FGameplayTagContainer& SearchPurposes) const;
+	TConstStructView<FFaerieDynamicSkeletalMesh> GetDynamicSkeletalItemMesh(const FGameplayTagContainer& SearchPurposes) const;
+
+protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "MeshToken", meta = (ShowOnlyInnerProperties, ExposeOnSpawn))
 	FFaerieDynamicMeshContainer DynamicMeshContainer;
 };

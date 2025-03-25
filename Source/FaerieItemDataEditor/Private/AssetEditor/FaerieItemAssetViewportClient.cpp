@@ -3,9 +3,10 @@
 #include "AssetEditor/FaerieItemAssetViewportClient.h"
 #include "AssetEditor/FaerieItemAssetPreviewScene.h"
 #include "AssetEditor/FaerieItemAssetViewport.h"
+#include "Components/FaerieItemMeshComponent.h"
 
 FFaerieItemAssetViewportClient::FFaerieItemAssetViewportClient(const TSharedRef<SFaerieItemAssetViewport>& InThumbnailViewport,
-													   const TSharedRef<FFaerieItemAssetPreviewScene>& InPreviewScene)
+															   const TSharedRef<FFaerieItemAssetPreviewScene>& InPreviewScene)
 	: FEditorViewportClient(nullptr,
 		&InPreviewScene.Get(),
 		StaticCastSharedRef<SEditorViewport>(InThumbnailViewport))
@@ -37,10 +38,9 @@ FFaerieItemAssetViewportClient::FFaerieItemAssetViewportClient(const TSharedRef<
 
 void FFaerieItemAssetViewportClient::FocusViewport(const bool bInstant)
 {
-	if (AdvancedPreviewScene.IsValid() &&
-		AdvancedPreviewScene->GetSceneComponent())
+	if (AdvancedPreviewScene.IsValid())
 	{
-		const FBoxSphereBounds Bounds = AdvancedPreviewScene->GetSceneComponent()->Bounds;
+		const FBoxSphereBounds Bounds = AdvancedPreviewScene->GetBounds();
 		FocusViewportOnBounds(Bounds, bInstant);
 	}
 }

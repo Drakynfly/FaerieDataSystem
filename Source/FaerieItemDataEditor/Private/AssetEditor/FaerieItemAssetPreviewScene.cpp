@@ -3,8 +3,9 @@
 #include "AssetEditor/FaerieItemAssetPreviewScene.h"
 #include "AssetEditor/FaerieItemAssetEditor.h"
 
-#include "FaerieItem.h"
 #include "FaerieItemAsset.h"
+#include "FaerieItemMeshLoader.h"
+#include "Components/FaerieItemMeshComponent.h"
 
 #include "GameFramework/WorldSettings.h"
 #include "Tokens/FaerieMeshToken.h"
@@ -18,19 +19,33 @@ FFaerieItemAssetPreviewScene::FFaerieItemAssetPreviewScene(ConstructionValues CV
 	AWorldSettings* WorldSettings = GetWorld()->GetWorldSettings(true);
 	WorldSettings->bEnableWorldBoundsChecks = false;
 
-	//Hide default floor
+	// Hide default floor
 	SetFloorVisibility(false, false);
 
-	UStaticMesh* PreviewMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/EngineMeshes/Cube.Cube"), nullptr, LOAD_None, nullptr);
-	FTransform PreviewMeshTransform (FRotator(0, 0, 0), FVector(0, 0, 0), FVector(1.0f, 1.0f, 1.0f ));
+	const FTransform PreviewMeshTransform (FRotator(0, 0, 0), FVector(0, 0, 0), FVector(1.0f, 1.0f, 1.0f ));
 	
 	{
-		PreviewComponent = NewObject<UStaticMeshComponent>(GetTransientPackage());
-		PreviewComponent->SetStaticMesh(PreviewMesh);
-		PreviewComponent->bSelectable = true;
+		UStaticMesh* PreviewMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/EngineMeshes/Cube.Cube"), nullptr, LOAD_None, nullptr);
+
+		DefaultCube = NewObject<UStaticMeshComponent>(GetTransientPackage());
+		DefaultCube->SetStaticMesh(PreviewMesh);
+		DefaultCube->bSelectable = true;
 		
-		AddComponent(PreviewComponent, PreviewMeshTransform);
+		AddComponent(DefaultCube, PreviewMeshTransform);
 	}
+
+	{
+		Actor = GetWorld()->SpawnActor<AActor>(FVector::ZeroVector, FRotator::ZeroRotator);
+	}
+
+	{
+		ItemMeshComponent = NewObject<UFaerieItemMeshComponent>(Actor);
+		//ItemMeshComponent->bSelectable = true;
+
+		AddComponent(ItemMeshComponent, PreviewMeshTransform);
+	}
+
+	MeshLoader = NewObject<UFaerieItemMeshLoader>(GetTransientPackage());
 }
 
 FFaerieItemAssetPreviewScene::~FFaerieItemAssetPreviewScene()
@@ -53,13 +68,17 @@ void FFaerieItemAssetPreviewScene::Tick(const float InDeltaTime)
 	}
 }
 
+FBoxSphereBounds FFaerieItemAssetPreviewScene::GetBounds() const
+{
+	return Actor->GetComponentsBoundingBox(true);
+}
+
 void FFaerieItemAssetPreviewScene::RefreshMesh()
 {
-	UFaerieItemAsset* ItemAsset = EditorPtr.Pin()->GetItemAsset();
-	if (!IsValid(ItemAsset)) return;
+	ItemMeshComponent->ClearItemMesh();
 
-	FGameplayTagContainer PurposeHierarchy;
-	PurposeHierarchy.AddTagFast(Faerie::ItemMesh::Tags::MeshPurpose_Default);
+	const UFaerieItemAsset* ItemAsset = EditorPtr.Pin()->GetItemAsset();
+	if (!IsValid(ItemAsset)) return;
 
 	const UFaerieMeshTokenBase* MeshToken = nullptr;
 	for (auto&& Element : ItemAsset->GetEditorTokensView())
@@ -73,16 +92,18 @@ void FFaerieItemAssetPreviewScene::RefreshMesh()
 
 	if (IsValid(MeshToken))
 	{
-		FFaerieStaticMeshData MeshData;
-		MeshToken->GetStaticItemMesh(PurposeHierarchy, MeshData);
-		if (UStaticMesh* StaticMesh = MeshData.StaticMesh.LoadSynchronous();
-			IsValid(StaticMesh))
+		// @todo expose MeshPurpose to AssetEditor
+		const FGameplayTag MeshPurpose = Faerie::ItemMesh::Tags::MeshPurpose_Default;
+
+		if (FFaerieItemMesh ItemMesh;
+			MeshLoader->LoadMeshFromTokenSynchronous(MeshToken, MeshPurpose, ItemMesh))
 		{
-			PreviewComponent->SetStaticMesh(StaticMesh);
-			for (auto It = MeshData.Materials.CreateConstIterator(); It; ++It)
-			{
-				PreviewComponent->SetMaterial(It.GetIndex(), It->Material.LoadSynchronous());
-			}
+			ItemMeshComponent->SetItemMesh(ItemMesh);
+			DefaultCube->SetVisibility(false);
+			return;
 		}
 	}
+
+	// If the code above doesn't evaluate to a mesh, show the debug cube.
+	DefaultCube->SetVisibility(true);
 }

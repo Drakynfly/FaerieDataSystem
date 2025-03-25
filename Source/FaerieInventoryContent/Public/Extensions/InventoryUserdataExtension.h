@@ -29,7 +29,7 @@ struct FInventoryEntryUserdata
 {
 	GENERATED_BODY()
 
-	FInventoryEntryUserdata() {}
+	FInventoryEntryUserdata() = default;
 
 	FInventoryEntryUserdata(const FGameplayTagContainer& Tags)
 	  : Tags(Tags) {}

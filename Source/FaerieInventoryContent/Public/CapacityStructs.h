@@ -112,7 +112,7 @@ struct FWeightAndVolume
 {
 	GENERATED_BODY()
 
-	FWeightAndVolume() {}
+	FWeightAndVolume() = default;
 
 	FWeightAndVolume(const int32 Weight, const int64 Volume)
 	  : GramWeight(Weight),

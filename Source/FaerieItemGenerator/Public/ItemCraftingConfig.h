@@ -18,7 +18,7 @@ class FAERIEITEMGENERATOR_API UItemCraftingConfig : public UCraftingActionConfig
 {
 	GENERATED_BODY()
 
-	UItemCraftingConfig() {}
+	UItemCraftingConfig() = default;
 
 #if WITH_EDITOR
 	virtual EDataValidationResult IsDataValid(FDataValidationContext& Context) const override;

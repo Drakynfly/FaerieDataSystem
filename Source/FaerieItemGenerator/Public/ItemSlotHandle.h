@@ -10,7 +10,7 @@ struct FAERIEITEMGENERATOR_API FFaerieItemSlotHandle
 {
 	GENERATED_BODY()
 
-	FFaerieItemSlotHandle() {}
+	FFaerieItemSlotHandle() = default;
 
 	FFaerieItemSlotHandle(const FName Name)
 	  : InternalHandle(Name) {}

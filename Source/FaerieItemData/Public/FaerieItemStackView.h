@@ -16,7 +16,7 @@ struct FAERIEITEMDATA_API FFaerieItemStackView
 {
 	GENERATED_BODY()
 
-	FFaerieItemStackView() {}
+	FFaerieItemStackView() = default;
 
 	FFaerieItemStackView(const UFaerieItem* ItemData, const int32 Copies)
 	  : Item(ItemData),

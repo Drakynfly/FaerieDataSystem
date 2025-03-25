@@ -10,62 +10,77 @@ namespace Faerie::ItemMesh::Tags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(MeshPurpose_Equipped, FName{TEXTVIEW("MeshPurpose.Equipped")}, "Mesh for item when used as active equipment")
 }
 
-FFaerieDynamicStaticMesh::FFaerieDynamicStaticMesh(const FFaerieStaticMeshData& EditorStaticMesh)
-{
-	if (!EditorStaticMesh.StaticMesh.IsValid())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("FInventoryDynamicStaticMesh constructed from invalid EditorStaticMesh"))
-		return;
-	}
-
-	FFaerieDynamicStaticMeshFragment SingleFragment;
-	SingleFragment.StaticMesh = EditorStaticMesh.StaticMesh;
-	SingleFragment.Materials = EditorStaticMesh.Materials;
-	Fragments.Add(SingleFragment);
-	Purpose = EditorStaticMesh.Purpose;
-}
-
-FFaerieDynamicSkeletalMesh::FFaerieDynamicSkeletalMesh(const FFaerieSkeletalMeshData& EditorStaticMesh)
-{
-	if (!EditorStaticMesh.SkeletonAndAnimClass.Mesh.IsValid())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("FInventoryDynamicSkeletalMesh constructed from invalid EditorStaticMesh"))
-		return;
-	}
-
-	FFaerieDynamicSkeletalMeshFragment SingleFragment;
-	SingleFragment.SkeletonAndAnimClass = EditorStaticMesh.SkeletonAndAnimClass;
-	SingleFragment.Materials = EditorStaticMesh.Materials;
-	Fragments.Add(SingleFragment);
-	Purpose = EditorStaticMesh.Purpose;
-}
-
-bool FFaerieMeshContainer::GetStaticItemMesh(const FGameplayTagContainer& SearchPurposes,
-												FFaerieStaticMeshData& Static) const
+TConstStructView<FFaerieStaticMeshData> FFaerieMeshContainer::GetStaticItemMesh(const FGameplayTagContainer& SearchPurposes) const
 {
 	for (const FFaerieStaticMeshData& Data : StaticMeshes)
 	{
 		if (Data.Purpose.HasAnyExact(SearchPurposes))
 		{
-			Static = Data;
-			return true;
+			return Data;
 		}
 	}
-	return false;
+	return TConstStructView<FFaerieStaticMeshData>();
 }
 
-bool FFaerieMeshContainer::GetSkeletalItemMesh(const FGameplayTagContainer& SearchPurposes,
-												  FFaerieSkeletalMeshData& Skeletal) const
+TConstStructView<FFaerieSkeletalMeshData> FFaerieMeshContainer::GetSkeletalItemMesh(const FGameplayTagContainer& SearchPurposes) const
 {
 	for (const FFaerieSkeletalMeshData& Data : SkeletalMeshes)
 	{
 		if (Data.Purpose.HasAnyExact(SearchPurposes))
 		{
-			Skeletal = Data;
-			return true;
+			return Data;
 		}
 	}
-	return false;
+	return TConstStructView<FFaerieSkeletalMeshData>();
+}
+
+FFaerieItemMesh FFaerieItemMesh::MakeStatic(const FFaerieStaticMeshData& MeshData)
+{
+	FFaerieItemMesh ItemMesh;
+	ItemMesh.StaticMesh = MeshData.StaticMesh.LoadSynchronous();
+	ItemMesh.Materials.Reserve(MeshData.Materials.Num());
+	for (auto&& Element : MeshData.Materials)
+	{
+		ItemMesh.Materials.Emplace(Element.Material.LoadSynchronous());
+	}
+	return ItemMesh;
+}
+
+FFaerieItemMesh FFaerieItemMesh::MakeStatic(UStaticMesh* Mesh, const TArray<FFaerieItemMaterial>& Materials)
+{
+	FFaerieItemMesh ItemMesh;
+	ItemMesh.StaticMesh = Mesh;
+	ItemMesh.Materials = Materials;
+	return ItemMesh;
+}
+
+FFaerieItemMesh FFaerieItemMesh::MakeDynamic(UDynamicMesh* Mesh, const TArray<FFaerieItemMaterial>& Materials)
+{
+	FFaerieItemMesh ItemMesh;
+	ItemMesh.DynamicStaticMesh = Mesh;
+	ItemMesh.Materials = Materials;
+	return ItemMesh;
+}
+
+FFaerieItemMesh FFaerieItemMesh::MakeSkeletal(const FFaerieSkeletalMeshData& MeshData)
+{
+	FFaerieItemMesh ItemMesh;
+	ItemMesh.SkeletonAndAnimClass = MeshData.SkeletonAndAnimClass.LoadSynchronous();
+	ItemMesh.Materials.Reserve(MeshData.Materials.Num());
+	for (auto&& Element : MeshData.Materials)
+	{
+		ItemMesh.Materials.Emplace(Element.Material.LoadSynchronous());
+	}
+	return ItemMesh;
+}
+
+FFaerieItemMesh FFaerieItemMesh::MakeSkeletal(const FSkeletonAndAnimClass& Mesh,
+	const TArray<FFaerieItemMaterial>& Materials)
+{
+	FFaerieItemMesh ItemMesh;
+	ItemMesh.SkeletonAndAnimClass = Mesh;
+	ItemMesh.Materials = Materials;
+	return ItemMesh;
 }
 
 bool FFaerieItemMesh::IsStatic() const

@@ -25,7 +25,7 @@ struct FAERIEITEMDATA_API FFaerieItemStack
 {
 	GENERATED_BODY()
 
-	FFaerieItemStack() {}
+	FFaerieItemStack() = default;
 
 	FFaerieItemStack(UFaerieItem* ItemData, const int32 Copies)
 	  : Item(ItemData),

@@ -97,13 +97,13 @@ void UFaerieItemMeshComponent::RebuildMesh()
 		{
 		case EItemMeshType::None: break;
 		case EItemMeshType::Static:
-			MeshComponent = NewObject<UStaticMeshComponent>(GetOwner());
+			MeshComponent = NewObject<UStaticMeshComponent>(GetOuter());
 			break;
 		case EItemMeshType::Dynamic:
-			MeshComponent = NewObject<UDynamicMeshComponent>(GetOwner());
+			MeshComponent = NewObject<UDynamicMeshComponent>(GetOuter());
 			break;
 		case EItemMeshType::Skeletal:
-			MeshComponent = NewObject<USkeletalMeshComponent>(GetOwner());
+			MeshComponent = NewObject<USkeletalMeshComponent>(GetOuter());
 			break;
 		default: checkNoEntry();
 		}
@@ -124,7 +124,7 @@ void UFaerieItemMeshComponent::RebuildMesh()
 			StaticMesh->SetStaticMesh(MeshData.GetStatic());
 			for (int32 i = 0; i < MeshData.Materials.Num(); ++i)
 			{
-				StaticMesh->SetMaterial(i, MeshData.Materials[i].Material.LoadSynchronous());
+				StaticMesh->SetMaterial(i, MeshData.Materials[i].Material);
 			}
 		}
 		break;
@@ -154,7 +154,7 @@ void UFaerieItemMeshComponent::RebuildMesh()
 			}
 			for (int32 i = 0; i < MeshData.Materials.Num(); ++i)
 			{
-				SkeletalMesh->SetMaterial(i, MeshData.Materials[i].Material.LoadSynchronous());
+				SkeletalMesh->SetMaterial(i, MeshData.Materials[i].Material);
 			}
 		}
 		break;

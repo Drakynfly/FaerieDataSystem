@@ -25,15 +25,15 @@ struct FAERIEITEMMESH_API FSocketAttachment
 USTRUCT(BlueprintType)
 struct FAERIEITEMMESH_API FSkeletonAndAnimClass
 {
+	GENERATED_BODY()
+
 	// Empty constructor
-	FSkeletonAndAnimClass() {}
+	FSkeletonAndAnimClass() = default;
 
 	// Full constructor
-	FSkeletonAndAnimClass(USkeletalMesh* Mesh, const TSubclassOf<UAnimInstance> AnimClass)
-		: Mesh(Mesh),
+	FSkeletonAndAnimClass(USkeletalMesh* Mesh, const TSubclassOf<UAnimInstance>& AnimClass)
+	  : Mesh(Mesh),
 		AnimClass(AnimClass) {}
-
-	GENERATED_BODY()
 
 	UPROPERTY(NoClear, BlueprintReadWrite, EditAnywhere, Category = "Skeletal Mesh and Anim Class")
 	TObjectPtr<USkeletalMesh> Mesh = nullptr;
@@ -64,11 +64,11 @@ struct FAERIEITEMMESH_API FSoftSkeletonAndAnimClass
 	GENERATED_BODY()
 
 	// Empty constructor
-	FSoftSkeletonAndAnimClass() {}
+	FSoftSkeletonAndAnimClass() = default;
 
 	// Full constructor
 	FSoftSkeletonAndAnimClass(const TSoftObjectPtr<USkeletalMesh>& Mesh, const TSoftClassPtr<UAnimInstance>& AnimClass)
-		: Mesh(Mesh),
+	  : Mesh(Mesh),
 		AnimClass(AnimClass) {}
 
 	UPROPERTY(NoClear, BlueprintReadWrite, EditAnywhere, Category = "Skeletal Mesh and Anim Class")

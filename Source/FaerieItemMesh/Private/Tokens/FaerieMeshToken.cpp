@@ -8,8 +8,15 @@
 
 DEFINE_LOG_CATEGORY(LogMeshToken);
 
+void UFaerieMeshTokenBase::GetMeshes(const FGameplayTagContainer& SearchPurposes,
+	TConstStructView<FFaerieStaticMeshData>& Static, TConstStructView<FFaerieSkeletalMeshData>& Skeletal) const
+{
+	Static = GetStaticItemMesh(SearchPurposes);
+	Skeletal = GetSkeletalItemMesh(SearchPurposes);
+}
+
 void UFaerieMeshTokenBase::GetMeshes(const FGameplayTagContainer& SearchPurposes, bool& FoundStatic,
-                                     FFaerieStaticMeshData& Static, bool& FoundSkeletal, FFaerieSkeletalMeshData& Skeletal) const
+									 FFaerieStaticMeshData& Static, bool& FoundSkeletal, FFaerieSkeletalMeshData& Skeletal) const
 {
 	FoundStatic = GetStaticItemMesh(SearchPurposes, Static);
 	FoundSkeletal = GetSkeletalItemMesh(SearchPurposes, Skeletal);
@@ -50,16 +57,14 @@ EDataValidationResult UFaerieMeshToken::IsDataValid(FDataValidationContext& Cont
 
 #endif
 
-bool UFaerieMeshToken::GetStaticItemMesh(const FGameplayTagContainer& SearchPurposes,
-										 FFaerieStaticMeshData& Static) const
+TConstStructView<FFaerieStaticMeshData> UFaerieMeshToken::GetStaticItemMesh(const FGameplayTagContainer& SearchPurposes) const
 {
-	return MeshContainer.GetStaticItemMesh(SearchPurposes, Static);
+	return MeshContainer.GetStaticItemMesh(SearchPurposes);
 }
 
-bool UFaerieMeshToken::GetSkeletalItemMesh(const FGameplayTagContainer& SearchPurposes,
-										   FFaerieSkeletalMeshData& Skeletal) const
+TConstStructView<FFaerieSkeletalMeshData> UFaerieMeshToken::GetSkeletalItemMesh(const FGameplayTagContainer& SearchPurposes) const
 {
-	return MeshContainer.GetSkeletalItemMesh(SearchPurposes, Skeletal);
+	return MeshContainer.GetSkeletalItemMesh(SearchPurposes);
 }
 
 #if WITH_EDITOR
@@ -97,6 +102,26 @@ EDataValidationResult UFaerieMeshToken_Dynamic::IsDataValid(FDataValidationConte
 		return EDataValidationResult::Invalid;
 	}
 	return Super::IsDataValid(Context);
+}
+
+TConstStructView<FFaerieStaticMeshData> UFaerieMeshToken_Dynamic::GetStaticItemMesh(const FGameplayTagContainer& SearchPurposes) const
+{
+	return TConstStructView<FFaerieStaticMeshData>();
+}
+
+TConstStructView<FFaerieSkeletalMeshData> UFaerieMeshToken_Dynamic::GetSkeletalItemMesh(const FGameplayTagContainer& SearchPurposes) const
+{
+	return TConstStructView<FFaerieSkeletalMeshData>();
+}
+
+TConstStructView<FFaerieDynamicStaticMesh> UFaerieMeshToken_Dynamic::GetDynamicStaticItemMesh(const FGameplayTagContainer& SearchPurposes) const
+{
+	return DynamicMeshContainer.GetStaticItemMesh(SearchPurposes);
+}
+
+TConstStructView<FFaerieDynamicSkeletalMesh> UFaerieMeshToken_Dynamic::GetDynamicSkeletalItemMesh(const FGameplayTagContainer& SearchPurposes) const
+{
+	return DynamicMeshContainer.GetSkeletalItemMesh(SearchPurposes);
 }
 
 #undef LOCTEXT_NAMESPACE

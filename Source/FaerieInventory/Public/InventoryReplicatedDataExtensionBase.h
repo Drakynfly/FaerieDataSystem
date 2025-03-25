@@ -16,7 +16,7 @@ struct FRepDataPerEntryBase : public FFastArraySerializerItem
 {
 	GENERATED_BODY()
 
-	FRepDataPerEntryBase() {}
+	FRepDataPerEntryBase() = default;
 
 	FRepDataPerEntryBase(const FEntryKey Key, const FInstancedStruct& Value)
 	  : Key(Key),

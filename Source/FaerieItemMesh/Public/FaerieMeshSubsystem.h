@@ -2,53 +2,19 @@
 
 #pragma once
 
-#include "FaerieItemProxy.h"
 #include "GameplayTagContainer.h"
 #include "FaerieMeshStructs.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "FaerieMeshSubsystem.generated.h"
 
+struct FFaerieItemProxy;
+class UFaerieItemMeshLoader;
 class UFaerieMeshTokenBase;
 
-/**
- *
- */
-USTRUCT()
-struct FFaerieCachedMeshKey
-{
-	GENERATED_BODY()
-
-	UPROPERTY()
-	TWeakObjectPtr<const UFaerieMeshTokenBase> Token;
-
-	UPROPERTY()
-	FGameplayTag Purpose;
-
-	bool IsTokenValid() const
-	{
-		return Token.IsValid();
-	}
-
-	friend bool operator==(const FFaerieCachedMeshKey& Lhs, const FFaerieCachedMeshKey& Rhs)
-	{
-		return Lhs.Token == Rhs.Token &&
-			   Lhs.Purpose == Rhs.Purpose;
-	}
-
-	friend bool operator!=(const FFaerieCachedMeshKey& Lhs, const FFaerieCachedMeshKey& Rhs)
-	{
-		return !(Lhs == Rhs);
-	}
-};
-
-FORCEINLINE uint32 GetTypeHash(const FFaerieCachedMeshKey& Key)
-{
-	return HashCombine(GetTypeHash(Key.Token), GetTypeHash(Key.Purpose));
-}
-
+DECLARE_DYNAMIC_DELEGATE_TwoParams(FFaerieItemMeshAsyncLoadResult, bool, Success, const FFaerieItemMesh&, Mesh);
 
 /**
- * This is a world subsystem that stored dynamically generated meshes for items.
+ * This is a world subsystem that stores dynamically generated meshes for items.
  */
 UCLASS()
 class FAERIEITEMMESH_API UFaerieMeshSubsystem : public UWorldSubsystem
@@ -59,23 +25,29 @@ public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 
 public:
-	UFUNCTION(BlueprintCallable, Category = "Faerie|MeshSubsystem")
-	static FFaerieItemMesh GetDynamicStaticMeshForData(const FFaerieDynamicStaticMesh& MeshData);
-
-	UFUNCTION(BlueprintCallable, Category = "Faerie|MeshSubsystem")
-	FFaerieItemMesh GetDynamicSkeletalMeshForData(const FFaerieDynamicSkeletalMesh& MeshData) const;
-
-	// todo make async version of this function? In practice this function hasn't been "that" slow, but for more complex meshes it might be.
 	// Immediately retrieves the mesh for an item.
-	// WARNING: This can cause a hitch if the mesh is not cached and it requires a lengthy assembly.
-	UFUNCTION(BlueprintCallable, Category = "Faerie|MeshSubsystem", meta = (GameplayTagFilter = "MeshPurpose", ExpandBoolAsExecs = "ReturnValue"))
-	bool LoadMeshFromTokenSynchronous(const UFaerieMeshTokenBase* Token, const FGameplayTag Purpose, FFaerieItemMesh& Mesh);
+	// WARNING: This can cause a hitch if the mesh is not cached, and it requires a lengthy load or assembly.
+	// Use the Asynchronous version if possible to avoid this.
+	UFUNCTION(BlueprintCallable, Category = "Faerie|MeshSubsystem", meta = (ExpandBoolAsExecs = "ReturnValue"))
+	bool LoadMeshFromTokenSynchronous(const UFaerieMeshTokenBase* Token,
+		UPARAM(meta = (Categories = "MeshPurpose")) FGameplayTag Purpose, FFaerieItemMesh& Mesh);
 
-	// todo make async version of this function? In practice this function hasn't been "that" slow, but for more complex meshes it might be.
 	// Immediately retrieves the mesh for an item.
-	// WARNING: This can cause a hitch if the mesh is not cached and it requires a lengthy assembly.
-	UFUNCTION(BlueprintCallable, Category = "Faerie|MeshSubsystem", meta = (GameplayTagFilter = "MeshPurpose", ExpandBoolAsExecs = "ReturnValue"))
-	bool LoadMeshFromProxySynchronous(FFaerieItemProxy Proxy, const FGameplayTag Purpose, FFaerieItemMesh& Mesh);
+	// WARNING: This can cause a hitch if the mesh is not cached, and it requires a lengthy load or assembly.
+	// Use the Asynchronous version if possible to avoid this.
+	UFUNCTION(BlueprintCallable, Category = "Faerie|MeshSubsystem", meta = (ExpandBoolAsExecs = "ReturnValue"))
+	bool LoadMeshFromProxySynchronous(FFaerieItemProxy Proxy,
+		UPARAM(meta = (Categories = "MeshPurpose")) FGameplayTag Purpose, FFaerieItemMesh& Mesh);
+
+	// Asynchronously load the mesh and materials for an item.
+	UFUNCTION(BlueprintCallable, Category = "Faerie|MeshSubsystem")
+	void LoadMeshFromTokenAsynchronous(const UFaerieMeshTokenBase* Token,
+		UPARAM(meta = (Categories = "MeshPurpose")) FGameplayTag Purpose, const FFaerieItemMeshAsyncLoadResult& Callback);
+
+	// Asynchronously load the mesh and materials for an item.
+	UFUNCTION(BlueprintCallable, Category = "Faerie|MeshSubsystem")
+	void LoadMeshFromProxyAsynchronous(FFaerieItemProxy Proxy,
+		UPARAM(meta = (Categories = "MeshPurpose")) FGameplayTag Purpose, const FFaerieItemMeshAsyncLoadResult& Callback);
 
 protected:
 	// If the purpose requested when loading a mesh is not available, the tag "MeshPurpose.Default" is normally used as
@@ -83,10 +55,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Categories = "MeshPurpose"))
 	FGameplayTag FallbackPurpose;
 
-private:
-	/**
-	 * Stored meshes for quick lookup
-	 */
-	UPROPERTY(Transient)
-	TMap<FFaerieCachedMeshKey, FFaerieItemMesh> GeneratedMeshes;
+	UPROPERTY()
+	TObjectPtr<UFaerieItemMeshLoader> Loader;
 };

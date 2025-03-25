@@ -4,6 +4,8 @@
 
 #include "AdvancedPreviewScene.h"
 
+class UFaerieItemMeshLoader;
+class UFaerieItemMeshComponent;
 class FFaerieItemAssetEditor;
 
 /**
@@ -19,7 +21,7 @@ public:
 	virtual void Tick(float InDeltaTime) override;
 	//~ FAdvancedPreviewScene
 
-	USceneComponent* GetSceneComponent() const { return PreviewComponent; };
+	FBoxSphereBounds GetBounds() const;
 
 	TSharedRef<FFaerieItemAssetEditor> GetEditor() const
 	{
@@ -29,7 +31,10 @@ public:
 	void RefreshMesh();
 
 private:
-	TObjectPtr<UStaticMeshComponent> PreviewComponent = nullptr;
+	TObjectPtr<AActor> Actor;
+	TObjectPtr<UStaticMeshComponent> DefaultCube = nullptr;
+	TObjectPtr<UFaerieItemMeshComponent> ItemMeshComponent;
+	TObjectPtr<UFaerieItemMeshLoader> MeshLoader;
 
 	TWeakPtr<FFaerieItemAssetEditor> EditorPtr;
 };

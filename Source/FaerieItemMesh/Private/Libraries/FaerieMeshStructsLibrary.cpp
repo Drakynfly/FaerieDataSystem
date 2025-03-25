@@ -10,7 +10,7 @@ TArray<UMaterialInterface*> UFaerieMeshStructsLibrary::FaerieItemMaterialsToObje
 
 	for (const FFaerieItemMaterial& ItemMaterial : Materials)
 	{
-		OutArray.Add(ItemMaterial.Material.LoadSynchronous());
+		OutArray.Add(ItemMaterial.Material);
 	}
 
 	return OutArray;

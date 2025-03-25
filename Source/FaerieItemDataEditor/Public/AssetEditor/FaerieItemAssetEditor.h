@@ -41,6 +41,7 @@ protected:
 	virtual void RegisterTabSpawners(const TSharedRef<FTabManager>& InTabManager) override;
 	virtual void UnregisterTabSpawners(const TSharedRef<FTabManager>& InTabManager) override;
 	virtual void PostInitAssetEditor() override;
+	virtual void SaveAsset_Execute() override;
 	virtual void OnClose() override;
 	//~ FAssetEditorToolkit
 

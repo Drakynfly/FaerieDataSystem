@@ -30,7 +30,7 @@ struct FCraftingActionSparseClassStruct
 {
 	GENERATED_BODY()
 
-	FCraftingActionSparseClassStruct() {}
+	FCraftingActionSparseClassStruct() = default;
 
 	// The maximum duration an action can run, in seconds, before timing out.
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Configuration")
