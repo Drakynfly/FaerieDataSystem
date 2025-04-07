@@ -240,9 +240,10 @@ void UFaerieItemStorage::PostContentChanged(const FKeyedInventoryEntry& Entry)
 		// PostContentChanged is called when stacks are removed as well, so let's do some cleanup here.
 		// Start by getting all the Keys that we could have proxies for.
 		const TSet<FInventoryKey> Keys(GetInvKeysForEntry(Entry.Key));
-		TArray<FInventoryKey> Cleanup;
-		for (auto&& LocalStackProxy : LocalStackProxies)
+		for (auto It = LocalStackProxies.CreateIterator(); It; ++It)
 		{
+			auto&& LocalStackProxy = *It;
+
 			// Check for local proxies that match this entry
 			if (!LocalStackProxy.Value.IsValid() ||
 				LocalStackProxy.Key.EntryKey != Entry.Key)
@@ -258,14 +259,9 @@ void UFaerieItemStorage::PostContentChanged(const FKeyedInventoryEntry& Entry)
 			// Otherwise, discard it.
 			else
 			{
-				Cleanup.Add(LocalStackProxy.Key);
+				It.RemoveCurrent();
 				LocalStackProxy.Value->NotifyRemoval();
 			}
-		}
-
-		for (const FInventoryKey Key : Cleanup)
-		{
-			LocalStackProxies.Remove(Key);
 		}
 	}
 	else
