@@ -36,6 +36,30 @@ void FRepDataFastArray::RemoveDataForEntry(const FEntryKey Key)
 	}
 }
 
+FInstancedStruct& FRepDataFastArray::GetOrCreateDataForEntry(const FEntryKey Key)
+{
+	// Find and return entry, if one exists
+	if (const int32 Index = IndexOf(Key);
+		Index != INDEX_NONE)
+	{
+		FRepDataPerEntryBase& EntryData = Entries[Index];
+		MarkItemDirty(EntryData);
+
+		// Notify server of this change.
+		PostDataReplicatedChange(EntryData);
+		return EntryData.Value;
+	}
+
+	// Otherwise, make a new entry.
+	FRepDataPerEntryBase& NewEntry = Insert(FRepDataPerEntryBase(Key,
+		FInstancedStruct(OwningWrapper->GetOuterUInventoryReplicatedDataExtensionBase()->GetDataScriptStruct())));
+	MarkItemDirty(NewEntry);
+
+	// Notify server of this change.
+	PostDataReplicatedAdd(NewEntry);
+	return NewEntry.Value;
+}
+
 void FRepDataFastArray::SetDataForEntry(const FEntryKey Key, const FInstancedStruct& Data)
 {
 	if (const int32 Index = IndexOf(Key);
@@ -250,19 +274,8 @@ bool UInventoryReplicatedDataExtensionBase::EditDataForEntry(const UFaerieItemCo
 	}
 
 	FRepDataFastArray& Ref = ContainerData.Get<FRepDataFastArray>();
-
-	if (Ref.Contains(Key))
-	{
-		// Edit existing data entry
-		Edit(Ref[Key]);
-	}
-	else
-	{
-		// Make new data entry
-		FInstancedStruct Data(GetDataScriptStruct());
-		Edit(Data);
-		Ref.SetDataForEntry(Key, Data);
-	}
+	FInstancedStruct& Struct = Ref.GetOrCreateDataForEntry(Key);
+	Edit(Struct);
 
 	return true;
 }

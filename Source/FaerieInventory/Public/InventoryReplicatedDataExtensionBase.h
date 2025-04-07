@@ -61,6 +61,7 @@ public:
 	TConstArrayView<FRepDataPerEntryBase> GetView() const { return Entries; }
 
 	void RemoveDataForEntry(FEntryKey Key);
+	FInstancedStruct& GetOrCreateDataForEntry(FEntryKey Key);
 	void SetDataForEntry(FEntryKey Key, const FInstancedStruct& Data);
 
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
