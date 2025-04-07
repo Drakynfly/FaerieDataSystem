@@ -23,7 +23,8 @@ class FAERIEINVENTORY_API IFaerieContainerExtensionInterface
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|Extensions")
-	virtual UItemContainerExtensionGroup* GetExtensionGroup() const = 0;
+	virtual UItemContainerExtensionGroup* GetExtensionGroup() const
+		PURE_VIRTUAL(IFaerieContainerExtensionInterface::GetExtensionGroup, return nullptr; )
 
 	// Has extension by class
 	UFUNCTION(BlueprintCallable, Category = "Faerie|Extensions")

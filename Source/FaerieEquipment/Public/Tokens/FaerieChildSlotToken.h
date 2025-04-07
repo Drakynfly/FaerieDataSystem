@@ -23,6 +23,8 @@ public:
 	virtual EDataValidationResult IsDataValid(FDataValidationContext& Context) const override;
 #endif
 
+	virtual void InitializeNetObject(AActor* Actor) override;
+
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ChildSlot")
 	UFaerieEquipmentSlot* GetSlotContainer() const;
 

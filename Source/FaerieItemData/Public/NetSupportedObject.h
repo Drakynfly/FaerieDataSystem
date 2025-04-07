@@ -28,8 +28,9 @@ public:
 	virtual void RegisterReplicationFragments(UE::Net::FFragmentRegistrationContext& Context, UE::Net::EFragmentRegistrationFlags RegistrationFlags) override;
 #endif
 
-	// Implement this to add internal subobjects for replication
-	virtual void AddSubobjectsForReplication(AActor* Actor) {}
+	// This should be called during ReadyForReplication / BeginPlay, or a similar "startup" location, to allow subclasses
+	// to initialize their themselves/any subobjects. Usually this means adding subobjects for replication to Actor.
+	virtual void InitializeNetObject(AActor* Actor) {}
 };
 
 /**

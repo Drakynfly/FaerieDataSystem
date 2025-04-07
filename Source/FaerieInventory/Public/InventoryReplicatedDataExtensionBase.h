@@ -161,6 +161,10 @@ private:
 	TStructView<FRepDataFastArray> FindFastArrayForContainer(const UFaerieItemContainerBase* Container);
 	TConstStructView<FRepDataFastArray> FindFastArrayForContainer(const UFaerieItemContainerBase* Container) const;
 
+#if WITH_EDITOR
+	void PrintPerContainerDataDebug() const;
+#endif
+
 private:
 	UPROPERTY(Replicated)
 	TArray<TObjectPtr<URepDataArrayWrapper>> PerContainerData;

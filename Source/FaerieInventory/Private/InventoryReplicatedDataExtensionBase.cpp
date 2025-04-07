@@ -155,12 +155,30 @@ void UInventoryReplicatedDataExtensionBase::LoadSaveData(const UFaerieItemContai
 
 void UInventoryReplicatedDataExtensionBase::InitializeExtension(const UFaerieItemContainerBase* Container)
 {
-	Super::InitializeExtension(Container);
+#if WITH_EDITOR
+	checkf(FUObjectThreadContext::Get().IsInConstructor == false, TEXT("Do not call InitializeExtension from a constructor! Use InitializeNetObject if available."));
+
+	// Explanation: For UFaerieInventoryComponents that are added to Blueprint Classes, sometimes in PIE, the
+	// component's GEN_VARIABLE version will somehow slip through and try to be added as a container. They are invalid.
+	if (Container->GetFullName().Contains("GEN_VARIABLE"))
+	{
+		//ensure(0);
+		return;
+	}
+#endif
+
+	checkSlow(!FindFastArrayForContainer(Container).IsValid());
 
 	if (ensure(IsValid(Container)))
 	{
 		URepDataArrayWrapper* NewWrapper = NewObject<URepDataArrayWrapper>(this);
 		NewWrapper->Container = Container;
+
+		if (AActor* Actor = GetTypedOuter<AActor>();
+			IsValid(Actor) && Actor->IsUsingRegisteredSubObjectList())
+		{
+			Actor->AddReplicatedSubObject(NewWrapper);
+		}
 
 		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, PerContainerData, this);
 		PerContainerData.Add(NewWrapper);
@@ -169,12 +187,19 @@ void UInventoryReplicatedDataExtensionBase::InitializeExtension(const UFaerieIte
 
 void UInventoryReplicatedDataExtensionBase::DeinitializeExtension(const UFaerieItemContainerBase* Container)
 {
-	Super::DeinitializeExtension(Container);
-
 	if (!!PerContainerData.RemoveAll(
-		[Container](const TObjectPtr<URepDataArrayWrapper>& Wrapper)
+		[this, Container](const TObjectPtr<URepDataArrayWrapper>& Wrapper)
 		{
-			return Wrapper->Container == Container;
+			if (Wrapper->Container == Container)
+			{
+				if (AActor* Actor = GetTypedOuter<AActor>();
+				IsValid(Actor) && Actor->IsUsingRegisteredSubObjectList())
+				{
+					Actor->RemoveReplicatedSubObject(Wrapper);
+				}
+				return true;
+			}
+			return false;
 		}))
 	{
 		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, PerContainerData, this);
@@ -203,7 +228,7 @@ FConstStructView UInventoryReplicatedDataExtensionBase::GetDataForEntry(const UF
 	const FEntryKey Key) const
 {
 	if (const TConstStructView<FRepDataFastArray> ContainerData = FindFastArrayForContainer(Container);
-		ContainerData.IsValid())
+		ensure(ContainerData.IsValid()))
 	{
 		const FRepDataFastArray& Ref = ContainerData.Get();
 
@@ -252,6 +277,10 @@ TStructView<FRepDataFastArray> UInventoryReplicatedDataExtensionBase::FindFastAr
 	{
 		return (*Found)->DataArray;
 	}
+#if WITH_EDITOR
+	UE_LOG(LogTemp, Warning, TEXT("Failed to find FastArray for container '%s'. Is this container initialized to this extension?"), *Container->GetFullName())
+	PrintPerContainerDataDebug();
+#endif
 	return TStructView<FRepDataFastArray>();
 }
 
@@ -265,5 +294,20 @@ TConstStructView<FRepDataFastArray> UInventoryReplicatedDataExtensionBase::FindF
 	{
 		return (*Found)->DataArray;
 	}
+#if WITH_EDITOR
+	UE_LOG(LogTemp, Warning, TEXT("Failed to find FastArray for container '%s'. Is this container initialized to this extension?"), *Container->GetFullName())
+	PrintPerContainerDataDebug();
+#endif
 	return TConstStructView<FRepDataFastArray>();
 }
+
+#if WITH_EDITOR
+void UInventoryReplicatedDataExtensionBase::PrintPerContainerDataDebug() const
+{
+	UE_LOG(LogTemp, Log, TEXT("Printing Containers with FastArrays"))
+	for (auto&& Element : PerContainerData)
+	{
+		UE_LOG(LogTemp, Log, TEXT("    %s"), *Element->Container->GetFullName())
+	}
+}
+#endif

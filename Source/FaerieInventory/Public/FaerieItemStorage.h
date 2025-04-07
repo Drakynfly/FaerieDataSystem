@@ -73,7 +73,7 @@ public:
 	//~ UObject
 
 	//~ UNetSupportedObject
-	virtual void AddSubobjectsForReplication(AActor* Actor) override;
+	virtual void InitializeNetObject(AActor* Actor) override;
 	//~ UNetSupportedObject
 
 	//~ UFaerieItemContainerBase

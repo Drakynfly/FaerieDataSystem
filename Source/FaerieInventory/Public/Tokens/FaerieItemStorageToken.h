@@ -58,6 +58,8 @@ class FAERIEINVENTORY_API UFaerieItemStorageToken : public UFaerieItemContainerT
 public:
 	UFaerieItemStorageToken();
 
+	virtual void InitializeNetObject(AActor* Actor) override;
+
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemStorage")
 	UFaerieItemStorage* GetItemStorage() const;
 

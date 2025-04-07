@@ -16,7 +16,6 @@ UFaerieChildSlotToken::UFaerieChildSlotToken()
 	ItemContainer = CreateDefaultSubobject<UFaerieEquipmentSlot>(FName{TEXTVIEW("ItemContainer")});
 	Extensions = CreateDefaultSubobject<UItemContainerExtensionGroup>(FName{TEXTVIEW("Extensions")});
 	Extensions->SetIdentifier();
-	ItemContainer->AddExtension(Extensions);
 }
 
 void UFaerieChildSlotToken::PostLoad()
@@ -59,6 +58,11 @@ EDataValidationResult UFaerieChildSlotToken::IsDataValid(FDataValidationContext&
 #undef LOCTEXT_NAMESPACE
 
 #endif
+
+void UFaerieChildSlotToken::InitializeNetObject(AActor* Actor)
+{
+	ItemContainer->AddExtension(Extensions);
+}
 
 UFaerieEquipmentSlot* UFaerieChildSlotToken::GetSlotContainer() const
 {

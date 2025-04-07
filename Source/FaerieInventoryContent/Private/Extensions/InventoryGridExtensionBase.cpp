@@ -27,8 +27,6 @@ void UInventoryGridExtensionBase::PostInitProperties()
 
 void UInventoryGridExtensionBase::InitializeExtension(const UFaerieItemContainerBase* Container)
 {
-	Super::InitializeExtension(Container);
-
 	checkf(!IsValid(InitializedContainer), TEXT("UInventoryGridExtensionBase doesn't support multi-initialization!"))
 	InitializedContainer = const_cast<UFaerieItemContainerBase*>(Container);
 	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, InitializedContainer, this);
@@ -60,8 +58,6 @@ void UInventoryGridExtensionBase::InitializeExtension(const UFaerieItemContainer
 
 void UInventoryGridExtensionBase::DeinitializeExtension(const UFaerieItemContainerBase* Container)
 {
-	Super::DeinitializeExtension(Container);
-
 	// Remove all entries for this container on shutdown
 	// @todo its only okay to reset these because we don't suppose multi-container! revisit later
 	OccupiedCells.Reset();

@@ -55,10 +55,11 @@ void UFaerieItemStorage::PostLoad()
 	// See Footnote1
 }
 
-void UFaerieItemStorage::AddSubobjectsForReplication(AActor* Actor)
+void UFaerieItemStorage::InitializeNetObject(AActor* Actor)
 {
+	Super::InitializeNetObject(Actor);
 	Actor->AddReplicatedSubObject(Extensions);
-	Extensions->AddSubobjectsForReplication(Actor);
+	Extensions->InitializeNetObject(Actor);
 }
 
 FFaerieContainerSaveData UFaerieItemStorage::MakeSaveData() const

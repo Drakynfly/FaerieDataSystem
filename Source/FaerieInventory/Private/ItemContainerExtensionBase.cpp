@@ -79,7 +79,7 @@ EDataValidationResult UItemContainerExtensionGroup::IsDataValid(FDataValidationC
 }
 #endif
 
-void UItemContainerExtensionGroup::AddSubobjectsForReplication(AActor* Actor)
+void UItemContainerExtensionGroup::InitializeNetObject(AActor* Actor)
 {
 	ForEachExtension(
 		[Actor](UItemContainerExtensionBase* Extension)
@@ -92,6 +92,18 @@ void UItemContainerExtensionGroup::InitializeExtension(const UFaerieItemContaine
 {
 	if (!ensure(IsValid(Container))) return;
 	if (Containers.Contains(Container)) return;
+
+#if WITH_EDITOR
+	checkf(FUObjectThreadContext::Get().IsInConstructor == false, TEXT("Do not call InitializeExtension from a constructor! Use InitializeNetObject if available."));
+
+	// Explanation: For UFaerieInventoryComponents that are added to Blueprint Classes, sometimes in PIE, the
+	// component's GEN_VARIABLE version will somehow slip through and try to be added as a container. They are invalid.
+	if (Container->GetFullName().Contains("GEN_VARIABLE"))
+	{
+		//ensure(0);
+		return;
+	}
+#endif
 
 	Containers.Emplace(Container);
 

@@ -109,14 +109,14 @@ void UFaerieEquipmentManager::AddSubobjectsForReplication()
 	else
 	{
 		AddReplicatedSubObject(ExtensionGroup);
-		ExtensionGroup->AddSubobjectsForReplication(Owner);
+		ExtensionGroup->InitializeNetObject(Owner);
 
 		for (auto&& Slot : Slots)
 		{
 			if (IsValid(Slot))
 			{
 				AddReplicatedSubObject(Slot);
-				Slot->AddSubobjectsForReplication(Owner);
+				Slot->InitializeNetObject(Owner);
 			}
 		}
 
@@ -183,7 +183,7 @@ UFaerieEquipmentSlot* UFaerieEquipmentManager::AddSlot(const FFaerieEquipmentSlo
 		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Slots, this)
 		Slots.Add(NewSlot);
 		AddReplicatedSubObject(NewSlot);
-		NewSlot->AddSubobjectsForReplication(GetOwner());
+		NewSlot->InitializeNetObject(GetOwner());
 
 		NewSlot->OnItemChangedNative.AddUObject(this, &ThisClass::OnSlotItemChanged, false);
 		NewSlot->OnItemDataChangedNative.AddUObject(this, &ThisClass::OnSlotItemChanged, true);
@@ -256,7 +256,7 @@ bool UFaerieEquipmentManager::AddExtension(UItemContainerExtensionBase* Extensio
 	if (ExtensionGroup->AddExtension(Extension))
 	{
 		AddReplicatedSubObject(Extension);
-		Extension->AddSubobjectsForReplication(GetOwner());
+		Extension->InitializeNetObject(GetOwner());
 		return true;
 	}
 	return false;
@@ -299,7 +299,7 @@ UItemContainerExtensionBase* UFaerieEquipmentManager::AddExtensionToSlot(const F
 	NewExtension->SetIdentifier();
 
 	AddReplicatedSubObject(NewExtension);
-	NewExtension->AddSubobjectsForReplication(GetOwner());
+	NewExtension->InitializeNetObject(GetOwner());
 	Slot->AddExtension(NewExtension);
 
 	return NewExtension;

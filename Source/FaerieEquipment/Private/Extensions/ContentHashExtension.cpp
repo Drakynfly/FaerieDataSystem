@@ -18,13 +18,11 @@ void UContentHashExtension::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>
 
 void UContentHashExtension::InitializeExtension(const UFaerieItemContainerBase* Container)
 {
-	Super::InitializeExtension(Container);
 	RecalcContainerHash(Container);
 }
 
 void UContentHashExtension::DeinitializeExtension(const UFaerieItemContainerBase* Container)
 {
-	Super::DeinitializeExtension(Container);
 	PerContainerHash.Remove(Container);
 	RecalcLocalChecksum();
 }

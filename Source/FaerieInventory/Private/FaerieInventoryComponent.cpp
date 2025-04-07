@@ -44,7 +44,12 @@ void UFaerieInventoryComponent::ReadyForReplication()
 	Super::ReadyForReplication();
 
 	AActor* Owner = GetOwner();
-	check(Owner);
+	check(IsValid(Owner));
+
+	if (IsValid(Extensions))
+	{
+		ItemStorage->AddExtension(Extensions);
+	}
 
 	if (!Owner->HasAuthority()) return;
 
@@ -55,15 +60,13 @@ void UFaerieInventoryComponent::ReadyForReplication()
 	}
 	else
 	{
-		AddReplicatedSubObject(ItemStorage);
-		ItemStorage->AddSubobjectsForReplication(Owner);
-		AddReplicatedSubObject(Extensions);
-		Extensions->AddSubobjectsForReplication(Owner);
+		check(IsValid(ItemStorage));
+		check(IsValid(Extensions));
 
-		if (IsValid(Extensions))
-		{
-			ItemStorage->AddExtension(Extensions);
-		}
+		AddReplicatedSubObject(ItemStorage);
+		ItemStorage->InitializeNetObject(Owner);
+		AddReplicatedSubObject(Extensions);
+		Extensions->InitializeNetObject(Owner);
 	}
 }
 
@@ -77,7 +80,7 @@ bool UFaerieInventoryComponent::AddExtension(UItemContainerExtensionBase* Extens
 	if (ItemStorage->AddExtension(Extension))
 	{
 		AddReplicatedSubObject(Extension);
-		Extension->AddSubobjectsForReplication(GetOwner());
+		Extension->InitializeNetObject(GetOwner());
 		return true;
 	}
 	return false;

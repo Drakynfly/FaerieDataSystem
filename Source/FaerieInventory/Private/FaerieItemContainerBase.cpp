@@ -13,7 +13,6 @@
 UFaerieItemContainerBase::UFaerieItemContainerBase()
 {
 	Extensions = CreateDefaultSubobject<UItemContainerExtensionGroup>(FName{TEXTVIEW("Extensions")});
-	Extensions->InitializeExtension(this);
 	Extensions->SetIdentifier();
 }
 
@@ -24,6 +23,11 @@ void UFaerieItemContainerBase::GetLifetimeReplicatedProps(TArray<FLifetimeProper
 	FDoRepLifetimeParams Params;
 	Params.bIsPushBased = true;
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, Extensions, Params);
+}
+
+void UFaerieItemContainerBase::InitializeNetObject(AActor* Actor)
+{
+	Extensions->InitializeExtension(this);
 }
 
 FFaerieItemStack UFaerieItemContainerBase::Release(const FFaerieItemStackView Stack)
@@ -47,6 +51,7 @@ UItemContainerExtensionGroup* UFaerieItemContainerBase::GetExtensionGroup() cons
 
 bool UFaerieItemContainerBase::AddExtension(UItemContainerExtensionBase* Extension)
 {
+	UE_LOG(LogTemp, Log, TEXT("Adding Extension: '%s' to '%s'"), *Extension->GetFullName(), *this->GetFullName())
 	if (Extensions->AddExtension(Extension))
 	{
 		TryApplyUnclaimedSaveData(Extension);
@@ -62,14 +67,11 @@ void UFaerieItemContainerBase::RavelExtensionData(TMap<FGuid, FInstancedStruct>&
 		{
 			const FGuid Identifier = Extension->GetIdentifier();
 			if (!ensure(Identifier.IsValid())) return;
-			if (const FInstancedStruct Struct = Extension->MakeSaveData(this);
-				Struct.IsValid())
+
+			if (const FInstancedStruct SaveData = Extension->MakeSaveData(this);
+				SaveData.IsValid())
 			{
-				if (const FInstancedStruct SaveData = Extension->MakeSaveData(this);
-					SaveData.IsValid())
-				{
-					Data.Add(Identifier, Extension->MakeSaveData(this));
-				}
+				Data.Add(Identifier, SaveData);
 			}
 		});
 

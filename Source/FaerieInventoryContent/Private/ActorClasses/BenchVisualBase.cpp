@@ -31,7 +31,7 @@ void ABenchVisualBase::BeginPlay()
 		if (HasAuthority())
 		{
 			AddReplicatedSubObject(Behavior);
-			Behavior->AddSubobjectsForReplication(this);
+			Behavior->InitializeNetObject(this);
 		}
 
 		Behavior->BeginPlay();

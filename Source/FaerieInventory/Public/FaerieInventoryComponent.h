@@ -57,8 +57,8 @@ public:
 	/**-------------*/
 	/*	 VARIABLES	*/
 	/**-------------*/
-private:
-	UPROPERTY(Replicated)
+protected:
+	UPROPERTY(BlueprintReadOnly, Replicated, Instanced, Category = "ItemStorage")
 	TObjectPtr<UFaerieItemStorage> ItemStorage;
 
 	// Subobjects responsible for adding or customizing Inventory behavior.
