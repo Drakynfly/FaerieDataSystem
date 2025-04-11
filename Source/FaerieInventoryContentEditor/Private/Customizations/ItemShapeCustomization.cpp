@@ -11,7 +11,7 @@
 
 TSharedRef<IPropertyTypeCustomization> FItemShapeCustomization::MakeInstance()
 {
-	return MakeShareable(new FItemShapeCustomization());
+	return MakeShared<FItemShapeCustomization>();
 }
 
 void FItemShapeCustomization::CustomizeHeader(const TSharedRef<IPropertyHandle> PropertyHandle,

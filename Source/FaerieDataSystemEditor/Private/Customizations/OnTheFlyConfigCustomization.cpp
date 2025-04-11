@@ -7,7 +7,7 @@
 
 TSharedRef<IPropertyTypeCustomization> FOnTheFlyConfigCustomization::MakeInstance()
 {
-	return MakeShareable(new FOnTheFlyConfigCustomization);
+	return MakeShared<FOnTheFlyConfigCustomization>();
 }
 
 void FOnTheFlyConfigCustomization::CustomizeHeader(const TSharedRef<IPropertyHandle> PropertyHandle,

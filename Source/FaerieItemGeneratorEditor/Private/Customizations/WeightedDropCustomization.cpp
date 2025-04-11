@@ -10,7 +10,7 @@
 
 TSharedRef<IPropertyTypeCustomization> FWeightedDropCustomization::MakeInstance()
 {
-    return MakeShareable(new FWeightedDropCustomization);
+    return MakeShared<FWeightedDropCustomization>();
 }
 
 void FWeightedDropCustomization::CustomizeHeader(const TSharedRef<IPropertyHandle> PropertyHandle,

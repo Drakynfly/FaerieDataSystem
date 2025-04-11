@@ -10,7 +10,7 @@
 
 TSharedRef<IPropertyTypeCustomization> FInventoryContentCustomization::MakeInstance()
 {
-	return MakeShareable(new FInventoryContentCustomization);
+	return MakeShared<FInventoryContentCustomization>();
 }
 
 void FInventoryContentCustomization::CustomizeHeader(const TSharedRef<IPropertyHandle> PropertyHandle,
@@ -38,8 +38,8 @@ void FInventoryContentCustomization::CustomizeChildren(const TSharedRef<IPropert
 
 	check(ArrayHandle.IsValid())
 
-	TSharedRef<FDetailArrayBuilder> ArrayBuilder = MakeShareable(
-		new FDetailArrayBuilder(ArrayHandle.ToSharedRef(), false, true, false));
+	TSharedRef<FDetailArrayBuilder> ArrayBuilder = MakeShared<FDetailArrayBuilder>(
+		ArrayHandle.ToSharedRef(), false, true, false);
 
 	ArrayBuilder->OnGenerateArrayElementWidget(FOnGenerateArrayElementWidget::CreateSP(this, &FInventoryContentCustomization::OnGenerateElement));
 
@@ -54,7 +54,7 @@ void FInventoryContentCustomization::OnGenerateElement(TSharedRef<IPropertyHandl
 
 TSharedRef<IPropertyTypeCustomization> FKeyedInventoryEntryCustomization::MakeInstance()
 {
-	return MakeShareable(new FKeyedInventoryEntryCustomization);
+	return MakeShared<FKeyedInventoryEntryCustomization>();
 }
 
 void FKeyedInventoryEntryCustomization::CustomizeHeader(const TSharedRef<IPropertyHandle> PropertyHandle,
@@ -91,7 +91,7 @@ void FKeyedInventoryEntryCustomization::CustomizeChildren(const TSharedRef<IProp
 
 TSharedRef<IPropertyTypeCustomization> FInventoryEntryCustomization::MakeInstance()
 {
-	return MakeShareable(new FInventoryEntryCustomization);
+	return MakeShared<FInventoryEntryCustomization>();
 }
 
 void FInventoryEntryCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> PropertyHandle,

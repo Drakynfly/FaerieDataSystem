@@ -8,7 +8,7 @@
 
 TSharedRef<IDetailCustomization> FItemGenerationConfigCustomization::MakeInstance()
 {
-	return MakeShareable(new FItemGenerationConfigCustomization());
+	return MakeShared<FItemGenerationConfigCustomization>();
 }
 
 void FItemGenerationConfigCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)

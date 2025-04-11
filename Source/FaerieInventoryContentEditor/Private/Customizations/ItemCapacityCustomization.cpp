@@ -13,7 +13,7 @@
 
 TSharedRef<IPropertyTypeCustomization> FInventoryWeightCustomization::MakeInstance()
 {
-    return MakeShareable(new FInventoryWeightCustomization);
+    return MakeShared<FInventoryWeightCustomization>();
 }
 
 void FInventoryWeightCustomization::CustomizeHeader(const TSharedRef<IPropertyHandle> PropertyHandle,
@@ -69,7 +69,7 @@ void FInventoryWeightCustomization::UpdateWeightHelp() const
 
 TSharedRef<IPropertyTypeCustomization> FItemCapacityCustomization::MakeInstance()
 {
-    return MakeShareable(new FItemCapacityCustomization);
+    return MakeShared<FItemCapacityCustomization>();
 }
 
 void FItemCapacityCustomization::CustomizeHeader(const TSharedRef<IPropertyHandle> PropertyHandle,

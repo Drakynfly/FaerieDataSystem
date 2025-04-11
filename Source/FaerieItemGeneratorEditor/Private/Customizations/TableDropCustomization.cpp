@@ -12,7 +12,7 @@
 
 TSharedRef<IPropertyTypeCustomization> FTableDropCustomization::MakeInstance()
 {
-	return MakeShareable(new FTableDropCustomization());
+	return MakeShared<FTableDropCustomization>();
 }
 
 void FTableDropCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> PropertyHandle, FDetailWidgetRow& HeaderRow,

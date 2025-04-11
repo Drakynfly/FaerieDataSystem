@@ -8,7 +8,7 @@
 
 TSharedRef<IDetailCustomization> FCapacityTokenDetailCustomization::MakeInstance()
 {
-	return MakeShareable(new FCapacityTokenDetailCustomization());
+	return MakeShared<FCapacityTokenDetailCustomization>();
 }
 
 void FCapacityTokenDetailCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)

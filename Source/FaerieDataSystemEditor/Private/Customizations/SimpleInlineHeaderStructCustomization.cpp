@@ -5,7 +5,7 @@
 
 TSharedRef<IPropertyTypeCustomization> FSimpleInlineHeaderStructCustomization::MakeInstance()
 {
-	return MakeShareable(new FSimpleInlineHeaderStructCustomization);
+	return MakeShared<FSimpleInlineHeaderStructCustomization>();
 }
 
 void FSimpleInlineHeaderStructCustomization::CustomizeHeader(const TSharedRef<IPropertyHandle> PropertyHandle,

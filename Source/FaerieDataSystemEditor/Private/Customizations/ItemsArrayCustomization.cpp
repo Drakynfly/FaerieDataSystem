@@ -8,7 +8,7 @@
 
 TSharedRef<IPropertyTypeCustomization> FItemsArrayCustomization::MakeInstance()
 {
-	return MakeShareable(new FItemsArrayCustomization);
+	return MakeShared<FItemsArrayCustomization>();
 }
 
 void FItemsArrayCustomization::CustomizeHeader(const TSharedRef<IPropertyHandle> PropertyHandle,
@@ -40,8 +40,8 @@ void FItemsArrayCustomization::CustomizeChildren(const TSharedRef<IPropertyHandl
 	bool InDisplayResetToDefault = true;
 	bool InDisplayElementNum = false;
 
-	TSharedRef<FDetailArrayBuilder> ArrayBuilder = MakeShareable(
-		new FDetailArrayBuilder(ArrayHandle.ToSharedRef(), InGenerateHeader, InDisplayResetToDefault, InDisplayElementNum));
+	TSharedRef<FDetailArrayBuilder> ArrayBuilder = MakeShared<FDetailArrayBuilder>(
+		ArrayHandle.ToSharedRef(), InGenerateHeader, InDisplayResetToDefault, InDisplayElementNum);
 
 	ArrayBuilder->OnGenerateArrayElementWidget(FOnGenerateArrayElementWidget::CreateSP(this, &FItemsArrayCustomization::OnGenerateElement));
 
