@@ -361,7 +361,7 @@ UInventoryStackProxy* UFaerieItemStorage::GetStackProxyImpl(const FInventoryKey 
 	ThisClass* This = const_cast<ThisClass*>(this);
 
 	const FName ProxyName = MakeUniqueObjectName(This, UInventoryStackProxy::StaticClass(),
-												 *FString::Printf(TEXT("ENTRY_PROXY_%s_%s"),
+												 *FString::Printf(TEXT("STACK_PROXY_%s_%s"),
 												 *Key.EntryKey.ToString(), *Key.StackKey.ToString()));
 	UInventoryStackProxy* NewEntryProxy = NewObject<UInventoryStackProxy>(This, UInventoryStackProxy::StaticClass(), ProxyName);
 	check(IsValid(NewEntryProxy));
