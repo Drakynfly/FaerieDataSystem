@@ -18,7 +18,7 @@ struct FAERIEITEMDATA_API FFaerieItemStackView
 
 	FFaerieItemStackView() = default;
 
-	FFaerieItemStackView(const UFaerieItem* ItemData, const int32 Copies)
+	FFaerieItemStackView(const TWeakObjectPtr<const UFaerieItem> ItemData, const int32 Copies)
 	  : Item(ItemData),
 		Copies(Copies) {}
 
@@ -43,6 +43,11 @@ struct FAERIEITEMDATA_API FFaerieItemStackView
 	{
 		Copies = Amount;
 		return *this;
+	}
+
+	bool IsValid() const
+	{
+		return Item.IsValid() && Faerie::ItemData::IsValidStack(Copies);
 	}
 
 	friend bool operator==(const FFaerieItemStackView Lhs, const FFaerieItemStackView Rhs)
