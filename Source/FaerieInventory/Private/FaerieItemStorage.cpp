@@ -506,6 +506,8 @@ Faerie::Inventory::FEventLog UFaerieItemStorage::RemoveFromEntryImpl(const FEntr
 		EntryMap.Remove(Key);
 	}
 
+	Event.Success = true;
+
 	Extensions->PostRemoval(this, Event);
 
 	return Event;
@@ -943,8 +945,7 @@ bool UFaerieItemStorage::RemoveEntry(const FEntryKey Key, const FFaerieInventory
 	if (!IsValidKey(Key)) return false;
 	if (!CanRemoveEntry(Key, RemovalTag)) return false;
 
-	RemoveFromEntryImpl(Key, Amount, RemovalTag);
-	return true;
+	return RemoveFromEntryImpl(Key, Amount, RemovalTag).Success;
 }
 
 bool UFaerieItemStorage::RemoveStack(const FInventoryKey Key, const FFaerieInventoryTag RemovalTag, const int32 Amount)
@@ -956,8 +957,7 @@ bool UFaerieItemStorage::RemoveStack(const FInventoryKey Key, const FFaerieInven
 
 	if (!CanRemoveStack(Key, RemovalTag)) return false;
 
-	RemoveFromStackImpl(Key, Amount, RemovalTag);
-	return true;
+	return RemoveFromStackImpl(Key, Amount, RemovalTag).Success;
 }
 
 bool UFaerieItemStorage::TakeEntry(const FEntryKey Key, FFaerieItemStack& OutStack,
