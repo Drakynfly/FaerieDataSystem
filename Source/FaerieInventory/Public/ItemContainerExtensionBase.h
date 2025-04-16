@@ -41,11 +41,12 @@ class FAERIEINVENTORY_API UItemContainerExtensionBase : public UNetSupportedObje
 	friend class UItemContainerExtensionGroup;
 	friend class UFaerieItemContainerBase;
 
-protected:
+public:
 	//~ UObject
 	virtual void PostDuplicate(EDuplicateMode::Type DuplicateMode) override;
 	//~ UObject
 
+protected:
 	virtual FInstancedStruct MakeSaveData(const UFaerieItemContainerBase* Container) const { return {}; }
 	virtual void LoadSaveData(const UFaerieItemContainerBase* Container, const FInstancedStruct& SaveData) {}
 
