@@ -22,8 +22,6 @@ FFaerieItemAssetPreviewScene::FFaerieItemAssetPreviewScene(ConstructionValues CV
 	// Hide default floor
 	SetFloorVisibility(false, false);
 
-	const FTransform PreviewMeshTransform (FRotator(0, 0, 0), FVector(0, 0, 0), FVector(1.0f, 1.0f, 1.0f ));
-	
 	{
 		UStaticMesh* PreviewMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/EngineMeshes/Cube.Cube"), nullptr, LOAD_None, nullptr);
 
@@ -31,7 +29,7 @@ FFaerieItemAssetPreviewScene::FFaerieItemAssetPreviewScene(ConstructionValues CV
 		DefaultCube->SetStaticMesh(PreviewMesh);
 		DefaultCube->bSelectable = true;
 		
-		AddComponent(DefaultCube, PreviewMeshTransform);
+		FFaerieItemAssetPreviewScene::AddComponent(DefaultCube, FTransform::Identity);
 	}
 
 	{
@@ -42,14 +40,20 @@ FFaerieItemAssetPreviewScene::FFaerieItemAssetPreviewScene(ConstructionValues CV
 		ItemMeshComponent = NewObject<UFaerieItemMeshComponent>(Actor);
 		//ItemMeshComponent->bSelectable = true;
 
-		AddComponent(ItemMeshComponent, PreviewMeshTransform);
+		FFaerieItemAssetPreviewScene::AddComponent(ItemMeshComponent, FTransform::Identity);
 	}
 
-	MeshLoader = NewObject<UFaerieItemMeshLoader>(GetTransientPackage());
+	MeshLoader = NewObject<UFaerieItemMeshLoader>(Actor, MakeUniqueObjectName(Actor, UFaerieItemMeshLoader::StaticClass()));
 }
 
 FFaerieItemAssetPreviewScene::~FFaerieItemAssetPreviewScene()
 {
+}
+
+void FFaerieItemAssetPreviewScene::AddReferencedObjects(FReferenceCollector& Collector)
+{
+	FAdvancedPreviewScene::AddReferencedObjects(Collector);
+	Collector.AddReferencedObject(MeshLoader);
 }
 
 void FFaerieItemAssetPreviewScene::Tick(const float InDeltaTime)
@@ -75,6 +79,9 @@ FBoxSphereBounds FFaerieItemAssetPreviewScene::GetBounds() const
 
 void FFaerieItemAssetPreviewScene::RefreshMesh()
 {
+	if (!ensure(IsValid(ItemMeshComponent))) return;
+	if (!ensure(IsValid(MeshLoader))) return;
+
 	ItemMeshComponent->ClearItemMesh();
 
 	const UFaerieItemAsset* ItemAsset = EditorPtr.Pin()->GetItemAsset();

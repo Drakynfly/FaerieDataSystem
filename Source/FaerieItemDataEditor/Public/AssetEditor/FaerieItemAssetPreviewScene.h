@@ -17,6 +17,8 @@ public:
 	FFaerieItemAssetPreviewScene(ConstructionValues CVS, const TSharedRef<FFaerieItemAssetEditor>& EditorToolkit);
 	virtual ~FFaerieItemAssetPreviewScene() override;
 
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
+
 	//~ FAdvancedPreviewScene
 	virtual void Tick(float InDeltaTime) override;
 	//~ FAdvancedPreviewScene
