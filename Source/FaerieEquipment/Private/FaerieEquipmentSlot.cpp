@@ -101,6 +101,15 @@ FFaerieItemProxy UFaerieEquipmentSlot::Proxy(FEntryKey) const
 	return this;
 }
 
+FFaerieItemStack UFaerieEquipmentSlot::Release(const FEntryKey Key, const int32 Copies)
+{
+	if (Key == StoredKey)
+	{
+		return TakeItemFromSlot(Copies);
+	}
+	return FFaerieItemStack();
+}
+
 FFaerieItemProxy UFaerieEquipmentSlot::Proxy() const
 {
 	return this;
@@ -137,8 +146,7 @@ TScriptInterface<IFaerieItemOwnerInterface> UFaerieEquipmentSlot::GetOwner() con
 //~ IFaerieItemOwnerInterface
 FFaerieItemStack UFaerieEquipmentSlot::Release(const FFaerieItemStackView Stack)
 {
-	if (Stack.Item == ItemStack.Item &&
-		Stack.Copies >= ItemStack.Copies)
+	if (Stack.Item == ItemStack.Item)
 	{
 		return TakeItemFromSlot(Stack.Copies);
 	}

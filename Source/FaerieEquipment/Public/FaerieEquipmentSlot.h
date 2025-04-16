@@ -69,6 +69,7 @@ protected:
 private:
 	virtual FFaerieItemStackView View(FEntryKey Key) const override;
 	virtual FFaerieItemProxy Proxy(FEntryKey Key) const override;
+	virtual FFaerieItemStack Release(FEntryKey Key, int32 Copies) override;
 	virtual int32 GetStack(FEntryKey Key) const override;
 
 public:

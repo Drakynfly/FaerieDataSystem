@@ -82,6 +82,7 @@ public:
 	virtual bool IsValidKey(FEntryKey Key) const override;
 	virtual FFaerieItemStackView View(FEntryKey Key) const override;
 	virtual FFaerieItemProxy Proxy(FEntryKey Key) const override;
+	virtual FFaerieItemStack Release(FEntryKey Key, int32 Copies) override;
 	virtual void ForEachKey(const TFunctionRef<void(FEntryKey)>& Func) const override;
 	virtual int32 GetStack(FEntryKey Key) const override;
 

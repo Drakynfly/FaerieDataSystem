@@ -62,6 +62,9 @@ public:
 	// Creates or retrieves a proxy for an entry
 	virtual FFaerieItemProxy Proxy(FEntryKey Key) const PURE_VIRTUAL(UFaerieItemContainerBase::Proxy, return nullptr; )
 
+	// A more efficient overload of Release if we already know the Key.
+	virtual FFaerieItemStack Release(FEntryKey Key, int32 Copies) PURE_VIRTUAL(UFaerieItemContainerBase::Release, return FFaerieItemStack(); )
+
 	// Iterate over and perform a task for each key.
 	virtual void ForEachKey(const TFunctionRef<void(FEntryKey)>& Func) const PURE_VIRTUAL(UFaerieItemContainerBase::ForEachKey, ; )
 

@@ -119,6 +119,16 @@ FFaerieItemProxy UFaerieItemStorage::Proxy(const FEntryKey Key) const
 	return GetEntryProxyImpl(Key);
 }
 
+FFaerieItemStack UFaerieItemStorage::Release(const FEntryKey Key, const int32 Copies)
+{
+	if (FFaerieItemStack OutStack;
+		TakeEntry(Key, OutStack, Faerie::Inventory::Tags::RemovalMoving, Copies))
+	{
+		return OutStack;
+	}
+	return FFaerieItemStack();
+}
+
 void UFaerieItemStorage::ForEachKey(const TFunctionRef<void(FEntryKey)>& Func) const
 {
 	for (const FKeyedInventoryEntry& Element : EntryMap)
@@ -153,12 +163,7 @@ void UFaerieItemStorage::OnItemMutated(const UFaerieItem* Item, const UFaerieIte
 FFaerieItemStack UFaerieItemStorage::Release(const FFaerieItemStackView Stack)
 {
 	const FEntryKey Key = FindItem(Stack.Item.Get(), EFaerieItemEqualsCheck::ComparePointers);
-	if (FFaerieItemStack OutStack;
-		TakeEntry(Key, OutStack, Faerie::Inventory::Tags::RemovalMoving, Stack.Copies))
-	{
-		return OutStack;
-	}
-	return FFaerieItemStack();
+	return Release(Key, Stack.Copies);
 }
 
 bool UFaerieItemStorage::Possess(const FFaerieItemStack Stack)
