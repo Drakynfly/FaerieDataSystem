@@ -170,11 +170,11 @@ protected:
     virtual void OnRep_State();
 
     // Broadcast whenever the state changes.
-    UPROPERTY(BlueprintCallable, BlueprintAssignable, Category = "Events")
+    UPROPERTY(BlueprintAssignable, Category = "Events")
     FInventoryCapacityEvent OnStateChanged;
 
     // Broadcast whenever the config changes.
-    UPROPERTY(BlueprintCallable, BlueprintAssignable, Category = "Events")
+    UPROPERTY(BlueprintAssignable, Category = "Events")
     FInventoryCapacityEvent OnConfigurationChanged;
 
     UPROPERTY(ReplicatedUsing = "OnRep_Config", EditAnywhere, Category = "Capacity", meta = (ShowOnlyInnerProperties))

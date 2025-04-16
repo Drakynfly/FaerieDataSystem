@@ -311,15 +311,15 @@ protected:
 	Faerie::FEntryKeyEvent OnKeyRemovedCallback;
 
 	// Broadcast whenever an entry is added, or a stack amount is increased.
-	UPROPERTY(BlueprintCallable, BlueprintAssignable, Transient, Category = "Events")
+	UPROPERTY(BlueprintAssignable, Transient, Category = "Events")
 	FEntryKeyEvent OnKeyAdded;
 
 	// Broadcast whenever data for a key is changed.
-	UPROPERTY(BlueprintCallable, BlueprintAssignable, Transient, Category = "Events")
+	UPROPERTY(BlueprintAssignable, Transient, Category = "Events")
 	FEntryKeyEvent OnKeyUpdated;
 
 	// Broadcast whenever an entry is removed entirely, or a stack amount is decreased.
-	UPROPERTY(BlueprintCallable, BlueprintAssignable, Transient, Category = "Events")
+	UPROPERTY(BlueprintAssignable, Transient, Category = "Events")
 	FEntryKeyEvent OnKeyRemoved;
 
 
