@@ -23,7 +23,7 @@ struct FAERIEINVENTORYCONTENT_API FWeightEditor
     {}
 
 protected:
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weight", meta = (ForceUnits = g, ClampMin = 0, UIMax = 5000))
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weight", meta = (ForceUnits = g, ClampMin = 0, UIMax = 100000))
     int32 Weight;
 
 public:
