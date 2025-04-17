@@ -5,6 +5,7 @@
 #include "Extensions/VisualSlotExtension.h"
 
 #include "EquipmentVisualizer.h"
+#include "FaerieEquipmentSlot.h"
 #include "FaerieItemContainerBase.h"
 #include "FaerieMeshSubsystem.h"
 #include "ItemContainerEvent.h"
@@ -59,34 +60,44 @@ void UEquipmentVisualizationUpdater::DeinitializeExtension(const UFaerieItemCont
 void UEquipmentVisualizationUpdater::PostAddition(const UFaerieItemContainerBase* Container,
 												  const Faerie::Inventory::FEventLog& Event)
 {
-	// A previously empty slot now has been filled with an item.
-	CreateNewVisual(Container, Event.EntryTouched);
+	if (auto Slot = Cast<UFaerieEquipmentSlot>(Container))
+	{
+		// A previously empty slot now has been filled with an item.
+		CreateNewVisual(Container, Event.EntryTouched);
+	}
 }
+
 
 void UEquipmentVisualizationUpdater::PreRemoval(const UFaerieItemContainerBase* Container, const FEntryKey Key,
 	const int32 Removal)
 {
-	// If the whole stack is being removed, remove the visual for it
-	if (Container->GetStack(Key) == Removal || Removal == Faerie::ItemData::UnlimitedStack)
+	if (auto Slot = Cast<UFaerieEquipmentSlot>(Container))
 	{
-		RemoveOldVisual(Container, Key);
+		// If the whole stack is being removed, remove the visual for it
+		if (Container->GetStack(Key) == Removal || Removal == Faerie::ItemData::UnlimitedStack)
+		{
+			RemoveOldVisual(Container, Key);
+		}
 	}
 }
 
 void UEquipmentVisualizationUpdater::PostEntryChanged(const UFaerieItemContainerBase* Container,
 	const Faerie::Inventory::FEventLog& Event)
 {
-	// The item in a container has changed. Recreate the visual.
-	// @todo maybe don't always do this?!?! determine if we need to. use the event tag type
-
-	auto&& Visualizer = GetVisualizer(Container);
-	if (!IsValid(Visualizer))
+	if (auto Slot = Cast<UFaerieEquipmentSlot>(Container))
 	{
-		return;
+		// The item in a container has changed. Recreate the visual.
+		// @todo maybe don't always do this?!?! determine if we need to. use the event tag type
+
+		auto&& Visualizer = GetVisualizer(Container);
+		if (!IsValid(Visualizer))
+		{
+			return;
+		}
+		const FFaerieItemProxy Proxy = Container->Proxy(Event.EntryTouched);
+		RemoveOldVisualImpl(Visualizer, Proxy);
+		CreateNewVisualImpl(Container, Visualizer, Proxy);
 	}
-	const FFaerieItemProxy Proxy = Container->Proxy(Event.EntryTouched);
-	RemoveOldVisualImpl(Visualizer, Proxy);
-	CreateNewVisualImpl(Container, Visualizer, Proxy);
 }
 
 UEquipmentVisualizer* UEquipmentVisualizationUpdater::GetVisualizer(const UFaerieItemContainerBase* Container)
