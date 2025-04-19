@@ -30,6 +30,11 @@ void UFaerieItemContainerBase::InitializeNetObject(AActor* Actor)
 	Extensions->InitializeExtension(this);
 }
 
+void UFaerieItemContainerBase::DeinitializeNetObject(AActor* Actor)
+{
+	Extensions->DeinitializeExtension(this);
+}
+
 FFaerieItemStack UFaerieItemContainerBase::Release(const FFaerieItemStackView Stack)
 {
 	// This function should be implemented by children.
@@ -152,35 +157,37 @@ void UFaerieItemContainerBase::OnItemMutated(const UFaerieItem* Item, const UFae
 	}
 }
 
-void UFaerieItemContainerBase::ReleaseOwnership(UFaerieItem* Item)
+void UFaerieItemContainerBase::ReleaseOwnership(const UFaerieItem* Item)
 {
 	if (!ensure(IsValid(Item))) return;
 
 	// When Items are potentially mutable, undo any modifications that rely on this owner.
-	if (Item->IsInstanceMutable())
+	if (const auto MutableItem = Item->MutateCast())
 	{
+		// @todo this logic could be moved to UFaerieItem::PostRename (if we enforce the RenameBehavior)
 		if (AActor* Actor = GetTypedOuter<AActor>();
 			IsValid(Actor) && Actor->IsUsingRegisteredSubObjectList())
 		{
-			Actor->RemoveReplicatedSubObject(Item);
-			Item->ForEachToken(
+			Actor->RemoveReplicatedSubObject(MutableItem);
+			MutableItem->ForEachToken(
 				[Actor](const TObjectPtr<UFaerieItemToken>& Token)
 				{
-					Actor->RemoveReplicatedSubObject(ConstCast(Token));
+					Token->DeinitializeNetObject(Actor);
+					Actor->RemoveReplicatedSubObject(Token);
 					return true;
 				});
 		}
 
 		// If we renamed the item to ourself when we took ownership of this item, then we need to release that now.
-		if (Item->GetOuter() == this)
+		if (MutableItem->GetOuter() == this)
 		{
-			Item->Rename(nullptr, GetTransientPackage(), REN_DontCreateRedirectors);
+			MutableItem->Rename(nullptr, GetTransientPackage(), REN_DontCreateRedirectors);
 		}
 
-		Item->GetNotifyOwnerOfSelfMutation().Unbind();
+		MutableItem->GetNotifyOwnerOfSelfMutation().Unbind();
 
 		// Remove our group of extensions from any sub-storages
-		for (auto&& ChildContainers = UFaerieItemContainerToken::GetAllContainersInItem(Item);
+		for (auto&& ChildContainers = UFaerieItemContainerToken::GetAllContainersInItem(MutableItem);
 			 auto&& ChildContainer : ChildContainers)
 		{
 			ChildContainer->RemoveExtension(Extensions);
@@ -188,35 +195,37 @@ void UFaerieItemContainerBase::ReleaseOwnership(UFaerieItem* Item)
 	}
 }
 
-void UFaerieItemContainerBase::TakeOwnership(UFaerieItem* Item)
+void UFaerieItemContainerBase::TakeOwnership(const UFaerieItem* Item)
 {
 	if (!ensure(IsValid(Item))) return;
 
-	if (Item->IsInstanceMutable())
+	if (UFaerieItem* MutableItem = Item->MutateCast())
 	{
 		checkfSlow(Item->GetOuter() == GetTransientPackage(), TEXT("ReleaseOwnership was not called correctly on this item, before attempting to give ownership here!"));
 		checkfSlow(!Item->GetNotifyOwnerOfSelfMutation().IsBound(), TEXT("This should always have been unbound by the previous owner!"))
-		Item->GetNotifyOwnerOfSelfMutation().BindUObject(this, &ThisClass::OnItemMutated);
+		MutableItem->GetNotifyOwnerOfSelfMutation().BindUObject(this, &ThisClass::OnItemMutated);
 
 		if (GetDefault<UFaerieInventorySettings>()->ContainerMutableBehavior == EFaerieContainerOwnershipBehavior::Rename)
 		{
-			Item->Rename(nullptr, this, REN_DontCreateRedirectors);
+			MutableItem->Rename(nullptr, this, REN_DontCreateRedirectors);
 		}
 
+		// @todo this logic could be moved to UFaerieItem::PostRename (if we enforce the RenameBehavior)
 		if (AActor* Actor = GetTypedOuter<AActor>();
 			IsValid(Actor) && Actor->IsUsingRegisteredSubObjectList())
 		{
-			Actor->AddReplicatedSubObject(Item);
-			Item->ForEachToken(
+			Actor->AddReplicatedSubObject(MutableItem);
+			MutableItem->ForEachToken(
 				[Actor](const TObjectPtr<UFaerieItemToken>& Token)
 				{
-					Actor->AddReplicatedSubObject(ConstCast(Token));
+					Actor->AddReplicatedSubObject(Token);
+					Token->InitializeNetObject(Actor);
 					return true;
 				});
 		}
 
 		// Add our group of extensions to any sub-storages
-		for (auto&& ChildContainers = UFaerieItemContainerToken::GetAllContainersInItem(Item);
+		for (auto&& ChildContainers = UFaerieItemContainerToken::GetAllContainersInItem(MutableItem);
 			 auto&& Container : ChildContainers)
 		{
 			Container->AddExtension(Extensions);

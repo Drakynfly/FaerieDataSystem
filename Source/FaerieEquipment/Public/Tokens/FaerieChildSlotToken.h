@@ -10,7 +10,7 @@
  *
  */
 UCLASS(DisplayName = "Token - Add Child Slot")
-class FAERIEEQUIPMENT_API UFaerieChildSlotToken : public UFaerieItemContainerToken
+class FAERIEEQUIPMENT_API UFaerieChildSlotToken : public UFaerieItemContainerToken, public IFaerieContainerExtensionInterface
 {
 	GENERATED_BODY()
 
@@ -23,7 +23,14 @@ public:
 	virtual EDataValidationResult IsDataValid(FDataValidationContext& Context) const override;
 #endif
 
+	//~ UNetSupportedObject
 	virtual void InitializeNetObject(AActor* Actor) override;
+	virtual void DeinitializeNetObject(AActor* Actor) override;
+	//~ UNetSupportedObject
+
+	//~ IFaerieContainerExtensionInterface
+	virtual UItemContainerExtensionGroup* GetExtensionGroup() const override final { return Extensions; }
+	//~ IFaerieContainerExtensionInterface
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ChildSlot")
 	UFaerieEquipmentSlot* GetSlotContainer() const;

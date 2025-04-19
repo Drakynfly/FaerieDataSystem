@@ -2,7 +2,6 @@
 
 #include "ItemContainerExtensionBase.h"
 #include "FaerieItemContainerBase.h"
-#include "ItemContainerEvent.h"
 
 #if WITH_EDITOR
 #include "Misc/DataValidation.h"
@@ -85,6 +84,15 @@ void UItemContainerExtensionGroup::InitializeNetObject(AActor* Actor)
 		[Actor](UItemContainerExtensionBase* Extension)
 		{
 			Actor->AddReplicatedSubObject(Extension);
+		});
+}
+
+void UItemContainerExtensionGroup::DeinitializeNetObject(AActor* Actor)
+{
+	ForEachExtension(
+		[Actor](UItemContainerExtensionBase* Extension)
+		{
+			Actor->RemoveReplicatedSubObject(Extension);
 		});
 }
 
@@ -291,7 +299,7 @@ bool UItemContainerExtensionGroup::AddExtension(UItemContainerExtensionBase* Ext
 		TEXT("Extension with invalid Identifier. Setup code-path with SetIdentifier called before AddExtension"))
 	if (!ensure(IsValid(Extension))) return false;
 
-	if (!ensureMsgf(!Extensions.Contains(Extension), TEXT("Trying to add Extension twice. This is bad. Track down why!")))
+	if (!ensureAlwaysMsgf(!Extensions.Contains(Extension), TEXT("Trying to add Extension twice. This is bad. Track down why!")))
 	{
 		return false;
 	}

@@ -89,20 +89,33 @@ public:
 	//~ Emd UObject interface
 
 	// Iterates over each contained token. Return true in the delegate to continue iterating.
-	void ForEachToken(const TFunctionRef<bool(const TObjectPtr<UFaerieItemToken>&)>& Iter) const;
+	void ForEachToken(const TFunctionRef<bool(const TObjectPtr<		 UFaerieItemToken>&)>& Iter);
+	void ForEachToken(const TFunctionRef<bool(const TObjectPtr<const UFaerieItemToken>&)>& Iter) const;
 
 	// Iterates over each contained token. Return true in the delegate to continue iterating.
-	void ForEachTokenOfClass(const TFunctionRef<bool(const TObjectPtr<UFaerieItemToken>&)>& Iter, const TSubclassOf<UFaerieItemToken>& Class) const;
+	void ForEachTokenOfClass(const TFunctionRef<bool(const TObjectPtr<UFaerieItemToken>&)>& Iter, const TSubclassOf<UFaerieItemToken>& Class);
+	void ForEachTokenOfClass(const TFunctionRef<bool(const TObjectPtr<const UFaerieItemToken>&)>& Iter, const TSubclassOf<UFaerieItemToken>& Class) const;
 
 	// Iterates over each contained token. Return true in the delegate to continue iterating.
 	template <
 		typename TFaerieItemToken
 		UE_REQUIRES(TIsDerivedFrom<TFaerieItemToken, UFaerieItemToken>::Value)
 	>
-	void ForEachToken(const TFunctionRef<bool(const TObjectPtr<TFaerieItemToken>&)>& Iter) const
+	void ForEachToken(const TFunctionRef<bool(const TObjectPtr<TFaerieItemToken>&)>& Iter)
 	{
 		ForEachTokenOfClass(
 			*reinterpret_cast<const TFunctionRef<bool(const TObjectPtr<UFaerieItemToken>&)>*>(&Iter)
+			, TFaerieItemToken::StaticClass());
+	}
+
+	template <
+		typename TFaerieItemToken
+		UE_REQUIRES(TIsDerivedFrom<TFaerieItemToken, UFaerieItemToken>::Value)
+	>
+	void ForEachToken(const TFunctionRef<bool(const TObjectPtr<const TFaerieItemToken>&)>& Iter) const
+	{
+		ForEachTokenOfClass(
+			*reinterpret_cast<const TFunctionRef<bool(const TObjectPtr<const UFaerieItemToken>&)>*>(&Iter)
 			, TFaerieItemToken::StaticClass());
 	}
 

@@ -18,7 +18,7 @@ namespace Faerie
 	}
 
 	template <typename T>
-	T* DuplicateObjectFromDiskForReplication(const TObjectPtr<T>& SourceObject, UObject* Outer, const FName Name = NAME_None)
+	T* DuplicateObjectFromDiskForReplication(const TObjectPtr<const T>& SourceObject, UObject* Outer, const FName Name = NAME_None)
 	{
 		constexpr EObjectFlags FlagsToClear = RF_WasLoaded | RF_LoadCompleted;
 		UObject* DuplicatedObject = DuplicateObject_Internal(T::StaticClass(), SourceObject, Outer, Name);

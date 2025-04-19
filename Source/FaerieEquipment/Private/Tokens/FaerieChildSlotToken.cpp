@@ -61,7 +61,16 @@ EDataValidationResult UFaerieChildSlotToken::IsDataValid(FDataValidationContext&
 
 void UFaerieChildSlotToken::InitializeNetObject(AActor* Actor)
 {
+	Actor->AddReplicatedSubObject(ItemContainer);
+	Actor->AddReplicatedSubObject(Extensions);
 	ItemContainer->AddExtension(Extensions);
+}
+
+void UFaerieChildSlotToken::DeinitializeNetObject(AActor* Actor)
+{
+	ItemContainer->RemoveExtension(Extensions);
+	Actor->RemoveReplicatedSubObject(ItemContainer);
+	Actor->RemoveReplicatedSubObject(Extensions);
 }
 
 UFaerieEquipmentSlot* UFaerieChildSlotToken::GetSlotContainer() const

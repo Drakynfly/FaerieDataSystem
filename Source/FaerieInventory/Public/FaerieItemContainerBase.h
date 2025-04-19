@@ -23,7 +23,10 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
+	//~ UNetSupportedObject
 	virtual void InitializeNetObject(AActor* Actor) override;
+	virtual void DeinitializeNetObject(AActor* Actor) override;
+	//~ UNetSupportedObject
 
 	//~ IFaerieItemOwnerInterface
 	virtual FFaerieItemStack Release(FFaerieItemStackView Stack) override;
@@ -75,10 +78,10 @@ protected:
 	virtual void OnItemMutated(const UFaerieItem* Item, const UFaerieItemToken* Token, FGameplayTag EditTag);
 
 	// This function must be called by child classes when binding items to new keys.
-	void ReleaseOwnership(UFaerieItem* Item);
+	void ReleaseOwnership(const UFaerieItem* Item);
 
 	// This function must be called by child classes when releasing a key.
-	void TakeOwnership(UFaerieItem* Item);
+	void TakeOwnership(const UFaerieItem* Item);
 
 
 	/**------------------------------*/

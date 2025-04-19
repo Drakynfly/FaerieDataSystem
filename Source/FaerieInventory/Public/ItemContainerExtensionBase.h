@@ -100,14 +100,17 @@ class FAERIEINVENTORY_API UItemContainerExtensionGroup final : public UItemConta
 public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
+	//~ UObject
 	virtual void PostLoad() override;
 
 #if WITH_EDITOR
 	virtual EDataValidationResult IsDataValid(FDataValidationContext& Context) const override;
 #endif
+	//~ UObject
 
 	//~ UNetSupportedObject
 	virtual void InitializeNetObject(AActor* Actor) override;
+	virtual void DeinitializeNetObject(AActor* Actor) override;
 	//~ UNetSupportedObject
 
 	//~ UItemContainerExtensionBase

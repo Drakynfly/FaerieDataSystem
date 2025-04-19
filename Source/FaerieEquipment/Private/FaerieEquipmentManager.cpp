@@ -87,9 +87,9 @@ void UFaerieEquipmentManager::AddDefaultSlots()
 
 		if (IsValid(Element.ExtensionGroup))
 		{
-			// The default ExtensionGroups are "Assets" in that they are default instanced baked into the objects, and
+			// The default ExtensionGroups are "Assets" in that they are default instances baked into the component, and
 			// need to be fixed before they can replicate.
-			DefaultSlot->AddExtension(Faerie::DuplicateObjectFromDiskForReplication(Element.ExtensionGroup, DefaultSlot));
+			DefaultSlot->AddExtension(Faerie::DuplicateObjectFromDiskForReplication(Element.ExtensionGroup.Get(), DefaultSlot));
 		}
 	}
 }
@@ -214,6 +214,7 @@ bool UFaerieEquipmentManager::RemoveSlot(UFaerieEquipmentSlot* Slot)
 		Slot->RemoveExtension(ExtensionGroup);
 
 		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Slots, this)
+		Slot->DeinitializeNetObject(GetOwner());
 		RemoveReplicatedSubObject(Slot);
 
 		Slot->OnItemChangedNative.RemoveAll(this);
@@ -269,6 +270,7 @@ bool UFaerieEquipmentManager::RemoveExtension(UItemContainerExtensionBase* Exten
 		return false;
 	}
 
+	Extension->DeinitializeNetObject(GetOwner());
 	RemoveReplicatedSubObject(Extension);
 	return ExtensionGroup->RemoveExtension(Extension);
 }
@@ -326,6 +328,7 @@ bool UFaerieEquipmentManager::RemoveExtensionFromSlot(const FFaerieSlotTag SlotI
 		return false;
 	}
 
+	Extension->DeinitializeNetObject(GetOwner());
 	RemoveReplicatedSubObject(Extension);
 	Slot->RemoveExtension(Extension);
 

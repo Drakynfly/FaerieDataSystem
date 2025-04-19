@@ -25,10 +25,12 @@ TSet<UFaerieItemContainerBase*> UFaerieItemContainerToken::GetAllContainersInIte
 {
 	if (!ensure(IsValid(Item))) return {};
 
+	// @note: Technically not respecting const-purity, but all Containers imply mutable anyway, so it doesn't matter.
+
 	TSet<UFaerieItemContainerBase*> Containers;
 
 	Item->ForEachToken<UFaerieItemContainerToken>(
-		[&Containers](const TObjectPtr<UFaerieItemContainerToken>& Token)
+		[&Containers](const TObjectPtr<const UFaerieItemContainerToken>& Token)
 		{
 			Containers.Add(Token->ItemContainer);
 			return true;
@@ -42,10 +44,12 @@ TSet<UFaerieItemContainerBase*> UFaerieItemContainerToken::GetContainersInItemOf
 {
 	if (!ensure(IsValid(Item))) return {};
 
+	// @note: Technically not respecting const-purity, but all Containers imply mutable anyway, so it doesn't matter.
+
 	TSet<UFaerieItemContainerBase*> Containers;
 
 	Item->ForEachToken<UFaerieItemContainerToken>(
-		[&Containers, Class](const TObjectPtr<UFaerieItemContainerToken>& Token)
+		[&Containers, Class](const TObjectPtr<const UFaerieItemContainerToken>& Token)
 		{
 			if (Token->ItemContainer->IsA(Class))
 			{
@@ -66,7 +70,16 @@ UFaerieItemStorageToken::UFaerieItemStorageToken()
 
 void UFaerieItemStorageToken::InitializeNetObject(AActor* Actor)
 {
+	Actor->AddReplicatedSubObject(ItemContainer);
+	Actor->AddReplicatedSubObject(Extensions);
 	ItemContainer->AddExtension(Extensions);
+}
+
+void UFaerieItemStorageToken::DeinitializeNetObject(AActor* Actor)
+{
+	ItemContainer->RemoveExtension(Extensions);
+	Actor->RemoveReplicatedSubObject(ItemContainer);
+	Actor->RemoveReplicatedSubObject(Extensions);
 }
 
 UFaerieItemStorage* UFaerieItemStorageToken::GetItemStorage() const

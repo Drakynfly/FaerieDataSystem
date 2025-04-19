@@ -62,6 +62,13 @@ void UFaerieItemStorage::InitializeNetObject(AActor* Actor)
 	Extensions->InitializeNetObject(Actor);
 }
 
+void UFaerieItemStorage::DeinitializeNetObject(AActor* Actor)
+{
+	Extensions->DeinitializeNetObject(Actor);
+	Actor->RemoveReplicatedSubObject(Extensions);
+	Super::DeinitializeNetObject(Actor);
+}
+
 FFaerieContainerSaveData UFaerieItemStorage::MakeSaveData() const
 {
 	ensureMsgf(GetDefault<UFaerieInventorySettings>()->ContainerMutableBehavior == EFaerieContainerOwnershipBehavior::Rename,

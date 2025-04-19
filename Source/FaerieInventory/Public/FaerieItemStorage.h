@@ -74,6 +74,7 @@ public:
 
 	//~ UNetSupportedObject
 	virtual void InitializeNetObject(AActor* Actor) override;
+	virtual void DeinitializeNetObject(AActor* Actor) override;
 	//~ UNetSupportedObject
 
 	//~ UFaerieItemContainerBase

@@ -93,6 +93,7 @@ bool UFaerieInventoryComponent::RemoveExtension(UItemContainerExtensionBase* Ext
 		return false;
 	}
 
+	Extension->DeinitializeNetObject(GetOwner());
 	RemoveReplicatedSubObject(Extension);
 	return ItemStorage->RemoveExtension(Extension);
 }

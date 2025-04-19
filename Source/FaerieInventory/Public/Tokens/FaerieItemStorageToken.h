@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "FaerieContainerExtensionInterface.h"
 #include "FaerieItemToken.h"
 #include "TypeCastingUtils.h"
 #include "FaerieItemStorageToken.generated.h"
@@ -51,14 +52,21 @@ class UItemContainerExtensionGroup;
  * This token adds an Item Storage object used to store items nested in another.
  */
 UCLASS(DisplayName = "Token - Add Item Storage")
-class FAERIEINVENTORY_API UFaerieItemStorageToken : public UFaerieItemContainerToken
+class FAERIEINVENTORY_API UFaerieItemStorageToken : public UFaerieItemContainerToken, public IFaerieContainerExtensionInterface
 {
 	GENERATED_BODY()
 
 public:
 	UFaerieItemStorageToken();
 
+	//~ UNetSupportedObject
 	virtual void InitializeNetObject(AActor* Actor) override;
+	virtual void DeinitializeNetObject(AActor* Actor) override;
+	//~ UNetSupportedObject
+
+	//~ IFaerieContainerExtensionInterface
+	virtual UItemContainerExtensionGroup* GetExtensionGroup() const override final { return Extensions; }
+	//~ IFaerieContainerExtensionInterface
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemStorage")
 	UFaerieItemStorage* GetItemStorage() const;

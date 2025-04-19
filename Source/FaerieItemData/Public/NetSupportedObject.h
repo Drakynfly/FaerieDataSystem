@@ -31,6 +31,10 @@ public:
 	// This should be called during ReadyForReplication / BeginPlay, or a similar "startup" location, to allow subclasses
 	// to initialize their themselves/any subobjects. Usually this means adding subobjects for replication to Actor.
 	virtual void InitializeNetObject(AActor* Actor) {}
+
+	// This should be called during EndPlay, or a similar "shutdown" location, to allow subclasses to deinitialize
+	// themselves/any subobjects, or when switching owners (if pairing with a new InitializeNetObject call).
+	virtual void DeinitializeNetObject(AActor* Actor) {}
 };
 
 /**

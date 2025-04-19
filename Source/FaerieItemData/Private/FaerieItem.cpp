@@ -105,7 +105,6 @@ namespace Faerie
 	}
 }
 
-
 void UFaerieItem::PreSave(FObjectPreSaveContext SaveContext)
 {
 	CacheTokenMutability();
@@ -168,7 +167,7 @@ void UFaerieItem::GetReplicatedCustomConditionState(FCustomPropertyConditionStat
 	}
 }
 
-void UFaerieItem::ForEachToken(const TFunctionRef<bool(const TObjectPtr<UFaerieItemToken>&)>& Iter) const
+void UFaerieItem::ForEachToken(const TFunctionRef<bool(const TObjectPtr<UFaerieItemToken>&)>& Iter)
 {
 	TScopeCounter<uint32> IterationLock(WriteLock);
 
@@ -184,7 +183,39 @@ void UFaerieItem::ForEachToken(const TFunctionRef<bool(const TObjectPtr<UFaerieI
 	}
 }
 
-void UFaerieItem::ForEachTokenOfClass(const TFunctionRef<bool(const TObjectPtr<UFaerieItemToken>&)>& Iter, const TSubclassOf<UFaerieItemToken>& Class) const
+void UFaerieItem::ForEachToken(const TFunctionRef<bool(const TObjectPtr<const UFaerieItemToken>&)>& Iter) const
+{
+	TScopeCounter<uint32> IterationLock(WriteLock);
+
+	for (auto&& Token : Tokens)
+	{
+		if (IsValid(Token))
+		{
+			if (!Iter(Token))
+			{
+				return;
+			}
+		}
+	}
+}
+
+void UFaerieItem::ForEachTokenOfClass(const TFunctionRef<bool(const TObjectPtr<UFaerieItemToken>&)>& Iter, const TSubclassOf<UFaerieItemToken>& Class)
+{
+	TScopeCounter<uint32> IterationLock(WriteLock);
+
+	for (auto&& Token : Tokens)
+	{
+		if (IsValid(Token) && Token->IsA(Class))
+		{
+			if (!Iter(Token))
+			{
+				return;
+			}
+		}
+	}
+}
+
+void UFaerieItem::ForEachTokenOfClass(const TFunctionRef<bool(const TObjectPtr<const UFaerieItemToken>&)>& Iter, const TSubclassOf<UFaerieItemToken>& Class) const
 {
 	TScopeCounter<uint32> IterationLock(WriteLock);
 
@@ -274,7 +305,7 @@ UFaerieItem* UFaerieItem::CreateDuplicate(const EFaerieItemInstancingMutability 
 
 	// Add our tokens to the new object.
 	ForEachToken(
-		[Duplicate](const TObjectPtr<UFaerieItemToken>& Token)
+		[Duplicate](const TObjectPtr<const UFaerieItemToken>& Token)
 		{
 			// Mutable tokens must be duplicated.
 			if (Token->IsMutable())
@@ -284,7 +315,7 @@ UFaerieItem* UFaerieItem::CreateDuplicate(const EFaerieItemInstancingMutability 
 			// Immutable tokens can be referenced from the asset directly.
 			else
 			{
-				Duplicate->Tokens.Add(Token);
+				Duplicate->Tokens.Add(ConstCast(Token));
 			}
 			return true;
 		});
