@@ -28,11 +28,11 @@ public:
 
 	// Has extension by class
 	UFUNCTION(BlueprintCallable, Category = "Faerie|Extensions")
-	virtual bool HasExtension(TSubclassOf<UItemContainerExtensionBase> ExtensionClass) const;
+	virtual bool HasExtension(TSubclassOf<UItemContainerExtensionBase> ExtensionClass, bool RecursiveSearch = true) const;
 
 	// Get extension by class
 	UFUNCTION(BlueprintCallable, Category = "Faerie|Extensions", meta = (DeterminesOutputType = ExtensionClass))
-	virtual UItemContainerExtensionBase* GetExtension(UPARAM(meta = (AllowAbstract = "false")) TSubclassOf<UItemContainerExtensionBase> ExtensionClass) const;
+	virtual UItemContainerExtensionBase* GetExtension(UPARAM(meta = (AllowAbstract = "false")) TSubclassOf<UItemContainerExtensionBase> ExtensionClass, bool RecursiveSearch) const;
 
 	/*
 	// Doesn't compile for some reason
@@ -59,7 +59,7 @@ public:
 	virtual bool RemoveExtension(UItemContainerExtensionBase* Extension);
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|Extensions", BlueprintAuthorityOnly, DisplayName = "Remove Extension (by class)")
-	virtual bool RemoveExtensionByClass(TSubclassOf<UItemContainerExtensionBase> ExtensionClass);
+	virtual bool RemoveExtensionByClass(TSubclassOf<UItemContainerExtensionBase> ExtensionClass, bool RecursiveSearch = true);
 
 protected:
 	/*
@@ -68,7 +68,7 @@ protected:
     UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Faerie|Extensions",
     	meta = (DeterminesOutputType = ExtensionClass, DynamicOutputParam = Extension, ExpandBoolAsExecs = "ReturnValue"))
     virtual bool GetExtensionChecked(UPARAM(meta = (AllowAbstract = "false")) TSubclassOf<UItemContainerExtensionBase> ExtensionClass,
-    	UItemContainerExtensionBase*& Extension) const;
+    	UItemContainerExtensionBase*& Extension, bool RecursiveSearch = true) const;
 };
 
 // Outside IFaerieContainerExtensionInterface because it won't compile there
@@ -76,16 +76,16 @@ template <
 	typename TExtensionClass
 	UE_REQUIRES(TIsDerivedFrom<TExtensionClass, UItemContainerExtensionBase>::Value)
 >
-const TExtensionClass* GetExtension(const IFaerieContainerExtensionInterface* Interface)
+const TExtensionClass* GetExtension(const IFaerieContainerExtensionInterface* Interface, bool RecursiveSearch)
 {
-	return Cast<TExtensionClass>(Interface->GetExtension(TExtensionClass::StaticClass()));
+	return Cast<TExtensionClass>(Interface->GetExtension(TExtensionClass::StaticClass(), RecursiveSearch));
 }
 
 template <
 	typename TExtensionClass
 	UE_REQUIRES(TIsDerivedFrom<TExtensionClass, UItemContainerExtensionBase>::Value)
 >
-TExtensionClass* GetExtension(IFaerieContainerExtensionInterface* Interface)
+TExtensionClass* GetExtension(IFaerieContainerExtensionInterface* Interface, bool RecursiveSearch)
 {
-	return Cast<TExtensionClass>(Interface->GetExtension(TExtensionClass::StaticClass()));
+	return Cast<TExtensionClass>(Interface->GetExtension(TExtensionClass::StaticClass(), RecursiveSearch));
 }

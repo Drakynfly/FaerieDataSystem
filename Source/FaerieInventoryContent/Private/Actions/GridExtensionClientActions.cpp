@@ -16,7 +16,7 @@ bool FFaerieClientAction_MoveToGrid::IsValid(const UFaerieInventoryClient* Clien
 bool FFaerieClientAction_MoveToGrid::CanMove(const FFaerieItemStackView& View) const
 {
 	// Fetch the Grid Extension and ensure it exists
-	auto&& GridExtension = GetExtension<UInventoryGridExtensionBase>(Storage);
+	auto&& GridExtension = GetExtension<UInventoryGridExtensionBase>(Storage, true);
 	if (!::IsValid(GridExtension))
 	{
 		return false;
@@ -27,7 +27,7 @@ bool FFaerieClientAction_MoveToGrid::CanMove(const FFaerieItemStackView& View) c
 
 bool FFaerieClientAction_MoveToGrid::Possess(const FFaerieItemStack& Stack) const
 {
-	auto&& GridExtension = GetExtension<UInventoryGridExtensionBase>(Storage);
+	auto&& GridExtension = GetExtension<UInventoryGridExtensionBase>(Storage, true);
 	check(GridExtension);
 
 	// Must be a new stack, since we intend to manually place it in the grid.
@@ -45,7 +45,7 @@ bool FFaerieClientAction_MoveToGrid::Possess(const FFaerieItemStack& Stack) cons
 
 bool FFaerieClientAction_MoveToGrid::View(FFaerieItemStackView& View) const
 {
-	if (auto&& GridExtension = GetExtension<UInventoryGridExtensionBase>(Storage))
+	if (auto&& GridExtension = GetExtension<UInventoryGridExtensionBase>(Storage, true))
 	{
 		if (GridExtension->IsCellOccupied(Position))
 		{
@@ -58,7 +58,7 @@ bool FFaerieClientAction_MoveToGrid::View(FFaerieItemStackView& View) const
 
 bool FFaerieClientAction_MoveToGrid::Release(FFaerieItemStack& Stack) const
 {
-	auto&& GridExtension = GetExtension<UInventoryGridExtensionBase>(Storage);
+	auto&& GridExtension = GetExtension<UInventoryGridExtensionBase>(Storage, true);
 	check(GridExtension);
 
 	const FInventoryKey Key = GridExtension->GetKeyAt(Position);
@@ -67,7 +67,7 @@ bool FFaerieClientAction_MoveToGrid::Release(FFaerieItemStack& Stack) const
 
 bool FFaerieClientAction_MoveToGrid::IsSwap() const
 {
-	if (auto&& GridExtension = GetExtension<UInventoryGridExtensionBase>(Storage))
+	if (auto&& GridExtension = GetExtension<UInventoryGridExtensionBase>(Storage, true))
 	{
 		return CanSwapSlots && GridExtension->IsCellOccupied(Position);
 	}
@@ -79,7 +79,7 @@ bool FFaerieClientAction_MoveItemOnGrid::Server_Execute(const UFaerieInventoryCl
 	if (!IsValid(Storage)) return false;
 	if (!Client->CanAccessStorage(Storage)) return false;
 
-	if (auto&& GridExtension = GetExtension<UInventoryGridExtensionBase>(Storage))
+	if (auto&& GridExtension = GetExtension<UInventoryGridExtensionBase>(Storage, true))
 	{
 		return GridExtension->MoveItem(TargetKey, DragEnd);
 	}
@@ -92,7 +92,7 @@ bool FFaerieClientAction_RotateGridEntry::Server_Execute(const UFaerieInventoryC
 	if (!IsValid(Storage)) return false;
 	if (!Client->CanAccessStorage(Storage)) return false;
 
-	if (auto&& GridExtension = GetExtension<UInventoryGridExtensionBase>(Storage))
+	if (auto&& GridExtension = GetExtension<UInventoryGridExtensionBase>(Storage, true))
 	{
 		return GridExtension->RotateItem(Key);
 	}

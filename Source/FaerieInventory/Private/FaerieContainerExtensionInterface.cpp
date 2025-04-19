@@ -5,7 +5,7 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieContainerExtensionInterface)
 
-bool IFaerieContainerExtensionInterface::RemoveExtensionByClass(const TSubclassOf<UItemContainerExtensionBase> ExtensionClass)
+bool IFaerieContainerExtensionInterface::RemoveExtensionByClass(const TSubclassOf<UItemContainerExtensionBase> ExtensionClass, const bool RecursiveSearch)
 {
 	if (!ensure(
 			IsValid(ExtensionClass) &&
@@ -14,7 +14,7 @@ bool IFaerieContainerExtensionInterface::RemoveExtensionByClass(const TSubclassO
 		return false;
 	}
 
-	UItemContainerExtensionBase* Extension = GetExtension(ExtensionClass);
+	UItemContainerExtensionBase* Extension = GetExtension(ExtensionClass, RecursiveSearch);
 	if (!IsValid(Extension))
 	{
 		return false;
@@ -23,14 +23,14 @@ bool IFaerieContainerExtensionInterface::RemoveExtensionByClass(const TSubclassO
 	return RemoveExtension(Extension);
 }
 
-bool IFaerieContainerExtensionInterface::HasExtension(const TSubclassOf<UItemContainerExtensionBase> ExtensionClass) const
+bool IFaerieContainerExtensionInterface::HasExtension(const TSubclassOf<UItemContainerExtensionBase> ExtensionClass, const bool RecursiveSearch) const
 {
-	return GetExtensionGroup()->HasExtension(ExtensionClass);
+	return GetExtensionGroup()->HasExtension(ExtensionClass, RecursiveSearch);
 }
 
-UItemContainerExtensionBase* IFaerieContainerExtensionInterface::GetExtension(const TSubclassOf<UItemContainerExtensionBase> ExtensionClass) const
+UItemContainerExtensionBase* IFaerieContainerExtensionInterface::GetExtension(const TSubclassOf<UItemContainerExtensionBase> ExtensionClass, const bool RecursiveSearch) const
 {
-	return GetExtensionGroup()->GetExtension(ExtensionClass);
+	return GetExtensionGroup()->GetExtension(ExtensionClass, RecursiveSearch);
 }
 
 bool IFaerieContainerExtensionInterface::AddExtension(UItemContainerExtensionBase* Extension)
@@ -60,8 +60,8 @@ bool IFaerieContainerExtensionInterface::RemoveExtension(UItemContainerExtension
 }
 
 bool IFaerieContainerExtensionInterface::GetExtensionChecked(const TSubclassOf<UItemContainerExtensionBase> ExtensionClass,
-															 UItemContainerExtensionBase*& Extension) const
+															 UItemContainerExtensionBase*& Extension, const bool RecursiveSearch) const
 {
-	Extension = GetExtension(ExtensionClass);
+	Extension = GetExtension(ExtensionClass, RecursiveSearch);
 	return IsValid(Extension);
 }

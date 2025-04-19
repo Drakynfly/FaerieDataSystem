@@ -115,7 +115,7 @@ UEquipmentVisualizer* UEquipmentVisualizationUpdater::GetVisualizer(const UFaeri
 		return nullptr;
 	}
 
-	auto&& Relevants = GetExtension<URelevantActorsExtension>(Container);
+	auto&& Relevants = GetExtension<URelevantActorsExtension>(Container, true);
 	if (!IsValid(Relevants))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("GetVisualizer failed: Requires a RelevantActorsExtension on the container to find the pawn!"))
@@ -175,7 +175,7 @@ void UEquipmentVisualizationUpdater::CreateNewVisualImpl(const UFaerieItemContai
 	FEquipmentVisualAttachment Attachment;
 
 	// If there is a VisualSlotExtension on the slot, then defer to it.
-	auto&& SlotExtension = GetExtension<UVisualSlotExtension>(Container);
+	auto&& SlotExtension = GetExtension<UVisualSlotExtension>(Container, true);
 	if (IsValid(SlotExtension))
 	{
 		Attachment.Parent = Visualizer->GetOwner()->FindComponentByTag<USceneComponent>(SlotExtension->GetComponentTag());

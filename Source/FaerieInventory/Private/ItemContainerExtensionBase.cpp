@@ -325,7 +325,7 @@ bool UItemContainerExtensionGroup::RemoveExtension(UItemContainerExtensionBase* 
 	return !!Extensions.Remove(Extension);
 }
 
-bool UItemContainerExtensionGroup::HasExtension(const TSubclassOf<UItemContainerExtensionBase> ExtensionClass) const
+bool UItemContainerExtensionGroup::HasExtension(const TSubclassOf<UItemContainerExtensionBase> ExtensionClass, const bool RecursiveSearch) const
 {
 	if (!ensure(
 		IsValid(ExtensionClass) &&
@@ -346,12 +346,15 @@ bool UItemContainerExtensionGroup::HasExtension(const TSubclassOf<UItemContainer
 			return true;
 		}
 
-		// Find extension via recursive search
-		if (auto&& Group = Cast<ThisClass>(Extension))
+		if (RecursiveSearch)
 		{
-			if (Group->HasExtension(ExtensionClass))
+			// Find extension via recursive search
+			if (auto&& Group = Cast<ThisClass>(Extension))
 			{
-				return true;
+				if (Group->HasExtension(ExtensionClass, true))
+				{
+					return true;
+				}
 			}
 		}
 	}
@@ -359,7 +362,7 @@ bool UItemContainerExtensionGroup::HasExtension(const TSubclassOf<UItemContainer
 	return false;
 }
 
-UItemContainerExtensionBase* UItemContainerExtensionGroup::GetExtension(const TSubclassOf<UItemContainerExtensionBase> ExtensionClass) const
+UItemContainerExtensionBase* UItemContainerExtensionGroup::GetExtension(const TSubclassOf<UItemContainerExtensionBase> ExtensionClass, const bool RecursiveSearch) const
 {
 	if (!IsValid(ExtensionClass) || ExtensionClass == UItemContainerExtensionBase::StaticClass()) return nullptr;
 
@@ -373,12 +376,15 @@ UItemContainerExtensionBase* UItemContainerExtensionGroup::GetExtension(const TS
 			return Extension;
 		}
 
-		// Find extension via recursive search
-		if (auto&& Group = Cast<ThisClass>(Extension))
+		if (RecursiveSearch)
 		{
-			if (auto&& Found = Group->GetExtension(ExtensionClass))
+			// Find extension via recursive search
+			if (auto&& Group = Cast<ThisClass>(Extension))
 			{
-				return Found;
+				if (auto&& Found = Group->GetExtension(ExtensionClass, true))
+				{
+					return Found;
+				}
 			}
 		}
 	}

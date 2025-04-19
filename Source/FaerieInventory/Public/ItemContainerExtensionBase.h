@@ -129,8 +129,8 @@ public:
 	virtual UItemContainerExtensionGroup* GetExtensionGroup() const override;
 	virtual bool AddExtension(UItemContainerExtensionBase* Extension) override;
 	virtual bool RemoveExtension(UItemContainerExtensionBase* Extension) override;
-	virtual bool HasExtension(TSubclassOf<UItemContainerExtensionBase> ExtensionClass) const override;
-	virtual UItemContainerExtensionBase* GetExtension(TSubclassOf<UItemContainerExtensionBase> ExtensionClass) const override;
+	virtual bool HasExtension(TSubclassOf<UItemContainerExtensionBase> ExtensionClass, bool RecursiveSearch) const override;
+	virtual UItemContainerExtensionBase* GetExtension(TSubclassOf<UItemContainerExtensionBase> ExtensionClass, bool RecursiveSearch) const override;
 	//~ IFaerieContainerExtensionInterface
 
 

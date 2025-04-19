@@ -320,7 +320,7 @@ bool UFaerieEquipmentManager::RemoveExtensionFromSlot(const FFaerieSlotTag SlotI
 		return false;
 	}
 
-	UItemContainerExtensionBase* Extension = Slot->GetExtension(ExtensionClass);
+	UItemContainerExtensionBase* Extension = Slot->GetExtension(ExtensionClass, false);
 	if (!IsValid(Extension))
 	{
 		return false;
