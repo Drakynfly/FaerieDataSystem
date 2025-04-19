@@ -22,22 +22,30 @@
 
 void UEquipmentVisualizationUpdater::InitializeExtension(const UFaerieItemContainerBase* Container)
 {
-	auto&& Visualizer = GetVisualizer(Container);
-	if (!IsValid(Visualizer))
+	if (auto Slot = Cast<UFaerieEquipmentSlot>(Container))
 	{
-		return;
-	}
-
-	Container->ForEachKey(
-		[this, Container, Visualizer](const FEntryKey Key)
+		auto&& Visualizer = GetVisualizer(Container);
+		if (!IsValid(Visualizer))
 		{
-			CreateNewVisualImpl(Container, Visualizer, Container->Proxy(Key));
-			SpawnKeys.Add(Container, Key);
-		});
+			return;
+		}
+
+		Container->ForEachKey(
+			[this, Container, Visualizer](const FEntryKey Key)
+			{
+				CreateNewVisualImpl(Container, Visualizer, Container->Proxy(Key));
+				SpawnKeys.Add(Container, Key);
+			});
+	}
 }
 
 void UEquipmentVisualizationUpdater::DeinitializeExtension(const UFaerieItemContainerBase* Container)
 {
+	if (!Container->IsA<UFaerieEquipmentSlot>())
+	{
+		return;
+	}
+
 	TArray<FEntryKey> Keys;
 	SpawnKeys.MultiFind(Container, Keys);
 	SpawnKeys.Remove(Container);
