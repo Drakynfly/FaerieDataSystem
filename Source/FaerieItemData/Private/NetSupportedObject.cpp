@@ -45,8 +45,8 @@ UWorld* UActorSubobjectBase::GetWorld() const
 
 int32 UActorSubobjectBase::GetFunctionCallspace(UFunction* Function, FFrame* Stack)
 {
-	check(GetOuter() != nullptr);
-	return GetOuter()->GetFunctionCallspace(Function, Stack);
+	check(GetOwner() != nullptr);
+	return GetOwner()->GetFunctionCallspace(Function, Stack);
 }
 
 bool UActorSubobjectBase::CallRemoteFunction(UFunction* Function, void* Parms, FOutParmRec* OutParms, FFrame* Stack)
