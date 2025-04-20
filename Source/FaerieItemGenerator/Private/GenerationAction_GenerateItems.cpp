@@ -19,11 +19,7 @@ void UGenerationAction_GenerateItems::Configure(FActionArgs& Args)
 	{
 		if (!IsValid(Driver)) continue;
 
-		if (FPendingItemGeneration PendingEntry = Driver->Resolve();
-			PendingEntry.IsValid())
-		{
-			PendingGenerations.Add(PendingEntry);
-		}
+		Driver->Resolve(PendingGenerations);
 	}
 
 	Super::Configure(Args);

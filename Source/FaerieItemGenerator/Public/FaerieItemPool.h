@@ -61,6 +61,8 @@ public:
 	const FTableDrop* GetDrop(double RanWeight) const;
 	const FTableDrop* GetDrop_Seeded(USquirrel* Squirrel) const;
 
+	TConstArrayView<FWeightedDrop> ViewDropPool() const;
+
 protected:
 	// Generates a drop from this table, using the provided random weight, which must be a value between 0 and 1.
 	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Faerie|ItemPool")

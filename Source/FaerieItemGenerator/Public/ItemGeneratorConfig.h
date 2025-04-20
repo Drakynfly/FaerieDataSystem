@@ -59,7 +59,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|GenerationDriver")
 	FGeneratorAmountBase GetAmountResolver() const;
 
-	FPendingItemGeneration Resolve() const;
+	void Resolve(TArray<FPendingItemGeneration>& Generations) const;
 
 protected:
 	UPROPERTY(EditAnywhere, Category = "Table", meta = (ShowOnlyInnerProperties))

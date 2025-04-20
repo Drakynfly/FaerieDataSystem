@@ -93,12 +93,13 @@ struct FAERIEITEMGENERATOR_API FGeneratorAmountBase
 
 	virtual ~FGeneratorAmountBase() = default;
 
-	virtual int32 Resolve(USquirrel* Squirrel) const { return 0; }
+	virtual int32 Resolve(USquirrel* Squirrel) const
+		PURE_VIRTUAL(FGeneratorAmountBase::Resolve, return -1; )
 };
 
 /** Fixed amount of items to generate from this drop. */
 USTRUCT(BlueprintType, meta = (DisplayName = "Fixed"))
-struct FGeneratorAmount_Fixed : public FGeneratorAmountBase
+struct FGeneratorAmount_Fixed final : public FGeneratorAmountBase
 {
 	GENERATED_BODY()
 
@@ -110,7 +111,7 @@ struct FGeneratorAmount_Fixed : public FGeneratorAmountBase
 
 /** Random value between a min and max. */
 USTRUCT(BlueprintType, meta = (DisplayName = "Range"))
-struct FGeneratorAmount_Range : public FGeneratorAmountBase
+struct FGeneratorAmount_Range final : public FGeneratorAmountBase
 {
 	GENERATED_BODY()
 
@@ -130,7 +131,7 @@ struct FGeneratorAmount_Range : public FGeneratorAmountBase
 * Multiple points will cause it to pull a number from any time on the curve.
 */
 USTRUCT(BlueprintType, meta = (DisplayName = "Curve"))
-struct FGeneratorAmount_Curve : public FGeneratorAmountBase
+struct FGeneratorAmount_Curve final : public FGeneratorAmountBase
 {
 	GENERATED_BODY()
 

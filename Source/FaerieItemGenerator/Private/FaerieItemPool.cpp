@@ -63,7 +63,7 @@ void FFaerieWeightedDropPool::CalculatePercentages()
 
 void FFaerieWeightedDropPool::SortTable()
 {
-	Algo::SortBy(DropList, &FWeightedDrop::Weight);
+	Algo::SortBy(DropList, &FWeightedDrop::AdjustedWeight);
 }
 
 namespace Faerie::Editor
@@ -206,6 +206,11 @@ const FTableDrop* UFaerieItemPool::GetDrop(const double RanWeight) const
 const FTableDrop* UFaerieItemPool::GetDrop_Seeded(USquirrel* Squirrel) const
 {
 	return DropPool.GetDrop(Squirrel->NextReal());
+}
+
+TConstArrayView<FWeightedDrop> UFaerieItemPool::ViewDropPool() const
+{
+	return DropPool.DropList;
 }
 
 FTableDrop UFaerieItemPool::GenerateDrop(const double RanWeight) const
