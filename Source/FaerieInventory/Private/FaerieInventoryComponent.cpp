@@ -46,12 +46,12 @@ void UFaerieInventoryComponent::ReadyForReplication()
 	AActor* Owner = GetOwner();
 	check(IsValid(Owner));
 
+	if (!Owner->HasAuthority()) return;
+
 	if (IsValid(Extensions))
 	{
 		ItemStorage->AddExtension(Extensions);
 	}
-
-	if (!Owner->HasAuthority()) return;
 
 	if (!Owner->IsUsingRegisteredSubObjectList())
 	{
