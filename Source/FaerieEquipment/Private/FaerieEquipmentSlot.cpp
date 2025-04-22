@@ -233,12 +233,13 @@ bool UFaerieEquipmentSlot::CanSetInSlot(const FFaerieItemStackView View) const
 		return false;
 	}
 
-	if (IsValid(Config.SlotDescription))
+	if (IsValid(Config.SlotDescription) &&
+		IsValid(Config.SlotDescription->Template))
 	{
 		return Config.SlotDescription->Template->TryMatch(View);
 	}
 
-	return false;
+	return true;
 }
 
 bool UFaerieEquipmentSlot::CanTakeFromSlot(const int32 Copies) const

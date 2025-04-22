@@ -141,7 +141,7 @@ protected:
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FEquipmentSlotEvent OnItemDataChanged;
 
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Replicated, Category = "Config")
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Replicated, Category = "Config", meta = (ExposeOnSpawn = true))
 	FFaerieEquipmentSlotConfig Config;
 
 	// Current item stack being contained in this slot.

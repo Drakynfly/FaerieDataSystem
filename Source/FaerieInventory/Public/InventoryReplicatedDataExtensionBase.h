@@ -64,6 +64,27 @@ public:
 	FInstancedStruct& GetOrCreateDataForEntry(FEntryKey Key);
 	void SetDataForEntry(FEntryKey Key, const FInstancedStruct& Data);
 
+	struct FScopedEntryHandle : FNoncopyable
+	{
+		FScopedEntryHandle(const FEntryKey Key, FRepDataFastArray& Source);
+		~FScopedEntryHandle();
+
+	protected:
+		FRepDataPerEntryBase& Handle;
+
+	private:
+		FRepDataFastArray& Source;
+
+	public:
+		FInstancedStruct* operator->() const { return &Handle.Value; }
+		FInstancedStruct& Get() const { return Handle.Value; }
+	};
+
+	FScopedEntryHandle GetHandle(const FEntryKey Key)
+	{
+		return FScopedEntryHandle(Key, *this);
+	}
+
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
 	{
 		return Faerie::Hacks::FastArrayDeltaSerialize<FRepDataPerEntryBase, FRepDataFastArray>(Entries, DeltaParms, *this);

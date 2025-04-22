@@ -82,6 +82,21 @@ void FRepDataFastArray::SetDataForEntry(const FEntryKey Key, const FInstancedStr
 	}
 }
 
+FRepDataFastArray::FScopedEntryHandle::FScopedEntryHandle(const FEntryKey Key, FRepDataFastArray& Source)
+  : Handle(Source.Entries[Source.IndexOf(Key)]),
+	Source(Source)
+{
+}
+
+FRepDataFastArray::FScopedEntryHandle::~FScopedEntryHandle()
+{
+	// Propagate change to client
+	Source.MarkItemDirty(Handle);
+
+	// Broadcast change on server
+	Source.PostDataReplicatedChange(Handle);
+}
+
 void FRepDataFastArray::PreDataReplicatedRemove(const FRepDataPerEntryBase& Data) const
 {
 	if (OwningWrapper.IsValid())
@@ -261,7 +276,7 @@ FConstStructView UInventoryReplicatedDataExtensionBase::GetDataForEntry(const UF
 			return Ref[Key];
 		}
 	}
-	return {};
+	return FConstStructView();
 }
 
 bool UInventoryReplicatedDataExtensionBase::EditDataForEntry(const UFaerieItemContainerBase* Container,
@@ -274,8 +289,24 @@ bool UInventoryReplicatedDataExtensionBase::EditDataForEntry(const UFaerieItemCo
 	}
 
 	FRepDataFastArray& Ref = ContainerData.Get<FRepDataFastArray>();
-	FInstancedStruct& Struct = Ref.GetOrCreateDataForEntry(Key);
-	Edit(Struct);
+
+	// Find and use entry, if one exists
+	if (const int32 Index = Ref.IndexOf(Key);
+		Index != INDEX_NONE)
+	{
+		const FRepDataFastArray::FScopedEntryHandle Handle = Ref.GetHandle(Key);
+		Edit(Handle.Get());
+		return true;
+	}
+
+	// Otherwise, make a new entry.
+	FRepDataPerEntryBase& NewEntry = Ref.Insert(FRepDataPerEntryBase(Key, FInstancedStruct(GetDataScriptStruct())));
+
+	Edit(NewEntry.Value);
+	Ref.MarkItemDirty(NewEntry);
+
+	// Notify server of this change.
+	Ref.PostDataReplicatedAdd(NewEntry);
 
 	return true;
 }

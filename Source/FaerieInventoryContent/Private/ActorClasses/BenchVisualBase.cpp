@@ -19,7 +19,7 @@ void ABenchVisualBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(ThisClass, Behavior);
+	DOREPLIFETIME_CONDITION(ThisClass, Behavior, COND_InitialOnly);
 }
 
 void ABenchVisualBase::BeginPlay()

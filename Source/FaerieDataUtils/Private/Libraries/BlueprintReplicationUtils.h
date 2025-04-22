@@ -21,4 +21,7 @@ public:
 	// The actor must be somewhere up the objects outer chain, and have ReplicateUsingRegisteredSubObjectList enabled
 	UFUNCTION(BlueprintCallable, Category = "Faerie|Utils", meta = (DefaultToSelf = Actor))
 	static bool AddReplicatedSubObject(AActor* Actor, UObject* Object);
+
+	UFUNCTION(BlueprintCallable, Category = "Faerie|Utils", meta = (DefaultToSelf = Actor))
+	static bool RemoveReplicatedSubObject(AActor* Actor, UObject* Object);
 };

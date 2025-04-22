@@ -13,13 +13,33 @@ bool UBlueprintReplicationUtils::AddReplicatedSubObject(AActor* Actor, UObject* 
 			UE_LOG(LogTemp, Warning,
 				TEXT("AddReplicatedSubObject: Should not register Object to Actor that does not own it."
 						" GivenActor: '%s', Object: '%s' DirectOuter: '%s', FirstActorOuter: '%s'"),
-						*Actor->GetName(), *Object->GetName(), *Object->GetOuter()->GetName(),
-						*Object->GetTypedOuter<AActor>()->GetName())
+						*Actor->GetName(), *Object->GetName(), IsValid(Object->GetOuter()) ? *Object->GetOuter()->GetName() : TEXT("none"),
+						IsValid(Object->GetTypedOuter<AActor>()) ? *Object->GetTypedOuter<AActor>()->GetName() : TEXT("none"))
 			return false;
 		}
 
 		Actor->AddReplicatedSubObject(Object);
 		return Actor->IsReplicatedSubObjectRegistered(Object);
+	}
+	return false;
+}
+
+bool UBlueprintReplicationUtils::RemoveReplicatedSubObject(AActor* Actor, UObject* Object)
+{
+	if (Object && Actor)
+	{
+		if (Object->GetTypedOuter<AActor>() != Actor)
+		{
+			UE_LOG(LogTemp, Warning,
+				TEXT("RemoveReplicatedSubObject: Should not remove Object from Actor that does not own it."
+						" GivenActor: '%s', Object: '%s' DirectOuter: '%s', FirstActorOuter: '%s'"),
+						*Actor->GetName(), *Object->GetName(), IsValid(Object->GetOuter()) ? *Object->GetOuter()->GetName() : TEXT("none"),
+						IsValid(Object->GetTypedOuter<AActor>()) ? *Object->GetTypedOuter<AActor>()->GetName() : TEXT("none"))
+			return false;
+		}
+
+		Actor->RemoveReplicatedSubObject(Object);
+		return true;
 	}
 	return false;
 }
