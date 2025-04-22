@@ -104,6 +104,10 @@ EDataValidationResult UFaerieMeshToken_Dynamic::IsDataValid(FDataValidationConte
 	return Super::IsDataValid(Context);
 }
 
+#undef LOCTEXT_NAMESPACE
+
+#endif
+
 TConstStructView<FFaerieStaticMeshData> UFaerieMeshToken_Dynamic::GetStaticItemMesh(const FGameplayTagContainer& SearchPurposes) const
 {
 	return TConstStructView<FFaerieStaticMeshData>();
@@ -123,7 +127,3 @@ TConstStructView<FFaerieDynamicSkeletalMesh> UFaerieMeshToken_Dynamic::GetDynami
 {
 	return DynamicMeshContainer.GetSkeletalItemMesh(SearchPurposes);
 }
-
-#undef LOCTEXT_NAMESPACE
-
-#endif
