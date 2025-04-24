@@ -130,12 +130,16 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 private:
-	void PreContentRemoved(const FRepDataPerEntryBase& Data);
-	void PostContentAdded(const FRepDataPerEntryBase& Data);
-	void PostContentChanged(const FRepDataPerEntryBase& Data);
+	void Server_PreContentRemoved(const FRepDataPerEntryBase& Data);
+	void Server_PostContentAdded(const FRepDataPerEntryBase& Data);
+	void Server_PostContentChanged(const FRepDataPerEntryBase& Data);
+
+	void Client_PreContentRemoved(const FRepDataPerEntryBase& Data);
+	void Client_PostContentAdded(const FRepDataPerEntryBase& Data);
+	void Client_PostContentChanged(const FRepDataPerEntryBase& Data);
 
 private:
-	UPROPERTY()
+	UPROPERTY(Replicated)
 	TWeakObjectPtr<const UFaerieItemContainerBase> Container;
 
 	UPROPERTY(Replicated)

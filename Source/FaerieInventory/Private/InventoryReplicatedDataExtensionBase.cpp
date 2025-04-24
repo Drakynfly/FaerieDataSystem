@@ -28,7 +28,7 @@ void FRepDataFastArray::RemoveDataForEntry(const FEntryKey Key)
 		[this](const FRepDataPerEntryBase& Entry)
 		{
 			// Notify server of this removal.
-			PreDataReplicatedRemove(Entry);
+			OwningWrapper->Server_PreContentRemoved(Entry);
 		}))
 	{
 		// Notify clients of this removal.
@@ -46,7 +46,7 @@ FInstancedStruct& FRepDataFastArray::GetOrCreateDataForEntry(const FEntryKey Key
 		MarkItemDirty(EntryData);
 
 		// Notify server of this change.
-		PostDataReplicatedChange(EntryData);
+		OwningWrapper->Server_PostContentChanged(EntryData);
 		return EntryData.Value;
 	}
 
@@ -56,7 +56,7 @@ FInstancedStruct& FRepDataFastArray::GetOrCreateDataForEntry(const FEntryKey Key
 	MarkItemDirty(NewEntry);
 
 	// Notify server of this change.
-	PostDataReplicatedAdd(NewEntry);
+	OwningWrapper->Server_PostContentAdded(NewEntry);
 	return NewEntry.Value;
 }
 
@@ -70,7 +70,7 @@ void FRepDataFastArray::SetDataForEntry(const FEntryKey Key, const FInstancedStr
 		MarkItemDirty(EntryData);
 
 		// Notify server of this change.
-		PostDataReplicatedChange(EntryData);
+		OwningWrapper->Server_PostContentChanged(EntryData);
 	}
 	else
 	{
@@ -78,7 +78,7 @@ void FRepDataFastArray::SetDataForEntry(const FEntryKey Key, const FInstancedStr
 		MarkItemDirty(NewEntry);
 
 		// Notify server of this change.
-		PostDataReplicatedAdd(NewEntry);
+		OwningWrapper->Server_PostContentAdded(NewEntry);
 	}
 }
 
@@ -94,14 +94,14 @@ FRepDataFastArray::FScopedEntryHandle::~FScopedEntryHandle()
 	Source.MarkItemDirty(Handle);
 
 	// Broadcast change on server
-	Source.PostDataReplicatedChange(Handle);
+	Source.OwningWrapper->Server_PostContentChanged(Handle);
 }
 
 void FRepDataFastArray::PreDataReplicatedRemove(const FRepDataPerEntryBase& Data) const
 {
 	if (OwningWrapper.IsValid())
 	{
-		OwningWrapper->PreContentRemoved(Data);
+		OwningWrapper->Client_PreContentRemoved(Data);
 	}
 }
 
@@ -109,7 +109,7 @@ void FRepDataFastArray::PostDataReplicatedAdd(const FRepDataPerEntryBase& Data) 
 {
 	if (OwningWrapper.IsValid())
 	{
-		OwningWrapper->PostContentAdded(Data);
+		OwningWrapper->Client_PostContentAdded(Data);
 	}
 }
 
@@ -117,7 +117,7 @@ void FRepDataFastArray::PostDataReplicatedChange(const FRepDataPerEntryBase& Dat
 {
 	if (OwningWrapper.IsValid())
 	{
-		OwningWrapper->PostContentChanged(Data);
+		OwningWrapper->Client_PostContentChanged(Data);
 	}
 }
 
@@ -133,10 +133,11 @@ void URepDataArrayWrapper::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
+	DOREPLIFETIME_CONDITION(ThisClass, Container, COND_InitialOnly);
 	DOREPLIFETIME(ThisClass, DataArray);
 }
 
-void URepDataArrayWrapper::PreContentRemoved(const FRepDataPerEntryBase& Data)
+void URepDataArrayWrapper::Server_PreContentRemoved(const FRepDataPerEntryBase& Data)
 {
 	if (Container.IsValid())
 	{
@@ -144,7 +145,7 @@ void URepDataArrayWrapper::PreContentRemoved(const FRepDataPerEntryBase& Data)
 	}
 }
 
-void URepDataArrayWrapper::PostContentAdded(const FRepDataPerEntryBase& Data)
+void URepDataArrayWrapper::Server_PostContentAdded(const FRepDataPerEntryBase& Data)
 {
 	if (Container.IsValid())
 	{
@@ -152,7 +153,31 @@ void URepDataArrayWrapper::PostContentAdded(const FRepDataPerEntryBase& Data)
 	}
 }
 
-void URepDataArrayWrapper::PostContentChanged(const FRepDataPerEntryBase& Data)
+void URepDataArrayWrapper::Server_PostContentChanged(const FRepDataPerEntryBase& Data)
+{
+	if (Container.IsValid())
+	{
+		GetOuterUInventoryReplicatedDataExtensionBase()->PreEntryDataChanged(Container.Get(), Data);
+	}
+}
+
+void URepDataArrayWrapper::Client_PreContentRemoved(const FRepDataPerEntryBase& Data)
+{
+	if (Container.IsValid())
+	{
+		GetOuterUInventoryReplicatedDataExtensionBase()->PreEntryDataRemoved(Container.Get(), Data);
+	}
+}
+
+void URepDataArrayWrapper::Client_PostContentAdded(const FRepDataPerEntryBase& Data)
+{
+	if (Container.IsValid())
+	{
+		GetOuterUInventoryReplicatedDataExtensionBase()->PreEntryDataAdded(Container.Get(), Data);
+	}
+}
+
+void URepDataArrayWrapper::Client_PostContentChanged(const FRepDataPerEntryBase& Data)
 {
 	if (Container.IsValid())
 	{
@@ -306,7 +331,7 @@ bool UInventoryReplicatedDataExtensionBase::EditDataForEntry(const UFaerieItemCo
 	Ref.MarkItemDirty(NewEntry);
 
 	// Notify server of this change.
-	Ref.PostDataReplicatedAdd(NewEntry);
+	Ref.OwningWrapper->Server_PostContentAdded(NewEntry);
 
 	return true;
 }
@@ -314,9 +339,9 @@ bool UInventoryReplicatedDataExtensionBase::EditDataForEntry(const UFaerieItemCo
 TStructView<FRepDataFastArray> UInventoryReplicatedDataExtensionBase::FindFastArrayForContainer(const UFaerieItemContainerBase* Container)
 {
 	if (auto&& Found = PerContainerData.FindByPredicate(
-			[Container](const TObjectPtr<URepDataArrayWrapper>& Userdata)
+			[Container](const TObjectPtr<URepDataArrayWrapper>& Data)
 			{
-				return Userdata && Userdata->Container == Container;
+				return Data && Data->Container == Container;
 			}))
 	{
 		return (*Found)->DataArray;
@@ -331,9 +356,9 @@ TStructView<FRepDataFastArray> UInventoryReplicatedDataExtensionBase::FindFastAr
 TConstStructView<FRepDataFastArray> UInventoryReplicatedDataExtensionBase::FindFastArrayForContainer(const UFaerieItemContainerBase* Container) const
 {
 	if (auto&& Found = PerContainerData.FindByPredicate(
-			[Container](const TObjectPtr<URepDataArrayWrapper>& Userdata)
+			[Container](const TObjectPtr<URepDataArrayWrapper>& Data)
 			{
-				return Userdata && Userdata->Container == Container;
+				return Data && Data->Container == Container;
 			}))
 	{
 		return (*Found)->DataArray;
@@ -351,7 +376,7 @@ void UInventoryReplicatedDataExtensionBase::PrintPerContainerDataDebug() const
 	UE_LOG(LogTemp, Log, TEXT("Printing Containers with FastArrays"))
 	for (auto&& Element : PerContainerData)
 	{
-		UE_LOG(LogTemp, Log, TEXT("    %s"), *Element->Container->GetFullName())
+		UE_LOG(LogTemp, Log, TEXT("    Data: '%s' - Container: '%s'"), *Element->GetFullName(), *Element->Container->GetFullName())
 	}
 }
 #endif
