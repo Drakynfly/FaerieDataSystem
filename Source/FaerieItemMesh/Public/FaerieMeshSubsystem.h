@@ -43,11 +43,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|MeshSubsystem")
 	void LoadMeshFromTokenAsynchronous(const UFaerieMeshTokenBase* Token,
 		UPARAM(meta = (Categories = "MeshPurpose")) FGameplayTag Purpose, const FFaerieItemMeshAsyncLoadResult& Callback);
+	void LoadMeshFromTokenAsynchronous(const UFaerieMeshTokenBase* Token, FGameplayTag Purpose, const TDelegate<void(bool, const FFaerieItemMesh&)>& Callback);
 
 	// Asynchronously load the mesh and materials for an item.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|MeshSubsystem")
 	void LoadMeshFromProxyAsynchronous(FFaerieItemProxy Proxy,
 		UPARAM(meta = (Categories = "MeshPurpose")) FGameplayTag Purpose, const FFaerieItemMeshAsyncLoadResult& Callback);
+	void LoadMeshFromProxyAsynchronous(FFaerieItemProxy Proxy, FGameplayTag Purpose, const TDelegate<void(bool, const FFaerieItemMesh&)>& Callback);
 
 protected:
 	// If the purpose requested when loading a mesh is not available, the tag "MeshPurpose.Default" is normally used as

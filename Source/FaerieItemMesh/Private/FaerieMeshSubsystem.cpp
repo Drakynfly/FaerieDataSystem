@@ -57,6 +57,17 @@ void UFaerieMeshSubsystem::LoadMeshFromTokenAsynchronous(const UFaerieMeshTokenB
 			}));
 }
 
+void UFaerieMeshSubsystem::LoadMeshFromTokenAsynchronous(const UFaerieMeshTokenBase* Token, FGameplayTag Purpose,
+	const Faerie::FItemMeshAsyncLoadResult& Callback)
+{
+	if (!Purpose.IsValid())
+	{
+		Purpose = FallbackPurpose;
+	}
+
+	Loader->LoadMeshFromTokenAsynchronous(Token, Purpose, Callback);
+}
+
 void UFaerieMeshSubsystem::LoadMeshFromProxyAsynchronous(const FFaerieItemProxy Proxy, FGameplayTag Purpose,
 														 const FFaerieItemMeshAsyncLoadResult& Callback)
 {
@@ -71,4 +82,15 @@ void UFaerieMeshSubsystem::LoadMeshFromProxyAsynchronous(const FFaerieItemProxy 
 			{
 				(void)Callback.ExecuteIfBound(Success, Mesh);
 			}));
+}
+
+void UFaerieMeshSubsystem::LoadMeshFromProxyAsynchronous(const FFaerieItemProxy Proxy, FGameplayTag Purpose,
+	const Faerie::FItemMeshAsyncLoadResult& Callback)
+{
+	if (!Purpose.IsValid())
+	{
+		Purpose = FallbackPurpose;
+	}
+
+	Loader->LoadMeshFromProxyAsynchronous(Proxy, Purpose, Callback);
 }

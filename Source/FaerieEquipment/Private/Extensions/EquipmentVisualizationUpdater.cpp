@@ -7,16 +7,15 @@
 #include "EquipmentVisualizer.h"
 #include "FaerieEquipmentSlot.h"
 #include "FaerieItemContainerBase.h"
-#include "FaerieMeshSubsystem.h"
 #include "ItemContainerEvent.h"
 
 #include "Actors/ItemRepresentationActor.h"
 #include "Components/FaerieItemMeshComponent.h"
 #include "Tokens/FaerieMeshToken.h"
+#include "Tokens/FaerieVisualActorClassToken.h"
 #include "Tokens/FaerieVisualEquipment.h"
 
 #include "GameFramework/Character.h"
-#include "Tokens/FaerieVisualActorClassToken.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(EquipmentVisualizationUpdater)
 
@@ -231,53 +230,33 @@ void UEquipmentVisualizationUpdater::CreateNewVisualImpl(const UFaerieItemContai
 
 	// Path 2: A Visual Component
 	{
-		auto&& MeshToken = Proxy->GetItemObject()->GetToken<UFaerieMeshTokenBase>();
+		UFaerieItemMeshComponent* NewVisual = Visualizer->SpawnVisualComponentNative<UFaerieItemMeshComponent>(
+			{ Proxy }, UFaerieItemMeshComponent::StaticClass(), Attachment);
+		if (!IsValid(NewVisual))
 		{
-			UFaerieMeshSubsystem* MeshSubsystem = Visualizer->GetWorld()->GetSubsystem<UFaerieMeshSubsystem>();
-			if (!MeshSubsystem)
-			{
-				return;
-			}
-
-			FFaerieItemMesh Mesh;
-			if (!MeshSubsystem->LoadMeshFromTokenSynchronous(MeshToken, Visualizer->GetPreferredTag(), Mesh))
-			{
-				UE_LOG(LogTemp, Warning, TEXT("LoadMeshFromTokenSynchronous failed!"))
-				return;
-			}
-
-			if (Mesh.IsSkeletal())
-			{
-				// If there is no AnimClass on the mesh, it would prefer using LeaderPose as a fallback
-				bool LeaderPoseMesh = !IsValid(Mesh.GetSkeletal().AnimClass);
-
-				// But some extensions might ban that (like items held in hands)
-				if (IsValid(SlotExtension))
-				{
-					if (!SlotExtension->GetAllowLeaderPose())
-					{
-						LeaderPoseMesh = false;
-					}
-				}
-
-				if (LeaderPoseMesh)
-				{
-					Attachment.Parent = Visualizer->GetLeaderBone();
-					Attachment.Socket = NAME_None;
-				}
-			}
-
-			UFaerieItemMeshComponent* NewVisual = Visualizer->SpawnVisualComponentNative<UFaerieItemMeshComponent>(
-				{ Proxy }, UFaerieItemMeshComponent::StaticClass(), Attachment);
-			if (!IsValid(NewVisual))
-			{
-				return;
-			}
-
-			//NewVisual->SetPreferredMeshType()
-			NewVisual->SetItemMesh(Mesh);
 			return;
 		}
+
+		bool CanLeaderPoseMesh = true;
+
+		// But some extensions might ban that (like items held in hands)
+		if (IsValid(SlotExtension))
+		{
+			if (!SlotExtension->GetAllowLeaderPose())
+			{
+				CanLeaderPoseMesh = false;
+			}
+		}
+
+		// If there is no AnimClass on the mesh, it would prefer using LeaderPose as a fallback
+		if (CanLeaderPoseMesh)
+		{
+			NewVisual->SetSkeletalMeshLeaderPoseComponent(Visualizer->GetLeaderBone());
+		}
+
+		NewVisual->SetIsReplicated(true); // Enable replication, as its off by default.
+		NewVisual->SetItemMeshFromToken(Proxy->GetItemObject()->GetToken<UFaerieMeshTokenBase>());
+		return;
 	}
 }
 

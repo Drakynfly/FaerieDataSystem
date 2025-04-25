@@ -9,6 +9,7 @@
 
 #include "FaerieItemMeshComponent.generated.h"
 
+class UFaerieMeshTokenBase;
 
 UCLASS(ClassGroup = ("Faerie"), meta = (BlueprintSpawnableComponent))
 class FAERIEITEMMESH_API UFaerieItemMeshComponent : public USceneComponent
@@ -18,18 +19,36 @@ class FAERIEITEMMESH_API UFaerieItemMeshComponent : public USceneComponent
 public:
 	UFaerieItemMeshComponent();
 
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+
 	virtual void DestroyComponent(bool bPromoteChildren = false) override;
 
 protected:
-	// @todo this will LoadSync the meshes. Make an async version of RebuildMesh and expose a boolean to select between them
+	void LoadMeshFromToken(bool Async);
+	void AsyncLoadMeshReturn(bool Success, const FFaerieItemMesh& InMeshData);
+
 	void RebuildMesh();
 
+	UFUNCTION(/* Replication */)
+	void OnRep_SourceMeshToken();
+
 public:
+	// Set the mesh to use directly. This is local only, as the ItemMesh struct does not replicate.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataMesh")
 	void SetItemMesh(const FFaerieItemMesh& InMeshData);
 
+	// Set the token to generate a mesh from. If called on the server, the client can generate the same mesh.
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataMesh")
+	void SetItemMeshFromToken(const UFaerieMeshTokenBase* InMeshToken);
+
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataMesh")
+	void SetSkeletalMeshLeaderPoseComponent(USkinnedMeshComponent* LeaderComponent);
+
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataMesh")
 	void ClearItemMesh();
+
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataMesh")
+	void SetPreferredTag(UPARAM(meta = (Categories = "MeshPurpose")) FGameplayTag MeshTag);
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataMesh")
 	void SetPreferredMeshType(EItemMeshType MeshType);
@@ -39,6 +58,17 @@ public:
 	FBoxSphereBounds GetBounds() const;
 
 protected:
+	UPROPERTY(VisibleInstanceOnly, ReplicatedUsing = "OnRep_SourceMeshToken", BlueprintReadOnly, Category = "Config")
+	TObjectPtr<const UFaerieMeshTokenBase> SourceMeshToken;
+
+	// Leader component if LeaderPose is allowed.
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Config")
+	TObjectPtr<USkinnedMeshComponent> SkeletalMeshLeader;
+
+	// The MeshPurpose preferred by this Component. Only matters if SourceMeshToken is set.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Config", meta = (Categories = "MeshPurpose"))
+	FGameplayTag PreferredTag;
+
 	// If MeshData contains this type, it will be used.
 	// Otherwise, they will be chosen in the order static->dynamic->skeletal.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Config")

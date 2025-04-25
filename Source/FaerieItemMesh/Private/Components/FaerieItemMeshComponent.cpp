@@ -1,16 +1,32 @@
 // Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "Components/FaerieItemMeshComponent.h"
+#include "FaerieItemMeshLoader.h"
 #include "FaerieMeshStructs.h"
+#include "FaerieMeshSubsystem.h"
 #include "Components/DynamicMeshComponent.h"
 #include "GeometryScript/MeshQueryFunctions.h"
 #include "Libraries/FaerieMeshStructsLibrary.h"
+#include "Net/UnrealNetwork.h"
+#include "Net/Core/PushModel/PushModel.h"
+#include "Tokens/FaerieMeshToken.h"
 
 UFaerieItemMeshComponent::UFaerieItemMeshComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
+	PreferredTag = Faerie::ItemMesh::Tags::MeshPurpose_Display;
 	PreferredType = EItemMeshType::Static;
 	ActualType = EItemMeshType::None;
+}
+
+void UFaerieItemMeshComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	FDoRepLifetimeParams SharedParams;
+	SharedParams.bIsPushBased = true;
+
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, SourceMeshToken, SharedParams);
 }
 
 void UFaerieItemMeshComponent::DestroyComponent(const bool bPromoteChildren)
@@ -22,6 +38,39 @@ void UFaerieItemMeshComponent::DestroyComponent(const bool bPromoteChildren)
 	}
 
 	Super::DestroyComponent(bPromoteChildren);
+}
+
+void UFaerieItemMeshComponent::LoadMeshFromToken(const bool Async)
+{
+	if (!IsValid(SourceMeshToken))
+	{
+		return;
+	}
+
+	UFaerieMeshSubsystem* MeshSubsystem = GetWorld()->GetSubsystem<UFaerieMeshSubsystem>();
+	if (Async)
+	{
+		MeshSubsystem->LoadMeshFromTokenAsynchronous(SourceMeshToken, PreferredTag,
+			Faerie::FItemMeshAsyncLoadResult::CreateUObject(this, &ThisClass::AsyncLoadMeshReturn));
+	}
+	else
+	{
+		MeshSubsystem->LoadMeshFromTokenSynchronous(SourceMeshToken, PreferredTag, MeshData);
+		RebuildMesh();
+	}
+}
+
+void UFaerieItemMeshComponent::AsyncLoadMeshReturn(const bool Success, const FFaerieItemMesh& InMeshData)
+{
+	if (Success)
+	{
+		MeshData = InMeshData;
+	}
+	else
+	{
+		MeshData = FFaerieItemMesh();
+	}
+	RebuildMesh();
 }
 
 void UFaerieItemMeshComponent::RebuildMesh()
@@ -147,9 +196,9 @@ void UFaerieItemMeshComponent::RebuildMesh()
 			else
 			{
 				// If there is no AnimClass, maybe we were supposed to be a LeaderPose component. Check if our parent supports this
-				if (USkinnedMeshComponent* ParentMesh = Cast<USkinnedMeshComponent>(GetAttachParent()))
+				if (IsValid(SkeletalMeshLeader))
 				{
-					SkeletalMesh->SetLeaderPoseComponent(ParentMesh, true);
+					SkeletalMesh->SetLeaderPoseComponent(SkeletalMeshLeader, true);
 				}
 			}
 			for (int32 i = 0; i < MeshData.Materials.Num(); ++i)
@@ -162,13 +211,37 @@ void UFaerieItemMeshComponent::RebuildMesh()
 	}
 }
 
+void UFaerieItemMeshComponent::OnRep_SourceMeshToken()
+{
+	LoadMeshFromToken(true);
+}
+
 void UFaerieItemMeshComponent::SetItemMesh(const FFaerieItemMesh& InMeshData)
 {
 	if (MeshData != InMeshData)
 	{
+		// Clear the SourceMeshToken so it cannot overwrite this mesh.
+		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, SourceMeshToken, this);
+		SourceMeshToken = nullptr;
+
 		MeshData = InMeshData;
-		RebuildMesh();
+		LoadMeshFromToken(true);
 	}
+}
+
+void UFaerieItemMeshComponent::SetItemMeshFromToken(const UFaerieMeshTokenBase* InMeshToken)
+{
+	if (SourceMeshToken != InMeshToken)
+	{
+		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, SourceMeshToken, this);
+		SourceMeshToken = InMeshToken;
+		LoadMeshFromToken(true);
+	}
+}
+
+void UFaerieItemMeshComponent::SetSkeletalMeshLeaderPoseComponent(USkinnedMeshComponent* LeaderComponent)
+{
+	SkeletalMeshLeader = LeaderComponent;
 }
 
 void UFaerieItemMeshComponent::ClearItemMesh()
@@ -180,6 +253,15 @@ void UFaerieItemMeshComponent::ClearItemMesh()
 	{
 		MeshComponent->DestroyComponent();
 		MeshComponent = nullptr;
+	}
+}
+
+void UFaerieItemMeshComponent::SetPreferredTag(const FGameplayTag MeshTag)
+{
+	if (PreferredTag != MeshTag)
+	{
+		PreferredTag = MeshTag;
+		LoadMeshFromToken(true);
 	}
 }
 
