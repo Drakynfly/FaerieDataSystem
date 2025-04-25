@@ -5,6 +5,7 @@
 #include "FaerieContainerExtensionInterface.h"
 #include "FaerieEquipmentSlotConfig.h"
 #include "FaerieSlotTag.h"
+#include "FaerieStoragePath.h"
 #include "InventoryDataStructs.h"
 #include "Components/ActorComponent.h"
 
@@ -13,6 +14,7 @@
 class UFaerieEquipmentSlot;
 class UFaerieEquipmentSlotDescription;
 class UFaerieInventoryClient;
+class UFaerieItemContainerBase;
 class UItemContainerExtensionBase;
 class UItemContainerExtensionGroup;
 
@@ -135,7 +137,7 @@ public:
 	/*		 EXTENSIONS SYSTEM		 */
 	/**------------------------------*/
 
-	UFUNCTION(BlueprintCallable, Category = "Storage|EquipmentManager")
+	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentManager")
 	UItemContainerExtensionGroup* GetExtensions() const { return ExtensionGroup; }
 
 	// Add a new extension of the given class, and return the result. If an extension of this class already exists, it
@@ -146,6 +148,23 @@ public:
 	// Removes any existing extension(s) of the given class.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentManager", BlueprintAuthorityOnly)
 	bool RemoveExtensionFromSlot(FFaerieSlotTag SlotID, TSubclassOf<UItemContainerExtensionBase> ExtensionClass);
+
+
+	/**------------------------------*/
+	/*		 EXTRA UTILITIES		 */
+	/**------------------------------*/
+
+	// Gets all Slots and Storage objects for this manager and all contained items.
+	// For only top-level containers, use GetSlots instead.
+	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentManager")
+	TArray<FFaerieStoragePath> GetAllContainerPaths() const;
+
+	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Faerie|EquipmentManager", meta = (DevelopmentOnly))
+	void PrintSlotDebugInfo() const;
+
+	/**------------------------------*/
+	/*		C++ AND NATIVE EVENTS	 */
+	/**------------------------------*/
 
 protected:
 	UPROPERTY(BlueprintAssignable, Transient, Category = "Events")

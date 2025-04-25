@@ -242,6 +242,7 @@ void UInventoryReplicatedDataExtensionBase::InitializeExtension(const UFaerieIte
 			IsValid(Actor) && Actor->IsUsingRegisteredSubObjectList())
 		{
 			Actor->AddReplicatedSubObject(NewWrapper);
+			NewWrapper->InitializeNetObject(Actor);
 		}
 
 		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, PerContainerData, this);
@@ -260,6 +261,7 @@ void UInventoryReplicatedDataExtensionBase::DeinitializeExtension(const UFaerieI
 				IsValid(Actor) && Actor->IsUsingRegisteredSubObjectList())
 				{
 					Actor->RemoveReplicatedSubObject(Wrapper);
+					Wrapper->DeinitializeNetObject(Actor);
 				}
 				return true;
 			}

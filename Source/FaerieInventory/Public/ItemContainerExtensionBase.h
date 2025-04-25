@@ -46,6 +46,8 @@ public:
 	virtual void PostDuplicate(EDuplicateMode::Type DuplicateMode) override;
 	//~ UObject
 
+	virtual void InitializeNetObject(AActor* Actor) override;
+
 protected:
 	virtual FInstancedStruct MakeSaveData(const UFaerieItemContainerBase* Container) const { return {}; }
 	virtual void LoadSaveData(const UFaerieItemContainerBase* Container, const FInstancedStruct& SaveData) {}
@@ -136,8 +138,16 @@ public:
 	virtual UItemContainerExtensionBase* GetExtension(TSubclassOf<UItemContainerExtensionBase> ExtensionClass, bool RecursiveSearch) const override;
 	//~ IFaerieContainerExtensionInterface
 
+	// Explanation: Extensions are usually pre-configured as instanced subobjects inside a component that is saved to
+	// disk in a Blueprint.
+	// When these are instantiated, they have the RF_WasLoaded flag, which interferes with replication. It must be removed.
+	void ReplicationFixup();
 
 	void ForEachExtension(const TFunctionRef<void(UItemContainerExtensionBase*)>& Func);
+
+#if WITH_EDITOR
+	void PrintDebugData() const;
+#endif
 
 private:
 	// Containers pointing to this group

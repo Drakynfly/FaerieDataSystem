@@ -59,6 +59,8 @@ class FAERIEINVENTORY_API UFaerieItemStorageToken : public UFaerieItemContainerT
 public:
 	UFaerieItemStorageToken();
 
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
 	//~ UNetSupportedObject
 	virtual void InitializeNetObject(AActor* Actor) override;
 	virtual void DeinitializeNetObject(AActor* Actor) override;
@@ -72,6 +74,6 @@ public:
 	UFaerieItemStorage* GetItemStorage() const;
 
 protected:
-	UPROPERTY(EditInstanceOnly, Instanced, NoClear, Category = "ItemStorage")
+	UPROPERTY(EditInstanceOnly, Instanced, Replicated, NoClear, Category = "ItemStorage")
 	TObjectPtr<UItemContainerExtensionGroup> Extensions;
 };

@@ -90,8 +90,8 @@ protected:
 
 protected:
 	// Subobject responsible for adding to or customizing container behavior.
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated)
-	TObjectPtr<class UItemContainerExtensionGroup> Extensions;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category = "ItemContainer")
+	TObjectPtr<UItemContainerExtensionGroup> Extensions;
 
 	// Save data for extensions that did not exist on us during unraveling.
 	UPROPERTY(Transient)

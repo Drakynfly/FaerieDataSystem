@@ -4,6 +4,7 @@
 #include "FaerieInventorySettings.h"
 
 #include "FaerieItemStorage.h"
+#include "FaerieUtils.h"
 #include "ItemContainerExtensionBase.h"
 #include "Net/UnrealNetwork.h"
 #include "Tokens/FaerieItemStorageToken.h"
@@ -22,16 +23,24 @@ void UFaerieItemContainerBase::GetLifetimeReplicatedProps(TArray<FLifetimeProper
 
 	FDoRepLifetimeParams Params;
 	Params.bIsPushBased = true;
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, Extensions, Params);
+	DOREPLIFETIME_CONDITION(ThisClass, Extensions, COND_InitialOnly);
 }
 
 void UFaerieItemContainerBase::InitializeNetObject(AActor* Actor)
 {
+	ensureAlwaysMsgf(!Faerie::HasLoadFlag(this),
+		TEXT("Containers must not be assets loaded from disk. (DuplicateObjectFromDiskForReplication or ClearLoadFlags can fix this)"
+			LINE_TERMINATOR
+			"	Failing Container: '%s'"), *GetFullName());
+	Actor->AddReplicatedSubObject(Extensions);
+	Extensions->InitializeNetObject(Actor);
 	Extensions->InitializeExtension(this);
 }
 
 void UFaerieItemContainerBase::DeinitializeNetObject(AActor* Actor)
 {
+	Actor->RemoveReplicatedSubObject(Extensions);
+	Extensions->DeinitializeNetObject(Actor);
 	Extensions->DeinitializeExtension(this);
 }
 
@@ -142,7 +151,9 @@ void UFaerieItemContainerBase::OnItemMutated(const UFaerieItem* Item, const UFae
 		if (AActor* Actor = GetTypedOuter<AActor>();
 			IsValid(Actor) && Actor->IsUsingRegisteredSubObjectList())
 		{
-			Actor->AddReplicatedSubObject(const_cast<UFaerieItemToken*>(Token));
+			auto MutableToken = const_cast<UFaerieItemToken*>(Token);
+			Actor->AddReplicatedSubObject(MutableToken);
+			MutableToken->InitializeNetObject(Actor);
 		}
 		return;
 	}
@@ -151,7 +162,9 @@ void UFaerieItemContainerBase::OnItemMutated(const UFaerieItem* Item, const UFae
 		if (AActor* Actor = GetTypedOuter<AActor>();
 			IsValid(Actor) && Actor->IsUsingRegisteredSubObjectList())
 		{
-			Actor->RemoveReplicatedSubObject(const_cast<UFaerieItemToken*>(Token));
+			auto MutableToken = const_cast<UFaerieItemToken*>(Token);
+			Actor->RemoveReplicatedSubObject(MutableToken);
+			MutableToken->DeinitializeNetObject(Actor);
 		}
 		return;
 	}
@@ -168,6 +181,7 @@ void UFaerieItemContainerBase::ReleaseOwnership(const UFaerieItem* Item)
 		if (AActor* Actor = GetTypedOuter<AActor>();
 			IsValid(Actor) && Actor->IsUsingRegisteredSubObjectList())
 		{
+			MutableItem->DeinitializeNetObject(Actor);
 			Actor->RemoveReplicatedSubObject(MutableItem);
 			MutableItem->ForEachToken(
 				[Actor](const TObjectPtr<UFaerieItemToken>& Token)
@@ -215,6 +229,7 @@ void UFaerieItemContainerBase::TakeOwnership(const UFaerieItem* Item)
 			IsValid(Actor) && Actor->IsUsingRegisteredSubObjectList())
 		{
 			Actor->AddReplicatedSubObject(MutableItem);
+			MutableItem->InitializeNetObject(Actor);
 			MutableItem->ForEachToken(
 				[Actor](const TObjectPtr<UFaerieItemToken>& Token)
 				{

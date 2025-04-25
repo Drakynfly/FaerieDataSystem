@@ -5,7 +5,6 @@
 #include "GameplayTagContainer.h"
 #include "NativeGameplayTags.h"
 #include "NetSupportedObject.h"
-#include "TypeCastingUtils.h"
 #include "FaerieItemToken.generated.h"
 
 class UFaerieItem;

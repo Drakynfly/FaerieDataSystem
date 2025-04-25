@@ -3,6 +3,7 @@
 #include "Tokens/FaerieChildSlotToken.h"
 #include "FaerieEquipmentSlot.h"
 #include "ItemContainerExtensionBase.h"
+#include "Net/UnrealNetwork.h"
 
 #if WITH_EDITOR
 #include "Misc/DataValidation.h"
@@ -16,6 +17,18 @@ UFaerieChildSlotToken::UFaerieChildSlotToken()
 	ItemContainer = CreateDefaultSubobject<UFaerieEquipmentSlot>(FName{TEXTVIEW("ItemContainer")});
 	Extensions = CreateDefaultSubobject<UItemContainerExtensionGroup>(FName{TEXTVIEW("Extensions")});
 	Extensions->SetIdentifier();
+}
+
+void UFaerieChildSlotToken::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	FDoRepLifetimeParams SharedParams;
+	SharedParams.bIsPushBased = true;
+
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, Config, SharedParams);
+	DOREPLIFETIME_CONDITION(ThisClass, ItemContainer, COND_InitialOnly);
+	DOREPLIFETIME_CONDITION(ThisClass, Extensions, COND_InitialOnly);
 }
 
 void UFaerieChildSlotToken::PostLoad()
@@ -62,15 +75,24 @@ EDataValidationResult UFaerieChildSlotToken::IsDataValid(FDataValidationContext&
 void UFaerieChildSlotToken::InitializeNetObject(AActor* Actor)
 {
 	Actor->AddReplicatedSubObject(ItemContainer);
+	ItemContainer->InitializeNetObject(Actor);
+
+	Extensions->ReplicationFixup();
 	Actor->AddReplicatedSubObject(Extensions);
+	Extensions->InitializeNetObject(Actor);
+
 	ItemContainer->AddExtension(Extensions);
 }
 
 void UFaerieChildSlotToken::DeinitializeNetObject(AActor* Actor)
 {
 	ItemContainer->RemoveExtension(Extensions);
+
 	Actor->RemoveReplicatedSubObject(ItemContainer);
+	ItemContainer->DeinitializeNetObject(Actor);
+
 	Actor->RemoveReplicatedSubObject(Extensions);
+	Extensions->DeinitializeNetObject(Actor);
 }
 
 UFaerieEquipmentSlot* UFaerieChildSlotToken::GetSlotContainer() const

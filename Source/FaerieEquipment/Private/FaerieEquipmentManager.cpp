@@ -7,6 +7,7 @@
 #include "ItemContainerExtensionBase.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
+#include "Tokens/FaerieItemStorageToken.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieEquipmentManager)
 
@@ -77,6 +78,9 @@ void UFaerieEquipmentManager::AddDefaultSlots()
 		return;
 	}
 
+	// Wipe load flags from Extensions. Hack to make replication work :/
+	ExtensionGroup->ReplicationFixup();
+
 	for (auto&& Element : InstanceDefaultSlots)
 	{
 		auto&& DefaultSlot = AddSlot(Element.SlotConfig);
@@ -89,7 +93,8 @@ void UFaerieEquipmentManager::AddDefaultSlots()
 		{
 			// The default ExtensionGroups are "Assets" in that they are default instances baked into the component, and
 			// need to be fixed before they can replicate.
-			DefaultSlot->AddExtension(Faerie::DuplicateObjectFromDiskForReplication(Element.ExtensionGroup.Get(), DefaultSlot));
+			Element.ExtensionGroup->ReplicationFixup();
+			DefaultSlot->AddExtension(Element.ExtensionGroup.Get());
 		}
 	}
 }
@@ -108,14 +113,14 @@ void UFaerieEquipmentManager::AddSubobjectsForReplication()
 	}
 	else
 	{
-		AddReplicatedSubObject(ExtensionGroup);
+		GetOwner()->AddReplicatedSubObject(ExtensionGroup);
 		ExtensionGroup->InitializeNetObject(Owner);
 
 		for (auto&& Slot : Slots)
 		{
 			if (IsValid(Slot))
 			{
-				AddReplicatedSubObject(Slot);
+				GetOwner()->AddReplicatedSubObject(Slot);
 				Slot->InitializeNetObject(Owner);
 			}
 		}
@@ -182,7 +187,7 @@ UFaerieEquipmentSlot* UFaerieEquipmentManager::AddSlot(const FFaerieEquipmentSlo
 		NewSlot->Config = Config;
 		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Slots, this)
 		Slots.Add(NewSlot);
-		AddReplicatedSubObject(NewSlot);
+		GetOwner()->AddReplicatedSubObject(NewSlot);
 		NewSlot->InitializeNetObject(GetOwner());
 
 		NewSlot->OnItemChangedNative.AddUObject(this, &ThisClass::OnSlotItemChanged, false);
@@ -215,7 +220,7 @@ bool UFaerieEquipmentManager::RemoveSlot(UFaerieEquipmentSlot* Slot)
 
 		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Slots, this)
 		Slot->DeinitializeNetObject(GetOwner());
-		RemoveReplicatedSubObject(Slot);
+		GetOwner()->RemoveReplicatedSubObject(Slot);
 
 		Slot->OnItemChangedNative.RemoveAll(this);
 		Slot->OnItemDataChangedNative.RemoveAll(this);
@@ -256,7 +261,7 @@ bool UFaerieEquipmentManager::AddExtension(UItemContainerExtensionBase* Extensio
 {
 	if (ExtensionGroup->AddExtension(Extension))
 	{
-		AddReplicatedSubObject(Extension);
+		GetOwner()->AddReplicatedSubObject(Extension);
 		Extension->InitializeNetObject(GetOwner());
 		return true;
 	}
@@ -271,7 +276,7 @@ bool UFaerieEquipmentManager::RemoveExtension(UItemContainerExtensionBase* Exten
 	}
 
 	Extension->DeinitializeNetObject(GetOwner());
-	RemoveReplicatedSubObject(Extension);
+	GetOwner()->RemoveReplicatedSubObject(Extension);
 	return ExtensionGroup->RemoveExtension(Extension);
 }
 
@@ -300,7 +305,7 @@ UItemContainerExtensionBase* UFaerieEquipmentManager::AddExtensionToSlot(const F
 	UItemContainerExtensionBase* NewExtension = NewObject<UItemContainerExtensionBase>(Slot, ExtensionClass);
 	NewExtension->SetIdentifier();
 
-	AddReplicatedSubObject(NewExtension);
+	GetOwner()->AddReplicatedSubObject(NewExtension);
 	NewExtension->InitializeNetObject(GetOwner());
 	Slot->AddExtension(NewExtension);
 
@@ -329,8 +334,62 @@ bool UFaerieEquipmentManager::RemoveExtensionFromSlot(const FFaerieSlotTag SlotI
 	}
 
 	Extension->DeinitializeNetObject(GetOwner());
-	RemoveReplicatedSubObject(Extension);
+	GetOwner()->RemoveReplicatedSubObject(Extension);
 	Slot->RemoveExtension(Extension);
 
 	return true;
+}
+
+TArray<FFaerieStoragePath> UFaerieEquipmentManager::GetAllContainerPaths() const
+{
+	// @todo Track this function's performance, and cache the result somewhere if it's expensive and called a lot.
+
+	TArray<FFaerieStoragePath> OutPaths;
+	OutPaths.Reserve(Slots.Num());
+
+	TFunction<void(UFaerieItemContainerBase*, const FFaerieStoragePath&)> BuildPaths;
+	BuildPaths = [&OutPaths, &BuildPaths](UFaerieItemContainerBase* Container, const FFaerieStoragePath& BasePath)
+	{
+		FFaerieStoragePath& NewPath = OutPaths.Add_GetRef(FFaerieStoragePath(BasePath));
+		NewPath.Containers.Add(Container);
+
+		Container->ForEachKey(
+			[Container, &BuildPaths, &NewPath](const FEntryKey Key)
+			{
+				auto View = Container->View(Key);
+				if (!View.Item->CanMutate()) return;
+
+				TSet<UFaerieItemContainerBase*> Nested = UFaerieItemContainerToken::GetAllContainersInItem(View.Item.Get());
+				for (auto SubContainer : Nested)
+				{
+					BuildPaths(SubContainer, NewPath);
+				}
+			});
+	};
+
+	FFaerieStoragePath EmptyRoot;
+	for (auto&& Slot : Slots)
+	{
+		BuildPaths(Slot, EmptyRoot);
+	}
+
+	return OutPaths;
+}
+
+void UFaerieEquipmentManager::PrintSlotDebugInfo() const
+{
+#if !UE_BUILD_SHIPPING
+	for (auto&& Slot : Slots)
+	{
+		if (Slot->GetExtensionGroup())
+		{
+			UE_LOG(LogTemp, Log, TEXT("*** Printing Debug Data for: '%s'"), *Slot->Config.SlotID.ToString())
+			Slot->GetExtensionGroup()->PrintDebugData();
+		}
+		else
+		{
+			UE_LOG(LogTemp, Log, TEXT("Slot '%s' has no extension group."), *Slot->Config.SlotID.ToString())
+		}
+	}
+#endif
 }

@@ -17,6 +17,7 @@ class FAERIEEQUIPMENT_API UFaerieChildSlotToken : public UFaerieItemContainerTok
 public:
 	UFaerieChildSlotToken();
 
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void PostLoad() override;
 
 #if WITH_EDITOR
@@ -39,9 +40,9 @@ protected:
 	void OnSlotItemChanged(UFaerieEquipmentSlot* FaerieEquipmentSlot);
 
 protected:
-	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "EquipmentSlot")
+	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Replicated, Category = "EquipmentSlot")
 	FFaerieEquipmentSlotConfig Config;
 
-	UPROPERTY(EditInstanceOnly, Instanced, NoClear, Category = "EquipmentSlot")
+	UPROPERTY(EditInstanceOnly, Instanced, Replicated, NoClear, Category = "EquipmentSlot")
 	TObjectPtr<UItemContainerExtensionGroup> Extensions;
 };

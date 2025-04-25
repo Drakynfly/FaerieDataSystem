@@ -50,6 +50,7 @@ void UFaerieInventoryComponent::ReadyForReplication()
 
 	if (IsValid(Extensions))
 	{
+		Extensions->ReplicationFixup();
 		ItemStorage->AddExtension(Extensions);
 	}
 

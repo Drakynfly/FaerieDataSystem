@@ -7,6 +7,7 @@
 #include "Misc/DataValidation.h"
 #endif
 
+#include "FaerieUtils.h"
 #include "Net/UnrealNetwork.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ItemContainerExtensionBase)
@@ -20,6 +21,16 @@ void UItemContainerExtensionBase::PostDuplicate(const EDuplicateMode::Type Dupli
 
 	// Make a new identifier when duplicated
 	SetIdentifier();
+}
+
+void UItemContainerExtensionBase::InitializeNetObject(AActor* Actor)
+{
+	Super::InitializeNetObject(Actor);
+
+	ensureAlwaysMsgf(!Faerie::HasLoadFlag(this),
+		TEXT("Extensions must not be assets loaded from disk. (DuplicateObjectFromDiskForReplication or ClearLoadFlags can fix this)"
+			LINE_TERMINATOR
+			"	Failing Extension: '%s'"), *GetFullName());
 }
 
 void UItemContainerExtensionBase::SetIdentifier(const FGuid* GuidToUse)
@@ -80,10 +91,13 @@ EDataValidationResult UItemContainerExtensionGroup::IsDataValid(FDataValidationC
 
 void UItemContainerExtensionGroup::InitializeNetObject(AActor* Actor)
 {
+	Super::InitializeNetObject(Actor);
+
 	ForEachExtension(
 		[Actor](UItemContainerExtensionBase* Extension)
 		{
 			Actor->AddReplicatedSubObject(Extension);
+			Extension->InitializeNetObject(Actor);
 		});
 }
 
@@ -93,6 +107,7 @@ void UItemContainerExtensionGroup::DeinitializeNetObject(AActor* Actor)
 		[Actor](UItemContainerExtensionBase* Extension)
 		{
 			Actor->RemoveReplicatedSubObject(Extension);
+			Extension->DeinitializeNetObject(Actor);
 		});
 }
 
@@ -293,6 +308,57 @@ void UItemContainerExtensionGroup::ForEachExtension(const TFunctionRef<void(UIte
 	}
 }
 
+#if WITH_EDITOR
+
+// Copied from GeometryCollection/GeometryCollectionComponent.h
+// For some reason this isn't anywhere else in the engine :/
+FString RoleToString(const ENetRole InRole)
+{
+	switch (InRole)
+	{
+	case ROLE_None:
+		return FString(TEXT("None"));
+	case ROLE_SimulatedProxy:
+		return FString(TEXT("SimProxy"));
+	case ROLE_AutonomousProxy:
+		return FString(TEXT("AutoProxy"));
+	case ROLE_Authority:
+		return FString(TEXT("Auth"));
+	default:
+		break;
+	}
+
+	return FString(TEXT("Invalid Role"));
+}
+
+void UItemContainerExtensionGroup::PrintDebugData() const
+{
+	const AActor* OwningActor = GetTypedOuter<AActor>();
+
+	UE_LOG(LogTemp, Log, TEXT("Printing Containers/Extension in Group (%s)"),
+		OwningActor ? *("Role: " + RoleToString(OwningActor->GetLocalRole())) : TEXT("No Owner"))
+	for (auto&& Container : Containers)
+	{
+		if (!Container.IsValid())
+		{
+			UE_LOG(LogTemp, Warning,  TEXT("	Invalid Containers in PrintDebugData. Investigate!"))
+			continue;
+		}
+		UE_LOG(LogTemp, Warning,  TEXT("	Registered Container: '%s'"), *Container->GetName())
+	}
+
+	for (auto&& Extension : Extensions)
+	{
+		if (!IsValid(Extension))
+		{
+			UE_LOG(LogTemp, Warning,  TEXT("	Invalid Extension in PrintDebugData. Investigate!"))
+			continue;
+		}
+		UE_LOG(LogTemp, Warning,  TEXT("	Registered Extension: '%s'"), *Extension->GetName())
+	}
+}
+#endif
+
 bool UItemContainerExtensionGroup::AddExtension(UItemContainerExtensionBase* Extension)
 {
 	checkf(Extension->GetIdentifier().IsValid(),
@@ -398,6 +464,22 @@ UItemContainerExtensionBase* UItemContainerExtensionGroup::GetExtension(const TS
 	}
 
 	return nullptr;
+}
+
+void UItemContainerExtensionGroup::ReplicationFixup()
+{
+	Faerie::ClearLoadFlags(this);
+	ForEachExtension([](UItemContainerExtensionBase* Extension)
+	{
+		if (UItemContainerExtensionGroup* Group = Cast<UItemContainerExtensionGroup>(Extension))
+		{
+			Group->ReplicationFixup();
+		}
+		else
+		{
+			Faerie::ClearLoadFlags(Extension);
+		}
+	});
 }
 
 #undef LOCTEXT_NAMESPACE

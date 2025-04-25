@@ -68,18 +68,35 @@ UFaerieItemStorageToken::UFaerieItemStorageToken()
 	Extensions->SetIdentifier();
 }
 
+void UFaerieItemStorageToken::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME_CONDITION(ThisClass, ItemContainer, COND_InitialOnly);
+	DOREPLIFETIME_CONDITION(ThisClass, Extensions, COND_InitialOnly);
+}
+
 void UFaerieItemStorageToken::InitializeNetObject(AActor* Actor)
 {
 	Actor->AddReplicatedSubObject(ItemContainer);
+	ItemContainer->InitializeNetObject(Actor);
+
+	Extensions->ReplicationFixup();
 	Actor->AddReplicatedSubObject(Extensions);
+	Extensions->InitializeNetObject(Actor);
+
 	ItemContainer->AddExtension(Extensions);
 }
 
 void UFaerieItemStorageToken::DeinitializeNetObject(AActor* Actor)
 {
 	ItemContainer->RemoveExtension(Extensions);
+
 	Actor->RemoveReplicatedSubObject(ItemContainer);
+	ItemContainer->DeinitializeNetObject(Actor);
+
 	Actor->RemoveReplicatedSubObject(Extensions);
+	Extensions->DeinitializeNetObject(Actor);
 }
 
 UFaerieItemStorage* UFaerieItemStorageToken::GetItemStorage() const
