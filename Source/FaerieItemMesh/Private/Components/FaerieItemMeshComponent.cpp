@@ -225,7 +225,7 @@ void UFaerieItemMeshComponent::SetItemMesh(const FFaerieItemMesh& InMeshData)
 		SourceMeshToken = nullptr;
 
 		MeshData = InMeshData;
-		LoadMeshFromToken(true);
+		RebuildMesh();
 	}
 }
 
