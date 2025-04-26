@@ -55,7 +55,10 @@ void UFaerieEquipmentManager::OnComponentCreated()
 {
 	Super::OnComponentCreated();
 
-	AddDefaultSlots();
+	if (!IsTemplate())
+	{
+		AddDefaultSlots();
+	}
 }
 
 void UFaerieEquipmentManager::ReadyForReplication()

@@ -311,7 +311,7 @@ FFaerieItemStack UFaerieEquipmentSlot::TakeItemFromSlot(int32 Copies)
 	if (!CanTakeFromSlot(Copies))
 	{
 		UE_LOG(LogFaerieEquipmentSlot, Warning,
-			TEXT("Invalid request to set into slot '%s'!"), *GetSlotInfo().ObjectName.ToString())
+			TEXT("Invalid request to take item from slot '%s'!"), *GetSlotInfo().ObjectName.ToString())
 		return FFaerieItemStack();
 	}
 

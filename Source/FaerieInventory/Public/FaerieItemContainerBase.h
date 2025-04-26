@@ -13,7 +13,7 @@ class UItemContainerExtensionBase;
 /**
  * Base class for objects that store FaerieItems
  */
-UCLASS(Abstract)
+UCLASS(Abstract, Blueprintable)
 class FAERIEINVENTORY_API UFaerieItemContainerBase : public UNetSupportedObject, public IFaerieItemOwnerInterface, public IFaerieContainerExtensionInterface
 {
 	GENERATED_BODY()

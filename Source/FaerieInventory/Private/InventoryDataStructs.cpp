@@ -310,7 +310,7 @@ FKeyedInventoryEntry& FInventoryContent::Append(const FEntryKey Key, const FInve
 			TEXT("If this is hit, then Key is not sequential and Append was not safe to use. Either use a validated Key, or use FInventoryContent::Insert"));
 	}
 
-	FKeyedInventoryEntry& NewItemRef = Entries.Add_GetRef({Key, Entry});
+	FKeyedInventoryEntry& NewItemRef = Entries.Emplace_GetRef(Key, Entry);
 	MarkItemDirty(NewItemRef);
 	PostEntryReplicatedAdd(NewItemRef);
 	return NewItemRef;
@@ -323,7 +323,7 @@ FKeyedInventoryEntry& FInventoryContent::AppendUnsafe(FEntryKey Key, const FInve
 
 	LLM_SCOPE_BYTAG(ItemStorage);
 
-	FKeyedInventoryEntry& NewItemRef = Entries.Add_GetRef({Key, Entry});
+	FKeyedInventoryEntry& NewItemRef = Entries.Emplace_GetRef(Key, Entry);
 	MarkItemDirty(NewItemRef);
 	PostEntryReplicatedAdd(NewItemRef);
 	return NewItemRef;

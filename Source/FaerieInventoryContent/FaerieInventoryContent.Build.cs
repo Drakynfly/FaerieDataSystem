@@ -33,7 +33,7 @@ public class FaerieInventoryContent : ModuleRules
             });
 
         PrivateDependencyModuleNames.AddRange(
-            new[]
+            new []
             {
                 "FaerieDataUtils",
                 "GeometryScriptingCore",
