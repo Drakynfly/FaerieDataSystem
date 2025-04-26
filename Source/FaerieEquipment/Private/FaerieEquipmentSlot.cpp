@@ -364,6 +364,11 @@ FFaerieItemStack UFaerieEquipmentSlot::TakeItemFromSlot(int32 Copies)
 	return OutStack;
 }
 
+FEntryKey UFaerieEquipmentSlot::GetCurrentKey() const
+{
+	return StoredKey;
+}
+
 FFaerieAssetInfo UFaerieEquipmentSlot::GetSlotInfo() const
 {
 	if (IsValid(Config.SlotDescription) &&

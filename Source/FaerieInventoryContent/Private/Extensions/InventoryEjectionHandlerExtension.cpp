@@ -47,6 +47,11 @@ void UInventoryEjectionHandlerExtension::PostRemoval(const UFaerieItemContainerB
 
 	Stack.Item = const_cast<UFaerieItem*>(Event.Item.Get());
 
+	Enqueue(Stack);
+}
+
+void UInventoryEjectionHandlerExtension::Enqueue(const FFaerieItemStack& Stack)
+{
 	PendingEjectionQueue.Add(Stack);
 
 	if (!IsStreaming)
@@ -133,4 +138,25 @@ bool FFaerieClientAction_EjectEntry::Server_Execute(const UFaerieInventoryClient
 	if (!Client->CanAccessStorage(Storage)) return false;
 
 	return Storage->RemoveStack(Handle.Key, Faerie::Inventory::Tags::RemovalEject, Amount);
+}
+
+bool FFaerieClientAction_EjectViaRelease::Server_Execute(const UFaerieInventoryClient* Client) const
+{
+	if (!IsValid(Container)) return false;
+	if (!Client->CanAccessContainer(Container)) return false;
+
+	UInventoryEjectionHandlerExtension* Ejector = GetExtension<UInventoryEjectionHandlerExtension>(Container, true);
+	if (!IsValid(Ejector))
+	{
+		return false;
+	}
+
+	if (const FFaerieItemStack Stack = Container->Release(Key, Amount);
+		IsValid(Stack.Item) &&
+		Faerie::ItemData::IsValidStack(Stack.Copies))
+	{
+		Ejector->Enqueue(Stack);
+		return true;
+	}
+	return false;
 }

@@ -121,6 +121,9 @@ public:
 	FFaerieItemStack TakeItemFromSlot(int32 Copies);
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentSlot")
+	FEntryKey GetCurrentKey() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentSlot")
 	FFaerieAssetInfo GetSlotInfo() const;
 
 	// Is there currently an item in this slot?

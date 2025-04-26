@@ -21,6 +21,11 @@ void UInventoryUIAction::Setup_Implementation(UInventoryContentsBase* InContents
 	ContentsWidget = InContentsWidget;
 }
 
+void UInventoryUIAction::Run_Implementation()
+{
+	checkf(0, TEXT("Override this!"));
+}
+
 void UInventoryUIAction::Finish()
 {
 	if (!InProgress)
@@ -57,7 +62,35 @@ bool UInventoryUIAction::Start(const FInventoryKey InKey)
 	return true;
 }
 
-void UInventoryUIAction::Run_Implementation()
+void UInventoryUIAction2::Run_Implementation() const {}
+
+void UInventoryUIAction2::Finish()
 {
-	checkf(0, TEXT("Override this!"));
+	if (!InProgress)
+	{
+		UE_LOG(LogInventoryUIAction, Error, TEXT("Action cannot finish. Is not in progress!"))
+		return;
+	}
+
+	InProgress = false;
+}
+
+EInventoryUIActionState UInventoryUIAction2::CanRunOnProxy_Implementation(UFaerieItemContainerBase* InContainer, const FEntryKey InKey) const
+{
+	return EInventoryUIActionState::Enabled;
+}
+
+bool UInventoryUIAction2::Start(UFaerieItemContainerBase* InContainer, const FEntryKey InKey)
+{
+	if (InProgress)
+	{
+		UE_LOG(LogInventoryUIAction, Error, TEXT("Action already in progress!"))
+		return false;
+	}
+
+	Container = InContainer;
+	Key = InKey;
+	InProgress = true;
+	Run();
+	return true;
 }

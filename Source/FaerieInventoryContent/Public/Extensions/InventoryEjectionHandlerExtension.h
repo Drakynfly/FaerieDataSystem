@@ -25,6 +25,8 @@ class FAERIEINVENTORYCONTENT_API UInventoryEjectionHandlerExtension : public UIt
 {
 	GENERATED_BODY()
 
+	friend struct FFaerieClientAction_EjectViaRelease;
+
 public:
 	//~ UItemContainerExtensionBase
 	virtual EEventExtensionResponse AllowsRemoval(const UFaerieItemContainerBase* Container, FEntryKey Key, FFaerieInventoryTag Reason) const override;
@@ -32,6 +34,8 @@ public:
 	//~ UItemContainerExtensionBase
 
 private:
+	void Enqueue(const FFaerieItemStack& Stack);
+
 	void HandleNextInQueue();
 
 	void PostLoadClassToSpawn(TSoftClassPtr<AItemRepresentationActor> ClassToSpawn);
@@ -56,6 +60,7 @@ private:
 	bool IsStreaming = false;
 };
 
+// Ejects an item in an Inventory Component
 USTRUCT(BlueprintType)
 struct FFaerieClientAction_EjectEntry final : public FFaerieClientActionBase
 {
@@ -67,5 +72,23 @@ struct FFaerieClientAction_EjectEntry final : public FFaerieClientActionBase
 	FInventoryKeyHandle Handle;
 
 	UPROPERTY(BlueprintReadWrite, Category = "RequestEjectEntry")
+	int32 Amount = -1;
+};
+
+// Ejects an item generically by releasing the content.
+USTRUCT(BlueprintType)
+struct FFaerieClientAction_EjectViaRelease final : public FFaerieClientActionBase
+{
+	GENERATED_BODY()
+
+	virtual bool Server_Execute(const UFaerieInventoryClient* Client) const override;
+
+	UPROPERTY(BlueprintReadWrite, Category = "EjectViaRelease")
+	TObjectPtr<UFaerieItemContainerBase> Container;
+
+	UPROPERTY(BlueprintReadWrite, Category = "EjectViaRelease")
+	FEntryKey Key;
+
+	UPROPERTY(BlueprintReadWrite, Category = "EjectViaRelease")
 	int32 Amount = -1;
 };
