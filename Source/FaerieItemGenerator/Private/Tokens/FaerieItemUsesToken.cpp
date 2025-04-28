@@ -36,6 +36,8 @@ void UFaerieItemUsesToken::AddUses(const int32 Amount, const bool ClampRemaining
 	}
 
 	NotifyOuterOfChange();
+
+	OnUsesChanged.Broadcast();
 }
 
 bool UFaerieItemUsesToken::RemoveUses(const int32 Amount)
@@ -47,6 +49,8 @@ bool UFaerieItemUsesToken::RemoveUses(const int32 Amount)
 		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, UsesRemaining, this);
 		UsesRemaining = FMath::Max(UsesRemaining - Amount, 0);
 		NotifyOuterOfChange();
+		OnUsesChanged.Broadcast();
+
 		return true;
 	}
 	return false;
@@ -62,6 +66,7 @@ void UFaerieItemUsesToken::ResetUses()
 	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, UsesRemaining, this);
 	UsesRemaining = MaxUses;
 	NotifyOuterOfChange();
+	OnUsesChanged.Broadcast();
 }
 
 void UFaerieItemUsesToken::SetMaxUses(const int32 NewMax, const bool ClampRemainingToMax)
@@ -80,4 +85,11 @@ void UFaerieItemUsesToken::SetMaxUses(const int32 NewMax, const bool ClampRemain
 	}
 
 	NotifyOuterOfChange();
+
+	OnUsesChanged.Broadcast();
+}
+
+void UFaerieItemUsesToken::OnRep_UsesRemaining()
+{
+	OnUsesChanged.Broadcast();
 }

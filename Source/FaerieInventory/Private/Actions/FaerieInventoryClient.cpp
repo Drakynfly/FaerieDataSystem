@@ -11,7 +11,7 @@ UFaerieInventoryClient::UFaerieInventoryClient()
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
-bool UFaerieInventoryClient::CanAccessContainer(const UFaerieItemContainerBase* Container) const
+bool UFaerieInventoryClient::CanAccessContainer(const UFaerieItemContainerBase* Container, const UScriptStruct* RequestType) const
 {
 	// @todo implement
 	/*
@@ -26,15 +26,15 @@ bool UFaerieInventoryClient::CanAccessContainer(const UFaerieItemContainerBase* 
 	return true;
 }
 
-bool UFaerieInventoryClient::CanAccessStorage(const UFaerieItemStorage* Storage) const
+bool UFaerieInventoryClient::CanAccessStorage(const UFaerieItemStorage* Storage, const UScriptStruct* RequestType) const
 {
-	return CanAccessContainer(Storage);
+	return CanAccessContainer(Storage, RequestType);
 }
 
 bool FFaerieClientAction_MoveFromStorage::IsValid(const UFaerieInventoryClient* Client) const
 {
 	if (!::IsValid(Storage) ||
-		!Client->CanAccessStorage(Storage) ||
+		!Client->CanAccessStorage(Storage, FFaerieClientAction_MoveHandlerBase::StaticStruct()) ||
 		!Storage->IsValidKey(Key) ||
 		!Faerie::ItemData::IsValidStack(Amount) ||
 		!Storage->CanRemoveStack(Key, Faerie::Inventory::Tags::RemovalMoving))
@@ -74,7 +74,7 @@ bool FFaerieClientAction_MoveFromStorage::Possess(const FFaerieItemStack& Stack)
 bool FFaerieClientAction_MoveToStorage::IsValid(const UFaerieInventoryClient* Client) const
 {
 	return ::IsValid(Storage) &&
-		Client->CanAccessStorage(Storage);
+		Client->CanAccessStorage(Storage, FFaerieClientAction_MoveHandlerBase::StaticStruct());
 }
 
 bool FFaerieClientAction_MoveToStorage::CanMove(const FFaerieItemStackView& View) const
@@ -205,7 +205,7 @@ bool FFaerieClientAction_DeleteEntry::Server_Execute(const UFaerieInventoryClien
 {
 	auto&& Storage = Handle.ItemStorage.Get();
 	if (!IsValid(Storage)) return false;
-	if (!Client->CanAccessStorage(Storage)) return false;
+	if (!Client->CanAccessStorage(Storage, StaticStruct())) return false;
 
 	return Storage->RemoveStack(Handle.Key, Faerie::Inventory::Tags::RemovalDeletion, Amount);
 }
@@ -215,7 +215,7 @@ bool FFaerieClientAction_RequestMoveEntry::Server_Execute(const UFaerieInventory
 	auto&& Storage = Handle.ItemStorage.Get();
 	if (!IsValid(Storage)) return false;
 	if (!IsValid(ToStorage)) return false;
-	if (!Client->CanAccessStorage(Storage)) return false;
+	if (!Client->CanAccessStorage(Storage, StaticStruct())) return false;
 
 	return Storage->MoveStack(ToStorage, Handle.Key, Amount).IsValid();
 }
@@ -223,13 +223,13 @@ bool FFaerieClientAction_RequestMoveEntry::Server_Execute(const UFaerieInventory
 bool FFaerieClientAction_MergeStacks::Server_Execute(const UFaerieInventoryClient* Client) const
 {
 	if (!IsValid(Storage)) return false;
-	if (!Client->CanAccessStorage(Storage)) return false;
+	if (!Client->CanAccessStorage(Storage, StaticStruct())) return false;
 	return Storage->MergeStacks(Entry, FromStack, ToStack, Amount);
 }
 
 bool FFaerieClientAction_SplitStack::Server_Execute(const UFaerieInventoryClient* Client) const
 {
 	if (!IsValid(Storage)) return false;
-	if (!Client->CanAccessStorage(Storage)) return false;
+	if (!Client->CanAccessStorage(Storage, StaticStruct())) return false;
 	return Storage->SplitStack(Key.EntryKey, Key.StackKey, Amount);
 }

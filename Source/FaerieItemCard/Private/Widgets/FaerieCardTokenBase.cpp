@@ -77,7 +77,7 @@ const UFaerieItemToken* UFaerieCardTokenBase::GetItemToken() const
 	return nullptr;
 }
 
-bool UFaerieCardTokenBase::GetItemTokenChecked(UFaerieItemToken*& Token) const
+bool UFaerieCardTokenBase::GetItemTokenChecked(UFaerieItemToken*& Token, TSubclassOf<UFaerieItemToken>) const
 {
 	// @todo again, BP doesn't understand const-ness :(
 	Token = const_cast<UFaerieItemToken*>(GetItemToken());

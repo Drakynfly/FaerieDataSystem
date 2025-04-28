@@ -5,6 +5,8 @@
 #include "FaerieItemToken.h"
 #include "FaerieItemUsesToken.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FFaerieRemainedUsesChanged);
+
 /**
  *
  */
@@ -56,9 +58,16 @@ public:
 	void SetMaxUses(const int32 NewMax, bool ClampRemainingToMax = true);
 
 protected:
+	UFUNCTION(/* Replication */)
+	void OnRep_UsesRemaining();
+
+protected:
 	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Replicated, Category = "ItemUses", meta = (ExposeOnSpawn))
 	int32 MaxUses;
 
-	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Replicated, Category = "ItemUses", meta = (ExposeOnSpawn))
+	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, ReplicatedUsing = OnRep_UsesRemaining, Category = "ItemUses", meta = (ExposeOnSpawn))
 	int32 UsesRemaining;
+
+	UPROPERTY(BlueprintAssignable, Category = "Event")
+	FFaerieRemainedUsesChanged OnUsesChanged;
 };

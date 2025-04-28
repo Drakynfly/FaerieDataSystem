@@ -6,7 +6,7 @@
 #include "FaerieDependencyFetcherInterface.generated.h"
 
 UINTERFACE(Blueprintable)
-class UFaerieDependencyFetcherInterface : public UInterface
+class FAERIEINVENTORYCONTENT_API UFaerieDependencyFetcherInterface : public UInterface
 {
 	GENERATED_BODY()
 };

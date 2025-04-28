@@ -5,7 +5,9 @@
 #include "InventoryDataStructs.h"
 #include "InventoryUIAction.generated.h"
 
+class UFaerieInventoryClient;
 class UFaerieItemContainerBase;
+
 // Responses to actions being unable to run.
 UENUM(BlueprintType)
 enum class EInventoryUIActionState : uint8
@@ -89,11 +91,14 @@ protected:
 	//virtual UWorld* GetWorld() const override;
 
 protected:
-	UFUNCTION(BlueprintNativeEvent, Category = "UI Action")
+	UFUNCTION(BlueprintNativeEvent, Category = "Faerie|UI Action")
 	void Run() const;
 
-	UFUNCTION(BlueprintCallable, Category = "UI Action")
+	UFUNCTION(BlueprintCallable, Category = "Faerie|UI Action")
 	void Finish();
+
+	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Faerie|UI Action", meta = (ExpandBoolAsExecs = "ReturnValue"))
+	bool GetFaerieClient(UFaerieInventoryClient*& Client) const;
 
 public:
 	/**
@@ -101,25 +106,25 @@ public:
 	 * This is not enforced by the action when ran, it is up to the implementing UI to restrict access to the action
 	 * when this returns false.
 	 */
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "UI Action")
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Faerie|UI Action")
 	EInventoryUIActionState CanRunOnProxy(UFaerieItemContainerBase* InContainer, FEntryKey InKey) const;
 
-	UFUNCTION(BlueprintCallable, Category = "UI Action")
+	UFUNCTION(BlueprintCallable, Category = "Faerie|UI Action")
 	bool Start(UFaerieItemContainerBase* InContainer, FEntryKey InKey);
 
 protected:
 	/** Text to display on user-facing button */
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "UI Action")
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Config")
 	FText ButtonLabel;
 
 	/** Icon to display on user-facing button */
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "UI Action")
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Config")
 	TSoftObjectPtr<UTexture2D> ButtonIcon;
 
-	UPROPERTY(BlueprintReadOnly, Category = "UI Action")
+	UPROPERTY(BlueprintReadOnly, Category = "State")
 	TObjectPtr<UFaerieItemContainerBase> Container;
 
-	UPROPERTY(BlueprintReadOnly, Category = "UI Action")
+	UPROPERTY(BlueprintReadOnly, Category = "State")
 	FEntryKey Key;
 
 private:

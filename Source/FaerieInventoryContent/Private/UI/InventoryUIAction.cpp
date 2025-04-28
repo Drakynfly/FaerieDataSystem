@@ -1,6 +1,7 @@
 // Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "UI/InventoryUIAction.h"
+#include "Actions/FaerieInventoryClient.h"
 #include "UI/InventoryContentsBase.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventoryUIAction)
@@ -73,6 +74,16 @@ void UInventoryUIAction2::Finish()
 	}
 
 	InProgress = false;
+}
+
+bool UInventoryUIAction2::GetFaerieClient(UFaerieInventoryClient*& Client) const
+{
+	if (const UUserWidget* OwningWidget = GetTypedOuter<UUserWidget>())
+	{
+		Client = OwningWidget->GetOwningPlayer()->GetComponentByClass<UFaerieInventoryClient>();
+		return IsValid(Client);
+	}
+	return false;
 }
 
 EInventoryUIActionState UInventoryUIAction2::CanRunOnProxy_Implementation(UFaerieItemContainerBase* InContainer, const FEntryKey InKey) const

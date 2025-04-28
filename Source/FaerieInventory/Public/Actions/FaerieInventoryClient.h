@@ -91,8 +91,9 @@ class FAERIEINVENTORY_API UFaerieInventoryClient : public UActorComponent
 public:
 	UFaerieInventoryClient();
 
-	bool CanAccessContainer(const UFaerieItemContainerBase* Container) const;
-	bool CanAccessStorage(const UFaerieItemStorage* Storage) const;
+	// Overrides for allowing a client to run a request on the server.
+	virtual bool CanAccessContainer(const UFaerieItemContainerBase* Container, const UScriptStruct* RequestType) const;
+	virtual bool CanAccessStorage(const UFaerieItemStorage* Storage, const UScriptStruct* RequestType) const;
 
 	/**
 	 * Sends a request to the server to perform an inventory related edit.

@@ -39,8 +39,8 @@ protected:
 	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Faerie|ItemCardToken")
 	const UFaerieItemToken* GetItemToken() const;
 
-	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Faerie|ItemCardToken", meta = (ExpandBoolAsExecs = "ReturnValue"))
-	bool GetItemTokenChecked(UFaerieItemToken*& Token) const;
+	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Faerie|ItemCardToken", meta = (ExpandBoolAsExecs = "ReturnValue", DynamicOutputParam = "Token", DeterminesOutputType = "Class"))
+	bool GetItemTokenChecked(UFaerieItemToken*& Token, TSubclassOf<UFaerieItemToken> Class) const;
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Faerie|ItemCardToken", meta = (DisplayName = "Refresh"))
 	void BP_Refresh();
