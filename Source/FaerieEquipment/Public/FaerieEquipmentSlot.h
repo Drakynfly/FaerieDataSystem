@@ -60,7 +60,7 @@ public:
 	//~ UFaerieItemContainerBase
 	virtual FFaerieContainerSaveData MakeSaveData() const override;
 	virtual void LoadSaveData(const FFaerieContainerSaveData& SaveData) override;
-	virtual bool IsValidKey(FEntryKey Key) const override;
+	virtual bool Contains(FEntryKey Key) const override;
 	virtual void ForEachKey(const TFunctionRef<void(FEntryKey)>& Func) const override;
 
 protected:

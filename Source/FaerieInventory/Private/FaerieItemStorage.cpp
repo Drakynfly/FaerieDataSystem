@@ -111,7 +111,7 @@ void UFaerieItemStorage::LoadSaveData(const FFaerieContainerSaveData& SaveData)
 	UnravelExtensionData(SaveData.ExtensionData);
 }
 
-bool UFaerieItemStorage::IsValidKey(const FEntryKey Key) const
+bool UFaerieItemStorage::Contains(const FEntryKey Key) const
 {
 	return EntryMap.Contains(Key);
 }
@@ -146,7 +146,7 @@ void UFaerieItemStorage::ForEachKey(const TFunctionRef<void(FEntryKey)>& Func) c
 
 int32 UFaerieItemStorage::GetStack(const FEntryKey Key) const
 {
-	if (!IsValidKey(Key)) return 0;
+	if (!Contains(Key)) return 0;
 
 	// Return the total items stored by this key, across all stacks, since this API doesn't know about stacks.
 	return GetEntryViewImpl(Key).Get().StackSum();
@@ -230,7 +230,7 @@ void UFaerieItemStorage::PostContentChanged(const FKeyedInventoryEntry& Entry)
 	}
 
 	// Call updates on any entry and stack proxies
-	if (IsValidKey(Entry.Key))
+	if (Contains(Entry.Key))
 	{
 		// @todo this is the usage of the Deprecated API that needs to be replaced, before we can remove it.
 		// It's the only time this API is called on the client (where we don't have event logs). Needs another solution!
@@ -347,7 +347,7 @@ UInventoryEntryProxy* UFaerieItemStorage::GetEntryProxyImpl(const FEntryKey Key)
 	NewEntryProxy->Key = Key;
 	NewEntryProxy->ItemStorage = This;
 
-	if (IsValidKey(Key))
+	if (Contains(Key))
 	{
 		NewEntryProxy->NotifyCreation();
 	}
@@ -394,7 +394,7 @@ UInventoryStackProxy* UFaerieItemStorage::GetStackProxyImpl(const FInventoryKey 
 
 void UFaerieItemStorage::GetEntryImpl(const FEntryKey Key, FInventoryEntry& Entry) const
 {
-	check(IsValidKey(Key))
+	check(Contains(Key))
 	Entry = EntryMap[Key];
 }
 
@@ -471,7 +471,7 @@ Faerie::Inventory::FEventLog UFaerieItemStorage::RemoveFromEntryImpl(const FEntr
                                                                 const FFaerieInventoryTag Reason)
 {
 	// RemoveEntryImpl should not be called with unvalidated parameters.
-	check(IsValidKey(Key));
+	check(Contains(Key));
 	check(Faerie::ItemData::IsValidStack(Amount));
 	check(Reason.MatchesTag(Faerie::Inventory::Tags::RemovalBase))
 
@@ -525,7 +525,7 @@ Faerie::Inventory::FEventLog UFaerieItemStorage::RemoveFromStackImpl(const FInve
 {
 	// RemoveEntryImpl should not be called with unvalidated parameters.
 	check(Faerie::ItemData::IsValidStack(Amount));
-	check(IsValidKey(Key.EntryKey));
+	check(Contains(Key.EntryKey));
 	check(Reason.MatchesTag(Faerie::Inventory::Tags::RemovalBase))
 
 	Faerie::Inventory::FEventLog Event;
@@ -611,7 +611,7 @@ TArray<FInventoryKey> UFaerieItemStorage::GetInvKeysForEntry(const FEntryKey Key
 {
 	TArray<FInventoryKey> Out;
 
-	if (!IsValidKey(Key)) return Out;
+	if (!Contains(Key)) return Out;
 
 	const FInventoryEntryView Entry = GetEntryViewImpl(Key);
 	Out.Reserve(Entry.Get().Stacks.Num());
@@ -638,12 +638,12 @@ int32 UFaerieItemStorage::GetStackCount() const
 
 bool UFaerieItemStorage::ContainsKey(const FEntryKey Key) const
 {
-	return IsValidKey(Key);
+	return Contains(Key);
 }
 
 bool UFaerieItemStorage::IsValidKey(const FInventoryKey Key) const
 {
-	if (!IsValidKey(Key.EntryKey)) return false;
+	if (!Contains(Key.EntryKey)) return false;
 	return GetEntryViewImpl(Key.EntryKey).Get().Contains(Key.StackKey);
 }
 
@@ -694,7 +694,7 @@ FInventoryKey UFaerieItemStorage::GetFirstKey() const
 
 bool UFaerieItemStorage::GetEntry(const FEntryKey Key, FInventoryEntry& Entry) const
 {
-	if (!IsValidKey(Key)) return false;
+	if (!Contains(Key)) return false;
 	GetEntryImpl(Key, Entry);
 	return true;
 }
@@ -949,7 +949,7 @@ FLoggedInventoryEvent UFaerieItemStorage::AddItemStackWithLog(const FFaerieItemS
 bool UFaerieItemStorage::RemoveEntry(const FEntryKey Key, const FFaerieInventoryTag RemovalTag, const int32 Amount)
 {
 	if (Amount == 0 || Amount < -1) return false;
-	if (!IsValidKey(Key)) return false;
+	if (!Contains(Key)) return false;
 	if (!CanRemoveEntry(Key, RemovalTag)) return false;
 
 	return RemoveFromEntryImpl(Key, Amount, RemovalTag).Success;
@@ -958,7 +958,7 @@ bool UFaerieItemStorage::RemoveEntry(const FEntryKey Key, const FFaerieInventory
 bool UFaerieItemStorage::RemoveStack(const FInventoryKey Key, const FFaerieInventoryTag RemovalTag, const int32 Amount)
 {
 	if (Amount == 0 || Amount < -1) return false;
-	if (!IsValidKey(Key.EntryKey)) return false;
+	if (!Contains(Key.EntryKey)) return false;
 
 	if (!RemovalTag.IsValid()) return false;
 
@@ -971,7 +971,7 @@ bool UFaerieItemStorage::TakeEntry(const FEntryKey Key, FFaerieItemStack& OutSta
                                    const FFaerieInventoryTag RemovalTag, const int32 Amount)
 {
 	if (Amount == 0 || Amount < -1) return false;
-	if (!IsValidKey(Key)) return false;
+	if (!Contains(Key)) return false;
 
 	if (!RemovalTag.IsValid()) return false;
 
@@ -992,7 +992,7 @@ bool UFaerieItemStorage::TakeStack(const FInventoryKey Key, FFaerieItemStack& Ou
 								   const FFaerieInventoryTag RemovalTag, const int32 Amount)
 {
 	if (Amount == 0 || Amount < -1) return false;
-	if (!IsValidKey(Key.EntryKey)) return false;
+	if (!Contains(Key.EntryKey)) return false;
 
 	if (!RemovalTag.IsValid()) return false;
 
@@ -1038,7 +1038,7 @@ FEntryKey UFaerieItemStorage::MoveStack(UFaerieItemStorage* ToStorage, const FIn
 {
 	if (!IsValid(ToStorage) ||
 		ToStorage == this ||
-		!IsValidKey(Key.EntryKey) ||
+		!Contains(Key.EntryKey) ||
 		!Faerie::ItemData::IsValidStack(Amount) ||
 		!CanRemoveStack(Key, Faerie::Inventory::Tags::RemovalMoving))
 	{
@@ -1069,7 +1069,7 @@ FEntryKey UFaerieItemStorage::MoveEntry(UFaerieItemStorage* ToStorage, const FEn
 {
 	if (!IsValid(ToStorage) ||
 		ToStorage == this ||
-		!IsValidKey(Key) ||
+		!Contains(Key) ||
 		!CanRemoveEntry(Key, Faerie::Inventory::Tags::RemovalMoving))
 	{
 		return FEntryKey::InvalidKey;
@@ -1101,7 +1101,7 @@ FEntryKey UFaerieItemStorage::MoveEntry(UFaerieItemStorage* ToStorage, const FEn
 
 bool UFaerieItemStorage::MergeStacks(const FEntryKey Entry, const FStackKey FromStack, const FStackKey ToStack, const int32 Amount)
 {
-	if (!IsValidKey(Entry) ||
+	if (!Contains(Entry) ||
 		!CanEditStack({Entry, FromStack}, Faerie::Inventory::Tags::Merge) ||
 		!CanEditStack({Entry, ToStack}, Faerie::Inventory::Tags::Merge))
 	{
@@ -1145,7 +1145,7 @@ bool UFaerieItemStorage::MergeStacks(const FEntryKey Entry, const FStackKey From
 
 bool UFaerieItemStorage::SplitStack(const FEntryKey Entry, const FStackKey Stack, const int32 Amount)
 {
-	if (!IsValidKey(Entry) ||
+	if (!Contains(Entry) ||
 		!CanEditStack({Entry, Stack}, Faerie::Inventory::Tags::Split))
 	{
 		return false;

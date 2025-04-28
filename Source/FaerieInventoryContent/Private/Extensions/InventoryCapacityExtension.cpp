@@ -159,7 +159,7 @@ void UInventoryCapacityExtension::UpdateCacheForEntry(const UFaerieItemContainer
 	auto&& ContainerCache = ServerCapacityCache.FindOrAdd(Container);
 	auto&& PrevCache = ContainerCache.Find(Key);
 
-	if (!Container->IsValidKey(Key))
+	if (!Container->Contains(Key))
 	{
 		if (PrevCache)
 		{

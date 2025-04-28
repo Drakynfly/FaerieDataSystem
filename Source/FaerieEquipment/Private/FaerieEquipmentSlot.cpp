@@ -65,7 +65,7 @@ void UFaerieEquipmentSlot::LoadSaveData(const FFaerieContainerSaveData& SaveData
 }
 
 //~ UFaerieItemContainerBase
-bool UFaerieEquipmentSlot::IsValidKey(const FEntryKey Key) const
+bool UFaerieEquipmentSlot::Contains(const FEntryKey Key) const
 {
 	return StoredKey == Key;
 }

@@ -316,7 +316,7 @@ void UInventorySpatialGridExtension::RebuildOccupiedCells()
 
 	for (const auto& SpatialEntry : GridContent)
 	{
-		if (!InitializedContainer->IsValidKey(SpatialEntry.Key.EntryKey))
+		if (!InitializedContainer->Contains(SpatialEntry.Key.EntryKey))
 		{
 			continue;
 		}

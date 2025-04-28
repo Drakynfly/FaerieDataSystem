@@ -57,12 +57,15 @@ protected:
 	/*		 ITEM ENTRY API			 */
 	/**------------------------------*/
 public:
-	virtual bool IsValidKey(FEntryKey Key) const PURE_VIRTUAL(UFaerieItemContainerBase::IsValidKey, return false; )
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainer")
+	virtual bool Contains(FEntryKey Key) const PURE_VIRTUAL(UFaerieItemContainerBase::Contains, return false; )
 
 	// Get a view of an entry
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainer")
 	virtual FFaerieItemStackView View(FEntryKey Key) const PURE_VIRTUAL(UFaerieItemContainerBase::View, return FFaerieItemStackView(); )
 
 	// Creates or retrieves a proxy for an entry
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainer")
 	virtual FFaerieItemProxy Proxy(FEntryKey Key) const PURE_VIRTUAL(UFaerieItemContainerBase::Proxy, return nullptr; )
 
 	// A more efficient overload of Release if we already know the Key.
@@ -72,6 +75,7 @@ public:
 	virtual void ForEachKey(const TFunctionRef<void(FEntryKey)>& Func) const PURE_VIRTUAL(UFaerieItemContainerBase::ForEachKey, ; )
 
 	// Get the stack for a key.
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainer")
 	virtual int32 GetStack(FEntryKey Key) const PURE_VIRTUAL(UFaerieItemContainerBase::GetStack, return 0; )
 
 protected:

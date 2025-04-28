@@ -46,7 +46,7 @@ bool UInventoryUserdataExtension::MarkStackWithTag(const UFaerieItemContainerBas
 		return false;
 	}
 
-	if (!Container->IsValidKey(Key))
+	if (!Container->Contains(Key))
 	{
 		return false;
 	}

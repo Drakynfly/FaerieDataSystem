@@ -118,7 +118,7 @@ void UInventoryItemLimitExtension::UpdateCacheForEntry(const UFaerieItemContaine
 		PrevEntryAmount = *ExistingCache;
 	}
 
-	if (!Container->IsValidKey(Key))
+	if (!Container->Contains(Key))
 	{
 		CurrentTotalItemCopies -= PrevEntryAmount;
 		EntryAmountCache.Remove(Key);

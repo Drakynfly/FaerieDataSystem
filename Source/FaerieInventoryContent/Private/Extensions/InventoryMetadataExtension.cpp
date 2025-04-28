@@ -90,7 +90,7 @@ bool UInventoryMetadataExtension::MarkStackWithTag(const UFaerieItemContainerBas
 		return false;
 	}
 
-	if (!Container->IsValidKey(Key))
+	if (!Container->Contains(Key))
 	{
 		return false;
 	}
@@ -104,7 +104,7 @@ bool UInventoryMetadataExtension::MarkStackWithTag(const UFaerieItemContainerBas
 
 void UInventoryMetadataExtension::TrySetTags(const UFaerieItemContainerBase* Container, const FEntryKey Key, const FGameplayTagContainer& Tags)
 {
-	if (!Container->IsValidKey(Key))
+	if (!Container->Contains(Key))
 	{
 		return;
 	}

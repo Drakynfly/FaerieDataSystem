@@ -110,7 +110,7 @@ bool UInventoryEntryStorageProxy::VerifyStatus() const
 	auto&& Storage = GetStorage();
 	auto&& Key = GetKey();
 
-	if (!IsValid(Storage) || !Storage->IsValidKey(Key))
+	if (!IsValid(Storage) || !Storage->Contains(Key))
 	{
 		UE_LOG(LogFaerieInventory, Warning, TEXT("InventoryEntryProxy is invalid! Debug State will follow:"))\
 		UE_LOG(LogFaerieInventory, Warning, TEXT("     Entry Cache: %s"), *GetName());

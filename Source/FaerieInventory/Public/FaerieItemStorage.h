@@ -80,7 +80,7 @@ public:
 	//~ UFaerieItemContainerBase
 	virtual FFaerieContainerSaveData MakeSaveData() const override;
 	virtual void LoadSaveData(const FFaerieContainerSaveData& SaveData) override;
-	virtual bool IsValidKey(FEntryKey Key) const override;
+	virtual bool Contains(FEntryKey Key) const override;
 	virtual FFaerieItemStackView View(FEntryKey Key) const override;
 	virtual FFaerieItemProxy Proxy(FEntryKey Key) const override;
 	virtual FFaerieItemStack Release(FEntryKey Key, int32 Copies) override;
