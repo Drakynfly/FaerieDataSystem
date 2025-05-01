@@ -33,6 +33,7 @@ public class FaerieItemMesh : ModuleRules
         PrivateDependencyModuleNames.AddRange(
             new[]
             {
+                "GeometryCore",
                 "GeometryScriptingCore",
                 "GeometryFramework"
             });

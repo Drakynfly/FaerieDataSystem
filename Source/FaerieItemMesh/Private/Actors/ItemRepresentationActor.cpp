@@ -35,6 +35,9 @@ void AItemRepresentationActor::RegenerateDataDisplay()
 
 void AItemRepresentationActor::SetSourceProxy(const FFaerieItemProxy Source)
 {
-	DataSource = Source;
-	RegenerateDataDisplay();
+	if (Source != DataSource)
+	{
+		DataSource = Source;
+		RegenerateDataDisplay();
+	}
 }

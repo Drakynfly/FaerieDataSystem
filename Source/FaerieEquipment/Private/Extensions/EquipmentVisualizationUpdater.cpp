@@ -230,22 +230,26 @@ void UEquipmentVisualizationUpdater::CreateNewVisualImpl(const UFaerieItemContai
 
 	// Path 2: A Visual Component
 	{
+		bool CanLeaderPoseMesh = false;
+
+		// Some extensions might ban leader poses (like items held in hands)
+		if (IsValid(SlotExtension))
+		{
+			if (SlotExtension->GetAllowLeaderPose())
+			{
+				CanLeaderPoseMesh = true;
+
+				// Reset attachment parent to main mesh when using LeaderPose.
+				Attachment.Parent = Cast<ACharacter>(Visualizer->GetOwner())->GetMesh();
+				Attachment.Socket = NAME_None;
+			}
+		}
+
 		UFaerieItemMeshComponent* NewVisual = Visualizer->SpawnVisualComponentNative<UFaerieItemMeshComponent>(
 			{ Proxy }, UFaerieItemMeshComponent::StaticClass(), Attachment);
 		if (!IsValid(NewVisual))
 		{
 			return;
-		}
-
-		bool CanLeaderPoseMesh = true;
-
-		// But some extensions might ban that (like items held in hands)
-		if (IsValid(SlotExtension))
-		{
-			if (!SlotExtension->GetAllowLeaderPose())
-			{
-				CanLeaderPoseMesh = false;
-			}
 		}
 
 		// If there is no AnimClass on the mesh, it would prefer using LeaderPose as a fallback
@@ -254,7 +258,7 @@ void UEquipmentVisualizationUpdater::CreateNewVisualImpl(const UFaerieItemContai
 			NewVisual->SetSkeletalMeshLeaderPoseComponent(Visualizer->GetLeaderBone());
 		}
 
-		NewVisual->SetIsReplicated(true); // Enable replication, as its off by default.
+		NewVisual->SetIsReplicated(true); // Enable replication, as it's off by default.
 		NewVisual->SetItemMeshFromToken(Proxy->GetItemObject()->GetToken<UFaerieMeshTokenBase>());
 		return;
 	}

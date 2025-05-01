@@ -27,6 +27,7 @@ void UFaerieItemMeshComponent::GetLifetimeReplicatedProps(TArray<class FLifetime
 	SharedParams.bIsPushBased = true;
 
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, SourceMeshToken, SharedParams);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, SkeletalMeshLeader, SharedParams);
 }
 
 void UFaerieItemMeshComponent::DestroyComponent(const bool bPromoteChildren)
@@ -48,6 +49,25 @@ void UFaerieItemMeshComponent::LoadMeshFromToken(const bool Async)
 	}
 
 	UFaerieMeshSubsystem* MeshSubsystem = GetWorld()->GetSubsystem<UFaerieMeshSubsystem>();
+	if (!IsValid(MeshSubsystem))
+	{
+#if WITH_EDITOR
+		// @todo: this is a hack to allow the editor to load meshes when world subsystems aren't available...
+		auto Loader = GetMutableDefault<UFaerieItemMeshLoader>();
+		if (Async)
+		{
+			Loader->LoadMeshFromTokenAsynchronous(SourceMeshToken, PreferredTag,
+				Faerie::FItemMeshAsyncLoadResult::CreateUObject(this, &ThisClass::AsyncLoadMeshReturn));
+		}
+		else
+		{
+			Loader->LoadMeshFromTokenSynchronous(SourceMeshToken, PreferredTag, MeshData);
+			RebuildMesh();
+		}
+#endif
+		return;
+	}
+
 	if (Async)
 	{
 		MeshSubsystem->LoadMeshFromTokenAsynchronous(SourceMeshToken, PreferredTag,
@@ -175,6 +195,12 @@ void UFaerieItemMeshComponent::RebuildMesh()
 			{
 				StaticMesh->SetMaterial(i, MeshData.Materials[i].Material);
 			}
+
+			if (CenterMeshByBounds)
+			{
+				auto BoundsOrigin = StaticMesh->GetStaticMesh()->GetBounds().Origin;
+				StaticMesh->AddLocalOffset(-BoundsOrigin);
+			}
 		}
 		break;
 	case EItemMeshType::Dynamic:
@@ -182,6 +208,12 @@ void UFaerieItemMeshComponent::RebuildMesh()
 		{
 			DynamicMesh->SetDynamicMesh(MeshData.GetDynamic());
 			DynamicMesh->ConfigureMaterialSet(UFaerieMeshStructsLibrary::FaerieItemMaterialsToObjectArray(MeshData.Materials));
+
+			if (CenterMeshByBounds)
+			{
+				auto BoundsOrigin = DynamicMesh->GetMesh()->GetBounds().Center();
+				DynamicMesh->AddLocalOffset(-BoundsOrigin);
+			}
 		}
 		break;
 	case EItemMeshType::Skeletal:
@@ -195,7 +227,7 @@ void UFaerieItemMeshComponent::RebuildMesh()
 			}
 			else
 			{
-				// If there is no AnimClass, maybe we were supposed to be a LeaderPose component. Check if our parent supports this
+				// If there is no AnimClass, maybe we were supposed to be a LeaderPose component.
 				if (IsValid(SkeletalMeshLeader))
 				{
 					SkeletalMesh->SetLeaderPoseComponent(SkeletalMeshLeader, true);
@@ -205,10 +237,18 @@ void UFaerieItemMeshComponent::RebuildMesh()
 			{
 				SkeletalMesh->SetMaterial(i, MeshData.Materials[i].Material);
 			}
+
+			if (CenterMeshByBounds)
+			{
+				auto BoundsOrigin = SkeletalMesh->GetSkeletalMeshAsset()->GetBounds().Origin;
+				SkeletalMesh->AddLocalOffset(-BoundsOrigin);
+			}
 		}
 		break;
 	default: checkNoEntry();
 	}
+
+	OnMeshRebuilt.Broadcast();
 }
 
 void UFaerieItemMeshComponent::OnRep_SourceMeshToken()
@@ -216,13 +256,26 @@ void UFaerieItemMeshComponent::OnRep_SourceMeshToken()
 	LoadMeshFromToken(true);
 }
 
+void UFaerieItemMeshComponent::OnRep_SkeletalMeshLeader()
+{
+	if (USkeletalMeshComponent* SkeletalMesh = Cast<USkeletalMeshComponent>(MeshComponent))
+	{
+		if (IsValid(SkeletalMeshLeader))
+		{
+			SkeletalMesh->SetLeaderPoseComponent(SkeletalMeshLeader, true);
+		}
+		else
+		{
+			SkeletalMesh->SetLeaderPoseComponent(nullptr, true);
+		}
+	}
+}
+
 void UFaerieItemMeshComponent::SetItemMesh(const FFaerieItemMesh& InMeshData)
 {
 	if (MeshData != InMeshData)
 	{
-		// Clear the SourceMeshToken so it cannot overwrite this mesh.
-		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, SourceMeshToken, this);
-		SourceMeshToken = nullptr;
+		COMPARE_ASSIGN_AND_MARK_PROPERTY_DIRTY(ThisClass, SourceMeshToken, nullptr, this);
 
 		MeshData = InMeshData;
 		RebuildMesh();
@@ -241,13 +294,16 @@ void UFaerieItemMeshComponent::SetItemMeshFromToken(const UFaerieMeshTokenBase* 
 
 void UFaerieItemMeshComponent::SetSkeletalMeshLeaderPoseComponent(USkinnedMeshComponent* LeaderComponent)
 {
-	SkeletalMeshLeader = LeaderComponent;
+	COMPARE_ASSIGN_AND_MARK_PROPERTY_DIRTY(ThisClass, SkeletalMeshLeader, LeaderComponent, this);
 }
 
 void UFaerieItemMeshComponent::ClearItemMesh()
 {
 	ActualType = EItemMeshType::None;
 	MeshData = FFaerieItemMesh();
+
+	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, SourceMeshToken, this);
+	SourceMeshToken = nullptr;
 
 	if (IsValid(MeshComponent))
 	{

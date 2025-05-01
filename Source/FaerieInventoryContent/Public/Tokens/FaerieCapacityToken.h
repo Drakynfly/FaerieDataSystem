@@ -18,6 +18,8 @@ class FAERIEINVENTORYCONTENT_API UFaerieCapacityToken : public UFaerieItemToken
 public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
+	static UFaerieCapacityToken* CreateInstance(const FItemCapacity& Capacity);
+
 	FItemCapacity GetCapacity() const { return Capacity; }
 
 	UFUNCTION(BlueprintCallable, Category = "CapacityToken")

@@ -36,7 +36,8 @@ public class FaerieItemDataEditor : ModuleRules
                 "KismetCompiler",
                 "Slate",
                 "SlateCore",
-                "UnrealEd"
+                "UnrealEd",
+                "FaerieInventoryContent" // Refactor modules...
             }
         );
     }

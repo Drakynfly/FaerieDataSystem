@@ -11,10 +11,14 @@
 
 class UFaerieMeshTokenBase;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMeshRebuilt);
+
 UCLASS(ClassGroup = ("Faerie"), meta = (BlueprintSpawnableComponent))
 class FAERIEITEMMESH_API UFaerieItemMeshComponent : public USceneComponent
 {
 	GENERATED_BODY()
+
+	friend class FFaerieItemAssetPreviewScene;
 
 public:
 	UFaerieItemMeshComponent();
@@ -31,6 +35,9 @@ protected:
 
 	UFUNCTION(/* Replication */)
 	void OnRep_SourceMeshToken();
+
+	UFUNCTION(/* Replication */)
+	void OnRep_SkeletalMeshLeader();
 
 public:
 	// Set the mesh to use directly. This is local only, as the ItemMesh struct does not replicate.
@@ -58,11 +65,14 @@ public:
 	FBoxSphereBounds GetBounds() const;
 
 protected:
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnMeshRebuilt OnMeshRebuilt;
+
 	UPROPERTY(VisibleInstanceOnly, ReplicatedUsing = "OnRep_SourceMeshToken", BlueprintReadOnly, Category = "Config")
 	TObjectPtr<const UFaerieMeshTokenBase> SourceMeshToken;
 
 	// Leader component if LeaderPose is allowed.
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Config")
+	UPROPERTY(VisibleInstanceOnly, ReplicatedUsing = "OnRep_SkeletalMeshLeader", BlueprintReadOnly, Category = "Config")
 	TObjectPtr<USkinnedMeshComponent> SkeletalMeshLeader;
 
 	// The MeshPurpose preferred by this Component. Only matters if SourceMeshToken is set.
@@ -77,6 +87,10 @@ protected:
 	// If this component is allowed to exist without any mesh then enable this.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Config")
 	bool AllowNullMeshes = false;
+
+	// Center the mesh according to its bounding box, instead of using its origin point.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Config")
+	bool CenterMeshByBounds = false;
 
 	// If the mesh data does not have the preferred type, this stores the actual type used.
 	UPROPERTY(BlueprintReadOnly, Category = "State")

@@ -25,11 +25,12 @@ public:
 	virtual void NativeConstruct() override;
 	//~ UUserWidget
 
+	FOnCardRefreshed::RegistrationType& GetOnCardRefreshed() { return OnCardRefreshed; }
+
 	void SetItemData(FFaerieItemProxy InItemProxy, bool bRefresh);
 
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemCard")
 	FFaerieItemProxy GetItemData() const { return ItemProxy; }
-
-	FOnCardRefreshed::RegistrationType& GetOnCardRefreshed() { return OnCardRefreshed; }
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemCard")
 	FFaerieItemStackView GetStackView() const;

@@ -30,7 +30,7 @@ FFaerieItemAssetViewportClient::FFaerieItemAssetViewportClient(const TSharedRef<
 
 	// Set the Default type to Ortho and the XZ Plane
 	ELevelViewportType NewViewportType = LVT_Perspective;
-	SetViewportType(NewViewportType);
+	FFaerieItemAssetViewportClient::SetViewportType(NewViewportType);
 
 	// View Modes in Persp and Ortho
 	SetViewModes(VMI_Lit, VMI_Lit);

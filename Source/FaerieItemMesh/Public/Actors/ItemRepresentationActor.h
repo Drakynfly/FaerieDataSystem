@@ -6,6 +6,8 @@
 #include "GameFramework/Actor.h"
 #include "ItemRepresentationActor.generated.h"
 
+class UFaerieItemMeshLoader;
+
 /**
  * The base actor class for physical representations of inventory entries.
  */
@@ -13,6 +15,8 @@ UCLASS(Abstract)
 class FAERIEITEMMESH_API AItemRepresentationActor : public AActor
 {
 	GENERATED_BODY()
+
+	friend class FFaerieItemAssetPreviewScene;
 
 public:
 	AItemRepresentationActor();

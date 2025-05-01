@@ -68,6 +68,15 @@ const UFaerieItem* UFaerieCardTokenBase::GetItem() const
 	return nullptr;
 }
 
+FFaerieItemProxy UFaerieCardTokenBase::GetProxy() const
+{
+	if (auto&& Card = GetOwningCard())
+	{
+		return Card->GetItemData();
+	}
+	return nullptr;
+}
+
 const UFaerieItemToken* UFaerieCardTokenBase::GetItemToken() const
 {
 	if (auto&& ItemObj = GetItem())

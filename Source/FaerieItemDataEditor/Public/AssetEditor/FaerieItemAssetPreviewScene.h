@@ -4,6 +4,8 @@
 
 #include "AdvancedPreviewScene.h"
 
+class AItemRepresentationActor;
+class UBoxComponent;
 class UFaerieItemMeshLoader;
 class UFaerieItemMeshComponent;
 class FFaerieItemAssetEditor;
@@ -34,7 +36,9 @@ public:
 
 private:
 	TObjectPtr<AActor> Actor;
+	TObjectPtr<AItemRepresentationActor> ItemActor;
 	TObjectPtr<UStaticMeshComponent> DefaultCube = nullptr;
+	TObjectPtr<UBoxComponent> BoundsBox = nullptr;
 	TObjectPtr<UFaerieItemMeshComponent> ItemMeshComponent;
 	TObjectPtr<UFaerieItemMeshLoader> MeshLoader;
 

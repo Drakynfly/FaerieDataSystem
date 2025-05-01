@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "FaerieItemProxy.h"
 #include "Blueprint/UserWidget.h"
 #include "FaerieCardTokenBase.generated.h"
 
@@ -35,6 +36,9 @@ protected:
 
 	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Faerie|ItemCardToken")
 	const UFaerieItem* GetItem() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemCardToken")
+	FFaerieItemProxy GetProxy() const;
 
 	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Faerie|ItemCardToken")
 	const UFaerieItemToken* GetItemToken() const;

@@ -26,7 +26,7 @@ void UVisualSlotExtension::SetComponentTag(const FName InComponentTag)
 	COMPARE_ASSIGN_AND_MARK_PROPERTY_DIRTY(ThisClass, ComponentTag, InComponentTag, this);
 }
 
-void UVisualSlotExtension::SetAllowLeaderPose(bool InAllowLeaderPose)
+void UVisualSlotExtension::SetAllowLeaderPose(const bool InAllowLeaderPose)
 {
 	COMPARE_ASSIGN_AND_MARK_PROPERTY_DIRTY(ThisClass, AllowLeaderPose, InAllowLeaderPose, this);
 }

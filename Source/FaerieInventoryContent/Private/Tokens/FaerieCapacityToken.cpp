@@ -10,9 +10,14 @@ void UFaerieCapacityToken::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	FDoRepLifetimeParams Params;
-	Params.bIsPushBased = true;
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, Capacity, Params);
+	DOREPLIFETIME_CONDITION(ThisClass, Capacity, COND_InitialOnly);
+}
+
+UFaerieCapacityToken* UFaerieCapacityToken::CreateInstance(const FItemCapacity& Capacity)
+{
+	UFaerieCapacityToken* NewToken = NewObject<UFaerieCapacityToken>();
+	NewToken->Capacity = Capacity;
+	return NewToken;
 }
 
 int32 UFaerieCapacityToken::GetWeightOfStack(const int32 Stack) const
