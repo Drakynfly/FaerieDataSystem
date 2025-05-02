@@ -14,6 +14,8 @@ void UFaerieItemUsesToken::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 	SharedParams.bIsPushBased = true;
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, UsesRemaining, SharedParams);
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, MaxUses, SharedParams);
+
+	DOREPLIFETIME_CONDITION(ThisClass, DestroyItemOnLastUse, COND_InitialOnly);
 }
 
 bool UFaerieItemUsesToken::HasUses(const int32 TestUses) const

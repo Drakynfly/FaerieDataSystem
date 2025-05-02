@@ -20,11 +20,9 @@ public:
 
 	virtual bool IsMutable() const override { return true; }
 
-	UFUNCTION(BlueprintCallable, Category = "FaerieToken|Uses")
-	int32 GetUsesRemaining() const { return UsesRemaining; }
-
-	UFUNCTION(BlueprintCallable, Category = "FaerieToken|Uses")
 	int32 GetMaxUses() const { return MaxUses; }
+	int32 GetUsesRemaining() const { return UsesRemaining; }
+	bool GetDestroyItemOnLastUse() const { return DestroyItemOnLastUse; }
 
 	UFUNCTION(BlueprintCallable, Category = "FaerieToken|Uses")
 	bool HasUses(int32 TestUses) const;
@@ -67,6 +65,10 @@ protected:
 
 	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, ReplicatedUsing = OnRep_UsesRemaining, Category = "ItemUses", meta = (ExposeOnSpawn))
 	int32 UsesRemaining;
+
+	// Should this item be destroyed when its uses run out? Replicates once on token creation.
+	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Replicated, Category = "ItemUses", meta = (ExposeOnSpawn))
+	bool DestroyItemOnLastUse = true;
 
 	UPROPERTY(BlueprintAssignable, Category = "Event")
 	FFaerieRemainedUsesChanged OnUsesChanged;
