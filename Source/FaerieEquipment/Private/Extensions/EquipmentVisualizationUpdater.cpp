@@ -231,7 +231,7 @@ void UEquipmentVisualizationUpdater::CreateNewVisualImpl(const UFaerieItemContai
 	// Path 2: A Visual Component
 	{
 		bool CanLeaderPoseMesh = false;
-		FGameplayTag PreferredTag;
+		FGameplayTag PreferredTag = Visualizer->GetPreferredTag();
 
 		// Some extensions might ban leader poses (like items held in hands)
 		if (IsValid(SlotExtension))
@@ -248,10 +248,6 @@ void UEquipmentVisualizationUpdater::CreateNewVisualImpl(const UFaerieItemContai
 			if (SlotExtension->GetPreferredTag().IsValid())
 			{
 				PreferredTag = SlotExtension->GetPreferredTag();
-			}
-			else
-			{
-				PreferredTag = Visualizer->GetPreferredTag();
 			}
 		}
 
