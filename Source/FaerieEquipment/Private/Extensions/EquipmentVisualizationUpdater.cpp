@@ -231,6 +231,7 @@ void UEquipmentVisualizationUpdater::CreateNewVisualImpl(const UFaerieItemContai
 	// Path 2: A Visual Component
 	{
 		bool CanLeaderPoseMesh = false;
+		FGameplayTag PreferredTag;
 
 		// Some extensions might ban leader poses (like items held in hands)
 		if (IsValid(SlotExtension))
@@ -242,6 +243,15 @@ void UEquipmentVisualizationUpdater::CreateNewVisualImpl(const UFaerieItemContai
 				// Reset attachment parent to main mesh when using LeaderPose.
 				Attachment.Parent = Cast<ACharacter>(Visualizer->GetOwner())->GetMesh();
 				Attachment.Socket = NAME_None;
+			}
+
+			if (SlotExtension->GetPreferredTag().IsValid())
+			{
+				PreferredTag = SlotExtension->GetPreferredTag();
+			}
+			else
+			{
+				PreferredTag = Visualizer->GetPreferredTag();
 			}
 		}
 
@@ -258,6 +268,7 @@ void UEquipmentVisualizationUpdater::CreateNewVisualImpl(const UFaerieItemContai
 			NewVisual->SetSkeletalMeshLeaderPoseComponent(Visualizer->GetLeaderBone());
 		}
 
+		NewVisual->SetPreferredTag(PreferredTag);
 		NewVisual->SetIsReplicated(true); // Enable replication, as it's off by default.
 		NewVisual->SetItemMeshFromToken(Proxy->GetItemObject()->GetToken<UFaerieMeshTokenBase>());
 		return;

@@ -28,6 +28,7 @@ void UFaerieItemMeshComponent::GetLifetimeReplicatedProps(TArray<class FLifetime
 
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, SourceMeshToken, SharedParams);
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, SkeletalMeshLeader, SharedParams);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, PreferredTag, SharedParams);
 }
 
 void UFaerieItemMeshComponent::DestroyComponent(const bool bPromoteChildren)
@@ -271,6 +272,12 @@ void UFaerieItemMeshComponent::OnRep_SkeletalMeshLeader()
 	}
 }
 
+void UFaerieItemMeshComponent::OnRep_PreferredTag()
+{
+	RebuildMesh();
+	LoadMeshFromToken(true);
+}
+
 void UFaerieItemMeshComponent::SetItemMesh(const FFaerieItemMesh& InMeshData)
 {
 	if (MeshData != InMeshData)
@@ -316,6 +323,7 @@ void UFaerieItemMeshComponent::SetPreferredTag(const FGameplayTag MeshTag)
 {
 	if (PreferredTag != MeshTag)
 	{
+		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, PreferredTag, this);
 		PreferredTag = MeshTag;
 		LoadMeshFromToken(true);
 	}

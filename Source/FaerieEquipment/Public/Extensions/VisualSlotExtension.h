@@ -6,7 +6,7 @@
 #include "VisualSlotExtension.generated.h"
 
 /**
- * A simple token for adding a Slot FName to containers.
+ * An extension for configuring the behavior of Visualizers spawned for EquipmentSlots
  */
 UCLASS()
 class FAERIEEQUIPMENT_API UVisualSlotExtension : public UItemContainerExtensionBase
@@ -18,6 +18,7 @@ public:
 
 	FName GetSocket() const { return Socket; }
 	FName GetComponentTag() const { return ComponentTag; }
+	FGameplayTag GetPreferredTag() const { return PreferredTag; }
 	bool GetAllowLeaderPose() const { return AllowLeaderPose; }
 
 	UFUNCTION(BlueprintSetter, Category = "Faerie|VisualSlotExtension")
@@ -25,6 +26,9 @@ public:
 
 	UFUNCTION(BlueprintSetter, Category = "Faerie|VisualSlotExtension")
 	void SetComponentTag(FName InComponentTag);
+
+	UFUNCTION(BlueprintSetter, Category = "Faerie|VisualSlotExtension")
+	void SetPreferredTag(FGameplayTag InPreferredTag);
 
 	UFUNCTION(BlueprintSetter, Category = "Faerie|VisualSlotExtension")
 	void SetAllowLeaderPose(bool InAllowLeaderPose);
@@ -35,6 +39,10 @@ protected:
 
 	UPROPERTY(EditAnywhere, Replicated, BlueprintSetter = "SetComponentTag", Category = "VisualSlotExtension")
 	FName ComponentTag;
+
+	// The MeshPurpose preferred for Visuals attached to this slot.
+	UPROPERTY(EditAnywhere, Replicated, BlueprintSetter = "SetPreferredTag", Category = "VisualSlotExtension", meta = (Categories = "MeshPurpose"))
+	FGameplayTag PreferredTag;
 
 	UPROPERTY(EditAnywhere, Replicated, BlueprintSetter = "SetAllowLeaderPose", Category = "VisualSlotExtension")
 	bool AllowLeaderPose = true;

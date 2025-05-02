@@ -39,6 +39,9 @@ protected:
 	UFUNCTION(/* Replication */)
 	void OnRep_SkeletalMeshLeader();
 
+	UFUNCTION(/* Replication */)
+	void OnRep_PreferredTag();
+
 public:
 	// Set the mesh to use directly. This is local only, as the ItemMesh struct does not replicate.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataMesh")
@@ -76,11 +79,13 @@ protected:
 	TObjectPtr<USkinnedMeshComponent> SkeletalMeshLeader;
 
 	// The MeshPurpose preferred by this Component. Only matters if SourceMeshToken is set.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Config", meta = (Categories = "MeshPurpose"))
+	UPROPERTY(EditAnywhere, ReplicatedUsing = "OnRep_PreferredTag", BlueprintReadOnly, Category = "Config", meta = (Categories = "MeshPurpose"))
 	FGameplayTag PreferredTag;
 
 	// If MeshData contains this type, it will be used.
 	// Otherwise, they will be chosen in the order static->dynamic->skeletal.
+	// @todo this doesn't work, as MeshData almost always only contains a single value unless SetItemMesh is manually called.
+	// @todo if this is fixed, then this should replicate as well.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Config")
 	EItemMeshType PreferredType;
 
