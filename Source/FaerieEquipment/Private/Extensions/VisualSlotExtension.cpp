@@ -2,6 +2,7 @@
 
 #include "Extensions/VisualSlotExtension.h"
 #include "Net/UnrealNetwork.h"
+#include "Net/Core/PushModel/PushModel.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(VisualSlotExtension)
 

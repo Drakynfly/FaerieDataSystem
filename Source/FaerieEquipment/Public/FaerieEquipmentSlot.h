@@ -3,8 +3,8 @@
 #pragma once
 
 #include "FaerieEquipmentSlotConfig.h"
+#include "FaerieInventoryTag.h"
 #include "FaerieItemContainerBase.h"
-#include "FaerieItemDataProxy.h"
 #include "FaerieSlotTag.h"
 #include "FlakesData.h"
 #include "Actions/FaerieInventoryClient.h"

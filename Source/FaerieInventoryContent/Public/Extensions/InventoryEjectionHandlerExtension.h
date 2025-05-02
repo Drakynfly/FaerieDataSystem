@@ -4,6 +4,7 @@
 
 #include "ItemContainerExtensionBase.h"
 #include "FaerieItemStack.h"
+#include "InventoryDataStructs.h"
 #include "TypedGameplayTags.h"
 #include "Actions/FaerieInventoryClient.h"
 
@@ -84,10 +85,7 @@ struct FFaerieClientAction_EjectViaRelease final : public FFaerieClientActionBas
 	virtual bool Server_Execute(const UFaerieInventoryClient* Client) const override;
 
 	UPROPERTY(BlueprintReadWrite, Category = "EjectViaRelease")
-	TObjectPtr<UFaerieItemContainerBase> Container;
-
-	UPROPERTY(BlueprintReadWrite, Category = "EjectViaRelease")
-	FEntryKey Key;
+	FContainerEntryHandle Handle;
 
 	UPROPERTY(BlueprintReadWrite, Category = "EjectViaRelease")
 	int32 Amount = -1;

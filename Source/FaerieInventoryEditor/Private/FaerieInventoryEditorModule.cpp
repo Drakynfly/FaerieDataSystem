@@ -1,6 +1,7 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieInventoryEditorModule.h"
+#include "FaerieInventoryTag.h"
 #include "GameplayTagsEditorModule.h"
 #include "InventoryDataStructs.h"
 #include "Customizations/SimpleInlineHeaderStructCustomization.h"

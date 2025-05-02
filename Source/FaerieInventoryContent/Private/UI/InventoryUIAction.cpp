@@ -63,7 +63,12 @@ bool UInventoryUIAction::Start(const FInventoryKey InKey)
 	return true;
 }
 
-void UInventoryUIAction2::Run_Implementation() const {}
+void UInventoryUIAction2::Run_Implementation(const FContainerEntryHandle Handle) const {}
+
+UInventoryUIAction2* UInventoryUIAction2::GetActionInstance(const TSubclassOf<UInventoryUIAction2> Class)
+{
+	return Class.GetDefaultObject();
+}
 
 void UInventoryUIAction2::Finish()
 {
@@ -86,12 +91,12 @@ bool UInventoryUIAction2::GetFaerieClient(UFaerieInventoryClient*& Client) const
 	return false;
 }
 
-EInventoryUIActionState UInventoryUIAction2::CanRunOnProxy_Implementation(UFaerieItemContainerBase* InContainer, const FEntryKey InKey) const
+EInventoryUIActionState UInventoryUIAction2::CanRunOnProxy_Implementation(const FContainerEntryHandle Handle) const
 {
 	return EInventoryUIActionState::Enabled;
 }
 
-bool UInventoryUIAction2::Start(UFaerieItemContainerBase* InContainer, const FEntryKey InKey)
+bool UInventoryUIAction2::Start(FContainerEntryHandle Handle)
 {
 	if (InProgress)
 	{
@@ -99,9 +104,7 @@ bool UInventoryUIAction2::Start(UFaerieItemContainerBase* InContainer, const FEn
 		return false;
 	}
 
-	Container = InContainer;
-	Key = InKey;
 	InProgress = true;
-	Run();
+	Run(Handle);
 	return true;
 }

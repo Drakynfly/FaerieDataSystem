@@ -82,17 +82,18 @@ private:
 /**
  * Second iteration of UI Actions
  */
-UCLASS(Abstract, Const, Blueprintable, BlueprintType)
+UCLASS(Abstract, Const, Blueprintable, BlueprintType, meta = (ShowWorldContextPin))
 class FAERIEINVENTORYCONTENT_API UInventoryUIAction2 : public UObject
 {
 	GENERATED_BODY()
 
-protected:
-	//virtual UWorld* GetWorld() const override;
+public:
+	UFUNCTION(BlueprintCallable, Category = "Faerie|UI Action", meta = (DeterminesOutput = "Class"))
+	static UInventoryUIAction2* GetActionInstance(TSubclassOf<UInventoryUIAction2> Class);
 
 protected:
 	UFUNCTION(BlueprintNativeEvent, Category = "Faerie|UI Action")
-	void Run() const;
+	void Run(FContainerEntryHandle Handle) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|UI Action")
 	void Finish();
@@ -107,10 +108,10 @@ public:
 	 * when this returns false.
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Faerie|UI Action")
-	EInventoryUIActionState CanRunOnProxy(UFaerieItemContainerBase* InContainer, FEntryKey InKey) const;
+	EInventoryUIActionState CanRunOnProxy(FContainerEntryHandle Handle) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|UI Action")
-	bool Start(UFaerieItemContainerBase* InContainer, FEntryKey InKey);
+	bool Start(FContainerEntryHandle Handle);
 
 protected:
 	/** Text to display on user-facing button */
@@ -120,12 +121,6 @@ protected:
 	/** Icon to display on user-facing button */
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Config")
 	TSoftObjectPtr<UTexture2D> ButtonIcon;
-
-	UPROPERTY(BlueprintReadOnly, Category = "State")
-	TObjectPtr<UFaerieItemContainerBase> Container;
-
-	UPROPERTY(BlueprintReadOnly, Category = "State")
-	FEntryKey Key;
 
 private:
 	bool InProgress = false;

@@ -5,7 +5,6 @@
 #include "FaerieGridEnums.h"
 #include "FaerieGridStructs.h"
 #include "ItemContainerExtensionBase.h"
-#include "Tokens/FaerieShapeToken.h"
 #include "InventoryGridExtensionBase.generated.h"
 
 using FFaerieGridSizeChangedNative = TMulticastDelegate<void(FIntPoint)>;

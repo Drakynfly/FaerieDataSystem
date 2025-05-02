@@ -4,8 +4,8 @@
 
 #include "NetSupportedObject.h"
 #include "FaerieContainerExtensionInterface.h"
+#include "FaerieItemContainerStructs.h"
 #include "FaerieItemOwnerInterface.h"
-#include "InventoryDataStructs.h"
 #include "FaerieItemContainerBase.generated.h"
 
 class UItemContainerExtensionBase;

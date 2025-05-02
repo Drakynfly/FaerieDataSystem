@@ -5,11 +5,9 @@
 #include "FaerieDefinitions.h"
 #include "BinarySearchOptimizedArray.h"
 #include "FaerieFastArraySerializerHack.h"
+#include "FaerieItemContainerStructs.h"
+#include "FaerieItemKey.h"
 #include "FaerieItemStackView.h"
-#include "GameplayTagContainer.h"
-#include "TTypedTagStaticImpl2.h"
-#include "Net/Serialization/FastArraySerializer.h"
-#include "StructUtils/StructView.h"
 #include "InventoryDataStructs.generated.h"
 
 enum class EEntryEquivalencyFlags : uint8;
@@ -18,109 +16,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogInventoryStructs, Log, All)
 
 LLM_DECLARE_TAG(ItemStorage);
 
-/**
- * A unique key that maps to a faerie item in some way that is persistent across the network and play-sessions.
- * Usually only guaranteed to be unique per implementing container.
- * Moving an item between containers will not preserve the key.
- */
-USTRUCT(BlueprintType)
-struct FFaerieItemKeyBase
-{
-	GENERATED_BODY()
-
-	FFaerieItemKeyBase() = default;
-
-	explicit FFaerieItemKeyBase(const int32 Value)
-	  : KeyValue(Value) {}
-
-private:
-	UPROPERTY(VisibleAnywhere, Category = "FaerieItemKeyBase")
-	int32 KeyValue = INDEX_NONE;
-
-public:
-	bool IsValid() const
-	{
-		return KeyValue > INDEX_NONE;
-	}
-
-	friend bool operator==(const FFaerieItemKeyBase& Lhs, const FFaerieItemKeyBase& Rhs)
-	{
-		return Lhs.KeyValue == Rhs.KeyValue;
-	}
-
-	friend bool operator!=(const FFaerieItemKeyBase& Lhs, const FFaerieItemKeyBase& Rhs)
-	{
-		return !(Lhs == Rhs);
-	}
-
-	FORCEINLINE friend uint32 GetTypeHash(const FFaerieItemKeyBase& Key)
-	{
-		return Key.KeyValue;
-	}
-
-	friend bool operator<(const FFaerieItemKeyBase& Lhs, const FFaerieItemKeyBase& Rhs)
-	{
-		return Lhs.KeyValue < Rhs.KeyValue;
-	}
-
-	friend bool operator<=(const FFaerieItemKeyBase& Lhs, const FFaerieItemKeyBase& Rhs) { return Rhs >= Lhs; }
-	friend bool operator>(const FFaerieItemKeyBase& Lhs, const FFaerieItemKeyBase& Rhs) { return Rhs < Lhs; }
-	friend bool operator>=(const FFaerieItemKeyBase& Lhs, const FFaerieItemKeyBase& Rhs) { return !(Lhs < Rhs); }
-
-	int32 Value() const { return KeyValue; }
-
-	/** Get internal value as string for debugging */
-	FString ToString() const { return FString::FromInt(KeyValue); }
-
-	friend FArchive& operator<<(FArchive& Ar, FFaerieItemKeyBase& Val)
-	{
-		return Ar << Val.KeyValue;
-	}
-};
-
-namespace Faerie
-{
-	// Create a new key from each integer in order. Guarantees unique keys are generated in a binary searchable order.
-	template <
-		typename TKey
-		UE_REQUIRES(TIsDerivedFrom<TKey, FFaerieItemKeyBase>::Value)
-	>
-	class TKeyGen
-	{
-	public:
-		// Creates the next unique key for an entry.
-		TKey NextKey()
-		{
-			return TKey(++PreviousKey);
-		}
-
-		void SetPosition(const TKey Key)
-		{
-			ensureMsgf(Key.Value() > PreviousKey, TEXT("SetPosition should not be called, if it reversed to key order. In case of a full reset, call Reset first!"));
-			PreviousKey = Key.Value();
-		}
-
-		void Reset()
-		{
-			PreviousKey = 100;
-		}
-
-	private:
-		int32 PreviousKey = 100;
-	};
-}
-
-// Typesafe wrapper around an FFaerieItemKeyBase used for keying entries.
-USTRUCT(BlueprintType)
-struct FAERIEINVENTORY_API FEntryKey : public FFaerieItemKeyBase
-{
-	GENERATED_BODY()
-	using FFaerieItemKeyBase::FFaerieItemKeyBase;
-
-	static FEntryKey InvalidKey;
-};
-
-// Typesafe wrapper around an FFaerieItemKeyBase used for keying stacks.
+// Typesafe wrapper around an FFaerieItemKeyBase used for keying stacks in a UFaerieItemStorage.
 USTRUCT(BlueprintType)
 struct FAERIEINVENTORY_API FStackKey : public FFaerieItemKeyBase
 {
@@ -206,16 +102,6 @@ struct FInventoryKey
 
 		return Lhs.EntryKey < Rhs.EntryKey;
 	}
-};
-
-/**
- * The key used to flag entries with custom data.
- */
-USTRUCT(BlueprintType, meta = (Categories = "Fae.Inventory"))
-struct FFaerieInventoryTag : public FGameplayTag
-{
-	GENERATED_BODY()
-	END_TAG_DECL2(FFaerieInventoryTag, TEXT("Fae.Inventory"))
 };
 
 class UFaerieItem;
@@ -444,19 +330,4 @@ struct FAERIEINVENTORY_API FInventoryKeyHandle
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "InventoryKeyHandle")
 	FInventoryKey Key;
-};
-
-/**
- * Struct to hold the data to save/load an inventory state from.
- */
-USTRUCT()
-struct FAERIEINVENTORY_API FFaerieContainerSaveData
-{
-	GENERATED_BODY()
-
-	UPROPERTY(SaveGame)
-	FInstancedStruct ItemData;
-
-	UPROPERTY(SaveGame)
-	TMap<FGuid, FInstancedStruct> ExtensionData;
 };

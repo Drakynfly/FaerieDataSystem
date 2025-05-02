@@ -4,6 +4,7 @@
 
 #include "FaerieItemDataProxy.h"
 #include "InventoryDataStructs.h"
+#include "StructUtils/StructView.h"
 #include "InventoryStorageProxy.generated.h"
 
 class UInventoryEntryStorageProxy;

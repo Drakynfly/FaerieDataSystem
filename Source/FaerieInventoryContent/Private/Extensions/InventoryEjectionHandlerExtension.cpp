@@ -119,6 +119,7 @@ void UInventoryEjectionHandlerExtension::PostLoadClassToSpawn(const TSoftClassPt
 	Args.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 	AItemRepresentationActor* NewPickup = OwningActor->GetWorld()->SpawnActor<AItemRepresentationActor>(ActorClass, SpawnTransform, Args);
 
+	// @todo REPLICATION: Literals do not replicate! Enforce usage of a Representation actor that can TakeOwnership of the stack!
 	if (IsValid(NewPickup))
 	{
 		UFaerieItemDataStackLiteral* FaerieItemStack = NewObject<UFaerieItemDataStackLiteral>(NewPickup);
@@ -135,23 +136,23 @@ bool FFaerieClientAction_EjectEntry::Server_Execute(const UFaerieInventoryClient
 {
 	auto&& Storage = Handle.ItemStorage.Get();
 	if (!IsValid(Storage)) return false;
-	if (!Client->CanAccessStorage(Storage, StaticStruct())) return false;
+	if (!Client->CanAccessContainer(Storage, StaticStruct())) return false;
 
 	return Storage->RemoveStack(Handle.Key, Faerie::Inventory::Tags::RemovalEject, Amount);
 }
 
 bool FFaerieClientAction_EjectViaRelease::Server_Execute(const UFaerieInventoryClient* Client) const
 {
-	if (!IsValid(Container)) return false;
-	if (!Client->CanAccessContainer(Container, StaticStruct())) return false;
+	if (!Handle.Container.IsValid()) return false;
+	if (!Client->CanAccessContainer(Handle.Container.Get(), StaticStruct())) return false;
 
-	UInventoryEjectionHandlerExtension* Ejector = GetExtension<UInventoryEjectionHandlerExtension>(Container, true);
+	UInventoryEjectionHandlerExtension* Ejector = GetExtension<UInventoryEjectionHandlerExtension>(Handle.Container.Get(), true);
 	if (!IsValid(Ejector))
 	{
 		return false;
 	}
 
-	if (const FFaerieItemStack Stack = Container->Release(Key, Amount);
+	if (const FFaerieItemStack Stack = Handle.Container->Release(Handle.Key, Amount);
 		IsValid(Stack.Item) &&
 		Faerie::ItemData::IsValidStack(Stack.Copies))
 	{

@@ -82,7 +82,7 @@ struct FFaerieClientAction_MarkStackWithTag final : public FFaerieClientActionBa
 	virtual bool Server_Execute(const UFaerieInventoryClient* Client) const override;
 
 	UPROPERTY(BlueprintReadWrite, Category = "MarkStackWithTag")
-	FInventoryKeyHandle Handle;
+	FContainerEntryHandle Handle;
 
 	UPROPERTY(BlueprintReadWrite, Category = "MarkStackWithTag")
 	FFaerieInventoryUserTag Tag;
@@ -96,7 +96,7 @@ struct FFaerieClientAction_ClearTagFromStack final : public FFaerieClientActionB
 	virtual bool Server_Execute(const UFaerieInventoryClient* Client) const override;
 
 	UPROPERTY(BlueprintReadWrite, Category = "ClearTagFromStack")
-	FInventoryKeyHandle Handle;
+	FContainerEntryHandle Handle;
 
 	UPROPERTY(BlueprintReadWrite, Category = "ClearTagFromStack")
 	FFaerieInventoryUserTag Tag;

@@ -4,6 +4,7 @@
 #include "FaerieItemContainerBase.h"
 #include "FaerieItemStorage.h"
 #include "Net/UnrealNetwork.h"
+#include "StructUtils/StructView.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventoryGridExtensionBase)
 

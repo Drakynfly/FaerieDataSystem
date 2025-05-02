@@ -4,9 +4,9 @@
 
 #include "FaerieContainerExtensionInterface.h"
 #include "FaerieEquipmentSlotConfig.h"
+#include "FaerieItemContainerStructs.h"
 #include "FaerieSlotTag.h"
 #include "FaerieStoragePath.h"
-#include "InventoryDataStructs.h"
 #include "Components/ActorComponent.h"
 
 #include "FaerieEquipmentManager.generated.h"
@@ -25,11 +25,11 @@ struct FFaerieEquipmentDefaultSlot
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, Category = "Faerie|EquipmentDefaultSlot")
+	UPROPERTY(EditAnywhere, Category = "FaerieEquipmentDefaultSlot")
 	FFaerieEquipmentSlotConfig SlotConfig;
 
 	// Predefined extensions added to this slot.
-	UPROPERTY(EditAnywhere, Instanced, NoClear, Category = "Faerie|EquipmentDefaultSlot")
+	UPROPERTY(EditAnywhere, Instanced, NoClear, Category = "FaerieEquipmentDefaultSlot")
 	TObjectPtr<UItemContainerExtensionGroup> ExtensionGroup;
 };
 
@@ -188,7 +188,7 @@ protected:
 	TMap<FFaerieSlotTag, TObjectPtr<UFaerieEquipmentSlotDescription>> DefaultSlots;
 
 	// Slots and their extensions to add to this equipment manager by default.
-	UPROPERTY(EditAnywhere, Category = "Equipment", meta = (ForceInlineRow))
+	UPROPERTY(EditAnywhere, Category = "Equipment")
 	TArray<FFaerieEquipmentDefaultSlot> InstanceDefaultSlots;
 
 	// Predefined extensions added to all slots in this manager.

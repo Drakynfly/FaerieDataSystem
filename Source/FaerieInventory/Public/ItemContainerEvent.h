@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "FaerieInventoryTag.h"
 #include "GameplayTagContainer.h"
 #include "TypedGameplayTags.h"
 #include "InventoryDataStructs.h"

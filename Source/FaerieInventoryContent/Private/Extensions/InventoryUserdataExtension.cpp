@@ -79,26 +79,26 @@ bool UInventoryUserdataExtension::ClearTagFromStack(const UFaerieItemContainerBa
 
 bool FFaerieClientAction_MarkStackWithTag::Server_Execute(const UFaerieInventoryClient* Client) const
 {
-	auto&& Storage = Handle.ItemStorage.Get();
-	if (!IsValid(Storage)) return false;
-	if (!Client->CanAccessStorage(Storage, StaticStruct())) return false;
+	auto&& Container = Handle.Container.Get();
+	if (!IsValid(Container)) return false;
+	if (!Client->CanAccessContainer(Container, StaticStruct())) return false;
 
-	if (auto&& Userdata = GetExtension<UInventoryUserdataExtension>(Storage, true))
+	if (auto&& Userdata = GetExtension<UInventoryUserdataExtension>(Container, true))
 	{
-		return Userdata->MarkStackWithTag(Handle.ItemStorage.Get(), Handle.Key.EntryKey, Tag);
+		return Userdata->MarkStackWithTag(Handle.Container.Get(), Handle.Key, Tag);
 	}
 	return false;
 }
 
 bool FFaerieClientAction_ClearTagFromStack::Server_Execute(const UFaerieInventoryClient* Client) const
 {
-	auto&& Storage = Handle.ItemStorage.Get();
+	auto&& Storage = Handle.Container.Get();
 	if (!IsValid(Storage)) return false;
-	if (!Client->CanAccessStorage(Storage, StaticStruct())) return false;
+	if (!Client->CanAccessContainer(Storage, StaticStruct())) return false;
 
 	if (auto&& Userdata = GetExtension<UInventoryUserdataExtension>(Storage, true))
 	{
-		return Userdata->ClearTagFromStack(Handle.ItemStorage.Get(), Handle.Key.EntryKey, Tag);
+		return Userdata->ClearTagFromStack(Handle.Container.Get(), Handle.Key, Tag);
 	}
 	return false;
 }

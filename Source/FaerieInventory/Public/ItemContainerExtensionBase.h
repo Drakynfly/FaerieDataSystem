@@ -3,9 +3,10 @@
 #pragma once
 
 #include "FaerieContainerExtensionInterface.h"
+#include "FaerieInventoryTag.h"
+#include "FaerieItemContainerStructs.h"
+#include "FaerieItemStackView.h"
 #include "NetSupportedObject.h"
-
-#include "InventoryDataStructs.h"
 
 #include "ItemContainerExtensionBase.generated.h"
 
