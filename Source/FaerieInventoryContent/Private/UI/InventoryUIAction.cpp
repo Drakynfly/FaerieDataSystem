@@ -65,10 +65,12 @@ bool UInventoryUIAction::Start(const FInventoryKey InKey)
 
 void UInventoryUIAction2::Run_Implementation(const FContainerEntryHandle Handle) const {}
 
+/*
 UInventoryUIAction2* UInventoryUIAction2::GetActionInstance(const TSubclassOf<UInventoryUIAction2> Class)
 {
 	return Class.GetDefaultObject();
 }
+*/
 
 void UInventoryUIAction2::Finish()
 {
@@ -96,7 +98,7 @@ EInventoryUIActionState UInventoryUIAction2::CanRunOnProxy_Implementation(const 
 	return EInventoryUIActionState::Enabled;
 }
 
-bool UInventoryUIAction2::Start(FContainerEntryHandle Handle)
+bool UInventoryUIAction2::Start(const FContainerEntryHandle Handle)
 {
 	if (InProgress)
 	{

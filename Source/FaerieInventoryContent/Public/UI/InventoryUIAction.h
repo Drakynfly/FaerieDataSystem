@@ -88,8 +88,9 @@ class FAERIEINVENTORYCONTENT_API UInventoryUIAction2 : public UObject
 	GENERATED_BODY()
 
 public:
-	UFUNCTION(BlueprintCallable, Category = "Faerie|UI Action", meta = (DeterminesOutput = "Class"))
-	static UInventoryUIAction2* GetActionInstance(TSubclassOf<UInventoryUIAction2> Class);
+	// @todo disabled while GetFaerieClient exists, because they are incompatible. Refactor this...
+	//UFUNCTION(BlueprintCallable, Category = "Faerie|UI Action", meta = (DeterminesOutput = "Class"))
+	//static UInventoryUIAction2* GetActionInstance(TSubclassOf<UInventoryUIAction2> Class);
 
 protected:
 	UFUNCTION(BlueprintNativeEvent, Category = "Faerie|UI Action")
