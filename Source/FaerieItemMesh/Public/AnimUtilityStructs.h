@@ -20,81 +20,76 @@ struct FAERIEITEMMESH_API FSocketAttachment
 };
 
 /*
- * A skeletal mesh and paired animation blueprint class.
+ * A skeletal mesh and paired animation blueprint class and/or animation asset.
 */
 USTRUCT(BlueprintType)
-struct FAERIEITEMMESH_API FSkeletonAndAnimClass
+struct FAERIEITEMMESH_API FSkeletonAndAnimation
 {
 	GENERATED_BODY()
 
-	// Empty constructor
-	FSkeletonAndAnimClass() = default;
-
-	// Full constructor
-	FSkeletonAndAnimClass(USkeletalMesh* Mesh, const TSubclassOf<UAnimInstance>& AnimClass)
-	  : Mesh(Mesh),
-		AnimClass(AnimClass) {}
-
-	UPROPERTY(NoClear, BlueprintReadWrite, EditAnywhere, Category = "Skeletal Mesh and Anim Class")
+	UPROPERTY(NoClear, BlueprintReadWrite, EditAnywhere, Category = "SkeletonAndAnimation")
 	TObjectPtr<USkeletalMesh> Mesh = nullptr;
 
-	UPROPERTY(NoClear, BlueprintReadWrite, EditAnywhere, Category = "Skeletal Mesh and Anim Class")
+	UPROPERTY(NoClear, BlueprintReadWrite, EditAnywhere, Category = "SkeletonAndAnimation")
 	TSubclassOf<UAnimInstance> AnimClass = nullptr;
 
-	friend bool operator==(const FSkeletonAndAnimClass& Lhs, const FSkeletonAndAnimClass& Rhs)
+	UPROPERTY(NoClear, BlueprintReadWrite, EditAnywhere, Category = "SkeletonAndAnimation")
+	TObjectPtr<UAnimationAsset> AnimationAsset = nullptr;
+
+	friend bool operator==(const FSkeletonAndAnimation& Lhs, const FSkeletonAndAnimation& Rhs)
 	{
 		return Lhs.Mesh == Rhs.Mesh
-			&& Lhs.AnimClass == Rhs.AnimClass;
+			&& Lhs.AnimClass == Rhs.AnimClass
+			&& Lhs.AnimationAsset == Rhs.AnimationAsset;
 	}
 
-	friend bool operator!=(const FSkeletonAndAnimClass& Lhs, const FSkeletonAndAnimClass& Rhs)
+	friend bool operator!=(const FSkeletonAndAnimation& Lhs, const FSkeletonAndAnimation& Rhs)
 	{
 		return !(Lhs == Rhs);
 	}
+
+	FORCEINLINE friend uint32 GetTypeHash(const FSkeletonAndAnimation& Thing)
+	{
+		return FCrc::MemCrc32(&Thing, sizeof(FSkeletonAndAnimation));
+	}
 };
 
-FORCEINLINE uint32 GetTypeHash(const FSkeletonAndAnimClass& Thing)
-{
-	return FCrc::MemCrc32(&Thing, sizeof(FSkeletonAndAnimClass));
-}
-
+/*
+ * A skeletal mesh and paired animation blueprint class and/or animation asset.
+*/
 USTRUCT(BlueprintType)
-struct FAERIEITEMMESH_API FSoftSkeletonAndAnimClass
+struct FAERIEITEMMESH_API FSoftSkeletonAndAnimation
 {
 	GENERATED_BODY()
 
-	// Empty constructor
-	FSoftSkeletonAndAnimClass() = default;
-
-	// Full constructor
-	FSoftSkeletonAndAnimClass(const TSoftObjectPtr<USkeletalMesh>& Mesh, const TSoftClassPtr<UAnimInstance>& AnimClass)
-	  : Mesh(Mesh),
-		AnimClass(AnimClass) {}
-
-	UPROPERTY(NoClear, BlueprintReadWrite, EditAnywhere, Category = "Skeletal Mesh and Anim Class")
+	UPROPERTY(NoClear, BlueprintReadWrite, EditAnywhere, Category = "SoftSkeletonAndAnimation")
 	TSoftObjectPtr<USkeletalMesh> Mesh = nullptr;
 
-	UPROPERTY(NoClear, BlueprintReadWrite, EditAnywhere, Category = "Skeletal Mesh and Anim Class")
+	UPROPERTY(NoClear, BlueprintReadWrite, EditAnywhere, Category = "SoftSkeletonAndAnimation")
 	TSoftClassPtr<UAnimInstance> AnimClass = nullptr;
 
-	friend bool operator==(const FSoftSkeletonAndAnimClass& Lhs, const FSoftSkeletonAndAnimClass& Rhs)
+	UPROPERTY(NoClear, BlueprintReadWrite, EditAnywhere, Category = "SoftSkeletonAndAnimation")
+	TSoftObjectPtr<UAnimationAsset> AnimationAsset = nullptr;
+
+	friend bool operator==(const FSoftSkeletonAndAnimation& Lhs, const FSoftSkeletonAndAnimation& Rhs)
 	{
 		return Lhs.Mesh == Rhs.Mesh
-			&& Lhs.AnimClass == Rhs.AnimClass;
+			&& Lhs.AnimClass == Rhs.AnimClass
+			&& Lhs.AnimationAsset == Rhs.AnimationAsset;
 	}
 
-	friend bool operator!=(const FSoftSkeletonAndAnimClass& Lhs, const FSoftSkeletonAndAnimClass& Rhs)
+	friend bool operator!=(const FSoftSkeletonAndAnimation& Lhs, const FSoftSkeletonAndAnimation& Rhs)
 	{
 		return !(Lhs == Rhs);
 	}
 
-	FSkeletonAndAnimClass LoadSynchronous() const
+	FSkeletonAndAnimation LoadSynchronous() const
 	{
-		return FSkeletonAndAnimClass(Mesh.LoadSynchronous(), AnimClass.LoadSynchronous());
+		return FSkeletonAndAnimation{ Mesh.LoadSynchronous(), AnimClass.LoadSynchronous(), AnimationAsset.LoadSynchronous() };
+	}
+
+	FORCEINLINE friend uint32 GetTypeHash(const FSoftSkeletonAndAnimation& Thing)
+	{
+		return FCrc::MemCrc32(&Thing, sizeof(FSoftSkeletonAndAnimation));
 	}
 };
-
-FORCEINLINE uint32 GetTypeHash(const FSoftSkeletonAndAnimClass& Thing)
-{
-	return FCrc::MemCrc32(&Thing, sizeof(FSoftSkeletonAndAnimClass));
-}

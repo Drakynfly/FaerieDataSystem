@@ -65,7 +65,7 @@ FFaerieItemMesh FFaerieItemMesh::MakeDynamic(UDynamicMesh* Mesh, const TArray<FF
 FFaerieItemMesh FFaerieItemMesh::MakeSkeletal(const FFaerieSkeletalMeshData& MeshData)
 {
 	FFaerieItemMesh ItemMesh;
-	ItemMesh.SkeletonAndAnimClass = MeshData.SkeletonAndAnimClass.LoadSynchronous();
+	ItemMesh.SkeletonAndAnimation = MeshData.SkeletonAndAnimation.LoadSynchronous();
 	ItemMesh.Materials.Reserve(MeshData.Materials.Num());
 	for (auto&& Element : MeshData.Materials)
 	{
@@ -74,11 +74,11 @@ FFaerieItemMesh FFaerieItemMesh::MakeSkeletal(const FFaerieSkeletalMeshData& Mes
 	return ItemMesh;
 }
 
-FFaerieItemMesh FFaerieItemMesh::MakeSkeletal(const FSkeletonAndAnimClass& Mesh,
+FFaerieItemMesh FFaerieItemMesh::MakeSkeletal(const FSkeletonAndAnimation& Mesh,
 	const TArray<FFaerieItemMaterial>& Materials)
 {
 	FFaerieItemMesh ItemMesh;
-	ItemMesh.SkeletonAndAnimClass = Mesh;
+	ItemMesh.SkeletonAndAnimation = Mesh;
 	ItemMesh.Materials = Materials;
 	return ItemMesh;
 }
@@ -95,6 +95,6 @@ bool FFaerieItemMesh::IsDynamic() const
 
 bool FFaerieItemMesh::IsSkeletal() const
 {
-	return IsValid(SkeletonAndAnimClass.Mesh);
-		//&& IsValid(SkeletonAndAnimClass.AnimClass);
+	return IsValid(SkeletonAndAnimation.Mesh);
+		//&& IsValid(SkeletonAndAnimation.AnimClass);
 }

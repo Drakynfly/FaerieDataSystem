@@ -19,14 +19,14 @@ FFaerieDynamicStaticMesh::FFaerieDynamicStaticMesh(const FFaerieStaticMeshData& 
 
 FFaerieDynamicSkeletalMesh::FFaerieDynamicSkeletalMesh(const FFaerieSkeletalMeshData& MeshData)
 {
-	if (!MeshData.SkeletonAndAnimClass.Mesh.IsValid())
+	if (!MeshData.SkeletonAndAnimation.Mesh.IsValid())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("FFaerieDynamicSkeletalMesh constructed from invalid MeshData"))
 		return;
 	}
 
 	FFaerieDynamicSkeletalMeshFragment SingleFragment;
-	SingleFragment.SkeletonAndAnimClass = MeshData.SkeletonAndAnimClass;
+	SingleFragment.SkeletonAndAnimation = MeshData.SkeletonAndAnimation;
 	SingleFragment.Materials = MeshData.Materials;
 	Fragments.Add(SingleFragment);
 	Purpose = MeshData.Purpose;

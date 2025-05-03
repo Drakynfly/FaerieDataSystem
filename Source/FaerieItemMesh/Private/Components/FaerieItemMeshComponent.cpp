@@ -222,27 +222,35 @@ void UFaerieItemMeshComponent::RebuildMesh()
 		{
 			auto&& Skeletal = MeshData.GetSkeletal();
 			SkeletalMesh->SetSkeletalMesh(Skeletal.Mesh);
+
+			// Try to setup animation
 			if (IsValid(Skeletal.AnimClass))
 			{
 				SkeletalMesh->SetAnimInstanceClass(Skeletal.AnimClass);
 			}
+			else if (IsValid(Skeletal.AnimationAsset))
+			{
+				SkeletalMesh->PlayAnimation(Skeletal.AnimationAsset, true);
+			}
+			// If there is no Animation Class or Asset, maybe we were supposed to be a LeaderPose component.
+			else if (IsValid(SkeletalMeshLeader))
+			{
+				SkeletalMesh->SetLeaderPoseComponent(SkeletalMeshLeader, true);
+			}
+			// No animation, assuming that skeletal mesh is being displayed in default pose. Center if enabled.
 			else
 			{
-				// If there is no AnimClass, maybe we were supposed to be a LeaderPose component.
-				if (IsValid(SkeletalMeshLeader))
+				if (CenterMeshByBounds)
 				{
-					SkeletalMesh->SetLeaderPoseComponent(SkeletalMeshLeader, true);
+					auto BoundsOrigin = SkeletalMesh->GetSkeletalMeshAsset()->GetBounds().Origin;
+					SkeletalMesh->AddLocalOffset(-BoundsOrigin);
 				}
 			}
+
+			// Setup Materials
 			for (int32 i = 0; i < MeshData.Materials.Num(); ++i)
 			{
 				SkeletalMesh->SetMaterial(i, MeshData.Materials[i].Material);
-			}
-
-			if (CenterMeshByBounds)
-			{
-				auto BoundsOrigin = SkeletalMesh->GetSkeletalMeshAsset()->GetBounds().Origin;
-				SkeletalMesh->AddLocalOffset(-BoundsOrigin);
 			}
 		}
 		break;

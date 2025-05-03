@@ -40,7 +40,7 @@ public:
 		return !(Lhs == Rhs);
 	}
 
-	friend uint32 GetTypeHash(const FFaerieItemSlotHandle& Key)
+	FORCEINLINE friend uint32 GetTypeHash(const FFaerieItemSlotHandle& Key)
 	{
 		return GetTypeHash(Key.InternalHandle);
 	}

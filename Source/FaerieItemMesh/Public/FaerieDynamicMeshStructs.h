@@ -13,13 +13,13 @@ struct FAERIEITEMMESH_API FFaerieDynamicStaticMeshFragment
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FaerieStaticMesh")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DynamicStaticMeshFragment")
 	TSoftObjectPtr<UStaticMesh> StaticMesh = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DynamicStaticMeshFragment")
 	TArray<FFaerieItemSoftMaterial> Materials;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FaerieStaticMeshFragment")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DynamicStaticMeshFragment")
 	FSocketAttachment Attachment;
 };
 
@@ -31,13 +31,13 @@ struct FAERIEITEMMESH_API FFaerieDynamicSkeletalMeshFragment
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FaerieSkeletalMesh")
-	FSoftSkeletonAndAnimClass SkeletonAndAnimClass;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DynamicSkeletalMeshFragment")
+	FSoftSkeletonAndAnimation SkeletonAndAnimation;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DynamicSkeletalMeshFragment")
 	TArray<FFaerieItemSoftMaterial> Materials;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FaerieSkeletalMeshFragment")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DynamicSkeletalMeshFragment")
 	FSocketAttachment Attachment;
 };
 
@@ -53,10 +53,10 @@ struct FAERIEITEMMESH_API FFaerieDynamicStaticMesh
 
 	FFaerieDynamicStaticMesh(const FFaerieStaticMeshData& MeshData);
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FaerieDynamicStaticMesh")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DynamicStaticMesh")
 	TArray<FFaerieDynamicStaticMeshFragment> Fragments;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Categories = "MeshPurpose"), Category = "FaerieMesh")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Categories = "MeshPurpose"), Category = "DynamicStaticMesh")
 	FGameplayTagContainer Purpose;
 
 	FORCEINLINE friend uint32 GetTypeHash(const FFaerieDynamicStaticMesh& FaerieDynamicStaticMesh)
@@ -77,10 +77,10 @@ struct FAERIEITEMMESH_API FFaerieDynamicSkeletalMesh
 
 	FFaerieDynamicSkeletalMesh(const FFaerieSkeletalMeshData& MeshData);
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DynamicSkeletalMesh")
 	TArray<FFaerieDynamicSkeletalMeshFragment> Fragments;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Categories = "MeshPurpose"), Category = "FaerieMesh")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Categories = "MeshPurpose"), Category = "DynamicSkeletalMesh")
 	FGameplayTagContainer Purpose;
 
 	FORCEINLINE friend uint32 GetTypeHash(const FFaerieDynamicSkeletalMesh& FaerieDynamicSkeletalMesh)
@@ -104,10 +104,10 @@ struct FAERIEITEMMESH_API FFaerieDynamicMeshContainer
 	// All meshes will contain a single fragment, since regular containers only store asset meshes.
 	FFaerieDynamicMeshContainer(const FFaerieMeshContainer& MeshContainer);
 
-	UPROPERTY(BlueprintReadOnly, Category = "Meshes", meta = (Categories = "MeshPurpose"))
+	UPROPERTY(BlueprintReadOnly, Category = "Meshes", meta = (Categories = "DynamicMeshContainer"))
 	TArray<FFaerieDynamicStaticMesh> StaticMeshes;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Meshes", meta = (Categories = "MeshPurpose"))
+	UPROPERTY(BlueprintReadOnly, Category = "Meshes", meta = (Categories = "DynamicMeshContainer"))
 	TArray<FFaerieDynamicSkeletalMesh> SkeletalMeshes;
 
 	TConstStructView<FFaerieDynamicStaticMesh> GetStaticItemMesh(const FGameplayTagContainer& SearchPurposes) const;

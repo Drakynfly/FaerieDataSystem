@@ -101,13 +101,13 @@ struct FAERIEITEMMESH_API FFaerieSkeletalMeshData
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FaerieSkeletalMesh")
-	FSoftSkeletonAndAnimClass SkeletonAndAnimClass;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SkeletalMeshData")
+	FSoftSkeletonAndAnimation SkeletonAndAnimation;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TArray<FFaerieItemSoftMaterial> Materials;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Categories = "MeshPurpose"), Category = "FaerieMesh")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Categories = "MeshPurpose"), Category = "SkeletalMeshData")
 	FGameplayTagContainer Purpose;
 
 	FORCEINLINE friend uint32 GetTypeHash(const FFaerieSkeletalMeshData& FaerieSkeletalMeshData)
@@ -125,10 +125,10 @@ struct FAERIEITEMMESH_API FFaerieMeshContainer
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Meshes", meta = (Categories = "MeshPurpose"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "MeshContainer", meta = (Categories = "MeshPurpose"))
 	TArray<FFaerieStaticMeshData> StaticMeshes;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Meshes", meta = (Categories = "MeshPurpose"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "MeshContainer", meta = (Categories = "MeshPurpose"))
 	TArray<FFaerieSkeletalMeshData> SkeletalMeshes;
 
 	TConstStructView<FFaerieStaticMeshData> GetStaticItemMesh(const FGameplayTagContainer& SearchPurposes) const;
@@ -155,7 +155,7 @@ struct FAERIEITEMMESH_API FFaerieItemMesh
 	// Warning: This causes a Synchronous Load if the mesh is not preloaded.
 	static FFaerieItemMesh MakeSkeletal(const FFaerieSkeletalMeshData& MeshData);
 
-	static FFaerieItemMesh MakeSkeletal(const FSkeletonAndAnimClass& Mesh, const TArray<FFaerieItemMaterial>& Materials);
+	static FFaerieItemMesh MakeSkeletal(const FSkeletonAndAnimation& Mesh, const TArray<FFaerieItemMaterial>& Materials);
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FaerieItemMesh")
@@ -165,7 +165,7 @@ protected:
 	TObjectPtr<UDynamicMesh> DynamicStaticMesh = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FaerieItemMesh")
-	FSkeletonAndAnimClass SkeletonAndAnimClass;
+	FSkeletonAndAnimation SkeletonAndAnimation;
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FaerieItemMesh")
@@ -185,16 +185,16 @@ public:
 		return DynamicStaticMesh;
 	}
 
-	FSkeletonAndAnimClass GetSkeletal() const
+	FSkeletonAndAnimation GetSkeletal() const
 	{
-		return SkeletonAndAnimClass;
+		return SkeletonAndAnimation;
 	}
 
 	friend bool operator==(const FFaerieItemMesh& Lhs, const FFaerieItemMesh& Rhs)
 	{
 		return Lhs.StaticMesh == Rhs.StaticMesh
 			&& Lhs.DynamicStaticMesh == Rhs.DynamicStaticMesh
-			&& Lhs.SkeletonAndAnimClass == Rhs.SkeletonAndAnimClass
+			&& Lhs.SkeletonAndAnimation == Rhs.SkeletonAndAnimation
 			&& Lhs.Materials == Rhs.Materials;
 	}
 

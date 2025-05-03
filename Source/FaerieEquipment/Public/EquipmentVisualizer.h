@@ -24,7 +24,7 @@ struct FFaerieVisualKey
 	friend bool operator==(const FFaerieVisualKey& Lhs, const FFaerieVisualKey& Rhs) { return Lhs.Proxy == Rhs.Proxy; }
 	friend bool operator!=(const FFaerieVisualKey& Lhs, const FFaerieVisualKey& Rhs) { return !(Lhs == Rhs); }
 
-	friend uint32 GetTypeHash(const FFaerieVisualKey& VisualKey)
+	FORCEINLINE friend uint32 GetTypeHash(const FFaerieVisualKey& VisualKey)
 	{
 		return GetTypeHash(VisualKey.Proxy.GetObject());
 	}

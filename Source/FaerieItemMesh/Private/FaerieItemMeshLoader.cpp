@@ -102,13 +102,13 @@ FFaerieItemMesh UFaerieItemMeshLoader::GetDynamicSkeletalMeshForData(const FFaer
 	// @todo implement
 	UE_LOG(LogTemp, Warning, TEXT("GetDynamicSkeletalMeshForData is not implemented."))
 
-	FSkeletonAndAnimClass OutSkeletonAndAnimClass;
+	FSkeletonAndAnimation OutSkeletonAndAnimation;
 	TArray<FFaerieItemMaterial> Materials;
 
 	FSkeletalMeshMergeParams Params;
-	OutSkeletonAndAnimClass.Mesh = USkeletalMergingLibrary::MergeMeshes(Params);
+	OutSkeletonAndAnimation.Mesh = USkeletalMergingLibrary::MergeMeshes(Params);
 
-	return FFaerieItemMesh::MakeSkeletal(OutSkeletonAndAnimClass, Materials);
+	return FFaerieItemMesh::MakeSkeletal(OutSkeletonAndAnimation, Materials);
 }
 
 bool UFaerieItemMeshLoader::LoadMeshFromTokenSynchronous(const UFaerieMeshTokenBase* Token, const FGameplayTag Purpose,
@@ -227,13 +227,13 @@ void UFaerieItemMeshLoader::LoadMeshFromTokenAsynchronous(const UFaerieMeshToken
 
 			for (auto&& Fragment : MeshData.Fragments)
 			{
-				if (Fragment.SkeletonAndAnimClass.Mesh.IsPending())
+				if (Fragment.SkeletonAndAnimation.Mesh.IsPending())
 				{
-					AssetsToLoad.Add(Fragment.SkeletonAndAnimClass.Mesh.ToSoftObjectPath());
+					AssetsToLoad.Add(Fragment.SkeletonAndAnimation.Mesh.ToSoftObjectPath());
 				}
-				if (Fragment.SkeletonAndAnimClass.AnimClass.IsPending())
+				if (Fragment.SkeletonAndAnimation.AnimClass.IsPending())
 				{
-					AssetsToLoad.Add(Fragment.SkeletonAndAnimClass.AnimClass.ToSoftObjectPath());
+					AssetsToLoad.Add(Fragment.SkeletonAndAnimation.AnimClass.ToSoftObjectPath());
 				}
 				for (auto&& Material : Fragment.Materials)
 				{
@@ -297,13 +297,13 @@ void UFaerieItemMeshLoader::LoadMeshFromTokenAsynchronous(const UFaerieMeshToken
 	{
 		const FFaerieSkeletalMeshData& MeshData = SkelMeshData.Get();
 		TArray<FSoftObjectPath> AssetsToLoad;
-		if (MeshData.SkeletonAndAnimClass.Mesh.IsPending())
+		if (MeshData.SkeletonAndAnimation.Mesh.IsPending())
 		{
-			AssetsToLoad.Add(MeshData.SkeletonAndAnimClass.Mesh.ToSoftObjectPath());
+			AssetsToLoad.Add(MeshData.SkeletonAndAnimation.Mesh.ToSoftObjectPath());
 		}
-		if (MeshData.SkeletonAndAnimClass.AnimClass.IsPending())
+		if (MeshData.SkeletonAndAnimation.AnimClass.IsPending())
 		{
-			AssetsToLoad.Add(MeshData.SkeletonAndAnimClass.AnimClass.ToSoftObjectPath());
+			AssetsToLoad.Add(MeshData.SkeletonAndAnimation.AnimClass.ToSoftObjectPath());
 		}
 		for (auto&& Material : MeshData.Materials)
 		{

@@ -25,5 +25,5 @@ struct FAERIEITEMDATA_API FFaerieHash
 
 	friend bool operator!=(const FFaerieHash& Lhs, const FFaerieHash& Rhs) { return !(Lhs == Rhs); }
 
-	friend uint32 GetTypeHash(const FFaerieHash& Arg) { return GetTypeHash(Arg.Hash); }
+	FORCEINLINE friend uint32 GetTypeHash(const FFaerieHash& Arg) { return GetTypeHash(Arg.Hash); }
 };
