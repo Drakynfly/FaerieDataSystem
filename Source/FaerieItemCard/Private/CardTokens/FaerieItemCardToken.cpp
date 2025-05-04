@@ -6,10 +6,15 @@
 
 TSoftClassPtr<UFaerieCardBase> UFaerieItemCardToken::GetCardClass(const FFaerieItemCardType Tag) const
 {
-	// @todo tag loop
-	if (auto Class = CardClasses.Find(Tag))
+	for (FFaerieItemCardType Check = Tag;
+		 Check.IsValid() && Check != FFaerieItemCardType::GetRootTag();
+		 Check = FFaerieItemCardType::ConvertChecked(Check.RequestDirectParent()))
 	{
-		return *Class;
+		if (auto&& Class = CardClasses.Find(Check))
+		{
+			return *Class;
+		}
 	}
+
 	return nullptr;
 }
