@@ -22,13 +22,13 @@ TSoftClassPtr<UFaerieCardBase> UFaerieCardGenerator::GetCardClassFromProxy(const
 
 	if (auto&& CardClassProvider = Item->GetToken<UFaerieItemCardToken>())
 	{
-		if (auto&& Class = CardClassProvider->GetCardClass(Type);
-			Class.IsValid())
+		auto&& Class = CardClassProvider->GetCardClass(Type);
+		if (Class.IsNull())
 		{
-			return Class;
+			UE_LOG(LogFaerieItemCard, Warning, TEXT("CustomCard token contained invalid class (%s). Reverting to default!"), *Type.GetTagName().ToString())
 		}
 
-		UE_LOG(LogFaerieItemCard, Warning, TEXT("CustomCard token contained invalid class (%s). Reverting to default!"), *Type.GetTagName().ToString())
+		return Class;
 	}
 
 	if (auto&& Class = DefaultClasses.Find(Type))
