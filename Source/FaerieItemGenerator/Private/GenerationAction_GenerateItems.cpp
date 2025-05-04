@@ -13,16 +13,16 @@
 
 void UGenerationAction_GenerateItems::Configure(FActionArgs& Args)
 {
+	Super::Configure(Args);
+
 	check(!Args.Drivers.IsEmpty());
 
 	for (auto&& Driver : Args.Drivers)
 	{
 		if (!IsValid(Driver)) continue;
 
-		Driver->Resolve(PendingGenerations);
+		Driver->Resolve(PendingGenerations, Squirrel.Get());
 	}
-
-	Super::Configure(Args);
 }
 
 TArray<FSoftObjectPath> UGenerationAction_GenerateItems::GetAssetsToLoad() const
@@ -58,7 +58,7 @@ void UGenerationAction_GenerateItems::Run()
 		}
 
 		// Set the squirrel used for this iteration
-		Context->Squirrel = Generation.Squirrel;
+		Context->Squirrel = Squirrel.Get();
 
 		// Generate individual mutable entries when mutable, as each may be unique.
 		if (Cast<IFaerieItemSource>(Generation.Drop.Asset.Object.Get())->CanBeMutable())

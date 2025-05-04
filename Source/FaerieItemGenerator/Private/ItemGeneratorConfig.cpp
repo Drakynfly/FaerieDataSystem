@@ -51,15 +51,25 @@ FGeneratorAmountBase UItemGenerationConfig::GetAmountResolver() const
 	return AmountResolver.Get<FGeneratorAmountBase>();
 }
 
-void UItemGenerationConfig::Resolve(TArray<FPendingItemGeneration>& Generations) const
+void UItemGenerationConfig::Resolve(TArray<FPendingItemGeneration>& Generations, USquirrel* Squirrel) const
 {
-	if (const FTableDrop* Drop = DropPool.GetDrop(Squirrel->NextReal()))
+	const FTableDrop* Drop = nullptr;
+
+	if (IsValid(Squirrel))
+	{
+		Drop = DropPool.GetDrop(Squirrel->NextReal());
+	}
+	else
+	{
+		Drop = DropPool.GetDrop(FMath::FRand());
+	}
+
+	if (Drop)
 	{
 		FPendingItemGeneration& Result = Generations.AddDefaulted_GetRef();
 
 		Result.Drop = *Drop;
 		Result.Count = AmountResolver.Get<FGeneratorAmountBase>().Resolve(Squirrel);
-		Result.Squirrel = Squirrel;
 
 		UE_LOG(LogItemGenConfig, Log, TEXT("Chosen Drop: %s"), *Result.Drop.Asset.Object.ToString());
 	}

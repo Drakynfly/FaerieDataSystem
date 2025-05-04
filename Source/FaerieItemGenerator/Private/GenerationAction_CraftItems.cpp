@@ -41,7 +41,7 @@ void UGenerationAction_CraftItems::Run()
 
 	UItemInstancingContext_Crafting* Context = NewObject<UItemInstancingContext_Crafting>(this);
 
-	Context->Squirrel = Config->Squirrel;
+	Context->Squirrel = Squirrel.Get();
 	Context->InputEntryData = FilledSlots;
 
 	UFaerieItem* NewItem = Config->Recipe->GetItemSource()->CreateItemInstance(Context);

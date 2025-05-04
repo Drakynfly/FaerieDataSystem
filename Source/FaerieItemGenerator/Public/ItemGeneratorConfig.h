@@ -25,10 +25,6 @@ struct FPendingItemGeneration
 	UPROPERTY()
 	int32 Count = 0;
 
-	// Squirrel pointer given to the Pending Generation. Required when using random generation.
-	UPROPERTY()
-	TObjectPtr<USquirrel> Squirrel = nullptr;
-
 	bool IsValid() const
 	{
 		return Drop.IsValid() && Count > 0;
@@ -59,7 +55,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|GenerationDriver")
 	FGeneratorAmountBase GetAmountResolver() const;
 
-	void Resolve(TArray<FPendingItemGeneration>& Generations) const;
+	void Resolve(TArray<FPendingItemGeneration>& Generations, USquirrel* Squirrel = nullptr) const;
 
 protected:
 	UPROPERTY(EditAnywhere, Category = "Table", meta = (ShowOnlyInnerProperties))

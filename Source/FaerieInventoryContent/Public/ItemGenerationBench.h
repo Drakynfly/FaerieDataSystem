@@ -5,6 +5,7 @@
 #include "BenchBehaviorBase.h"
 #include "ItemGenerationBench.generated.h"
 
+class USquirrel;
 class UItemGenerationConfig;
 
 /**
@@ -16,6 +17,8 @@ class FAERIEINVENTORYCONTENT_API UItemGenerationBench : public UBenchBehaviorBas
 	GENERATED_BODY()
 
 public:
+	UItemGenerationBench();
+
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
@@ -23,4 +26,7 @@ public:
 protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, NoClear, Category = "ItemGeneration", meta = (NoResetToDefault))
 	TArray<TObjectPtr<UItemGenerationConfig>> Drivers;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, NoClear, Category = "ItemGeneration", meta = (NoResetToDefault, DisplayThumbnail = false, ShowInnerProperties))
+	TObjectPtr<USquirrel> Squirrel;
 };

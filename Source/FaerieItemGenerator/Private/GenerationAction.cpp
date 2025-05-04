@@ -86,6 +86,7 @@ void UCraftingActionBase::Finish(const EGenerationActionResult Result)
 
 void UCraftingActionBase::Configure(FActionArgs& Args)
 {
+	Squirrel = Args.Squirrel;
 	OnCompleted.Add(DYNAMIC_TO_SCRIPT(Args.Callback));
 }
 

@@ -7,9 +7,10 @@
 
 #include "GenerationAction.generated.h"
 
+struct FFaerieItemSlotHandle;
 struct FFaerieItemStack;
 class IFaerieItemDataProxy;
-struct FFaerieItemSlotHandle;
+class USquirrel;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogGenerationAction, Log, All)
 
@@ -51,7 +52,7 @@ class FAERIEITEMGENERATOR_API UCraftingActionBase : public UObject
 public:
 	struct FActionArgs
 	{
-		TObjectPtr<UObject> Executor;
+		TWeakObjectPtr<USquirrel> Squirrel;
 		FGenerationActionOnCompleteBinding Callback;
 	};
 
@@ -94,13 +95,11 @@ public:
 	void Start();
 
 protected:
+	UPROPERTY()
+	TWeakObjectPtr<USquirrel> Squirrel;
+
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FGenerationActionCompleted OnCompleted;
-
-	// The object who requested this action to run
-	// DEPRECATED, remove eventually
-	UPROPERTY()
-	TObjectPtr<UObject> Executor;
 
 	UPROPERTY()
 	TArray<FFaerieItemStack> ProcessStacks;

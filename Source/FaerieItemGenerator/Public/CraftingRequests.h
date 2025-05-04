@@ -19,14 +19,14 @@ struct FAERIEITEMGENERATOR_API FGenerationRequest
 {
 	GENERATED_BODY()
 
-	// The object requesting this action.
-	UPROPERTY(BlueprintReadWrite, Category = "Crafting Request")
-	TObjectPtr<UObject> Executor;
-
 	// The client must fill this with drivers that can have network ID mapping. This is automatic for serialized objects.
 	// Runtime generated drivers must be created server-side and replicated for this to work.
 	UPROPERTY(BlueprintReadWrite, Category = "Generation Request")
 	TArray<TObjectPtr<UItemGenerationConfig>> Drivers;
+
+	// The squirrel provided for deterministic generation (optional).
+	UPROPERTY(BlueprintReadWrite, Category = "Crafting Request")
+	TWeakObjectPtr<USquirrel> Squirrel;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Generation Request")
 	FGenerationActionOnCompleteBinding OnComplete;
@@ -53,10 +53,6 @@ struct FAERIEITEMGENERATOR_API FCraftingRequest
 {
 	GENERATED_BODY()
 
-	// The object requesting this action.
-	UPROPERTY(BlueprintReadWrite, Category = "Crafting Request")
-	TObjectPtr<UObject> Executor;
-
 	// These should be sourced from cooked assets, or spawned by the server, if needed at runtime. Clients cannot create them.
 	UPROPERTY(BlueprintReadWrite, Category = "Crafting Request")
 	TObjectPtr<UItemCraftingConfig> Config = nullptr;
@@ -67,6 +63,10 @@ struct FAERIEITEMGENERATOR_API FCraftingRequest
 	UPROPERTY(BlueprintReadWrite, Category = "Crafting Request")
 	TArray<FRequestSlot> Slots;
 
+	// The squirrel provided for deterministic generation (optional).
+	UPROPERTY(BlueprintReadWrite, Category = "Crafting Request")
+	TWeakObjectPtr<USquirrel> Squirrel;
+
 	UPROPERTY(BlueprintReadWrite, Category = "Crafting Request")
 	FGenerationActionOnCompleteBinding OnComplete;
 };
@@ -76,10 +76,6 @@ USTRUCT(BlueprintType)
 struct FAERIEITEMGENERATOR_API FUpgradeRequest
 {
 	GENERATED_BODY()
-
-	// The object requesting this action.
-	UPROPERTY(BlueprintReadWrite, Category = "Crafting Request")
-	TObjectPtr<UObject> Executor;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Upgrade Request")
 	TScriptInterface<IFaerieItemDataProxy> ItemProxy;
@@ -94,6 +90,10 @@ struct FAERIEITEMGENERATOR_API FUpgradeRequest
 	// Note: Acts like map, but must be array for replication.
 	UPROPERTY(BlueprintReadWrite, Category = "Upgrade Request")
 	TArray<FRequestSlot> Slots;
+
+	// The squirrel provided for deterministic generation (optional).
+	UPROPERTY(BlueprintReadWrite, Category = "Crafting Request")
+	TWeakObjectPtr<USquirrel> Squirrel;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Upgrade Request")
 	FGenerationActionOnCompleteBinding OnComplete;

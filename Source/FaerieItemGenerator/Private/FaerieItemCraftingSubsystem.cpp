@@ -54,12 +54,6 @@ void UFaerieItemCraftingSubsystem::OnActionCompleted(EGenerationActionResult /*R
 
 void UFaerieItemCraftingSubsystem::SubmitGenerationRequest(const FGenerationRequest& Request)
 {
-	if (!IsValid(Request.Executor))
-	{
-		UE_LOG(LogItemGeneratorSubsystem, Warning, __FUNCTION__ TEXT(": Executor is invalid!"));
-		return;
-	}
-
 	if (Request.Drivers.IsEmpty())
 	{
 		UE_LOG(LogItemGeneratorSubsystem, Warning, __FUNCTION__ TEXT(": Drivers are empty!"));
@@ -76,7 +70,7 @@ void UFaerieItemCraftingSubsystem::SubmitGenerationRequest(const FGenerationRequ
 	}
 
 	UGenerationAction_GenerateItems::FActionArgs Args;
-	Args.Executor = Request.Executor;
+	Args.Squirrel = Request.Squirrel;
 	Args.Callback = Request.OnComplete;
 	Args.Drivers = Request.Drivers;
 
@@ -85,12 +79,6 @@ void UFaerieItemCraftingSubsystem::SubmitGenerationRequest(const FGenerationRequ
 
 void UFaerieItemCraftingSubsystem::SubmitUpgradeRequest(const FUpgradeRequest& Request)
 {
-	if (!IsValid(Request.Executor))
-	{
-		UE_LOG(LogItemGeneratorSubsystem, Warning, __FUNCTION__ TEXT(": Executor is invalid!"));
-		return;
-	}
-
 	if (!IsValid(Request.ItemProxy.GetObject()))
 	{
 		UE_LOG(LogItemGeneratorSubsystem, Warning, __FUNCTION__ TEXT(": ItemProxy is invalid!"));
@@ -104,7 +92,7 @@ void UFaerieItemCraftingSubsystem::SubmitUpgradeRequest(const FUpgradeRequest& R
 	}
 
 	UGenerationAction_UpgradeItems::FActionArgs Args;
-	Args.Executor = Request.Executor;
+	Args.Squirrel = Request.Squirrel;
 	Args.Callback = Request.OnComplete;
 	Args.UpgradeConfig = Request.Config;
 	Args.ItemBeingUpgraded = Request.ItemProxy;
@@ -177,26 +165,14 @@ void UFaerieItemCraftingSubsystem::SubmitUpgradeRequest(const FUpgradeRequest& R
 
 void UFaerieItemCraftingSubsystem::SubmitCraftingRequest_Impl(const FCraftingRequest& Request, const bool Preview)
 {
-	if (!IsValid(Request.Executor))
-	{
-		UE_LOG(LogItemGeneratorSubsystem, Warning, __FUNCTION__ TEXT(": Executor is invalid!"));
-		return;
-	}
-
 	if (!IsValid(Request.Config))
 	{
 		UE_LOG(LogItemGeneratorSubsystem, Warning, __FUNCTION__ TEXT(": Config is invalid!"));
 		return;
 	}
 
-	if (!IsValid(Request.Executor))
-	{
-		UE_LOG(LogItemGeneratorSubsystem, Warning, __FUNCTION__ TEXT(": ItemOuter is invalid!"));
-		return;
-	}
-
 	UGenerationAction_CraftItems::FActionArgs Args;
-	Args.Executor = Request.Executor;
+	Args.Squirrel = Request.Squirrel;
 	Args.Callback = Request.OnComplete;
 	Args.CraftConfig = Request.Config;
 	Args.RunConsumeStep = !Preview;
