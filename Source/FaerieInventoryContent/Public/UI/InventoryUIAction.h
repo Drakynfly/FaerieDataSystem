@@ -103,6 +103,10 @@ protected:
 	bool GetFaerieClient(UFaerieInventoryClient*& Client) const;
 
 public:
+	/* Gets the contextual display text for running this action on an entry */
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Faerie|UI Action")
+	FText GetDisplayText(FContainerEntryHandle Handle) const;
+
 	/**
 	 * Check conditions for this Action running on a Proxy.
 	 * This is not enforced by the action when ran, it is up to the implementing UI to restrict access to the action

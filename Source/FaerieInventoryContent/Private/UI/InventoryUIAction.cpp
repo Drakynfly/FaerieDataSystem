@@ -93,6 +93,11 @@ bool UInventoryUIAction2::GetFaerieClient(UFaerieInventoryClient*& Client) const
 	return false;
 }
 
+FText UInventoryUIAction2::GetDisplayText_Implementation(FContainerEntryHandle Handle) const
+{
+	return FText::GetEmpty();
+}
+
 EInventoryUIActionState UInventoryUIAction2::CanRunOnProxy_Implementation(const FContainerEntryHandle Handle) const
 {
 	return EInventoryUIActionState::Enabled;
