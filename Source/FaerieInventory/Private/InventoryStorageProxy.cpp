@@ -153,3 +153,8 @@ FInventoryKeyHandle UInventoryStackProxy::GetHandle() const
 {
 	return { ItemStorage, Key };
 }
+
+FFaerieAddressableHandle UInventoryStackProxy::GetAddressable() const
+{
+	return { ItemStorage, Key.ToAddress() };
+}

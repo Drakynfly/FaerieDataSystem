@@ -64,14 +64,14 @@ protected:
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|UserdataExtension")
-	bool DoesStackHaveTag(const UFaerieItemContainerBase* Container, FEntryKey Key, FFaerieInventoryUserTag Tag) const;
+	bool DoesStackHaveTag(FFaerieAddressableHandle Handle, FFaerieInventoryUserTag Tag) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|UserdataExtension")
-	bool CanSetStackTag(const UFaerieItemContainerBase* Container, FEntryKey Key, FFaerieInventoryUserTag Tag, const bool StateToSetTo) const;
+	bool CanSetStackTag(FFaerieAddressableHandle Handle, FFaerieInventoryUserTag Tag, const bool StateToSetTo) const;
 
-	bool MarkStackWithTag(const UFaerieItemContainerBase* Container, FEntryKey Key, FFaerieInventoryUserTag Tag);
+	bool MarkStackWithTag(FFaerieAddressableHandle Handle, FFaerieInventoryUserTag Tag);
 
-	bool ClearTagFromStack(const UFaerieItemContainerBase* Container, FEntryKey Key, FFaerieInventoryUserTag Tag);
+	bool ClearTagFromStack(FFaerieAddressableHandle Handle, FFaerieInventoryUserTag Tag);
 };
 
 USTRUCT(BlueprintType)
@@ -82,7 +82,7 @@ struct FFaerieClientAction_MarkStackWithTag final : public FFaerieClientActionBa
 	virtual bool Server_Execute(const UFaerieInventoryClient* Client) const override;
 
 	UPROPERTY(BlueprintReadWrite, Category = "MarkStackWithTag")
-	FContainerEntryHandle Handle;
+	FFaerieAddressableHandle Handle;
 
 	UPROPERTY(BlueprintReadWrite, Category = "MarkStackWithTag")
 	FFaerieInventoryUserTag Tag;
@@ -96,7 +96,7 @@ struct FFaerieClientAction_ClearTagFromStack final : public FFaerieClientActionB
 	virtual bool Server_Execute(const UFaerieInventoryClient* Client) const override;
 
 	UPROPERTY(BlueprintReadWrite, Category = "ClearTagFromStack")
-	FContainerEntryHandle Handle;
+	FFaerieAddressableHandle Handle;
 
 	UPROPERTY(BlueprintReadWrite, Category = "ClearTagFromStack")
 	FFaerieInventoryUserTag Tag;

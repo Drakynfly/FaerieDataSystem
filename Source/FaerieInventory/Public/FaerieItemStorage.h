@@ -86,6 +86,16 @@ public:
 	virtual FFaerieItemStack Release(FEntryKey Key, int32 Copies) override;
 	virtual void ForEachKey(const TFunctionRef<void(FEntryKey)>& Func) const override;
 	virtual int32 GetStack(FEntryKey Key) const override;
+	virtual TArray<FFaerieAddress> Switchover_GetAddresses(FEntryKey Key) const override;
+
+	virtual bool Contains(FFaerieAddress Address) const override;
+	virtual int32 GetStack(FFaerieAddress Address) const override;
+	virtual const UFaerieItem* ViewItem(FFaerieAddress Address) const override;
+	virtual FFaerieItemStackView ViewStack(FFaerieAddress Address) const override;
+	virtual FFaerieItemProxy Proxy(FFaerieAddress Address) const override;
+	virtual FFaerieItemStack Release(FFaerieAddress Address, int32 Copies) override;
+	virtual void ForEachAddress(const TFunctionRef<void(FFaerieAddress)>& Func) const override;
+	virtual void ForEachItem(const TFunctionRef<void(const UFaerieItem*)>& Func) const override;
 
 protected:
 	virtual void OnItemMutated(const UFaerieItem* Item, const UFaerieItemToken* Token, FGameplayTag EditTag) override;
@@ -102,6 +112,9 @@ public:
 	/*	  INTERNAL IMPLEMENTATIONS	 */
 	/**------------------------------*/
 private:
+	static FFaerieAddress Encode(FEntryKey Entry, FStackKey Stack);
+	static void Decode(FFaerieAddress Address, FEntryKey& Entry, FStackKey& Stack);
+
 	FInventoryEntryView GetEntryViewImpl(FEntryKey Key) const;
 
 	UInventoryEntryProxy* GetEntryProxyImpl(FEntryKey Key) const;
@@ -185,6 +198,7 @@ public:
 	 * Proxies will be created even if the Key is not valid. This allows the client to prospectively create proxies for
 	 * stacks that have not replicated yet.
 	 */
+	// @todo deprecate in favor of calling Proxy with an Address
 	UFUNCTION(BlueprintCallable, Category = "Storage|Cache", DisplayName = "Get Stack Proxy")
 	UInventoryStackProxy* GetStackProxy_New(FInventoryKey Key) const;
 

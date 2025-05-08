@@ -134,16 +134,15 @@ void UInventoryEjectionHandlerExtension::PostLoadClassToSpawn(const TSoftClassPt
 
 bool FFaerieClientAction_EjectEntry::Server_Execute(const UFaerieInventoryClient* Client) const
 {
-	auto&& Storage = Handle.ItemStorage.Get();
-	if (!IsValid(Storage)) return false;
-	if (!Client->CanAccessContainer(Storage, StaticStruct())) return false;
+	if (!ItemStorage.IsValid()) return false;
+	if (!Client->CanAccessContainer(ItemStorage.Get(), StaticStruct())) return false;
 
-	return Storage->RemoveStack(Handle.Key, Faerie::Inventory::Tags::RemovalEject, Amount);
+	return ItemStorage->RemoveStack(FInventoryKey(Address), Faerie::Inventory::Tags::RemovalEject, Amount);
 }
 
 bool FFaerieClientAction_EjectViaRelease::Server_Execute(const UFaerieInventoryClient* Client) const
 {
-	if (!Handle.Container.IsValid()) return false;
+	if (!Handle.IsValid()) return false;
 	if (!Client->CanAccessContainer(Handle.Container.Get(), StaticStruct())) return false;
 
 	UInventoryEjectionHandlerExtension* Ejector = GetExtension<UInventoryEjectionHandlerExtension>(Handle.Container.Get(), true);
@@ -152,7 +151,7 @@ bool FFaerieClientAction_EjectViaRelease::Server_Execute(const UFaerieInventoryC
 		return false;
 	}
 
-	if (const FFaerieItemStack Stack = Handle.Container->Release(Handle.Key, Amount);
+	if (const FFaerieItemStack Stack = Handle.Container->Release(Handle.Address, Amount);
 		IsValid(Stack.Item) &&
 		Faerie::ItemData::IsValidStack(Stack.Copies))
 	{

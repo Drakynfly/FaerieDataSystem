@@ -78,17 +78,13 @@ void UFaerieEquipmentSlot::ForEachKey(const TFunctionRef<void(FEntryKey)>& Func)
 	}
 }
 
-void UFaerieEquipmentSlot::OnItemMutated(const UFaerieItem* InItem, const UFaerieItemToken* Token, const FGameplayTag EditTag)
+FFaerieItemStackView UFaerieEquipmentSlot::View(const FEntryKey Key) const
 {
-	Super::OnItemMutated(InItem, Token, EditTag);
-	check(ItemStack.Item == InItem);
-
-	BroadcastDataChange();
-}
-
-FFaerieItemStackView UFaerieEquipmentSlot::View(FEntryKey) const
-{
-	return ItemStack;
+	if (Contains(Key))
+	{
+		return ItemStack;
+	}
+	return FFaerieItemStackView();
 }
 
 FFaerieItemStackView UFaerieEquipmentSlot::View() const
@@ -96,9 +92,13 @@ FFaerieItemStackView UFaerieEquipmentSlot::View() const
 	return ItemStack;
 }
 
-FFaerieItemProxy UFaerieEquipmentSlot::Proxy(FEntryKey) const
+FFaerieItemProxy UFaerieEquipmentSlot::Proxy(const FEntryKey Key) const
 {
-	return this;
+	if (Contains(Key))
+	{
+		return this;
+	}
+	return nullptr;
 }
 
 FFaerieItemStack UFaerieEquipmentSlot::Release(const FEntryKey Key, const int32 Copies)
@@ -115,9 +115,96 @@ FFaerieItemProxy UFaerieEquipmentSlot::Proxy() const
 	return this;
 }
 
-int32 UFaerieEquipmentSlot::GetStack(const FEntryKey) const
+int32 UFaerieEquipmentSlot::GetStack(const FEntryKey Key) const
 {
-	return ItemStack.Copies;
+	if (Contains(Key))
+	{
+		return ItemStack.Copies;
+	}
+	return 0;
+}
+
+bool UFaerieEquipmentSlot::Contains(const FFaerieAddress Address) const
+{
+	return static_cast<int32>(Address.Address) == StoredKey.Value();
+}
+
+int32 UFaerieEquipmentSlot::GetStack(const FFaerieAddress Address) const
+{
+	if (Contains(Address))
+	{
+		return ItemStack.Copies;
+	}
+	return 0;
+}
+
+const UFaerieItem* UFaerieEquipmentSlot::ViewItem(const FFaerieAddress Address) const
+{
+	if (Contains(Address))
+	{
+		return ItemStack.Item;
+	}
+	return nullptr;
+}
+
+FFaerieItemStackView UFaerieEquipmentSlot::ViewStack(const FFaerieAddress Address) const
+{
+	if (Contains(Address))
+	{
+		return ItemStack;
+	}
+	return FFaerieItemStackView();
+}
+
+FFaerieItemProxy UFaerieEquipmentSlot::Proxy(const FFaerieAddress Address) const
+{
+	if (Contains(Address))
+	{
+		return this;
+	}
+	return nullptr;
+}
+
+FFaerieItemStack UFaerieEquipmentSlot::Release(const FFaerieAddress Address, const int32 Copies)
+{
+	if (Contains(Address))
+	{
+		return TakeItemFromSlot(Copies);
+	}
+	return FFaerieItemStack();
+}
+
+TArray<FFaerieAddress> UFaerieEquipmentSlot::Switchover_GetAddresses(const FEntryKey Key) const
+{
+	if (Contains(Key))
+	{
+		return { GetCurrentAddress() };
+	}
+	return {};
+}
+
+void UFaerieEquipmentSlot::ForEachAddress(const TFunctionRef<void(FFaerieAddress)>& Func) const
+{
+	if (StoredKey.IsValid())
+	{
+		Func(GetCurrentAddress());
+	}
+}
+
+void UFaerieEquipmentSlot::ForEachItem(const TFunctionRef<void(const UFaerieItem*)>& Func) const
+{
+	if (StoredKey.IsValid())
+	{
+		Func(ItemStack.Item);
+	}
+}
+
+void UFaerieEquipmentSlot::OnItemMutated(const UFaerieItem* InItem, const UFaerieItemToken* Token, const FGameplayTag EditTag)
+{
+	Super::OnItemMutated(InItem, Token, EditTag);
+	check(ItemStack.Item == InItem);
+
+	BroadcastDataChange();
 }
 
 int32 UFaerieEquipmentSlot::GetStack() const
@@ -165,12 +252,6 @@ bool UFaerieEquipmentSlot::Possess(const FFaerieItemStack Stack)
 }
 
 //~ IFaerieItemOwnerInterface
-
-bool UFaerieEquipmentSlot::CanClientRunActions(const UFaerieInventoryClient* Client)
-{
-	// @todo implement permissions
-	return true;
-}
 
 void UFaerieEquipmentSlot::BroadcastChange()
 {
@@ -367,6 +448,11 @@ FFaerieItemStack UFaerieEquipmentSlot::TakeItemFromSlot(int32 Copies)
 FEntryKey UFaerieEquipmentSlot::GetCurrentKey() const
 {
 	return StoredKey;
+}
+
+FFaerieAddress UFaerieEquipmentSlot::GetCurrentAddress() const
+{
+	return FFaerieAddress(StoredKey.Value());
 }
 
 FFaerieAssetInfo UFaerieEquipmentSlot::GetSlotInfo() const

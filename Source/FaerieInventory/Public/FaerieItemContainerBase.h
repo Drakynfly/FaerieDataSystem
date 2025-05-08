@@ -54,7 +54,7 @@ protected:
 
 
 	/**------------------------------*/
-	/*		 ITEM ENTRY API			 */
+	/*		 ITEM ENTRY API (OLD)	 */
 	/**------------------------------*/
 public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainer")
@@ -77,6 +77,56 @@ public:
 	// Get the stack for a key.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainer")
 	virtual int32 GetStack(FEntryKey Key) const PURE_VIRTUAL(UFaerieItemContainerBase::GetStack, return 0; )
+
+	// Temporary function while switching over to new API. Converts am entry key to addresses.
+	virtual TArray<FFaerieAddress> Switchover_GetAddresses(FEntryKey Key) const PURE_VIRTUAL(UFaerieItemContainerBase::Switchover_GetAddresses, return {}; )
+
+
+	/**------------------------------*/
+	/*		 ITEM ENTRY API (NEW)	 */
+	/**------------------------------*/
+
+	// Note: This is the new api. FFaerieAddress will eventually replace public usage of FEntryKey.
+
+public:
+	// Is this a valid address in this container.
+	virtual bool Contains(FFaerieAddress Address) const PURE_VIRTUAL(UFaerieItemContainerBase::Contains_Address, return false; )
+
+	// Get the total number of copies keyed to an address.
+	virtual int32 GetStack(FFaerieAddress Address) const PURE_VIRTUAL(UFaerieItemContainerBase::GetStack_Address, return 0; )
+
+	// Get a view of an item or stack
+	virtual const UFaerieItem* ViewItem(FFaerieAddress Address) const PURE_VIRTUAL(UFaerieItemContainerBase::View_Address, return nullptr; )
+	virtual FFaerieItemStackView ViewStack(FFaerieAddress Address) const PURE_VIRTUAL(UFaerieItemContainerBase::View_Address, return FFaerieItemStackView(); )
+
+	// Creates or retrieves a proxy for an entry
+	virtual FFaerieItemProxy Proxy(FFaerieAddress Address) const PURE_VIRTUAL(UFaerieItemContainerBase::Proxy_Address, return nullptr; )
+
+	// A more efficient overload of Release if we already know the Key.
+	virtual FFaerieItemStack Release(FFaerieAddress Address, int32 Copies) PURE_VIRTUAL(UFaerieItemContainerBase::Release_Address, return FFaerieItemStack(); )
+
+	// Iterate over and perform a task for each address.
+	virtual void ForEachAddress(const TFunctionRef<void(FFaerieAddress)>& Func) const PURE_VIRTUAL(UFaerieItemContainerBase::ForEachAddress, ; )
+
+	// Iterate over and perform a task for each item instance.
+	// Similar behavior to ForEachAddress, except it is guaranteed to only run once per instance.
+	virtual void ForEachItem(const TFunctionRef<void(const UFaerieItem*)>& Func) const PURE_VIRTUAL(UFaerieItemContainerBase::ForEachItem, ; )
+
+protected: // Blueprint versions (temp, until Old Blueprint versions are removed)
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainer")
+	bool Contains_Address(const FFaerieAddress Address) const { return Contains(Address); }
+
+	// Get a view of an entry
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainer")
+	FFaerieItemStackView View_Address(const FFaerieAddress Address) const { return ViewStack(Address); }
+
+	// Creates or retrieves a proxy for an entry
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainer")
+	FFaerieItemProxy Proxy_Address(const FFaerieAddress Address) const { return Proxy(Address); }
+
+	// Get the stack for a key.
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainer")
+	int32 GetStack_Address(const FFaerieAddress Address) const { return GetStack(Address); }
 
 protected:
 	virtual void OnItemMutated(const UFaerieItem* Item, const UFaerieItemToken* Token, FGameplayTag EditTag);

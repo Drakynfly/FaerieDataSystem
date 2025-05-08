@@ -94,7 +94,7 @@ public:
 
 protected:
 	UFUNCTION(BlueprintNativeEvent, Category = "Faerie|UI Action")
-	void Run(FContainerEntryHandle Handle) const;
+	void Run(FFaerieAddressableHandle Handle) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|UI Action")
 	void Finish();
@@ -105,7 +105,7 @@ protected:
 public:
 	/* Gets the contextual display text for running this action on an entry */
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Faerie|UI Action")
-	FText GetDisplayText(FContainerEntryHandle Handle) const;
+	FText GetDisplayText(FFaerieAddressableHandle Handle) const;
 
 	/**
 	 * Check conditions for this Action running on a Proxy.
@@ -113,10 +113,10 @@ public:
 	 * when this returns false.
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Faerie|UI Action")
-	EInventoryUIActionState CanRunOnProxy(FContainerEntryHandle Handle) const;
+	EInventoryUIActionState CanRunOnProxy(FFaerieAddressableHandle Handle) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|UI Action")
-	bool Start(FContainerEntryHandle Handle);
+	bool Start(FFaerieAddressableHandle Handle);
 
 protected:
 	/** Text to display on user-facing button */

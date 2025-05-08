@@ -17,6 +17,18 @@ LLM_DEFINE_TAG(ItemStorage, NAME_None, NAME_None, GET_STATFNAME(STAT_StorageLLM)
 
 FEntryKey FEntryKey::InvalidKey;
 
+FInventoryKey::FInventoryKey(const FFaerieAddress& Address)
+{
+	constexpr int64 Mask = 0x00000000FFFFFFFF;
+	StackKey = FStackKey(Address.Address & Mask);
+	EntryKey = FEntryKey(Address.Address >> 32);
+}
+
+FFaerieAddress FInventoryKey::ToAddress() const
+{
+	return FFaerieAddress((static_cast<int64>(EntryKey.Value()) << 32) | static_cast<int64>(StackKey.Value()));
+}
+
 int32 FInventoryEntry::GetStackIndex(const FStackKey Key) const
 {
 	return Algo::BinarySearchBy(Stacks, Key, &FKeyedStack::Key);

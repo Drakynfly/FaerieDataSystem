@@ -63,7 +63,7 @@ bool UInventoryUIAction::Start(const FInventoryKey InKey)
 	return true;
 }
 
-void UInventoryUIAction2::Run_Implementation(const FContainerEntryHandle Handle) const {}
+void UInventoryUIAction2::Run_Implementation(const FFaerieAddressableHandle Handle) const {}
 
 /*
 UInventoryUIAction2* UInventoryUIAction2::GetActionInstance(const TSubclassOf<UInventoryUIAction2> Class)
@@ -93,17 +93,17 @@ bool UInventoryUIAction2::GetFaerieClient(UFaerieInventoryClient*& Client) const
 	return false;
 }
 
-FText UInventoryUIAction2::GetDisplayText_Implementation(FContainerEntryHandle Handle) const
+FText UInventoryUIAction2::GetDisplayText_Implementation(FFaerieAddressableHandle Handle) const
 {
-	return FText::GetEmpty();
+	return ButtonLabel;
 }
 
-EInventoryUIActionState UInventoryUIAction2::CanRunOnProxy_Implementation(const FContainerEntryHandle Handle) const
+EInventoryUIActionState UInventoryUIAction2::CanRunOnProxy_Implementation(const FFaerieAddressableHandle Handle) const
 {
 	return EInventoryUIActionState::Enabled;
 }
 
-bool UInventoryUIAction2::Start(const FContainerEntryHandle Handle)
+bool UInventoryUIAction2::Start(const FFaerieAddressableHandle Handle)
 {
 	if (InProgress)
 	{

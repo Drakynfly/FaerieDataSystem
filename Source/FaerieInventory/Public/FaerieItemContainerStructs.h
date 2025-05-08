@@ -18,6 +18,56 @@ struct FAERIEINVENTORY_API FEntryKey : public FFaerieItemKeyBase
 	static FEntryKey InvalidKey;
 };
 
+USTRUCT(BlueprintType)
+struct FAERIEINVENTORY_API FFaerieAddress
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	int64 Address;
+
+	FORCEINLINE bool IsValid() const
+	{
+		return Address != 0;
+	}
+
+	friend bool operator==(const FFaerieAddress& Lhs, const FFaerieAddress& Rhs) { return Lhs.Address == Rhs.Address; }
+	friend bool operator!=(const FFaerieAddress& Lhs, const FFaerieAddress& Rhs) { return !(Lhs == Rhs); }
+
+	// Comparison operator for sorting, when this type is used as a Key.
+	friend bool operator<(const FFaerieAddress& Lhs, const FFaerieAddress& Rhs)
+	{
+		return Lhs.Address < Rhs.Address;
+	}
+
+	friend FArchive& operator<<(FArchive& Ar, FFaerieAddress& Val)
+	{
+		return Ar << Val.Address;
+	}
+
+	FORCEINLINE friend uint32 GetTypeHash(const FFaerieAddress& FaerieAddress)
+	{
+		return GetTypeHash(FaerieAddress.Address);
+	}
+};
+
+/**
+ * An item container and an address for some content.
+ */
+USTRUCT(BlueprintType)
+struct FAERIEINVENTORY_API FFaerieAddressableHandle
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AddressableHandle")
+	TWeakObjectPtr<UFaerieItemContainerBase> Container;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AddressableHandle")
+	FFaerieAddress Address;
+
+	bool IsValid() const;
+};
+
 /**
  * An item container and a key to an entry inside.
  */

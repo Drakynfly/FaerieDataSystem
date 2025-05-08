@@ -80,8 +80,6 @@ protected:
 
 	virtual void PostEntryChanged(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event) {}
 
-	virtual void PostEntryChanged_DEPRECATED(const UFaerieItemContainerBase* Container, FEntryKey Key) {}
-
 public:
 	void SetIdentifier(const FGuid* GuidToUse = nullptr);
 
@@ -128,7 +126,6 @@ public:
 	virtual EEventExtensionResponse AllowsEdit(const UFaerieItemContainerBase* Container, FEntryKey Key, FFaerieInventoryTag EditTag) const override;
 	// @todo PreEntryChanged
 	virtual void PostEntryChanged(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event) override;
-	virtual void PostEntryChanged_DEPRECATED(const UFaerieItemContainerBase* Container, FEntryKey Key) override;
 	//~ UItemContainerExtensionBase
 
 	//~ IFaerieContainerExtensionInterface

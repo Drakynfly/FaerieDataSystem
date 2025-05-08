@@ -8,9 +8,9 @@
 bool FFaerieClientAction_UseConsumable::Server_Execute(const UFaerieInventoryClient* Client) const
 {
 	if (!Client->CanAccessContainer(Handle.Container.Get(), StaticStruct())) return false;
-	if (!Handle.Container->Contains(Handle.Key)) return false;
+	if (!Handle.Container->Contains(Handle.Address)) return false;
 
-	const FFaerieItemStackView View = Handle.Container->View(Handle.Key);
+	const FFaerieItemStackView View = Handle.Container->ViewStack(Handle.Address);
 	if (!View.IsValid()) return false;
 
 	// Try getting the Consumable logic token, first by Mutable access.

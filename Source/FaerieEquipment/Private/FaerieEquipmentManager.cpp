@@ -356,13 +356,12 @@ TArray<FFaerieStoragePath> UFaerieEquipmentManager::GetAllContainerPaths() const
 		FFaerieStoragePath& NewPath = OutPaths.Add_GetRef(FFaerieStoragePath(BasePath));
 		NewPath.Containers.Add(Container);
 
-		Container->ForEachKey(
-			[Container, &BuildPaths, &NewPath](const FEntryKey Key)
+		Container->ForEachItem(
+			[Container, &BuildPaths, &NewPath](const UFaerieItem* Item)
 			{
-				auto View = Container->View(Key);
-				if (!View.Item->CanMutate()) return;
+				if (!Item->CanMutate()) return;
 
-				TSet<UFaerieItemContainerBase*> Nested = UFaerieItemContainerToken::GetAllContainersInItem(View.Item.Get());
+				TSet<UFaerieItemContainerBase*> Nested = UFaerieItemContainerToken::GetAllContainersInItem(Item);
 				for (auto SubContainer : Nested)
 				{
 					BuildPaths(SubContainer, NewPath);

@@ -10,36 +10,40 @@
 #include "StructUtils/StructView.h"
 #include "InventoryReplicatedDataExtensionBase.generated.h"
 
-struct FRepDataFastArray;
+struct FFaerieReplicatedSimMap;
 
 USTRUCT()
-struct FRepDataPerEntryBase : public FFastArraySerializerItem
+struct FFaerieReplicatedValue : public FFastArraySerializerItem
 {
 	GENERATED_BODY()
 
-	FRepDataPerEntryBase() = default;
+	FFaerieReplicatedValue() = default;
 
-	FRepDataPerEntryBase(const FEntryKey Key, const FInstancedStruct& Value)
+	FFaerieReplicatedValue(const FFaerieAddress Key, const FInstancedStruct& Value)
 	  : Key(Key),
 		Value(Value) {}
 
 	UPROPERTY(EditAnywhere, Category = "RepDataPerEntryBase")
-	FEntryKey Key;
+	FFaerieAddress Key;
 
 	UPROPERTY(EditAnywhere, Category = "RepDataPerEntryBase")
 	FInstancedStruct Value;
 
-	void PreReplicatedRemove(const FRepDataFastArray& InArraySerializer);
-	void PostReplicatedAdd(const FRepDataFastArray& InArraySerializer);
-	void PostReplicatedChange(const FRepDataFastArray& InArraySerializer);
+	void PreReplicatedRemove(const FFaerieReplicatedSimMap& InArraySerializer);
+	void PostReplicatedAdd(const FFaerieReplicatedSimMap& InArraySerializer);
+	void PostReplicatedChange(const FFaerieReplicatedSimMap& InArraySerializer);
 };
 
 class URepDataArrayWrapper;
 class UInventoryReplicatedDataExtensionBase;
 
+/*
+ * A replicated array of key/value pairs to emulate Map behavior over the network.
+ * Implementation is accelerated by using a fast array for replication, and binary search for access.
+ */
 USTRUCT()
-struct FRepDataFastArray : public FFaerieFastArraySerializer,
-						   public TBinarySearchOptimizedArray<FRepDataFastArray, FRepDataPerEntryBase>
+struct FFaerieReplicatedSimMap : public FFaerieFastArraySerializer,
+								 public TBinarySearchOptimizedArray<FFaerieReplicatedSimMap, FFaerieReplicatedValue>
 {
 	GENERATED_BODY()
 
@@ -49,46 +53,46 @@ struct FRepDataFastArray : public FFaerieFastArraySerializer,
 
 private:
 	UPROPERTY()
-	TArray<FRepDataPerEntryBase> Entries;
+	TArray<FFaerieReplicatedValue> Entries;
 
 	// Enables TBinarySearchOptimizedArray
-	TArray<FRepDataPerEntryBase>& GetArray() { return Entries; }
+	TArray<FFaerieReplicatedValue>& GetArray() { return Entries; }
 
 	/** Owning wrapper to send Fast Array callbacks to */
 	UPROPERTY()
 	TWeakObjectPtr<URepDataArrayWrapper> OwningWrapper;
 
 public:
-	TConstArrayView<FRepDataPerEntryBase> GetView() const { return Entries; }
+	TConstArrayView<FFaerieReplicatedValue> GetView() const { return Entries; }
 
-	void RemoveDataForEntry(FEntryKey Key);
-	FInstancedStruct& GetOrCreateDataForEntry(FEntryKey Key);
-	void SetDataForEntry(FEntryKey Key, const FInstancedStruct& Data);
+	void RemoveValue(FFaerieAddress Address);
+	FInstancedStruct& GetOrCreateValue(FFaerieAddress Address);
+	void SetValue(FFaerieAddress Address, const FInstancedStruct& Data);
 
-	struct FScopedEntryHandle : FNoncopyable
+	struct FValueWriteScope : FNoncopyable
 	{
-		FScopedEntryHandle(const FEntryKey Key, FRepDataFastArray& Source);
-		~FScopedEntryHandle();
+		FValueWriteScope(const FFaerieAddress Address, FFaerieReplicatedSimMap& Source);
+		~FValueWriteScope();
 
 	protected:
-		FRepDataPerEntryBase& Handle;
+		FFaerieReplicatedValue& Handle;
 
 	private:
-		FRepDataFastArray& Source;
+		FFaerieReplicatedSimMap& Source;
 
 	public:
 		FInstancedStruct* operator->() const { return &Handle.Value; }
-		FInstancedStruct& Get() const { return Handle.Value; }
+		FStructView Get() const { return Handle.Value; }
 	};
 
-	FScopedEntryHandle GetHandle(const FEntryKey Key)
+	FValueWriteScope GetWriteScope(const FFaerieAddress Address)
 	{
-		return FScopedEntryHandle(Key, *this);
+		return FValueWriteScope(Address, *this);
 	}
 
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
 	{
-		return Faerie::Hacks::FastArrayDeltaSerialize<FRepDataPerEntryBase, FRepDataFastArray>(Entries, DeltaParms, *this);
+		return Faerie::Hacks::FastArrayDeltaSerialize<FFaerieReplicatedValue, FFaerieReplicatedSimMap>(Entries, DeltaParms, *this);
 	}
 
 	/*
@@ -97,18 +101,18 @@ public:
 	void PostReplicatedChange(const TArrayView<int32> ChangedIndices, int32 FinalSize) const;
 	*/
 
-	void PreDataReplicatedRemove(const FRepDataPerEntryBase& Data) const;
-	void PostDataReplicatedAdd(const FRepDataPerEntryBase& Data) const;
-	void PostDataReplicatedChange(const FRepDataPerEntryBase& Data) const;
+	void PreDataReplicatedRemove(const FFaerieReplicatedValue& Data) const;
+	void PostDataReplicatedAdd(const FFaerieReplicatedValue& Data) const;
+	void PostDataReplicatedChange(const FFaerieReplicatedValue& Data) const;
 
 	// Only const iteration is allowed.
-	using TRangedForConstIterator = TArray<FRepDataPerEntryBase>::RangedForConstIteratorType;
+	using TRangedForConstIterator = TArray<FFaerieReplicatedValue>::RangedForConstIteratorType;
 	FORCEINLINE TRangedForConstIterator begin() const { return TRangedForConstIterator(Entries.begin()); }
 	FORCEINLINE TRangedForConstIterator end() const   { return TRangedForConstIterator(Entries.end());   }
 };
 
 template<>
-struct TStructOpsTypeTraits<FRepDataFastArray> : public TStructOpsTypeTraitsBase2<FRepDataFastArray>
+struct TStructOpsTypeTraits<FFaerieReplicatedSimMap> : public TStructOpsTypeTraitsBase2<FFaerieReplicatedSimMap>
 {
 	enum
 	{
@@ -122,7 +126,7 @@ class URepDataArrayWrapper : public UNetSupportedObject
 {
 	GENERATED_BODY()
 
-	friend FRepDataFastArray;
+	friend FFaerieReplicatedSimMap;
 	friend UInventoryReplicatedDataExtensionBase;
 
 public:
@@ -131,24 +135,24 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 private:
-	void Server_PreContentRemoved(const FRepDataPerEntryBase& Data);
-	void Server_PostContentAdded(const FRepDataPerEntryBase& Data);
-	void Server_PostContentChanged(const FRepDataPerEntryBase& Data);
+	void Server_PreContentRemoved(const FFaerieReplicatedValue& Data);
+	void Server_PostContentAdded(const FFaerieReplicatedValue& Data);
+	void Server_PostContentChanged(const FFaerieReplicatedValue& Data);
 
-	void Client_PreContentRemoved(const FRepDataPerEntryBase& Data);
-	void Client_PostContentAdded(const FRepDataPerEntryBase& Data);
-	void Client_PostContentChanged(const FRepDataPerEntryBase& Data);
+	void Client_PreContentRemoved(const FFaerieReplicatedValue& Data);
+	void Client_PostContentAdded(const FFaerieReplicatedValue& Data);
+	void Client_PostContentChanged(const FFaerieReplicatedValue& Data);
 
 private:
 	UPROPERTY(Replicated)
 	TWeakObjectPtr<const UFaerieItemContainerBase> Container;
 
 	UPROPERTY(Replicated)
-	FRepDataFastArray DataArray;
+	FFaerieReplicatedSimMap DataArray;
 };
 
 /**
- * This is the base class for Inventory extensions that want to replicate addition data per Entry.
+ * This is the base class for Inventory extensions that want to replicate addition data per Address.
  * This is implemented by creating a FastArray wrapper object per bound container which efficiently replicates a custom
  * struct.
  */
@@ -167,7 +171,8 @@ public:
 	virtual void LoadSaveData(const UFaerieItemContainerBase* Container, const FInstancedStruct& SaveData) override;
 	virtual void InitializeExtension(const UFaerieItemContainerBase* Container) override;
 	virtual void DeinitializeExtension(const UFaerieItemContainerBase* Container) override;
-	virtual void PreRemoval(const UFaerieItemContainerBase* Container, FEntryKey Key, int32 Removal) override;
+	//virtual void PreRemoval(const UFaerieItemContainerBase* Container, FEntryKey Key, int32 Removal) override;
+	virtual void PostRemoval(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event) override;
 	//~ UItemContainerExtensionBase
 
 	// Children must implement this. It gives the struct type instanced per item.
@@ -175,18 +180,18 @@ public:
 	virtual bool SaveRepDataArray() const { return false; }
 
 private:
-	virtual void PreEntryDataRemoved(const UFaerieItemContainerBase* Container, const FRepDataPerEntryBase& Data) {}
-	virtual void PreEntryDataAdded(const UFaerieItemContainerBase* Container, const FRepDataPerEntryBase& Data) {}
-	virtual void PreEntryDataChanged(const UFaerieItemContainerBase* Container, const FRepDataPerEntryBase& Data) {}
+	virtual void PreEntryDataRemoved(const UFaerieItemContainerBase* Container, const FFaerieReplicatedValue& Data) {}
+	virtual void PreEntryDataAdded(const UFaerieItemContainerBase* Container, const FFaerieReplicatedValue& Data) {}
+	virtual void PreEntryDataChanged(const UFaerieItemContainerBase* Container, const FFaerieReplicatedValue& Data) {}
 
 protected:
-	FConstStructView GetDataForEntry(const UFaerieItemContainerBase* Container, const FEntryKey Key) const;
+	FConstStructView GetDataForHandle(FFaerieAddressableHandle Handle) const;
 
-	bool EditDataForEntry(const UFaerieItemContainerBase* Container, const FEntryKey Key, const TFunctionRef<void(FStructView)>& Edit);
+	bool EditDataForHandle(FFaerieAddressableHandle Handle, const TFunctionRef<void(FStructView)>& Edit);
 
 private:
-	TStructView<FRepDataFastArray> FindFastArrayForContainer(const UFaerieItemContainerBase* Container);
-	TConstStructView<FRepDataFastArray> FindFastArrayForContainer(const UFaerieItemContainerBase* Container) const;
+	TStructView<FFaerieReplicatedSimMap> FindFastArrayForContainer(const UFaerieItemContainerBase* Container);
+	TConstStructView<FFaerieReplicatedSimMap> FindFastArrayForContainer(const UFaerieItemContainerBase* Container) const;
 
 #if WITH_EDITOR
 	void PrintPerContainerDataDebug() const;

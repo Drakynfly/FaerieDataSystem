@@ -7,7 +7,6 @@
 
 class UEquipmentVisualizer;
 
-// @todo move this to ItemMesh module, rename to UFaerieVisualizationExtension
 /**
  *
  */

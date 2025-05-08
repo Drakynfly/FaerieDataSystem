@@ -53,7 +53,7 @@ public:
 	friend bool operator>(const FFaerieItemKeyBase& Lhs, const FFaerieItemKeyBase& Rhs) { return Rhs < Lhs; }
 	friend bool operator>=(const FFaerieItemKeyBase& Lhs, const FFaerieItemKeyBase& Rhs) { return !(Lhs < Rhs); }
 
-	int32 Value() const { return KeyValue; }
+	FORCEINLINE int32 Value() const { return KeyValue; }
 
 	/** Get internal value as string for debugging */
 	FString ToString() const { return FString::FromInt(KeyValue); }

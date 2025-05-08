@@ -17,5 +17,5 @@ struct FFaerieClientAction_UseConsumable final : public FFaerieClientActionBase
 	virtual bool Server_Execute(const UFaerieInventoryClient* Client) const override;
 
 	UPROPERTY(BlueprintReadWrite, Category = "UseConsumable")
-	FContainerEntryHandle Handle;
+	FFaerieAddressableHandle Handle;
 };

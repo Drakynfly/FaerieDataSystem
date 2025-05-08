@@ -2,30 +2,31 @@
 
 #include "InventoryReplicatedDataExtensionBase.h"
 #include "FaerieItemContainerBase.h"
+#include "ItemContainerEvent.h"
 #include "StructUtils/StructView.h"
 #include "Net/UnrealNetwork.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventoryReplicatedDataExtensionBase)
 
-void FRepDataPerEntryBase::PreReplicatedRemove(const FRepDataFastArray& InArraySerializer)
+void FFaerieReplicatedValue::PreReplicatedRemove(const FFaerieReplicatedSimMap& InArraySerializer)
 {
 	InArraySerializer.PreDataReplicatedRemove(*this);
 }
 
-void FRepDataPerEntryBase::PostReplicatedAdd(const FRepDataFastArray& InArraySerializer)
+void FFaerieReplicatedValue::PostReplicatedAdd(const FFaerieReplicatedSimMap& InArraySerializer)
 {
 	InArraySerializer.PostDataReplicatedAdd(*this);
 }
 
-void FRepDataPerEntryBase::PostReplicatedChange(const FRepDataFastArray& InArraySerializer)
+void FFaerieReplicatedValue::PostReplicatedChange(const FFaerieReplicatedSimMap& InArraySerializer)
 {
 	InArraySerializer.PostDataReplicatedChange(*this);
 }
 
-void FRepDataFastArray::RemoveDataForEntry(const FEntryKey Key)
+void FFaerieReplicatedSimMap::RemoveValue(const FFaerieAddress Address)
 {
-	if (Remove(Key,
-		[this](const FRepDataPerEntryBase& Entry)
+	if (Remove(Address,
+		[this](const FFaerieReplicatedValue& Entry)
 		{
 			// Notify server of this removal.
 			OwningWrapper->Server_PreContentRemoved(Entry);
@@ -36,13 +37,13 @@ void FRepDataFastArray::RemoveDataForEntry(const FEntryKey Key)
 	}
 }
 
-FInstancedStruct& FRepDataFastArray::GetOrCreateDataForEntry(const FEntryKey Key)
+FInstancedStruct& FFaerieReplicatedSimMap::GetOrCreateValue(const FFaerieAddress Address)
 {
 	// Find and return entry, if one exists
-	if (const int32 Index = IndexOf(Key);
+	if (const int32 Index = IndexOf(Address);
 		Index != INDEX_NONE)
 	{
-		FRepDataPerEntryBase& EntryData = Entries[Index];
+		FFaerieReplicatedValue& EntryData = Entries[Index];
 		MarkItemDirty(EntryData);
 
 		// Notify server of this change.
@@ -51,7 +52,7 @@ FInstancedStruct& FRepDataFastArray::GetOrCreateDataForEntry(const FEntryKey Key
 	}
 
 	// Otherwise, make a new entry.
-	FRepDataPerEntryBase& NewEntry = Insert(FRepDataPerEntryBase(Key,
+	FFaerieReplicatedValue& NewEntry = Insert(FFaerieReplicatedValue(Address,
 		FInstancedStruct(OwningWrapper->GetOuterUInventoryReplicatedDataExtensionBase()->GetDataScriptStruct())));
 	MarkItemDirty(NewEntry);
 
@@ -60,12 +61,12 @@ FInstancedStruct& FRepDataFastArray::GetOrCreateDataForEntry(const FEntryKey Key
 	return NewEntry.Value;
 }
 
-void FRepDataFastArray::SetDataForEntry(const FEntryKey Key, const FInstancedStruct& Data)
+void FFaerieReplicatedSimMap::SetValue(const FFaerieAddress Address, const FInstancedStruct& Data)
 {
-	if (const int32 Index = IndexOf(Key);
+	if (const int32 Index = IndexOf(Address);
 		Index != INDEX_NONE)
 	{
-		FRepDataPerEntryBase& EntryData = Entries[Index];
+		FFaerieReplicatedValue& EntryData = Entries[Index];
 		EntryData.Value = Data;
 		MarkItemDirty(EntryData);
 
@@ -74,7 +75,7 @@ void FRepDataFastArray::SetDataForEntry(const FEntryKey Key, const FInstancedStr
 	}
 	else
 	{
-		FRepDataPerEntryBase& NewEntry = Insert(FRepDataPerEntryBase(Key, Data));
+		FFaerieReplicatedValue& NewEntry = Insert(FFaerieReplicatedValue(Address, Data));
 		MarkItemDirty(NewEntry);
 
 		// Notify server of this change.
@@ -82,13 +83,13 @@ void FRepDataFastArray::SetDataForEntry(const FEntryKey Key, const FInstancedStr
 	}
 }
 
-FRepDataFastArray::FScopedEntryHandle::FScopedEntryHandle(const FEntryKey Key, FRepDataFastArray& Source)
-  : Handle(Source.Entries[Source.IndexOf(Key)]),
+FFaerieReplicatedSimMap::FValueWriteScope::FValueWriteScope(const FFaerieAddress Address, FFaerieReplicatedSimMap& Source)
+  : Handle(Source.Entries[Source.IndexOf(Address)]),
 	Source(Source)
 {
 }
 
-FRepDataFastArray::FScopedEntryHandle::~FScopedEntryHandle()
+FFaerieReplicatedSimMap::FValueWriteScope::~FValueWriteScope()
 {
 	// Propagate change to client
 	Source.MarkItemDirty(Handle);
@@ -97,7 +98,7 @@ FRepDataFastArray::FScopedEntryHandle::~FScopedEntryHandle()
 	Source.OwningWrapper->Server_PostContentChanged(Handle);
 }
 
-void FRepDataFastArray::PreDataReplicatedRemove(const FRepDataPerEntryBase& Data) const
+void FFaerieReplicatedSimMap::PreDataReplicatedRemove(const FFaerieReplicatedValue& Data) const
 {
 	if (OwningWrapper.IsValid())
 	{
@@ -105,7 +106,7 @@ void FRepDataFastArray::PreDataReplicatedRemove(const FRepDataPerEntryBase& Data
 	}
 }
 
-void FRepDataFastArray::PostDataReplicatedAdd(const FRepDataPerEntryBase& Data) const
+void FFaerieReplicatedSimMap::PostDataReplicatedAdd(const FFaerieReplicatedValue& Data) const
 {
 	if (OwningWrapper.IsValid())
 	{
@@ -113,7 +114,7 @@ void FRepDataFastArray::PostDataReplicatedAdd(const FRepDataPerEntryBase& Data) 
 	}
 }
 
-void FRepDataFastArray::PostDataReplicatedChange(const FRepDataPerEntryBase& Data) const
+void FFaerieReplicatedSimMap::PostDataReplicatedChange(const FFaerieReplicatedValue& Data) const
 {
 	if (OwningWrapper.IsValid())
 	{
@@ -137,7 +138,7 @@ void URepDataArrayWrapper::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 	DOREPLIFETIME(ThisClass, DataArray);
 }
 
-void URepDataArrayWrapper::Server_PreContentRemoved(const FRepDataPerEntryBase& Data)
+void URepDataArrayWrapper::Server_PreContentRemoved(const FFaerieReplicatedValue& Data)
 {
 	if (Container.IsValid())
 	{
@@ -145,7 +146,7 @@ void URepDataArrayWrapper::Server_PreContentRemoved(const FRepDataPerEntryBase& 
 	}
 }
 
-void URepDataArrayWrapper::Server_PostContentAdded(const FRepDataPerEntryBase& Data)
+void URepDataArrayWrapper::Server_PostContentAdded(const FFaerieReplicatedValue& Data)
 {
 	if (Container.IsValid())
 	{
@@ -153,7 +154,7 @@ void URepDataArrayWrapper::Server_PostContentAdded(const FRepDataPerEntryBase& D
 	}
 }
 
-void URepDataArrayWrapper::Server_PostContentChanged(const FRepDataPerEntryBase& Data)
+void URepDataArrayWrapper::Server_PostContentChanged(const FFaerieReplicatedValue& Data)
 {
 	if (Container.IsValid())
 	{
@@ -161,7 +162,7 @@ void URepDataArrayWrapper::Server_PostContentChanged(const FRepDataPerEntryBase&
 	}
 }
 
-void URepDataArrayWrapper::Client_PreContentRemoved(const FRepDataPerEntryBase& Data)
+void URepDataArrayWrapper::Client_PreContentRemoved(const FFaerieReplicatedValue& Data)
 {
 	if (Container.IsValid())
 	{
@@ -169,7 +170,7 @@ void URepDataArrayWrapper::Client_PreContentRemoved(const FRepDataPerEntryBase& 
 	}
 }
 
-void URepDataArrayWrapper::Client_PostContentAdded(const FRepDataPerEntryBase& Data)
+void URepDataArrayWrapper::Client_PostContentAdded(const FFaerieReplicatedValue& Data)
 {
 	if (Container.IsValid())
 	{
@@ -177,7 +178,7 @@ void URepDataArrayWrapper::Client_PostContentAdded(const FRepDataPerEntryBase& D
 	}
 }
 
-void URepDataArrayWrapper::Client_PostContentChanged(const FRepDataPerEntryBase& Data)
+void URepDataArrayWrapper::Client_PostContentChanged(const FFaerieReplicatedValue& Data)
 {
 	if (Container.IsValid())
 	{
@@ -208,11 +209,11 @@ FInstancedStruct UInventoryReplicatedDataExtensionBase::MakeSaveData(const UFaer
 void UInventoryReplicatedDataExtensionBase::LoadSaveData(const UFaerieItemContainerBase* Container,
 	const FInstancedStruct& SaveData)
 {
-	if (const TStructView<FRepDataFastArray> ContainerData = FindFastArrayForContainer(Container);
+	if (const TStructView<FFaerieReplicatedSimMap> ContainerData = FindFastArrayForContainer(Container);
 		ContainerData.IsValid())
 	{
-		FRepDataFastArray& Ref = ContainerData.Get<FRepDataFastArray>();
-		Ref.Entries = SaveData.Get<FRepDataFastArray>().Entries;
+		FFaerieReplicatedSimMap& Ref = ContainerData.Get<FFaerieReplicatedSimMap>();
+		Ref.Entries = SaveData.Get<FFaerieReplicatedSimMap>().Entries;
 		Ref.MarkArrayDirty();
 	}
 }
@@ -272,62 +273,85 @@ void UInventoryReplicatedDataExtensionBase::DeinitializeExtension(const UFaerieI
 	}
 }
 
+/*
 void UInventoryReplicatedDataExtensionBase::PreRemoval(const UFaerieItemContainerBase* Container, const FEntryKey Key,
 													   const int32 Removal)
 {
 	Super::PreRemoval(Container, Key, Removal);
 
-	if (const TStructView<FRepDataFastArray> ContainerData = FindFastArrayForContainer(Container);
+	if (const TStructView<FFaerieReplicatedSimMap> ContainerData = FindFastArrayForContainer(Container);
 		ContainerData.IsValid())
 	{
-		FRepDataFastArray& Ref = ContainerData.Get<FRepDataFastArray>();
+		FFaerieReplicatedSimMap& Ref = ContainerData.Get<FFaerieReplicatedSimMap>();
 
 		// If the whole stack is being removed, auto-delete any data we have for the entry
 		if (Container->GetStack(Key) == Removal || Removal == Faerie::ItemData::UnlimitedStack)
 		{
-			Ref.RemoveDataForEntry(Key);
+			Ref.RemoveValue(Key);
+		}
+	}
+}
+*/
+
+void UInventoryReplicatedDataExtensionBase::PostRemoval(const UFaerieItemContainerBase* Container,
+	const Faerie::Inventory::FEventLog& Event)
+{
+	Super::PostRemoval(Container, Event);
+
+	if (const TStructView<FFaerieReplicatedSimMap> ContainerData = FindFastArrayForContainer(Container);
+		ContainerData.IsValid())
+	{
+		FFaerieReplicatedSimMap& Ref = ContainerData.Get<FFaerieReplicatedSimMap>();
+
+		auto Addresses = Container->Switchover_GetAddresses(Event.EntryTouched);
+
+		for (const FFaerieAddress Address : Addresses)
+		{
+			// If the whole stack was removed, delete any data we have for the entry
+			if (!Container->Contains(Address))
+			{
+				Ref.RemoveValue(Address);
+			}
 		}
 	}
 }
 
-FConstStructView UInventoryReplicatedDataExtensionBase::GetDataForEntry(const UFaerieItemContainerBase* Container,
-	const FEntryKey Key) const
+FConstStructView UInventoryReplicatedDataExtensionBase::GetDataForHandle(const FFaerieAddressableHandle Handle) const
 {
-	if (const TConstStructView<FRepDataFastArray> ContainerData = FindFastArrayForContainer(Container);
+	if (const TConstStructView<FFaerieReplicatedSimMap> ContainerData = FindFastArrayForContainer(Handle.Container.Get());
 		ensure(ContainerData.IsValid()))
 	{
-		const FRepDataFastArray& Ref = ContainerData.Get();
+		const FFaerieReplicatedSimMap& Ref = ContainerData.Get();
 
-		if (Ref.Contains(Key))
+		if (const FInstancedStruct* Value = Ref.Find(Handle.Address))
 		{
-			return Ref[Key];
+			return *Value;
 		}
 	}
 	return FConstStructView();
 }
 
-bool UInventoryReplicatedDataExtensionBase::EditDataForEntry(const UFaerieItemContainerBase* Container,
-	const FEntryKey Key, const TFunctionRef<void(FStructView)>& Edit)
+bool UInventoryReplicatedDataExtensionBase::EditDataForHandle(const FFaerieAddressableHandle Handle, const TFunctionRef<void(FStructView)>& Edit)
 {
-	const TStructView<FRepDataFastArray> ContainerData = FindFastArrayForContainer(Container);
+	const TStructView<FFaerieReplicatedSimMap> ContainerData = FindFastArrayForContainer(Handle.Container.Get());
 	if (!ContainerData.IsValid())
 	{
 		return false;
 	}
 
-	FRepDataFastArray& Ref = ContainerData.Get<FRepDataFastArray>();
+	FFaerieReplicatedSimMap& Ref = ContainerData.Get<FFaerieReplicatedSimMap>();
 
 	// Find and use entry, if one exists
-	if (const int32 Index = Ref.IndexOf(Key);
+	if (const int32 Index = Ref.IndexOf(Handle.Address);
 		Index != INDEX_NONE)
 	{
-		const FRepDataFastArray::FScopedEntryHandle Handle = Ref.GetHandle(Key);
-		Edit(Handle.Get());
+		const FFaerieReplicatedSimMap::FValueWriteScope Scope = Ref.GetWriteScope(Handle.Address);
+		Edit(Scope.Get());
 		return true;
 	}
 
 	// Otherwise, make a new entry.
-	FRepDataPerEntryBase& NewEntry = Ref.Insert(FRepDataPerEntryBase(Key, FInstancedStruct(GetDataScriptStruct())));
+	FFaerieReplicatedValue& NewEntry = Ref.Insert(FFaerieReplicatedValue(Handle.Address, FInstancedStruct(GetDataScriptStruct())));
 
 	Edit(NewEntry.Value);
 	Ref.MarkItemDirty(NewEntry);
@@ -338,7 +362,7 @@ bool UInventoryReplicatedDataExtensionBase::EditDataForEntry(const UFaerieItemCo
 	return true;
 }
 
-TStructView<FRepDataFastArray> UInventoryReplicatedDataExtensionBase::FindFastArrayForContainer(const UFaerieItemContainerBase* Container)
+TStructView<FFaerieReplicatedSimMap> UInventoryReplicatedDataExtensionBase::FindFastArrayForContainer(const UFaerieItemContainerBase* Container)
 {
 	if (auto&& Found = PerContainerData.FindByPredicate(
 			[Container](const TObjectPtr<URepDataArrayWrapper>& Data)
@@ -352,10 +376,10 @@ TStructView<FRepDataFastArray> UInventoryReplicatedDataExtensionBase::FindFastAr
 	UE_LOG(LogTemp, Warning, TEXT("Failed to find FastArray for container '%s'. Is this container initialized to this extension?"), *Container->GetFullName())
 	PrintPerContainerDataDebug();
 #endif
-	return TStructView<FRepDataFastArray>();
+	return TStructView<FFaerieReplicatedSimMap>();
 }
 
-TConstStructView<FRepDataFastArray> UInventoryReplicatedDataExtensionBase::FindFastArrayForContainer(const UFaerieItemContainerBase* Container) const
+TConstStructView<FFaerieReplicatedSimMap> UInventoryReplicatedDataExtensionBase::FindFastArrayForContainer(const UFaerieItemContainerBase* Container) const
 {
 	if (auto&& Found = PerContainerData.FindByPredicate(
 			[Container](const TObjectPtr<URepDataArrayWrapper>& Data)
@@ -369,7 +393,7 @@ TConstStructView<FRepDataFastArray> UInventoryReplicatedDataExtensionBase::FindF
 	UE_LOG(LogTemp, Warning, TEXT("Failed to find FastArray for container '%s'. Is this container initialized to this extension?"), *Container->GetFullName())
 	PrintPerContainerDataDebug();
 #endif
-	return TConstStructView<FRepDataFastArray>();
+	return TConstStructView<FFaerieReplicatedSimMap>();
 }
 
 #if WITH_EDITOR

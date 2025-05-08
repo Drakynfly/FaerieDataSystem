@@ -63,9 +63,6 @@ public:
 	virtual bool Contains(FEntryKey Key) const override;
 	virtual void ForEachKey(const TFunctionRef<void(FEntryKey)>& Func) const override;
 
-protected:
-	virtual void OnItemMutated(const UFaerieItem* InItem, const UFaerieItemToken* Token, FGameplayTag EditTag) override;
-
 private:
 	virtual FFaerieItemStackView View(FEntryKey Key) const override;
 	virtual FFaerieItemProxy Proxy(FEntryKey Key) const override;
@@ -73,11 +70,29 @@ private:
 	virtual int32 GetStack(FEntryKey Key) const override;
 
 public:
+	virtual bool Contains(FFaerieAddress Address) const override;
+
+private:
+	virtual int32 GetStack(FFaerieAddress Address) const override;
+	virtual const UFaerieItem* ViewItem(FFaerieAddress Address) const override;
+	virtual FFaerieItemStackView ViewStack(FFaerieAddress Address) const override;
+	virtual FFaerieItemProxy Proxy(FFaerieAddress Address) const override;
+	virtual FFaerieItemStack Release(FFaerieAddress Address, int32 Copies) override;
+	virtual TArray<FFaerieAddress> Switchover_GetAddresses(FEntryKey Key) const override;
+
+	virtual void ForEachAddress(const TFunctionRef<void(FFaerieAddress)>& Func) const override;
+	virtual void ForEachItem(const TFunctionRef<void(const UFaerieItem*)>& Func) const override;
+
+public:
 	FFaerieItemStackView View() const;
 	FFaerieItemProxy Proxy() const;
 	int32 GetStack() const;
+
+protected:
+	virtual void OnItemMutated(const UFaerieItem* InItem, const UFaerieItemToken* Token, FGameplayTag EditTag) override;
 	//~ UFaerieItemContainerBase
 
+public:
 	//~ IFaerieItemDataProxy
 	virtual const UFaerieItem* GetItemObject() const override;
 	virtual int32 GetCopies() const override;
@@ -88,8 +103,6 @@ public:
 	virtual FFaerieItemStack Release(FFaerieItemStackView Stack) override;
 	virtual bool Possess(FFaerieItemStack Stack) override;
 	//~ IFaerieItemOwnerInterface
-
-	virtual bool CanClientRunActions(const UFaerieInventoryClient* Client);
 
 protected:
 	virtual void BroadcastChange();
@@ -122,6 +135,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentSlot")
 	FEntryKey GetCurrentKey() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentSlot")
+	FFaerieAddress GetCurrentAddress() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentSlot")
 	FFaerieAssetInfo GetSlotInfo() const;

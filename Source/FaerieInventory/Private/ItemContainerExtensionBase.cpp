@@ -286,15 +286,6 @@ void UItemContainerExtensionGroup::PostEntryChanged(const UFaerieItemContainerBa
 		});
 }
 
-void UItemContainerExtensionGroup::PostEntryChanged_DEPRECATED(const UFaerieItemContainerBase* Container, const FEntryKey Key)
-{
-	ForEachExtension(
-		[Container, Key](UItemContainerExtensionBase* Extension)
-		{
-			Extension->PostEntryChanged_DEPRECATED(Container, Key);
-		});
-}
-
 UItemContainerExtensionGroup* UItemContainerExtensionGroup::GetExtensionGroup() const
 {
 	return const_cast<UItemContainerExtensionGroup*>(this);

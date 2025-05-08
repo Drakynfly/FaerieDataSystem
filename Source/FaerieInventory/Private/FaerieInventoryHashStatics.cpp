@@ -14,10 +14,10 @@ namespace Faerie::Hash
 
 		TArray<uint32> Hashes;
 
-		Container->ForEachKey(
-			[Container, &Hashes, &Function](const FEntryKey Key)
+		Container->ForEachItem(
+			[&Hashes, &Function](const UFaerieItem* Item)
 			{
-				Hashes.Add(Function(Container->View(Key).Item.Get()));
+				Hashes.Add(Function(Item));
 			});
 
 		return CombineHashes(Hashes);
@@ -34,10 +34,10 @@ namespace Faerie::Hash
 
 		for (auto&& Container : Containers)
 		{
-			Container->ForEachKey(
-				[Container, &Hashes, &Function](const FEntryKey Key)
+			Container->ForEachItem(
+				[&Hashes, &Function](const UFaerieItem* Item)
 				{
-					Hashes.Add(Function(Container->View(Key).Item.Get()));
+					Hashes.Add(Function(Item));
 				});
 		}
 

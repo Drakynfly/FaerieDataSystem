@@ -69,8 +69,11 @@ struct FFaerieClientAction_EjectEntry final : public FFaerieClientActionBase
 
 	virtual bool Server_Execute(const UFaerieInventoryClient* Client) const override;
 
-	UPROPERTY(BlueprintReadWrite, Category = "RequestEjectEntry")
-	FInventoryKeyHandle Handle;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "InventoryKeyHandle")
+	TWeakObjectPtr<UFaerieItemStorage> ItemStorage;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "InventoryKeyHandle")
+	FFaerieAddress Address;
 
 	UPROPERTY(BlueprintReadWrite, Category = "RequestEjectEntry")
 	int32 Amount = -1;
@@ -85,7 +88,7 @@ struct FFaerieClientAction_EjectViaRelease final : public FFaerieClientActionBas
 	virtual bool Server_Execute(const UFaerieInventoryClient* Client) const override;
 
 	UPROPERTY(BlueprintReadWrite, Category = "EjectViaRelease")
-	FContainerEntryHandle Handle;
+	FFaerieAddressableHandle Handle;
 
 	UPROPERTY(BlueprintReadWrite, Category = "EjectViaRelease")
 	int32 Amount = -1;

@@ -136,6 +136,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|StackProxy")
 	FInventoryKeyHandle GetHandle() const;
 
+	UFUNCTION(BlueprintCallable, Category = "Faerie|StackProxy")
+	FFaerieAddressableHandle GetAddressable() const;
+
 protected:
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "StackProxy")
 	FInventoryKey Key;

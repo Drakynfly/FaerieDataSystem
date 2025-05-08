@@ -64,11 +64,19 @@ struct FInventoryKey
 {
 	GENERATED_BODY()
 
+	FInventoryKey() = default;
+	FInventoryKey(const FEntryKey Entry, const FStackKey Stack)
+	  : EntryKey(Entry), StackKey(Stack) {}
+
+	FAERIEINVENTORY_API explicit FInventoryKey(const FFaerieAddress& Address);
+
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "InventoryKey")
 	FEntryKey EntryKey;
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "InventoryKey")
 	FStackKey StackKey;
+
+	FAERIEINVENTORY_API FFaerieAddress ToAddress() const;
 
 	FORCEINLINE friend uint32 GetTypeHash(const FInventoryKey Key)
 	{

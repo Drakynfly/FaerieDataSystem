@@ -56,14 +56,14 @@ protected:
 	//~ UInventoryReplicatedDataExtensionBase
 
 public:
-	bool DoesEntryHaveTag(const UFaerieItemContainerBase* Container, const FEntryKey Key, FFaerieInventoryMetaTag Tag) const;
+	bool DoesEntryHaveTag(FFaerieAddressableHandle Handle, FFaerieInventoryMetaTag Tag) const;
 
-	bool CanSetEntryTag(const UFaerieItemContainerBase* Container, const FEntryKey Key, const FFaerieInventoryMetaTag Tag, const bool StateToSetTo) const;
+	bool CanSetEntryTag(FFaerieAddressableHandle Handle, const FFaerieInventoryMetaTag Tag, const bool StateToSetTo) const;
 
-	bool MarkStackWithTag(const UFaerieItemContainerBase* Container, const FEntryKey Key, FFaerieInventoryMetaTag Tag);
+	bool MarkStackWithTag(FFaerieAddressableHandle Handle, FFaerieInventoryMetaTag Tag);
 
 	// @todo tag type-safety
-	void TrySetTags(const UFaerieItemContainerBase* Container, const FEntryKey Key, const FGameplayTagContainer& Tags);
+	void TrySetTags(FFaerieAddressableHandle Handle, const FGameplayTagContainer& Tags);
 
-	bool ClearTagFromStack(const UFaerieItemContainerBase* Container, const FEntryKey Key, FFaerieInventoryMetaTag Tag);
+	bool ClearTagFromStack(FFaerieAddressableHandle Handle, FFaerieInventoryMetaTag Tag);
 };
