@@ -172,9 +172,10 @@ void FItemShapeCustomization::OnCellClicked(const FIntPoint CellCoord)
 		}
 
 		StructHandle->NotifyPreChange();
-		if (ShapeGrid->Points.Contains(CellCoord))
+		if (const int32 Index = ShapeGrid->Points.Find(CellCoord);
+			Index != INDEX_NONE)
 		{
-			ShapeGrid->Points.Remove(CellCoord);
+			ShapeGrid->Points.RemoveAt(Index);
 			StructHandle->NotifyPostChange(EPropertyChangeType::ArrayRemove);
 		}
 		else

@@ -185,7 +185,7 @@ int32 FInventoryEntry::RemoveFromAnyStack(int32 Amount, TArray<FStackKey>* OutAl
 		{
 			RemovedStacks.Add(KeyedStack.Key);
 			Amount -= KeyedStack.Stack;
-			Stacks.Remove(KeyedStack);
+			Stacks.RemoveAt(i);
 
 			if (Amount <= 0)
 			{

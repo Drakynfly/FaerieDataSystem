@@ -960,12 +960,9 @@ bool UFaerieItemStorage::CanAddStack(const FFaerieItemStackView Stack, const EFa
 		// which in turn has an item that points to us, which will crash the Extensions code when the item is possessed.
 		// But honestly, I don't feel like fixing that unless it becomes a problem.
 		const TSet<UFaerieItemContainerBase*> ContainerSet = UFaerieItemContainerToken::GetAllContainersInItem(Stack.Item.Get());
-		for (auto&& Container : ContainerSet)
+		if (ContainerSet.Contains(this))
 		{
-			if (Container == this)
-			{
-				return false;
-			}
+			return false;
 		}
 	}
 

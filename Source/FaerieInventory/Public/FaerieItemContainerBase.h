@@ -90,20 +90,20 @@ public:
 
 public:
 	// Is this a valid address in this container.
-	virtual bool Contains(FFaerieAddress Address) const PURE_VIRTUAL(UFaerieItemContainerBase::Contains_Address, return false; )
+	virtual bool Contains(FFaerieAddress Address) const PURE_VIRTUAL(UFaerieItemContainerBase::Contains, return false; )
 
 	// Get the total number of copies keyed to an address.
-	virtual int32 GetStack(FFaerieAddress Address) const PURE_VIRTUAL(UFaerieItemContainerBase::GetStack_Address, return 0; )
+	virtual int32 GetStack(FFaerieAddress Address) const PURE_VIRTUAL(UFaerieItemContainerBase::GetStack, return 0; )
 
 	// Get a view of an item or stack
-	virtual const UFaerieItem* ViewItem(FFaerieAddress Address) const PURE_VIRTUAL(UFaerieItemContainerBase::View_Address, return nullptr; )
-	virtual FFaerieItemStackView ViewStack(FFaerieAddress Address) const PURE_VIRTUAL(UFaerieItemContainerBase::View_Address, return FFaerieItemStackView(); )
+	virtual const UFaerieItem* ViewItem(FFaerieAddress Address) const PURE_VIRTUAL(UFaerieItemContainerBase::ViewItem, return nullptr; )
+	virtual FFaerieItemStackView ViewStack(FFaerieAddress Address) const PURE_VIRTUAL(UFaerieItemContainerBase::ViewStack, return FFaerieItemStackView(); )
 
 	// Creates or retrieves a proxy for an entry
-	virtual FFaerieItemProxy Proxy(FFaerieAddress Address) const PURE_VIRTUAL(UFaerieItemContainerBase::Proxy_Address, return nullptr; )
+	virtual FFaerieItemProxy Proxy(FFaerieAddress Address) const PURE_VIRTUAL(UFaerieItemContainerBase::Proxy, return FFaerieItemProxy(); )
 
 	// A more efficient overload of Release if we already know the Key.
-	virtual FFaerieItemStack Release(FFaerieAddress Address, int32 Copies) PURE_VIRTUAL(UFaerieItemContainerBase::Release_Address, return FFaerieItemStack(); )
+	virtual FFaerieItemStack Release(FFaerieAddress Address, int32 Copies) PURE_VIRTUAL(UFaerieItemContainerBase::Release, return FFaerieItemStack(); )
 
 	// Iterate over and perform a task for each address.
 	virtual void ForEachAddress(const TFunctionRef<void(FFaerieAddress)>& Func) const PURE_VIRTUAL(UFaerieItemContainerBase::ForEachAddress, ; )

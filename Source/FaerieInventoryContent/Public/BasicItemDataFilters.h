@@ -269,7 +269,7 @@ protected:
 	EStackCompareOperator Operator;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "CompareLimit",
-		meta = (ClampMin = 1, EditCondition = "Mode != EStackCompareLimit::HasLimit && Mode != EStackCompareLimit::HasNoLimit", EditConditionHides))
+		meta = (ClampMin = 1, EditCondition = "Operator != EStackCompareOperator::HasLimit && Operator != EStackCompareOperator::HasNoLimit", EditConditionHides))
 	int32 AmountToCompare = 1;
 };
 

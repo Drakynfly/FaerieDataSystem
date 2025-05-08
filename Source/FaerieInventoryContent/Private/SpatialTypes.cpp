@@ -156,7 +156,7 @@ TArray<FIntPoint> FFaerieGridShape::MatrixToPoints(const Faerie::FBitMatrix& Mat
 
 void FFaerieGridShape::RotateMatrixClockwise(Faerie::FBitMatrix& Matrix, const ESpatialItemRotation Rotation)
 {
-	if (Matrix.GetDim() == 0 ||
+	if (Matrix.GetDim() <= 1 ||
 		Rotation == ESpatialItemRotation::None ||
 		Rotation == ESpatialItemRotation::MAX)
 	{
