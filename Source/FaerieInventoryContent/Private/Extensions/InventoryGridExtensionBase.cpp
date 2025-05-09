@@ -34,10 +34,10 @@ namespace Faerie
 
 	void FCellGrid::Resize(const FIntPoint NewSize)
 	{
-		const FIntPoint OldSize = NewSize;
+		const FIntPoint OldSize = Dimensions;
 		TBitArray<> OldBits = CellBits;
 
-		CellBits.Init(false, NewSize.X * NewSize.Y);
+        Reset(NewSize);
 
 		// Copy over existing data that's still in bounds
 		for (int32 y = 0; y < FMath::Min(OldSize.Y, NewSize.Y); y++)
