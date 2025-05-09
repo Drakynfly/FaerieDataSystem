@@ -12,7 +12,7 @@ class UFaerieItemContainerBase;
 UENUM(BlueprintType)
 enum class EInventoryUIActionState : uint8
 {
-	// Informs UI to not show this action, when it cannot run on the entry
+	// Informs UI to not show this action, when it cannot run on the address
 	Hidden,
 
 	// Informs UI to show, but disable use of this action
@@ -103,17 +103,17 @@ protected:
 	bool GetFaerieClient(UFaerieInventoryClient*& Client) const;
 
 public:
-	/* Gets the contextual display text for running this action on an entry */
+	/* Gets the contextual display text for running this action on an address */
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Faerie|UI Action")
 	FText GetDisplayText(FFaerieAddressableHandle Handle) const;
 
 	/**
-	 * Check conditions for this Action running on a Proxy.
+	 * Check conditions for this Action running on an Address.
 	 * This is not enforced by the action when ran, it is up to the implementing UI to restrict access to the action
 	 * when this returns false.
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Faerie|UI Action")
-	EInventoryUIActionState CanRunOnProxy(FFaerieAddressableHandle Handle) const;
+	EInventoryUIActionState TestCanRun(FFaerieAddressableHandle Handle) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|UI Action")
 	bool Start(FFaerieAddressableHandle Handle);

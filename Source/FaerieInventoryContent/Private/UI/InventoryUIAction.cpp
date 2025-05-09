@@ -98,7 +98,7 @@ FText UInventoryUIAction2::GetDisplayText_Implementation(FFaerieAddressableHandl
 	return ButtonLabel;
 }
 
-EInventoryUIActionState UInventoryUIAction2::CanRunOnProxy_Implementation(const FFaerieAddressableHandle Handle) const
+EInventoryUIActionState UInventoryUIAction2::TestCanRun_Implementation(const FFaerieAddressableHandle Handle) const
 {
 	return EInventoryUIActionState::Enabled;
 }

@@ -125,7 +125,7 @@ protected:
 	TObjectPtr<UFaerieItemDataComparator> ActiveSortRule;
 
 	/** The inventory client for this widget to interact with the server.  */
-	UPROPERTY(BlueprintReadOnly, Category = "UI Action")
+	UPROPERTY(BlueprintReadOnly, Category = "Runtime")
 	TWeakObjectPtr<UFaerieInventoryClient> InventoryClient;
 
 	/** The storage this widget is representing.  */
