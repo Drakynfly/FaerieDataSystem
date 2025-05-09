@@ -78,18 +78,54 @@ void UInventoryCapacityExtension::DeinitializeExtension(const UFaerieItemContain
 	HandleStateChanged();
 }
 
-EEventExtensionResponse UInventoryCapacityExtension::AllowsAddition(const UFaerieItemContainerBase*,
-																	const FFaerieItemStackView Stack,
-																	EFaerieStorageAddStackBehavior) const
+EEventExtensionResponse UInventoryCapacityExtension::AllowsAddition(const UFaerieItemContainerBase* Container,
+																	const TConstArrayView<FFaerieItemStackView> Views,
+																	const FFaerieExtensionAllowsAdditionArgs Args) const
 {
-	if (!CanContain(Stack))
+	// @todo Args.AddStackBehavior is not used at all.
+	// Because CanContain doesnt check for Efficiency, there is no differance, but its technically incorrect.
+
+	if (Views.Num() == 1)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("PreAddition: Cannot add Stack (Item: '%s' Copies: %i)"),
-			Stack.Item.IsValid() ? *Stack.Item->GetName() : TEXT("null"), Stack.Copies);
-		return EEventExtensionResponse::Disallowed;
+		if (const FFaerieItemStackView View0 = Views[0];
+			!CanContain(View0))
+		{
+			UE_LOG(LogTemp, Verbose, TEXT("PreAddition: Cannot add Stack (Item: '%s' Copies: %i)"),
+				View0.Item.IsValid() ? *View0.Item->GetName() : TEXT("null"), View0.Copies);
+			return EEventExtensionResponse::Disallowed;
+		}
+		return EEventExtensionResponse::Allowed;
 	}
 
-	return EEventExtensionResponse::Allowed;
+	switch (Args.TestType)
+	{
+	case EFaerieStorageAddStackTestMultiType::IndividualTests:
+		{
+			for (const FFaerieItemStackView& View : Views)
+			{
+				if (!CanContain(View))
+				{
+					UE_LOG(LogTemp, Verbose, TEXT("PreAddition: Cannot add Stack (Item: '%s' Copies: %i)"),
+						View.Item.IsValid() ? *View.Item->GetName() : TEXT("null"), View.Copies);
+					return EEventExtensionResponse::Disallowed;
+				}
+			}
+			return EEventExtensionResponse::Allowed;
+		}
+
+	case EFaerieStorageAddStackTestMultiType::GroupTest:
+		{
+			if (!CanContain_Multi(Views))
+			{
+				UE_LOG(LogTemp, Verbose, TEXT("PreAddition: Cannot add Stacks in GroupTest"));
+				return EEventExtensionResponse::Disallowed;
+			}
+		}
+		return EEventExtensionResponse::Allowed;
+	}
+
+	// Should not reach this;
+	return EEventExtensionResponse::NoExplicitResponse;
 }
 
 void UInventoryCapacityExtension::PostAddition(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event)
@@ -131,7 +167,8 @@ FWeightAndVolume UInventoryCapacityExtension::GetEntryWeightAndVolume(const UFae
 	if (auto&& AsStorage = Cast<UFaerieItemStorage>(Container))
 	{
 		// @todo a nicer way to do this would be ideal. but since UFaerieItemStorage has custom stacking logic, we
-		// have to sum it seperately to handle efficiency per stack correctly
+		// have to sum it separately to handle efficiency per stack correctly
+		// @todo this will be fixed by addresses
 		const FInventoryEntryView EntryView = AsStorage->GetEntryView(Key);
 		if (!ensure(EntryView.IsValid()))
 		{
@@ -203,6 +240,8 @@ void UInventoryCapacityExtension::CheckCapacityLimit()
 
 bool UInventoryCapacityExtension::CanContainToken(const UFaerieCapacityToken* Token, const int32 Stack) const
 {
+	// @todo this does not account for the idea that if we add to an existing stack, the Efficiency would reduce the weight.
+
 	// If the token is invalid, return true if we don't require tokens.
 	if (!IsValid(Token))
 	{
@@ -275,6 +314,111 @@ bool UInventoryCapacityExtension::CanContain(const FFaerieItemStackView Stack) c
 	}
 
 	return CanContainToken(Stack.Item->GetToken<UFaerieCapacityToken>(), Stack.Copies);
+}
+
+bool UInventoryCapacityExtension::CanContain_Multi(const TConstArrayView<FFaerieItemStackView> Stacks) const
+{
+	// @todo this does not account for the idea that if we add to an existing stack, the Efficiency would reduce the weight.
+
+	TArray<const UFaerieCapacityToken*> Tokens;
+	Tokens.Reserve(Stacks.Num());
+	for (auto&& Stack : Stacks)
+	{
+		if (!Stack.Item.IsValid())
+		{
+			return false;
+		}
+
+		auto Token = Stack.Item->GetToken<UFaerieCapacityToken>();
+		if (!IsValid(Token))
+		{
+			// If the token is invalid, return false if we require tokens.
+			if (Config.HasCheck(ECapacityChecks::Token))
+			{
+				return false;
+			}
+		}
+		Tokens.Add(Token); // Add even the nullptrs, as we need the indices to match with Stacks.
+	}
+
+	// Determine if the entry cannot physically fit inside the dimensions of this container.
+	// Fudged slightly to account for "cramming"
+	if (Config.HasCheck(ECapacityChecks::Bounds))
+	{
+		const FIntVector TokenBoundsSum = [&Tokens]()
+			{
+				FIntVector Bounds;
+				for (const UFaerieCapacityToken* Token : Tokens)
+				{
+					Bounds += Token->GetCapacity().Bounds;
+				}
+				return Bounds;
+			}();
+
+		// Convert Bounds to a FVector so we can multiply by a float, then convert back
+		const FIntVector TestBounds = FIntVector(FVector(Config.Bounds) * Config.BoundsFudgeFactor);
+		const FIntVector BoundsDiff = TokenBoundsSum - TestBounds;
+
+		// If the largest bound exceeds the limits, forbid containment.
+		if (BoundsDiff.GetMax() > 0)
+		{
+			return false;
+		}
+	}
+
+	// Determine if the entry would put the container over max weight.
+	if (Config.HasCheck(ECapacityChecks::Weight))
+	{
+		const int32 TokenWeightsSum = [&Tokens, &Stacks]()
+			{
+				int32 Weights = 0;
+				for (int32 i = 0; i < Stacks.Num(); ++i)
+				{
+					if (IsValid(Tokens[i]))
+					{
+						Weights += Tokens[i]->GetWeightOfStack(Stacks[i].Copies);
+					}
+				}
+
+				return Weights;
+			}();
+
+		const int32 TestWeight = State.CurrentWeight + TokenWeightsSum;
+		const bool WouldExceedWeight = TestWeight > Config.MaxWeight;
+
+		if (WouldExceedWeight)
+		{
+			return false;
+		}
+	}
+
+	// Determine if the entry would put the container over max volume.
+	if (Config.HasCheck(ECapacityChecks::Volume))
+	{
+		const int64 TokenVolumesSum = [&Tokens, &Stacks]()
+			{
+				int64 Volumes = 0;
+				for (int32 i = 0; i < Stacks.Num(); ++i)
+				{
+					if (IsValid(Tokens[i]))
+					{
+						Volumes += Tokens[i]->GetVolumeOfStack(Stacks[i].Copies);
+					}
+				}
+
+				return Volumes;
+			}();
+
+		const int64 TestVolume = State.CurrentVolume + TokenVolumesSum;
+		const bool WouldExceedVolume = TestVolume > Config.MaxVolume;
+
+		if (WouldExceedVolume)
+		{
+			return false;
+		}
+	}
+
+	return true;
 }
 
 bool UInventoryCapacityExtension::CanContainProxy(const FFaerieItemProxy Proxy) const

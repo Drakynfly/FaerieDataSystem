@@ -8,6 +8,109 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventoryGridExtensionBase)
 
+namespace Faerie
+{
+	bool FCellGrid::GetCell(const FIntPoint Point) const
+	{
+		const int32 Index = Ravel(Point);
+		if (!CellBits.IsValidIndex(Index))
+		{
+			// If cell doesn't exist, it cannot be occupied
+			return false;
+		}
+		return CellBits[Index];
+	}
+
+	FIntPoint FCellGrid::GetDimensions() const
+	{
+		return Dimensions;
+	}
+
+	void FCellGrid::Reset(const FIntPoint Size)
+	{
+		Dimensions = Size;
+		CellBits.Init(false, Size.X * Size.Y);
+	}
+
+	void FCellGrid::Resize(const FIntPoint NewSize)
+	{
+		const FIntPoint OldSize = NewSize;
+		TBitArray<> OldBits = CellBits;
+
+		CellBits.Init(false, NewSize.X * NewSize.Y);
+
+		// Copy over existing data that's still in bounds
+		for (int32 y = 0; y < FMath::Min(OldSize.Y, NewSize.Y); y++)
+		{
+			for (int32 x = 0; x < FMath::Min(OldSize.X, NewSize.X); x++)
+			{
+				const int32 OldIndex = x + y * OldSize.X;
+				const int32 NewIndex = x + y * NewSize.X;
+				CellBits[NewIndex] = OldBits[OldIndex];
+			}
+		}
+	}
+
+	void FCellGrid::MarkCell(const FIntPoint& Point)
+	{
+		const int32 Index = Ravel(Point);
+		if (!CellBits.IsValidIndex(Index))
+		{
+			// If cell doesn't exist, expand to fit.
+			CellBits.SetNum(Index, false);
+		}
+		CellBits[Index] = true;
+	}
+
+	void FCellGrid::UnmarkCell(const FIntPoint& Point)
+	{
+		const int32 Index = Ravel(Point);
+		if (!CellBits.IsValidIndex(Index))
+		{
+			// If cell doesn't exist, no need to unmark it.
+			return;
+		}
+		CellBits[Index] = false;
+	}
+
+	bool FCellGrid::IsEmpty() const
+	{
+		return !CellBits.Contains(true);
+	}
+
+	bool FCellGrid::IsFull() const
+	{
+		return !CellBits.Contains(false);
+	}
+
+	int32 FCellGrid::GetNumCells() const
+	{
+		return Dimensions.X * Dimensions.Y;
+	}
+
+	int32 FCellGrid::GetNumMarked() const
+	{
+		return CellBits.CountSetBits();
+	}
+
+	int32 FCellGrid::GetNumUnmarked() const
+	{
+		return GetNumCells() - GetNumMarked();
+	}
+
+	int32 FCellGrid::Ravel(const FIntPoint& Point) const
+	{
+		return Point.Y * Dimensions.X + Point.X;
+	}
+
+	FIntPoint FCellGrid::Unravel(const int32 Index) const
+	{
+		const int32 X = Index % Dimensions.X;
+		const int32 Y = Index / Dimensions.X;
+		return FIntPoint{ X, Y };
+	}
+}
+
 void UInventoryGridExtensionBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -37,7 +140,7 @@ void UInventoryGridExtensionBase::InitializeExtension(const UFaerieItemContainer
 	// This is also skipping possible serialization of grid data.
 	// @todo handle serialization loading
 	// @todo handle items that are too large to fit / too many items (log error?)
-	OccupiedCells.SetNum(GridSize.X * GridSize.Y, false);
+	OccupiedCells.Reset(GridSize);
 	if (const UFaerieItemStorage* ItemStorage = Cast<UFaerieItemStorage>(Container))
 	{
 		ItemStorage->ForEachKey(
@@ -61,60 +164,15 @@ void UInventoryGridExtensionBase::DeinitializeExtension(const UFaerieItemContain
 {
 	// Remove all entries for this container on shutdown
 	// @todo its only okay to reset these because we don't suppose multi-container! revisit later
-	OccupiedCells.Reset();
+	OccupiedCells.Reset(0);
 	GridContent.Items.Reset();
 	InitializedContainer = nullptr;
 	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, InitializedContainer, this);
 }
 
-int32 UInventoryGridExtensionBase::Ravel(const FIntPoint& Point) const
-{
-	return Point.Y * GridSize.X + Point.X;
-}
-
-FIntPoint UInventoryGridExtensionBase::Unravel(const int32 Index) const
-{
-	const int32 X = Index % GridSize.X;
-	const int32 Y = Index / GridSize.X;
-	return FIntPoint{ X, Y };
-}
-
 bool UInventoryGridExtensionBase::IsCellOccupied(const FIntPoint& Point) const
 {
-	const int32 Index = Ravel(Point);
-	if (!OccupiedCells.IsValidIndex(Index))
-	{
-		// If cell doesn't exist, it cannot be occupied
-		return false;
-	}
-	return OccupiedCells[Index];
-}
-
-void UInventoryGridExtensionBase::MarkCell(const FIntPoint& Point)
-{
-	const int32 Index = Ravel(Point);
-	if (!OccupiedCells.IsValidIndex(Index))
-	{
-		// If cell doesn't exist, expand to fit.
-		OccupiedCells.SetNum(Index, false);
-	}
-	OccupiedCells[Index] = true;
-}
-
-void UInventoryGridExtensionBase::UnmarkCell(const FIntPoint& Point)
-{
-	const int32 Index = Ravel(Point);
-	if (!OccupiedCells.IsValidIndex(Index))
-	{
-		// If cell doesn't exist, no need to unmark it.
-		return;
-	}
-	OccupiedCells[Index] = false;
-}
-
-void UInventoryGridExtensionBase::UnmarkAllCells()
-{
-	OccupiedCells.Init(false, GridSize.X * GridSize.Y);
+	return OccupiedCells.GetCell(Point);
 }
 
 void UInventoryGridExtensionBase::BroadcastEvent(const FInventoryKey& Key, const EFaerieGridEventType EventType)
@@ -153,23 +211,9 @@ void UInventoryGridExtensionBase::SetGridSize(const FIntPoint& NewGridSize)
 {
 	if (GridSize != NewGridSize)
 	{
-		const FIntPoint OldSize = GridSize;
-		TBitArray<> OldOccupied = OccupiedCells;
-
 		// Resize to new dimensions
 		GridSize = NewGridSize;
-		OccupiedCells.Init(false, GridSize.X * GridSize.Y);
-
-		// Copy over existing data that's still in bounds
-		for (int32 y = 0; y < FMath::Min(OldSize.Y, GridSize.Y); y++)
-		{
-			for (int32 x = 0; x < FMath::Min(OldSize.X, GridSize.X); x++)
-			{
-				const int32 OldIndex = x + y * OldSize.X;
-				const int32 NewIndex = x + y * GridSize.X;
-				OccupiedCells[NewIndex] = OldOccupied[OldIndex];
-			}
-		}
+		OccupiedCells.Resize(GridSize);
 
 		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, GridSize, this);
 

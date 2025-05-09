@@ -966,7 +966,42 @@ bool UFaerieItemStorage::CanAddStack(const FFaerieItemStackView Stack, const EFa
 		}
 	}
 
-	switch (Extensions->AllowsAddition(this, Stack, AddStackBehavior))
+	const FFaerieExtensionAllowsAdditionArgs CanAddStackArgs { AddStackBehavior };
+
+	switch (Extensions->AllowsAddition(this, MakeArrayView(&Stack, 1), CanAddStackArgs))
+	{
+	case EEventExtensionResponse::NoExplicitResponse:
+	case EEventExtensionResponse::Allowed:				return true;
+	case EEventExtensionResponse::Disallowed:			return false;
+	default: return false;
+	}
+}
+
+bool UFaerieItemStorage::CanAddStacks(const TArray<FFaerieItemStackView>& Stacks, const FFaerieExtensionAllowsAdditionArgs Args) const
+{
+	for (auto&& Stack : Stacks)
+	{
+		if (!Stack.Item.IsValid() ||
+			Stack.Copies < 1)
+		{
+			return false;
+		}
+
+		if (Stack.Item->CanMutate())
+		{
+			// Prevent recursive storage for mutable items
+			// @todo this only checks one layer of depth. Theoretically, these storage tokens could point to other ItemStorages,
+			// which in turn has an item that points to us, which will crash the Extensions code when the item is possessed.
+			// But honestly, I don't feel like fixing that unless it becomes a problem.
+			const TSet<UFaerieItemContainerBase*> ContainerSet = UFaerieItemContainerToken::GetAllContainersInItem(Stack.Item.Get());
+			if (ContainerSet.Contains(this))
+			{
+				return false;
+			}
+		}
+	}
+
+	switch (Extensions->AllowsAddition(this, Stacks, Args))
 	{
 	case EEventExtensionResponse::NoExplicitResponse:
 	case EEventExtensionResponse::Allowed:				return true;

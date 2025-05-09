@@ -82,8 +82,10 @@ struct FCapacityExtensionState
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FInventoryCapacityEvent);
 
 /**
- * This class parses the Capacity out from Item Data and maintains an aggregated capacity of all items across each
- * registered container. This allows for keeping track of a maximum
+ * This class uses the Capacity Tokens on items to maintain an aggregated capacity of all items across each
+ * registered container. This allows for keeping track of a summed weight and volume of inventory content.
+ * Additionally, in the Config, Checks can be enabled, to disable adding more items to the container once limits
+ * are reached.
  */
 UCLASS()
 class FAERIEINVENTORYCONTENT_API UInventoryCapacityExtension : public UItemContainerExtensionBase
@@ -102,7 +104,7 @@ protected:
     //~ UItemContainerExtensionBase
     virtual void InitializeExtension(const UFaerieItemContainerBase* Container) override;
     virtual void DeinitializeExtension(const UFaerieItemContainerBase* Container) override;
-    virtual EEventExtensionResponse AllowsAddition(const UFaerieItemContainerBase* Container, FFaerieItemStackView Stack, EFaerieStorageAddStackBehavior AddStackBehavior) const override;
+    virtual EEventExtensionResponse AllowsAddition(const UFaerieItemContainerBase* Container, TConstArrayView<FFaerieItemStackView> Views, FFaerieExtensionAllowsAdditionArgs Args) const override;
     virtual void PostAddition(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event) override;
     virtual void PostRemoval(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event) override;
     virtual void PostEntryChanged(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event) override;
@@ -125,9 +127,13 @@ public:
     FSimpleMulticastDelegate::RegistrationType& GetOnStateChanged() { return OnStateChangedNative; }
     FSimpleMulticastDelegate::RegistrationType& GetOnConfigurationChanged() { return OnConfigurationChangedNative; }
 
-    // Tests if the capacity of an entry can fit in this container.
+    // Tests if the capacity of an stack can fit in this container.
     UFUNCTION(BlueprintPure, Category = "Faerie|InventoryCapacity")
     bool CanContain(FFaerieItemStackView Stack) const;
+
+    // Tests if the capacity of multiple stacks can fit in this container at once.
+    //UFUNCTION(BlueprintPure, Category = "Faerie|InventoryCapacity")
+    bool CanContain_Multi(TConstArrayView<FFaerieItemStackView> Stacks) const;
 
     // Tests if the capacity of an item can fit in this container.
     UFUNCTION(BlueprintPure, Category = "Faerie|InventoryCapacity")

@@ -13,6 +13,39 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FFaerieGridSizeChanged, FIntPoint, N
 using FFaerieGridStackChangedNative = TMulticastDelegate<void(const FInventoryKey&, EFaerieGridEventType)>;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FSpatialStackChanged, FInventoryKey, Key, EFaerieGridEventType, EventType);
 
+namespace Faerie
+{
+	class FCellGrid
+	{
+	public:
+		bool GetCell(FIntPoint Point) const;
+		FIntPoint GetDimensions() const;
+
+		void Reset(FIntPoint Size);
+		void Resize(FIntPoint NewSize);
+
+		void MarkCell(const FIntPoint& Point);
+		void UnmarkCell(const FIntPoint& Point);
+
+		bool IsEmpty() const;
+		bool IsFull() const;
+		int32 GetNumCells() const;
+		int32 GetNumMarked() const;
+		int32 GetNumUnmarked() const;
+
+	protected:
+		// Convert a point into a grid index
+		int32 Ravel(const FIntPoint& Point) const;
+
+		// Convert a grid index to a point
+		FIntPoint Unravel(int32 Index) const;
+
+	private:
+		FIntPoint Dimensions = FIntPoint::ZeroValue;
+		TBitArray<> CellBits;
+	};
+}
+
 /**
  * Base class for extensions that map inventory keys to positions on a 2D grid.
  */
@@ -50,16 +83,6 @@ public:
 	virtual bool RotateItem(const FInventoryKey& Key) PURE_VIRTUAL(UInventoryGridExtensionBase::RotateItem, return false; )
 
 protected:
-	// Convert a point into a grid index
-	int32 Ravel(const FIntPoint& Point) const;
-
-	// Convert a grid index to a point
-	FIntPoint Unravel(int32 Index) const;
-
-	void MarkCell(const FIntPoint& Point);
-	void UnmarkCell(const FIntPoint& Point);
-	void UnmarkAllCells();
-
 	void BroadcastEvent(const FInventoryKey& Key, EFaerieGridEventType EventType);
 
 	UFUNCTION(/* Replication */)
@@ -97,6 +120,9 @@ protected:
 	UPROPERTY(Replicated)
 	TObjectPtr<UFaerieItemContainerBase> InitializedContainer;
 
+	// Locally tracked grid of which cells are occupied.
+	Faerie::FCellGrid OccupiedCells;
+
 private:
 	UPROPERTY(BlueprintAssignable, Category = "Events", meta = (AllowPrivateAccess = "true"))
 	FSpatialStackChanged SpatialStackChangedDelegate;
@@ -106,6 +132,4 @@ private:
 
 	FFaerieGridStackChangedNative SpatialStackChangedNative;
 	FFaerieGridSizeChangedNative GridSizeChangedNative;
-
-	TBitArray<> OccupiedCells;
 };

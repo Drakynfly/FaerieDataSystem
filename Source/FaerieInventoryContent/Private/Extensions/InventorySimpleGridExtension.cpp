@@ -9,16 +9,14 @@
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventorySimpleGridExtension)
 
 EEventExtensionResponse UInventorySimpleGridExtension::AllowsAddition(const UFaerieItemContainerBase* Container,
-																	   const FFaerieItemStackView Stack,
-																	   EFaerieStorageAddStackBehavior) const
+																	  const TConstArrayView<FFaerieItemStackView> Views,
+																	  const FFaerieExtensionAllowsAdditionArgs Args) const
 {
-	// @todo add boolean in config to allow items without a shape
-	if (!CanAddItemToGrid())
+	if (OccupiedCells.GetNumUnmarked() > Views.Num())
 	{
-		return EEventExtensionResponse::Disallowed;
+		return EEventExtensionResponse::Allowed;
 	}
-
-	return EEventExtensionResponse::Allowed;
+	return EEventExtensionResponse::Disallowed;
 }
 
 void UInventorySimpleGridExtension::PostAddition(const UFaerieItemContainerBase* Container,
@@ -66,7 +64,7 @@ EEventExtensionResponse UInventorySimpleGridExtension::AllowsEdit(const UFaerieI
 {
 	if (EditType == Faerie::Inventory::Tags::Split)
 	{
-		if (!CanAddItemToGrid())
+		if (OccupiedCells.IsFull())
 		{
 			return EEventExtensionResponse::Disallowed;
 		}
@@ -108,14 +106,14 @@ void UInventorySimpleGridExtension::PostEntryChanged(const UFaerieItemContainerB
 void UInventorySimpleGridExtension::PreStackRemove_Client(const FFaerieGridKeyedStack& Stack)
 {
 	// This is to account for removals through proxies that don't directly interface with the grid
-	UnmarkCell(Stack.Value.Origin);
+	OccupiedCells.UnmarkCell(Stack.Value.Origin);
 	BroadcastEvent(Stack.Key, EFaerieGridEventType::ItemRemoved);
 }
 
 void UInventorySimpleGridExtension::PreStackRemove_Server(const FFaerieGridKeyedStack& Stack, const UFaerieItem* Item)
 {
 	// This is to account for removals through proxies that don't directly interface with the grid
-	UnmarkCell(Stack.Value.Origin);
+	OccupiedCells.UnmarkCell(Stack.Value.Origin);
 	BroadcastEvent(Stack.Key, EFaerieGridEventType::ItemRemoved);
 }
 
@@ -169,7 +167,7 @@ bool UInventorySimpleGridExtension::AddItemToGrid(const FInventoryKey& Key, cons
 	}
 
 	GridContent.Insert(Key, DesiredItemPlacement);
-	MarkCell(DesiredItemPlacement.Origin);
+	OccupiedCells.MarkCell(DesiredItemPlacement.Origin);
 	return true;
 }
 
@@ -232,12 +230,6 @@ void UInventorySimpleGridExtension::RemoveItemBatch(const TConstArrayView<FInven
 	GridContent.MarkArrayDirty();
 }
 
-bool UInventorySimpleGridExtension::CanAddItemToGrid() const
-{
-	const FFaerieGridPlacement TestPlacement = FindFirstEmptyLocation();
-	return TestPlacement.Origin != FIntPoint::NoneValue;
-}
-
 FFaerieGridPlacement UInventorySimpleGridExtension::FindFirstEmptyLocation() const
 {
 	// Early exit if grid is empty or invalid
@@ -283,10 +275,10 @@ void UInventorySimpleGridExtension::SwapItems(FFaerieGridPlacement& PlacementA, 
 void UInventorySimpleGridExtension::MoveSingleItem(FFaerieGridPlacement& Placement, const FIntPoint& NewPosition)
 {
 	// Clear old position first
-	UnmarkCell(Placement.Origin);
+	OccupiedCells.UnmarkCell(Placement.Origin);
 
 	// Then set new positions
-	MarkCell(NewPosition);
+	OccupiedCells.MarkCell(NewPosition);
 
 	Placement.Origin = NewPosition;
 }

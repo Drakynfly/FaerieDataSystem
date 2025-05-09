@@ -153,8 +153,8 @@ void UItemContainerExtensionGroup::DeinitializeExtension(const UFaerieItemContai
 }
 
 EEventExtensionResponse UItemContainerExtensionGroup::AllowsAddition(const UFaerieItemContainerBase* Container,
-																	 const FFaerieItemStackView Stack,
-																	 const EFaerieStorageAddStackBehavior AddStackBehavior) const
+																	 const TConstArrayView<FFaerieItemStackView> Views,
+																	 const FFaerieExtensionAllowsAdditionArgs Args) const
 {
 	EEventExtensionResponse Response = EEventExtensionResponse::NoExplicitResponse;
 
@@ -163,7 +163,7 @@ EEventExtensionResponse UItemContainerExtensionGroup::AllowsAddition(const UFaer
 	{
 		if (!ensure(IsValid(Extension))) continue;
 
-		switch (Extension->AllowsAddition(Container, Stack, AddStackBehavior))
+		switch (Extension->AllowsAddition(Container, Views, Args))
 		{
 		case EEventExtensionResponse::NoExplicitResponse:
 			break;

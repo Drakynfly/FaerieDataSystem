@@ -6,17 +6,20 @@
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventoryContentFilterExtension)
 
 EEventExtensionResponse UInventoryContentFilterExtension::AllowsAddition(const UFaerieItemContainerBase*,
-                                                                         const FFaerieItemStackView Stack,
-                                                                         EFaerieStorageAddStackBehavior) const
+                                                                         const TConstArrayView<FFaerieItemStackView> Views,
+                                                                         FFaerieExtensionAllowsAdditionArgs) const
 {
 	if (ensure(IsValid(Filter)))
 	{
-		if (Filter->Exec(Stack))
+		for (auto&& View : Views)
 		{
-			return EEventExtensionResponse::Allowed;
+			if (!Filter->Exec(View))
+			{
+				return EEventExtensionResponse::Disallowed;
+			}
 		}
 
-		return EEventExtensionResponse::Disallowed;
+		return EEventExtensionResponse::Allowed;
 	}
 
 	return EEventExtensionResponse::NoExplicitResponse;

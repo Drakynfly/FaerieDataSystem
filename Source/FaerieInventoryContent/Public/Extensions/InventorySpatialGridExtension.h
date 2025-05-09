@@ -7,6 +7,21 @@
 #include "SpatialTypes.h"
 #include "InventorySpatialGridExtension.generated.h"
 
+namespace Faerie
+{
+	using FExclusionSet = TSet<FIntPoint>;
+
+	// General shape utils
+	[[nodiscard]] FFaerieGridShape ApplyPlacement(const FFaerieGridShapeConstView& Shape, const FFaerieGridPlacement& Placement, bool bNormalize = false, bool Reset = false);
+	void ApplyPlacementInline(FFaerieGridShape& Shape, const FFaerieGridPlacement& Placement, bool bNormalize = false);
+
+	// Cell grid utils for shapes.
+	FFaerieGridPlacement FindFirstEmptyLocation(const FCellGrid& Grid, const FFaerieGridShapeConstView& Shape);
+	bool FitsInGrid(const FCellGrid& Grid, const FFaerieGridShapeConstView& TranslatedShape, const FExclusionSet& ExclusionSet);
+	void MarkShapeCells(FCellGrid& Grid, const FFaerieGridShapeConstView TranslatedShape);
+	void UnmarkShapeCells(FCellGrid& Grid, const FFaerieGridShapeConstView& TranslatedShape);
+}
+
 /**
  *
  */
@@ -17,7 +32,7 @@ class FAERIEINVENTORYCONTENT_API UInventorySpatialGridExtension : public UInvent
 
 protected:
 	//~ UItemContainerExtensionBase
-	virtual EEventExtensionResponse AllowsAddition(const UFaerieItemContainerBase* Container, FFaerieItemStackView Stack, EFaerieStorageAddStackBehavior AddStackBehavior) const override;
+	virtual EEventExtensionResponse AllowsAddition(const UFaerieItemContainerBase* Container, TConstArrayView<FFaerieItemStackView> Views, FFaerieExtensionAllowsAdditionArgs Args) const override;
 	virtual void PostAddition(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event) override;
 	virtual void PostRemoval(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event) override;
 	virtual EEventExtensionResponse AllowsEdit(const UFaerieItemContainerBase* Container, FEntryKey Key, FFaerieInventoryTag EditType) const override;
@@ -50,6 +65,7 @@ private:
 
 public:
 	bool CanAddItemToGrid(const FFaerieGridShapeConstView& Shape) const;
+	bool CanAddItemsToGrid(const TArray<FFaerieGridShapeConstView>& Shapes) const;
 
 	// Gets the normalized shape for an item.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|SpatialGrid")
@@ -66,26 +82,14 @@ public:
 	bool CanAddAtLocation(const FFaerieGridShape& Shape, FIntPoint Position) const;
 
 protected:
-	using FExclusionSet = TSet<FIntPoint>;
+	Faerie::FExclusionSet MakeExclusionSet(FInventoryKey ExcludedKey) const;
+	Faerie::FExclusionSet MakeExclusionSet(const TConstArrayView<FInventoryKey> ExcludedKeys) const;
 
-	[[nodiscard]] static FFaerieGridShape ApplyPlacement(const FFaerieGridShapeConstView& Shape, const FFaerieGridPlacement& Placement, bool bNormalize = false, bool Reset = false);
-	static void ApplyPlacementInline(FFaerieGridShape& Shape, const FFaerieGridPlacement& Placement, bool bNormalize = false);
-
-	FExclusionSet MakeExclusionSet(FInventoryKey ExcludedKey) const;
-	FExclusionSet MakeExclusionSet(const TConstArrayView<FInventoryKey> ExcludedKeys) const;
-
-	FFaerieGridPlacement FindFirstEmptyLocation(const FFaerieGridShapeConstView& Shape) const;
-
-	bool FitsInGrid(const FFaerieGridShapeConstView& TranslatedShape, const FExclusionSet& ExclusionSet) const;
-
-	bool FitsInGridAnyRotation(const FFaerieGridShapeConstView& Shape, FIntPoint Origin, const FExclusionSet& ExclusionSet) const;
+	bool FitsInGridAnyRotation(const FFaerieGridShapeConstView& Shape, FIntPoint Origin, const Faerie::FExclusionSet& ExclusionSet) const;
 
 	FInventoryKey FindOverlappingItem(const FFaerieGridShapeConstView& TranslatedShape, const FInventoryKey& ExcludeKey) const;
 
 	bool TrySwapItems(FInventoryKey KeyA, FFaerieGridPlacement& PlacementA, FInventoryKey KeyB, FFaerieGridPlacement& PlacementB);
 
 	bool MoveSingleItem(const FInventoryKey Key, FFaerieGridPlacement& Placement, const FIntPoint& NewPosition);
-
-	void AddItemPosition(const FFaerieGridShapeConstView TranslatedShape);
-	void RemoveItemPosition(const FFaerieGridShapeConstView& TranslatedShape);
 };

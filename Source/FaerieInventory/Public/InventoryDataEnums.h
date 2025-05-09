@@ -37,6 +37,16 @@ enum class EFaerieStorageAddStackBehavior : uint8
 };
 
 UENUM(BlueprintType)
+enum class EFaerieStorageAddStackTestMultiType : uint8
+{
+	// Test if each stack can be added individually.
+	IndividualTests,
+
+	// Test if all stacks can be added at once.
+	GroupTest
+};
+
+UENUM(BlueprintType)
 enum class EFaerieItemEqualsCheck : uint8
 {
 	// Compare only the UFaerieItem pointer.

@@ -274,9 +274,9 @@ bool UFaerieEquipmentSlot::CouldSetInSlot(const FFaerieItemStackView View) const
 		return false;
 	}
 
-	static constexpr EFaerieStorageAddStackBehavior SlotAddBehavior = EFaerieStorageAddStackBehavior::OnlyNewStacks;
+	static constexpr FFaerieExtensionAllowsAdditionArgs Args = { EFaerieStorageAddStackBehavior::OnlyNewStacks };
 
-	if (Extensions->AllowsAddition(this, View, SlotAddBehavior) == EEventExtensionResponse::Disallowed)
+	if (Extensions->AllowsAddition(this, MakeArrayView(&View, 1), Args) == EEventExtensionResponse::Disallowed)
 	{
 		return false;
 	}
@@ -307,9 +307,9 @@ bool UFaerieEquipmentSlot::CanSetInSlot(const FFaerieItemStackView View) const
 		}
 	}
 
-	static constexpr EFaerieStorageAddStackBehavior SlotAddBehavior = EFaerieStorageAddStackBehavior::OnlyNewStacks;
+	static constexpr FFaerieExtensionAllowsAdditionArgs Args = { EFaerieStorageAddStackBehavior::OnlyNewStacks };
 
-	if (Extensions->AllowsAddition(this, View, SlotAddBehavior) == EEventExtensionResponse::Disallowed)
+	if (Extensions->AllowsAddition(this, MakeArrayView(&View, 1), Args) == EEventExtensionResponse::Disallowed)
 	{
 		return false;
 	}

@@ -31,20 +31,43 @@ void UInventoryItemLimitExtension::DeinitializeExtension(const UFaerieItemContai
 }
 
 EEventExtensionResponse UInventoryItemLimitExtension::AllowsAddition(const UFaerieItemContainerBase*,
-                                                                     const FFaerieItemStackView Stack,
-                                                                     const EFaerieStorageAddStackBehavior) const
+                                                                     const TConstArrayView<FFaerieItemStackView> Views,
+                                                                     const FFaerieExtensionAllowsAdditionArgs Args) const
 {
-	if (!CanContain(Stack))
+	int32 TestCount = 0;
+
+	switch (Args.TestType)
 	{
-		// @todo this is a routine call, which is normal to fail. Why log failure at all?
+	case EFaerieStorageAddStackTestMultiType::IndividualTests:
+		{
+			// Find the largest stack
+			for (auto&& View : Views)
+			{
+				TestCount = FMath::Max(TestCount, View.Copies);
+			}
+		}
+		break;
+	case EFaerieStorageAddStackTestMultiType::GroupTest:
+		{
+			// Sum all stacks
+			for (auto&& View : Views)
+			{
+				TestCount += View.Copies;
+			}
+		}
+		break;
+	}
+
+	if (!CanContain(TestCount))
+	{
 		UE_LOG(LogTemp, VeryVerbose,
-			TEXT("AllowsAddition: Cannot add Stack (Copies: %i)"),
-			Stack.Copies);
+			TEXT("AllowsAddition: Cannot add Stack(s) (Total Count: %i)"),
+			TestCount);
 
 		return EEventExtensionResponse::Disallowed;
 	}
 
-	return EEventExtensionResponse::Allowed;
+	return EEventExtensionResponse::NoExplicitResponse;
 }
 
 void UInventoryItemLimitExtension::PostAddition(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event)
@@ -85,7 +108,7 @@ int32 UInventoryItemLimitExtension::GetRemainingTotalItemCount() const
 	return MaxTotalItemCopies - CurrentTotalItemCopies;
 }
 
-bool UInventoryItemLimitExtension::CanContain(const FFaerieItemStackView Stack) const
+bool UInventoryItemLimitExtension::CanContain(const int32 Count) const
 {
 	if (MaxEntries > 0)
 	{
@@ -99,7 +122,7 @@ bool UInventoryItemLimitExtension::CanContain(const FFaerieItemStackView Stack) 
 	if (MaxTotalItemCopies > 0)
 	{
 		// Maximum total item reached check
-		if (CurrentTotalItemCopies + Stack.Copies > MaxTotalItemCopies)
+		if (CurrentTotalItemCopies + Count > MaxTotalItemCopies)
 		{
 			return false;
 		}

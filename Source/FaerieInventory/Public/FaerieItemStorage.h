@@ -10,6 +10,7 @@
 
 #include "FaerieItemStorage.generated.h"
 
+struct FFaerieExtensionAllowsAdditionArgs;
 DECLARE_LOG_CATEGORY_EXTERN(LogFaerieItemStorage, Log, All);
 
 namespace Faerie
@@ -226,6 +227,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Storage")
 	bool CanAddStack(FFaerieItemStackView Stack, EFaerieStorageAddStackBehavior AddStackBehavior) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Storage")
+	bool CanAddStacks(const TArray<FFaerieItemStackView>& Stacks, FFaerieExtensionAllowsAdditionArgs Args) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Storage")
 	bool CanEditEntry(FEntryKey Key, FFaerieInventoryTag EditTag) const;

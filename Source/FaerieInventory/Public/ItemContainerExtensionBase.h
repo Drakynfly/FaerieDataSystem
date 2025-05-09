@@ -6,11 +6,10 @@
 #include "FaerieInventoryTag.h"
 #include "FaerieItemContainerStructs.h"
 #include "FaerieItemStackView.h"
+#include "InventoryDataEnums.h"
 #include "NetSupportedObject.h"
 
 #include "ItemContainerExtensionBase.generated.h"
-
-enum class EFaerieStorageAddStackBehavior : uint8;
 
 namespace Faerie::Inventory
 {
@@ -29,6 +28,19 @@ enum class EEventExtensionResponse : uint8
 	// The extension forbids the event
 	Disallowed
 };
+
+USTRUCT(BlueprintType)
+struct FFaerieExtensionAllowsAdditionArgs
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "ExtensionAllowsAdditionArgs")
+	EFaerieStorageAddStackBehavior AddStackBehavior = EFaerieStorageAddStackBehavior::AddToAnyStack;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "ExtensionAllowsAdditionArgs")
+	EFaerieStorageAddStackTestMultiType TestType = EFaerieStorageAddStackTestMultiType::IndividualTests; // @todo make this GroupTest by default?
+};
+
 
 /**
  * A modular item container extension. Each extension instance may be registered to multiple UFaerieItemContainerBase
@@ -57,8 +69,9 @@ protected:
 	virtual void InitializeExtension(const UFaerieItemContainerBase* Container) {}
 	virtual void DeinitializeExtension(const UFaerieItemContainerBase* Container) {}
 
-	/* Does this extension allow this item to be added to the container? */
-	virtual EEventExtensionResponse AllowsAddition(const UFaerieItemContainerBase* Container, FFaerieItemStackView Stack, EFaerieStorageAddStackBehavior AddStackBehavior) const { return EEventExtensionResponse::NoExplicitResponse; }
+	/* Does this extension allow a stack of items, or multiple stacks, to be added to the container? */
+	virtual EEventExtensionResponse AllowsAddition(const UFaerieItemContainerBase* Container,
+		TConstArrayView<FFaerieItemStackView> Views, FFaerieExtensionAllowsAdditionArgs Args) const { return EEventExtensionResponse::NoExplicitResponse; }
 
 	/* Allows us to react before an item is added */
 	virtual void PreAddition(const UFaerieItemContainerBase* Container, FFaerieItemStackView Stack) {}
@@ -117,7 +130,7 @@ public:
 	//~ UItemContainerExtensionBase
 	virtual void InitializeExtension(const UFaerieItemContainerBase* Container) override;
 	virtual void DeinitializeExtension(const UFaerieItemContainerBase* Container) override;
-	virtual EEventExtensionResponse AllowsAddition(const UFaerieItemContainerBase* Container, FFaerieItemStackView Stack, EFaerieStorageAddStackBehavior AddStackBehavior) const override;
+	virtual EEventExtensionResponse AllowsAddition(const UFaerieItemContainerBase* Container, TConstArrayView<FFaerieItemStackView> Views, FFaerieExtensionAllowsAdditionArgs Args) const override;
 	virtual void PreAddition(const UFaerieItemContainerBase* Container, FFaerieItemStackView Stack) override;
 	virtual void PostAddition(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event) override;
 	virtual EEventExtensionResponse AllowsRemoval(const UFaerieItemContainerBase* Container, FEntryKey Key, FFaerieInventoryTag Reason) const override;
