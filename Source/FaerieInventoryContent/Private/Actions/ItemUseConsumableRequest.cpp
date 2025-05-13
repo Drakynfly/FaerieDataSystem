@@ -35,7 +35,7 @@ bool FFaerieClientAction_UseConsumable::Server_Execute(const UFaerieInventoryCli
 
 		if (Uses->GetDestroyItemOnLastUse() && Uses->GetUsesRemaining() == 0)
 		{
-			(void)Handle.Container->Release(View);
+			(void)Handle.Container->Release(Handle.Address, 1);
 		}
 
 		return true;
