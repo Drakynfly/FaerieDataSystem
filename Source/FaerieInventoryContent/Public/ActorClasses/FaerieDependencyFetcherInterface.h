@@ -24,3 +24,20 @@ public:
 		meta = (ExpandBoolAsExecs = "ReturnValue", DeterminesOutputType = "Class", DynamicOutputParam = "Component"))
 	bool FetchDependency(TSubclassOf<UActorComponent> Class, UActorComponent*& Component) const;
 };
+
+namespace Faerie
+{
+	template <
+		typename TActorComponent
+		UE_REQUIRES(TIsDerivedFrom<TActorComponent, UActorComponent>::Value)
+	>
+	TActorComponent* FetchDependency(const UObject* Obj)
+	{
+		UActorComponent* Component = nullptr;
+		if (Obj->Implements<UFaerieDependencyFetcherInterface>())
+		{
+			IFaerieDependencyFetcherInterface::Execute_FetchDependency(Obj, TActorComponent::StaticClass(), Component);
+		}
+		return Cast<TActorComponent>(Component);
+	}
+}
