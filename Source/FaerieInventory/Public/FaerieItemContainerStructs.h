@@ -69,21 +69,6 @@ struct FAERIEINVENTORY_API FFaerieAddressableHandle
 };
 
 /**
- * An item container and a key to an entry inside.
- */
-USTRUCT(BlueprintType)
-struct FAERIEINVENTORY_API FContainerEntryHandle
-{
-	GENERATED_BODY()
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "InventoryKeyHandle")
-	TWeakObjectPtr<UFaerieItemContainerBase> Container;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "InventoryKeyHandle")
-	FEntryKey Key;
-};
-
-/**
  * Struct to hold the data to save/load an inventory state from.
  */
 USTRUCT()
