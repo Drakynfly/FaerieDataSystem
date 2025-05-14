@@ -21,8 +21,8 @@ void UFaerieItemContainerBase::GetLifetimeReplicatedProps(TArray<FLifetimeProper
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	FDoRepLifetimeParams Params;
-	Params.bIsPushBased = true;
+	//FDoRepLifetimeParams Params;
+	//Params.bIsPushBased = true;
 	DOREPLIFETIME_CONDITION(ThisClass, Extensions, COND_InitialOnly);
 }
 
@@ -216,7 +216,7 @@ void UFaerieItemContainerBase::TakeOwnership(const UFaerieItem* Item)
 	if (UFaerieItem* MutableItem = Item->MutateCast())
 	{
 		checkfSlow(Item->GetOuter() == GetTransientPackage(), TEXT("ReleaseOwnership was not called correctly on this item, before attempting to give ownership here!"));
-		checkfSlow(!Item->GetNotifyOwnerOfSelfMutation().IsBound(), TEXT("This should always have been unbound by the previous owner!"))
+		checkfSlow(!MutableItem->GetNotifyOwnerOfSelfMutation().IsBound(), TEXT("This should always have been unbound by the previous owner!"))
 		MutableItem->GetNotifyOwnerOfSelfMutation().BindUObject(this, &ThisClass::OnItemMutated);
 
 		if (GetDefault<UFaerieInventorySettings>()->ContainerMutableBehavior == EFaerieContainerOwnershipBehavior::Rename)
