@@ -300,27 +300,30 @@ void UItemContainerExtensionGroup::ForEachExtension(const TFunctionRef<void(UIte
 	}
 }
 
-#if WITH_EDITOR
+#if !UE_BUILD_SHIPPING
 
-// Copied from GeometryCollection/GeometryCollectionComponent.h
-// For some reason this isn't anywhere else in the engine :/
-FString RoleToString(const ENetRole InRole)
+namespace Helper
 {
-	switch (InRole)
+	// Copied from GeometryCollection/GeometryCollectionComponent.h
+	// For some reason this isn't anywhere else in the engine :/
+	FString RoleToString(const ENetRole InRole)
 	{
-	case ROLE_None:
-		return FString(TEXT("None"));
-	case ROLE_SimulatedProxy:
-		return FString(TEXT("SimProxy"));
-	case ROLE_AutonomousProxy:
-		return FString(TEXT("AutoProxy"));
-	case ROLE_Authority:
-		return FString(TEXT("Auth"));
-	default:
-		break;
-	}
+		switch (InRole)
+		{
+		case ROLE_None:
+			return FString(TEXT("None"));
+		case ROLE_SimulatedProxy:
+			return FString(TEXT("SimProxy"));
+		case ROLE_AutonomousProxy:
+			return FString(TEXT("AutoProxy"));
+		case ROLE_Authority:
+			return FString(TEXT("Auth"));
+		default:
+			break;
+		}
 
-	return FString(TEXT("Invalid Role"));
+		return FString(TEXT("Invalid Role"));
+	}
 }
 
 void UItemContainerExtensionGroup::PrintDebugData() const
@@ -328,7 +331,7 @@ void UItemContainerExtensionGroup::PrintDebugData() const
 	const AActor* OwningActor = GetTypedOuter<AActor>();
 
 	UE_LOG(LogTemp, Log, TEXT("Printing Containers/Extension in Group (%s)"),
-		OwningActor ? *("Role: " + RoleToString(OwningActor->GetLocalRole())) : TEXT("No Owner"))
+		OwningActor ? *("Role: " + Helper::RoleToString(OwningActor->GetLocalRole())) : TEXT("No Owner"))
 	for (auto&& Container : Containers)
 	{
 		if (!Container.IsValid())

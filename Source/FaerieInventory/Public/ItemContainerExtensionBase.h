@@ -156,7 +156,7 @@ public:
 
 	void ForEachExtension(const TFunctionRef<void(UItemContainerExtensionBase*)>& Func);
 
-#if WITH_EDITOR
+#if !UE_BUILD_SHIPPING
 	void PrintDebugData() const;
 #endif
 
