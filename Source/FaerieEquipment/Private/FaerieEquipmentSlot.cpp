@@ -43,8 +43,11 @@ FFaerieContainerSaveData UFaerieEquipmentSlot::MakeSaveData() const
 {
 	FFaerieEquipmentSlotSaveData SlotSaveData;
 	SlotSaveData.Config = Config;
-	SlotSaveData.ItemStack = Flakes::MakeFlake<Flakes::Binary::Type>(FConstStructView::Make(ItemStack), this);
 	SlotSaveData.StoredKey = StoredKey;
+	if (StoredKey.IsValid())
+	{
+		SlotSaveData.ItemStack = Flakes::MakeFlake<Flakes::Binary::Type>(FConstStructView::Make(ItemStack), this);
+	}
 
 	FFaerieContainerSaveData SaveData;
 	SaveData.ItemData = FInstancedStruct::Make(SlotSaveData);
@@ -54,12 +57,38 @@ FFaerieContainerSaveData UFaerieEquipmentSlot::MakeSaveData() const
 
 void UFaerieEquipmentSlot::LoadSaveData(const FFaerieContainerSaveData& SaveData)
 {
-	const FFaerieEquipmentSlotSaveData& SlotSaveData = SaveData.ItemData.Get<FFaerieEquipmentSlotSaveData>();
-	Config = SlotSaveData.Config;
-	const FFaerieItemStack LoadedItemStack = Flakes::CreateStruct<Flakes::Binary::Type, FFaerieItemStack>(SlotSaveData.ItemStack, this);
-	StoredKey = SlotSaveData.StoredKey;
+	const FFaerieEquipmentSlotSaveData* SlotSaveData = SaveData.ItemData.GetPtr<FFaerieEquipmentSlotSaveData>();
+	if (!SlotSaveData)
+	{
+		return;
+	}
 
-	SetItemInSlot(LoadedItemStack);
+	// @todo should check all Config members, not just SlotID
+	if (!ensure(Config.SlotID == SlotSaveData->Config.SlotID))
+	{
+		return;
+	}
+
+	// Clear any current content.
+	if (IsFilled())
+	{
+		TakeItemFromSlot(-1);
+	}
+
+	// Cannot change Config here, as it only replicates once!
+
+	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, StoredKey, this);
+	StoredKey = SlotSaveData->StoredKey;
+
+	if (StoredKey.IsValid())
+	{
+		const FFaerieItemStack LoadedItemStack = Flakes::CreateStruct<Flakes::Binary::Type, FFaerieItemStack>(SlotSaveData->ItemStack, this);
+		if (IsValid(LoadedItemStack.Item) &&
+			LoadedItemStack.Copies > 0)
+		{
+			SetItemInSlot(LoadedItemStack);
+		}
+	}
 
 	UnravelExtensionData(SaveData.ExtensionData);
 }

@@ -40,6 +40,9 @@ struct FFaerieEquipmentSaveData
 
 	UPROPERTY()
 	TArray<FFaerieContainerSaveData> PerSlotData;
+
+	UPROPERTY()
+	FGameplayTagContainer RemovedDefaultSlots;
 };
 
 UENUM(BlueprintType)
@@ -198,4 +201,7 @@ protected:
 private:
 	UPROPERTY(Replicated)
 	TArray<TObjectPtr<UFaerieEquipmentSlot>> Slots;
+
+	// Track if any default slots have been removed for serialization.
+	FGameplayTagContainer RemovedDefaultSlots;
 };

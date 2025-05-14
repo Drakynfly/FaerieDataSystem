@@ -3,7 +3,6 @@
 #include "FaerieEquipmentManager.h"
 #include "FaerieEquipmentSlot.h"
 #include "FaerieItemStorage.h"
-#include "FaerieUtils.h"
 #include "ItemContainerExtensionBase.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
@@ -86,6 +85,12 @@ void UFaerieEquipmentManager::AddDefaultSlots()
 
 	for (auto&& Element : InstanceDefaultSlots)
 	{
+		// Skip adding this default slot if it's been marked as removed (by LoadSaveData).
+		if (RemovedDefaultSlots.HasTag(Element.SlotConfig.SlotID))
+		{
+			continue;
+		}
+
 		auto&& DefaultSlot = AddSlot(Element.SlotConfig);
 		if (!IsValid(DefaultSlot))
 		{
@@ -148,30 +153,53 @@ FFaerieContainerSaveData UFaerieEquipmentManager::MakeSaveData() const
 	{
 		SlotSaveData.PerSlotData.Add(Slot->MakeSaveData());
 	}
+	SlotSaveData.RemovedDefaultSlots = RemovedDefaultSlots;
 
 	FFaerieContainerSaveData SaveData;
 	SaveData.ItemData = FInstancedStruct::Make(SlotSaveData);
+	// @todo shouldn't we use the SaveData.ExtensionData for our extensions?
 	return SaveData;
 }
 
 void UFaerieEquipmentManager::LoadSaveData(const FFaerieContainerSaveData& SaveData)
 {
+	const FFaerieEquipmentSaveData* EquipmentSaveData = SaveData.ItemData.GetPtr<FFaerieEquipmentSaveData>();
+	if (!EquipmentSaveData)
+	{
+		return;
+	}
+
+	ON_SCOPE_EXIT
+	{
+		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Slots, this);
+	};
+
 	Slots.Reset();
 
-	const FFaerieEquipmentSaveData& EquipmentSaveData = SaveData.ItemData.Get<FFaerieEquipmentSaveData>();
-	for (const FFaerieContainerSaveData& SlotSaveData : EquipmentSaveData.PerSlotData)
+	RemovedDefaultSlots = EquipmentSaveData->RemovedDefaultSlots;
+	AddDefaultSlots();
+
+	for (const FFaerieContainerSaveData& PerSlotDatum : EquipmentSaveData->PerSlotData)
 	{
-		if (UFaerieEquipmentSlot* NewSlot = NewObject<UFaerieEquipmentSlot>(this))
+		const FFaerieEquipmentSlotSaveData* SlotSaveData = PerSlotDatum.ItemData.GetPtr<FFaerieEquipmentSlotSaveData>();
+		if (!SlotSaveData)
 		{
-			NewSlot->LoadSaveData(SlotSaveData);
-			Slots.Add(NewSlot);
-			NewSlot->OnItemChangedNative.AddUObject(this, &ThisClass::OnSlotItemChanged, false);
-			NewSlot->OnItemDataChangedNative.AddUObject(this, &ThisClass::OnSlotItemChanged, true);
-			NewSlot->AddExtension(ExtensionGroup);
+			return;
+		}
+
+		UFaerieEquipmentSlot* EquipmentSlot = FindSlot(SlotSaveData->Config.SlotID);
+		if (!IsValid(EquipmentSlot))
+		{
+			EquipmentSlot = AddSlot(SlotSaveData->Config);
+		}
+
+		if (IsValid(EquipmentSlot))
+		{
+			EquipmentSlot->LoadSaveData(PerSlotDatum);
 		}
 	}
 
-	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Slots, this);
+	// @todo shouldn't we use the SaveData.ExtensionData for our extensions?
 
 	if (IsReadyForReplication())
 	{
@@ -227,6 +255,16 @@ bool UFaerieEquipmentManager::RemoveSlot(UFaerieEquipmentSlot* Slot)
 
 		Slot->OnItemChangedNative.RemoveAll(this);
 		Slot->OnItemDataChangedNative.RemoveAll(this);
+
+		// If this slot was a default slot, mark it as removed, so it doesn't get restored after a load.
+		for (auto&& Element : InstanceDefaultSlots)
+		{
+			if (Slot->GetSlotID() == Element.SlotConfig.SlotID)
+			{
+				RemovedDefaultSlots.AddTag(Slot->GetSlotID());
+				break;
+			}
+		}
 
 		return true;
 	}
