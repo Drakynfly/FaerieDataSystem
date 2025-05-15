@@ -408,6 +408,6 @@ void FInventoryContent::PostEntryReplicatedChange(const FKeyedInventoryEntry& En
 {
 	if (ChangeListener.IsValid())
 	{
-		ChangeListener->PostContentChanged(Entry);
+		ChangeListener->PostContentChanged(Entry, UFaerieItemStorage::StackChange);
 	}
 }

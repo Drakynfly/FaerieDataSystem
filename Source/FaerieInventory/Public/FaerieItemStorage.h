@@ -16,6 +16,8 @@ DECLARE_LOG_CATEGORY_EXTERN(LogFaerieItemStorage, Log, All);
 namespace Faerie
 {
 	using FEntryKeyEvent = TMulticastDelegate<void(UFaerieItemStorage*, FEntryKey)>;
+
+	using FAddressEvent = TMulticastDelegate<void(UFaerieItemStorage*, FFaerieAddress)>;
 	using FStorageFilterFunc = TFunctionRef<bool(const FFaerieItemProxy&)>;
 	using FStorageFilter = TDelegate<bool(const FFaerieItemProxy&)>;
 	using FStorageComparator = TDelegate<bool(const FFaerieItemProxy&, const FFaerieItemProxy&)>;
@@ -132,8 +134,14 @@ private:
 	Faerie::Inventory::FEventLog RemoveFromStackImpl(FInventoryKey Key, int32 Amount, FFaerieInventoryTag Reason);
 
 	// FastArray API; used to replicate array changes clientside
+	enum EContentChangeType
+	{
+		StackChange,
+		ItemMutation
+	};
+
 	void PostContentAdded(const FKeyedInventoryEntry& Entry);
-	void PostContentChanged(const FKeyedInventoryEntry& Entry);
+	void PostContentChanged(const FKeyedInventoryEntry& Entry, EContentChangeType ChangeType);
 	void PreContentRemoved(const FKeyedInventoryEntry& Entry);
 
 
@@ -141,9 +149,18 @@ private:
 	/*	  STORAGE API - ALL USERS    */
 	/**------------------------------*/
 public:
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	UE_DEPRECATED(5.6, "Use Address version")
 	Faerie::FEntryKeyEvent::RegistrationType& GetOnKeyAdded() { return OnKeyAddedCallback; }
+	UE_DEPRECATED(5.6, "Use Address version")
 	Faerie::FEntryKeyEvent::RegistrationType& GetOnKeyUpdated() { return OnKeyUpdatedCallback; }
+	UE_DEPRECATED(5.6, "Use Address version")
 	Faerie::FEntryKeyEvent::RegistrationType& GetOnKeyRemoved() { return OnKeyRemovedCallback; }
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+
+	Faerie::FAddressEvent::RegistrationType& GetOnAddressAdded() { return OnAddressAddedCallback; }
+	Faerie::FAddressEvent::RegistrationType& GetOnAddressUpdated() { return OnAddressUpdatedCallback; }
+	Faerie::FAddressEvent::RegistrationType& GetOnAddressRemoved() { return OnAddressRemovedCallback; }
 
 	FInventoryEntryView GetEntryView(FEntryKey Key) const;
 
@@ -216,6 +233,7 @@ public:
 
 	// Query function to filter and sort for a subsection of contained entries.
 	void QueryAll(const Faerie::FStorageQuery& Query, TArray<FKeyedInventoryEntry>& OutKeys) const;
+	void QueryAll(const Faerie::FStorageQuery& Query, TArray<FFaerieAddress>& OutAddresses) const;
 
 	// Query function to filter for the first matching entry.
 	UFUNCTION(BlueprintCallable, Category = "Storage|Query")
@@ -326,9 +344,16 @@ public:
 	/*	 DELEGATES	*/
 	/**-------------*/
 protected:
+	UE_DEPRECATED(5.6, "Use Address version")
 	Faerie::FEntryKeyEvent OnKeyAddedCallback;
+	UE_DEPRECATED(5.6, "Use Address version")
 	Faerie::FEntryKeyEvent OnKeyUpdatedCallback;
+	UE_DEPRECATED(5.6, "Use Address version")
 	Faerie::FEntryKeyEvent OnKeyRemovedCallback;
+
+	Faerie::FAddressEvent OnAddressAddedCallback;
+	Faerie::FAddressEvent OnAddressUpdatedCallback;
+	Faerie::FAddressEvent OnAddressRemovedCallback;
 
 	// Broadcast whenever an entry is added, or a stack amount is increased.
 	UPROPERTY(BlueprintAssignable, Transient, Category = "Events")

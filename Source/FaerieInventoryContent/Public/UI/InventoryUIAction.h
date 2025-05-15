@@ -5,8 +5,9 @@
 #include "InventoryDataStructs.h"
 #include "InventoryUIAction.generated.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(LogInventoryUIAction, Log, All);
+
 class UFaerieInventoryClient;
-class UFaerieItemContainerBase;
 
 // Responses to actions being unable to run.
 UENUM(BlueprintType)
@@ -21,74 +22,17 @@ enum class EInventoryUIActionState : uint8
 	Enabled,
 };
 
-DECLARE_LOG_CATEGORY_EXTERN(LogInventoryUIAction, Log, All);
-
-class UInventoryContentsBase;
-
 /**
- *
+ * An Inventory UI Action is an asynchronous function class that can wrap player "actions" on items stored in inventories,
+ * such as Dropping, Equipping, Consuming, Buying/Setting, etc.
  */
-UCLASS(Abstract, Blueprintable, BlueprintType)
+UCLASS(Abstract, Const, Blueprintable, BlueprintType, meta = (ShowWorldContextPin))
 class FAERIEINVENTORYCONTENT_API UInventoryUIAction : public UObject
 {
 	GENERATED_BODY()
 
-protected:
-	virtual UWorld* GetWorld() const override;
-
-protected:
-	UFUNCTION(BlueprintNativeEvent, Category = "UI Action")
-	void Run();
-
-	UFUNCTION(BlueprintCallable, Category = "UI Action")
-	virtual void Finish();
-
 public:
-	/**
-	 * Check conditions for this Action running on an Entry. This is not enforced by the action when ran, it is up to
-	 * the implementing UI to restrict access to the action when this returns false.
-	 */
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "UI Action")
-	EInventoryUIActionState CanRunOnEntry(FInventoryKey InKey) const;
-
-	/**
-	 * This must be called with the targeting inventory prior to any call to Start.
-	 */
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "UI Action")
-	void Setup(UInventoryContentsBase* InContentsWidget);
-
-	UFUNCTION(BlueprintCallable, Category = "UI Action")
-	bool Start(FInventoryKey InKey);
-
-protected:
-	/** Text to display on user-facing button */
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "UI Action")
-	FText ButtonLabel;
-
-	/** Icon to display on user-facing button */
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "UI Action")
-	TSoftObjectPtr<UTexture2D> ButtonIcon;
-
-	UPROPERTY(BlueprintReadOnly, Category = "UI Action")
-	TObjectPtr<UInventoryContentsBase> ContentsWidget;
-
-	UPROPERTY(BlueprintReadOnly, Category = "UI Action")
-	FInventoryKey Key;
-
-private:
-	bool InProgress = false;
-};
-
-/**
- * Second iteration of UI Actions
- */
-UCLASS(Abstract, Const, Blueprintable, BlueprintType, meta = (ShowWorldContextPin))
-class FAERIEINVENTORYCONTENT_API UInventoryUIAction2 : public UObject
-{
-	GENERATED_BODY()
-
-public:
-	// @todo disabled while GetFaerieClient exists, because they are incompatible. Refactor this...
+	// @todo disabled while GetFaerieClient exists, because they are incompatible. Refactor or delete this...
 	//UFUNCTION(BlueprintCallable, Category = "Faerie|UI Action", meta = (DeterminesOutput = "Class"))
 	//static UInventoryUIAction2* GetActionInstance(TSubclassOf<UInventoryUIAction2> Class);
 
@@ -107,6 +51,10 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Faerie|UI Action")
 	FText GetDisplayText(FFaerieAddressableHandle Handle) const;
 
+	/* Gets the contextual display icon for running this action on an address */
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Faerie|UI Action")
+	TSoftObjectPtr<UTexture2D> GetDisplayIcon(FFaerieAddressableHandle Handle) const;
+
 	/**
 	 * Check conditions for this Action running on an Address.
 	 * This is not enforced by the action when ran, it is up to the implementing UI to restrict access to the action
@@ -119,11 +67,11 @@ public:
 	bool Start(FFaerieAddressableHandle Handle);
 
 protected:
-	/** Text to display on user-facing button */
+	/** Text to display on a user-facing button */
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Config")
 	FText ButtonLabel;
 
-	/** Icon to display on user-facing button */
+	/** Icon to display on a user-facing button */
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Config")
 	TSoftObjectPtr<UTexture2D> ButtonIcon;
 

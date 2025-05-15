@@ -8,6 +8,8 @@
 
 class FBlueprintTokenEdit;
 struct FFaerieItemEditHandle;
+struct FFaerieItemStack;
+struct FFaerieItemStackView;
 class UFaerieItem;
 class UFaerieItemAsset;
 class UFaerieItemToken;
@@ -61,6 +63,9 @@ public:
 	// @todo remove this as well, this is to hard to enforce safe usage. Just add UFUNC setters/getters on tokens that can mutate
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EditHandle")
 	static bool EditToken(const FFaerieItemEditHandle& Handle, UFaerieItemToken* Token, const FBlueprintTokenEdit& Edit);
+
+	UFUNCTION(BlueprintPure, Category = "Faerie|ItemStack", meta = (BlueprintAutocast, CompactNodeTitle = "->"))
+	static FFaerieItemStackView StackToView(const FFaerieItemStack& Stack);
 
 	// Spits out an item in Json form for debugging.
 	UFUNCTION(BlueprintPure, Category = "Faerie|Debug", meta = (DevelopmentOnly))

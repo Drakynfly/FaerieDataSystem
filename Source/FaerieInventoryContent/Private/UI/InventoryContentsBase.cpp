@@ -6,16 +6,22 @@
 
 #include "FaerieItemDataComparator.h"
 #include "FaerieItemDataFilter.h"
-#include "FaerieInventoryStatics.h"
 #include "Actions/FaerieInventoryClient.h"
 
 #include "Components/PanelWidget.h"
+#include "UI/InventoryUIActionContainer.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventoryContentsBase)
 
 #define LOCTEXT_NAMESPACE "InventoryContentsBase"
 
 DEFINE_LOG_CATEGORY(LogInventoryContents)
+
+UInventoryContentsBase::UInventoryContentsBase(const FObjectInitializer& ObjectInitializer)
+  : Super(ObjectInitializer)
+{
+	ActionContainer = CreateDefaultSubobject<UInventoryUIActionContainer>(TEXT("ActionContainer"));
+}
 
 bool UInventoryContentsBase::Initialize()
 {
@@ -42,12 +48,10 @@ void UInventoryContentsBase::NativeTick(const FGeometry& MyGeometry, const float
 
 	if (NeedsResort)
 	{
-		TArray<FKeyedInventoryEntry> Entries;
 		if (ItemStorage.IsValid())
 		{
-			ItemStorage->QueryAll(Query, Entries);
+			ItemStorage->QueryAll(Query, SortedAndFilteredAddresses);
 		}
-		Faerie::Inventory::BreakKeyedEntriesIntoInventoryKeys(Entries, SortedAndFilteredKeys);
 		NeedsReconstructEntries = true;
 		NeedsResort = false;
 	}
@@ -61,38 +65,25 @@ void UInventoryContentsBase::NativeTick(const FGeometry& MyGeometry, const float
 
 void UInventoryContentsBase::Reset()
 {
-	SortedAndFilteredKeys.Empty();
+	SortedAndFilteredAddresses.Empty();
 	ActiveFilterRule = nullptr;
 	ActiveSortRule = nullptr;
 	Query.InvertFilter = false;
 	Query.InvertSort = false;
-	Actions.Empty();
 
 	ResetFilter(false);
 	ResetSort(false);
 
 	if (ItemStorage.IsValid())
 	{
-		ItemStorage->GetOnKeyAdded().RemoveAll(this);
-		ItemStorage->GetOnKeyUpdated().RemoveAll(this);
-		ItemStorage->GetOnKeyRemoved().RemoveAll(this);
+		ItemStorage->GetOnAddressAdded().RemoveAll(this);
+		ItemStorage->GetOnAddressUpdated().RemoveAll(this);
+		ItemStorage->GetOnAddressRemoved().RemoveAll(this);
 	}
 
 	OnReset();
 
 	ItemStorage = nullptr;
-}
-
-void UInventoryContentsBase::CreateActions()
-{
-	for (TSubclassOf<UInventoryUIAction> ActionClass : ActionClasses)
-	{
-		if (UInventoryUIAction* NewAction = NewObject<UInventoryUIAction>(this, ActionClass))
-		{
-			NewAction->Setup(this);
-			Actions.Add(NewAction);
-		}
-	}
 }
 
 // ReSharper disable once CppMemberFunctionMayBeConst
@@ -114,59 +105,29 @@ bool UInventoryContentsBase::ExecSort(const FFaerieItemProxy& A, const FFaerieIt
 	return ActiveSortRule->Exec(A, B);
 }
 
-void UInventoryContentsBase::NativeEntryAdded(UFaerieItemStorage* Storage, const FEntryKey Key)
+void UInventoryContentsBase::NativeAddressAdded(UFaerieItemStorage* Storage, const FFaerieAddress Address)
 {
 	if (bAlwaysAddNewToSortOrder)
 	{
-		TArray<FInventoryKey> InvKeys = ItemStorage->GetInvKeysForEntry(Key);
-
-		for (auto&& InvKey : InvKeys)
-		{
-			AddToSortOrder(InvKey, true);
-		}
-
-		for (auto&& InvKey : InvKeys)
-		{
-			OnKeyAdded(InvKey);
-		}
+		AddToSortOrder(Address, true);
+		OnKeyAdded(Address);
 	}
 }
 
-void UInventoryContentsBase::NativeEntryUpdated(UFaerieItemStorage* Storage, const FEntryKey Key)
+void UInventoryContentsBase::NativeAddressUpdated(UFaerieItemStorage* Storage, const FFaerieAddress Address)
 {
 	if (bAlwaysAddNewToSortOrder)
 	{
-		TArray<FInventoryKey> InvKeys = ItemStorage->GetInvKeysForEntry(Key);
-
-		for (auto&& InvKey : InvKeys)
-		{
-			AddToSortOrder(InvKey, false);
-		}
-
-		for (auto&& InvKey : InvKeys)
-		{
-			OnKeyUpdated(InvKey);
-		}
+		AddToSortOrder(Address, false);
+		OnKeyUpdated(Address);
 	}
 }
 
-void UInventoryContentsBase::NativeEntryRemoved(UFaerieItemStorage* Storage, const FEntryKey Key)
+void UInventoryContentsBase::NativeAddressRemoved(UFaerieItemStorage* Storage, const FFaerieAddress Address)
 {
-	TArray<FInventoryKey> DeadKeys;
-
-	SortedAndFilteredKeys.RemoveAll([Key, &DeadKeys](const FInventoryKey InvKey)
-		{
-			if (InvKey.EntryKey == Key)
-			{
-				DeadKeys.Add(InvKey);
-				return true;
-			}
-			return false;
-		});
-
-	for (auto&& DeadKey : DeadKeys)
+	if (!!SortedAndFilteredAddresses.Remove(Address))
 	{
-		OnKeyRemoved(DeadKey);
+		OnKeyRemoved(Address);
 	}
 }
 
@@ -191,11 +152,9 @@ void UInventoryContentsBase::InitWithInventory(UFaerieItemStorage* Storage)
 	{
 		ItemStorage = Storage;
 
-		CreateActions();
-
-		ItemStorage->GetOnKeyAdded().AddUObject(this, &ThisClass::NativeEntryAdded);
-		ItemStorage->GetOnKeyUpdated().AddUObject(this, &ThisClass::NativeEntryUpdated);
-		ItemStorage->GetOnKeyRemoved().AddUObject(this, &ThisClass::NativeEntryRemoved);
+		ItemStorage->GetOnAddressAdded().AddUObject(this, &ThisClass::NativeAddressAdded);
+		ItemStorage->GetOnAddressUpdated().AddUObject(this, &ThisClass::NativeAddressUpdated);
+		ItemStorage->GetOnAddressRemoved().AddUObject(this, &ThisClass::NativeAddressRemoved);
 
 		OnInitWithInventory();
 
@@ -209,7 +168,7 @@ void UInventoryContentsBase::SetInventoryClient(UFaerieInventoryClient* Client)
 	InventoryClient = Client;
 }
 
-void UInventoryContentsBase::AddToSortOrder(const FInventoryKey Key, const bool WarnIfAlreadyExists)
+void UInventoryContentsBase::AddToSortOrder(const FFaerieAddress Address, const bool WarnIfAlreadyExists)
 {
 	struct FInsertKeyPredicate
 	{
@@ -220,23 +179,23 @@ void UInventoryContentsBase::AddToSortOrder(const FInventoryKey Key, const bool 
 		const Faerie::FStorageQuery& Query;
 		const UFaerieItemStorage* Storage;
 
-		bool operator()(const FInventoryKey A, const FInventoryKey B) const
+		bool operator()(const FFaerieAddress A, const FFaerieAddress B) const
 		{
-			const bool Result = Query.Sort.Execute(Storage->Proxy(A.EntryKey), Storage->Proxy(B.EntryKey));
+			const bool Result = Query.Sort.Execute(Storage->Proxy(A), Storage->Proxy(B));
 			return Query.InvertSort ? !Result : Result;
 		}
 	};
 
-	if (SortedAndFilteredKeys.IsEmpty())
+	if (SortedAndFilteredAddresses.IsEmpty())
 	{
-		SortedAndFilteredKeys.Add(Key);
+		SortedAndFilteredAddresses.Add(Address);
 	}
 	else
 	{
 		if (!ActiveSortRule)
 		{
 			UE_LOG(LogInventoryContents, Verbose, TEXT("ActiveSortRule is invalid. Content will not be sorted!"));
-			if (SortedAndFilteredKeys.Find(Key) != INDEX_NONE)
+			if (SortedAndFilteredAddresses.Find(Address) != INDEX_NONE)
 			{
 				if (WarnIfAlreadyExists)
 				{
@@ -245,18 +204,18 @@ void UInventoryContentsBase::AddToSortOrder(const FInventoryKey Key, const bool 
 			}
 			else
 			{
-				SortedAndFilteredKeys.Add(Key);
+				SortedAndFilteredAddresses.Add(Address);
 				NeedsReconstructEntries = true;
 			}
 			return;
 		}
 
 		// Binary search to find position to insert the new key.
-		const int32 Index = Algo::LowerBound(SortedAndFilteredKeys, Key, FInsertKeyPredicate(Query, ItemStorage.Get()));
+		const int32 Index = Algo::LowerBound(SortedAndFilteredAddresses, Address, FInsertKeyPredicate(Query, ItemStorage.Get()));
 
 		// Return if the key we were sorted to or above is ourself.
-		if (SortedAndFilteredKeys.IsValidIndex(Index) && SortedAndFilteredKeys[Index] == Key ||
-			(SortedAndFilteredKeys.IsValidIndex(Index+1) && SortedAndFilteredKeys[Index+1] == Key))
+		if (SortedAndFilteredAddresses.IsValidIndex(Index) && SortedAndFilteredAddresses[Index] == Address ||
+			(SortedAndFilteredAddresses.IsValidIndex(Index+1) && SortedAndFilteredAddresses[Index+1] == Address))
 		{
 			if (WarnIfAlreadyExists)
 			{
@@ -265,12 +224,12 @@ void UInventoryContentsBase::AddToSortOrder(const FInventoryKey Key, const bool 
 			return;
 		}
 
-		if (!ensureAlwaysMsgf(!SortedAndFilteredKeys.Contains(Key), TEXT("Cannot add key that already exists. How did code get here?")))
+		if (!ensureAlwaysMsgf(!SortedAndFilteredAddresses.Contains(Address), TEXT("Cannot add key that already exists. How did code get here?")))
 		{
 			return;
 		}
 
-		SortedAndFilteredKeys.Insert(Key, Index);
+		SortedAndFilteredAddresses.Insert(Address, Index);
 	}
 
 	NeedsReconstructEntries = true;

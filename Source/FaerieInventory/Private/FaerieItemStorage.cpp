@@ -262,7 +262,7 @@ void UFaerieItemStorage::OnItemMutated(const UFaerieItem* Item, const UFaerieIte
 	{
 		if (Element.Value.ItemObject == Item)
 		{
-			PostContentChanged(Element);
+			PostContentChanged(Element, ItemMutation);
 			return;
 		}
 	}
@@ -308,6 +308,12 @@ void UFaerieItemStorage::PostContentAdded(const FKeyedInventoryEntry& Entry)
 	// Proxies may already exist for keys on the client if they are replicated by extensions or other means, and
 	// happened to arrive before we got them.
 
+	auto Addresses = Switchover_GetAddresses(Entry.Key);
+	for (const FFaerieAddress& Address : Addresses)
+	{
+		OnAddressAddedCallback.Broadcast(this, Address);
+	}
+
 	if (auto&& EntryProxy = LocalEntryProxies.Find(Entry.Key))
 	{
 		if (EntryProxy->IsValid())
@@ -329,7 +335,7 @@ void UFaerieItemStorage::PostContentAdded(const FKeyedInventoryEntry& Entry)
 	}
 }
 
-void UFaerieItemStorage::PostContentChanged(const FKeyedInventoryEntry& Entry)
+void UFaerieItemStorage::PostContentChanged(const FKeyedInventoryEntry& Entry, EContentChangeType ChangeType)
 {
 	if (!ensure(Entry.Key.IsValid()))
 	{
@@ -347,6 +353,29 @@ void UFaerieItemStorage::PostContentChanged(const FKeyedInventoryEntry& Entry)
 	{
 		OnKeyUpdatedCallback.Broadcast(this, Entry.Key);
 		OnKeyUpdated.Broadcast(this, Entry.Key);
+
+		switch (ChangeType)
+		{
+		case StackChange:
+			{
+				// @todo it's overkill to update all addresses for a stack change... but we dont know how to determine which stack actually changed, so blast them all :/
+				auto Addresses = Switchover_GetAddresses(Entry.Key);
+				for (const FFaerieAddress& Address : Addresses)
+				{
+					OnAddressUpdatedCallback.Broadcast(this, Address);
+				}
+			}
+			break;
+		case ItemMutation:
+			{
+				auto Addresses = Switchover_GetAddresses(Entry.Key);
+				for (const FFaerieAddress& Address : Addresses)
+				{
+					OnAddressUpdatedCallback.Broadcast(this, Address);
+				}
+			}
+			break;
+		}
 
 		// Call update on the entry proxy
 		if (auto&& EntryProxy = LocalEntryProxies.Find(Entry.Key))
@@ -401,6 +430,12 @@ void UFaerieItemStorage::PreContentRemoved(const FKeyedInventoryEntry& Entry)
 
 	OnKeyRemovedCallback.Broadcast(this, Entry.Key);
 	OnKeyRemoved.Broadcast(this, Entry.Key);
+
+	auto Addresses = Switchover_GetAddresses(Entry.Key);
+	for (const FFaerieAddress& Address : Addresses)
+	{
+		OnAddressRemovedCallback.Broadcast(this, Address);
+	}
 
 	// Cleanup local views.
 
@@ -900,6 +935,66 @@ void UFaerieItemStorage::QueryAll(const Faerie::FStorageQuery& Query, TArray<FKe
 				[&, Sort = Query.Sort](const FKeyedInventoryEntry& A, const FKeyedInventoryEntry& B)
 				{
 					return Sort.Execute(Proxy(A.Key), Proxy(B.Key));
+				});
+		}
+	}
+}
+
+void UFaerieItemStorage::QueryAll(const Faerie::FStorageQuery& Query,
+	TArray<FFaerieAddress>& OutAddresses) const
+{
+	SCOPE_CYCLE_COUNTER(STAT_Storage_QueryAll);
+
+	// Ensure we are starting with a blank slate.
+	OutAddresses.Empty();
+
+	if (Query.Filter.IsBound())
+	{
+		if (Query.InvertFilter)
+		{
+			ForEachAddress([&](const FFaerieAddress A)
+				{
+					if (!Query.Filter.Execute(Proxy(A)))
+					{
+						OutAddresses.Add(A);
+					}
+				});
+		}
+		else
+		{
+			ForEachAddress([&](const FFaerieAddress A)
+				{
+					if (Query.Filter.Execute(Proxy(A)))
+					{
+						OutAddresses.Add(A);
+					}
+				});
+		}
+	}
+	else
+	{
+		ForEachAddress([&](const FFaerieAddress A)
+			{
+				OutAddresses.Add(A);
+			});
+	}
+
+	if (Query.Sort.IsBound())
+	{
+		if (Query.InvertSort)
+		{
+			Algo::Sort(OutAddresses,
+				[&, Sort = Query.Sort](const FFaerieAddress& A, const FFaerieAddress& B)
+				{
+					return !Sort.Execute(Proxy(A), Proxy(B));
+				});
+		}
+		else
+		{
+			Algo::Sort(OutAddresses,
+				[&, Sort = Query.Sort](const FFaerieAddress& A, const FFaerieAddress& B)
+				{
+					return Sort.Execute(Proxy(A), Proxy(B));
 				});
 		}
 	}

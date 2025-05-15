@@ -5,7 +5,7 @@
 #include "FaerieItemToken.h"
 #include "FaerieUIActionToken.generated.h"
 
-class UInventoryUIAction2;
+class UInventoryUIAction;
 
 /**
  * Allows Items to declare actions that the UI can call on them.
@@ -18,9 +18,9 @@ class FAERIEINVENTORYCONTENT_API UFaerieUIActionToken : public UFaerieItemToken
 public:
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
-	const TArray<TSubclassOf<UInventoryUIAction2>>& GetActions() const { return Actions; }
+	const TArray<TSubclassOf<UInventoryUIAction>>& GetActions() const { return Actions; }
 
 protected:
 	UPROPERTY(Replicated, EditAnywhere, BlueprintReadOnly, Category = "UI Actions")
-	TArray<TSubclassOf<UInventoryUIAction2>> Actions;
+	TArray<TSubclassOf<UInventoryUIAction>> Actions;
 };

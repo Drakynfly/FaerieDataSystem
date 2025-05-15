@@ -4,6 +4,7 @@
 #include "FaerieItem.h"
 #include "FaerieItemAsset.h"
 #include "FaerieItemEditHandle.h"
+#include "FaerieItemStackView.h"
 #include "FaerieItemToken.h"
 #include "FlakesJsonSerializer.h"
 
@@ -100,6 +101,11 @@ bool UFaerieItemDataLibrary::EditToken(const FFaerieItemEditHandle& Handle, UFae
 			return Edit.Execute(PassThrough);
 		});
 	return true;
+}
+
+FFaerieItemStackView UFaerieItemDataLibrary::StackToView(const FFaerieItemStack& Stack)
+{
+	return Stack;
 }
 
 FString UFaerieItemDataLibrary::DebugEmitItemJson(const UFaerieItem* Item, const bool Pretty)

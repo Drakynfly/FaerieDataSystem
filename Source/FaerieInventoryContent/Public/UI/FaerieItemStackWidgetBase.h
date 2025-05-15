@@ -18,13 +18,13 @@ class FAERIEINVENTORYCONTENT_API UFaerieItemStackWidgetBase : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemStackWidget")
 	void SetInventoryWidget(UInventoryContentsBase* Widget);
 
 protected:
-	UPROPERTY(BlueprintReadOnly, Category = "Entry Display")
+	UPROPERTY(BlueprintReadOnly, Category = "ItemStackWidget")
 	TObjectPtr<UInventoryContentsBase> InventoryWidget;
 
-	UPROPERTY(BlueprintReadWrite, Category = "Entry Display")
+	UPROPERTY(BlueprintReadWrite, Category = "ItemStackWidget")
 	TObjectPtr<UInventoryStackProxy> LocalCache;
 };

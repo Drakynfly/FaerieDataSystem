@@ -40,9 +40,9 @@ public:
 	virtual bool RemoveExtension(UItemContainerExtensionBase* Extension) override;
 	//~ IFaerieContainerExtensionInterface
 
-	virtual void PostEntryAdded(UFaerieItemStorage* Storage, FEntryKey Key);
-	virtual void PostEntryChanged(UFaerieItemStorage* Storage, FEntryKey Key);
-	virtual void PreEntryRemoved(UFaerieItemStorage* Storage, FEntryKey Key);
+	virtual void PostAddressAdded(UFaerieItemStorage* Storage, FFaerieAddress Address);
+	virtual void PostAddressChanged(UFaerieItemStorage* Storage, FFaerieAddress Address);
+	virtual void PreAddressRemoved(UFaerieItemStorage* Storage, FFaerieAddress Address);
 
 
 	/**------------------------------*/

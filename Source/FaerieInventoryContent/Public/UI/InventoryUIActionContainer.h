@@ -5,7 +5,7 @@
 #include "UObject/Object.h"
 #include "InventoryUIActionContainer.generated.h"
 
-class UInventoryUIAction2;
+class UInventoryUIAction;
 
 /**
  * Contains an Array of UI actions.
@@ -17,18 +17,30 @@ class FAERIEINVENTORYCONTENT_API UInventoryUIActionContainer : public UObject
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "UIActionContainer")
-	bool AddActionOfClass(TSubclassOf<UInventoryUIAction2> Class);
+	bool AddActionOfClass(TSubclassOf<UInventoryUIAction> Class);
 
 	UFUNCTION(BlueprintCallable, Category = "UIActionContainer")
-	bool AddActionInstance(UInventoryUIAction2* Action);
+	bool AddActionInstance(UInventoryUIAction* Action);
 
 	UFUNCTION(BlueprintCallable, Category = "UIActionContainer")
-	bool RemoveActionOfClass(TSubclassOf<UInventoryUIAction2> Class);
+	bool AddSubContainer(UInventoryUIActionContainer* Container);
 
 	UFUNCTION(BlueprintCallable, Category = "UIActionContainer")
-	bool RemoveActionInstance(UInventoryUIAction2* Action);
+	bool RemoveActionsOfClass(TSubclassOf<UInventoryUIAction> Class);
+
+	UFUNCTION(BlueprintCallable, Category = "UIActionContainer")
+	bool RemoveActionInstance(UInventoryUIAction* Action);
+
+	UFUNCTION(BlueprintCallable, Category = "UIActionContainer")
+	bool RemoveSubContainer(UInventoryUIActionContainer* Container);
+
+	UFUNCTION(BlueprintCallable, Category = "UIActionContainer")
+	TArray<UInventoryUIAction*> GetAllActions() const;
 
 protected:
-	UPROPERTY(BlueprintReadOnly, Category = "ActionContainer")
-	TArray<TObjectPtr<UInventoryUIAction2>> Actions;
+	UPROPERTY()
+	TArray<TObjectPtr<UInventoryUIAction>> Actions;
+
+	UPROPERTY()
+	TArray<TObjectPtr<UInventoryUIActionContainer>> SubContainers;
 };

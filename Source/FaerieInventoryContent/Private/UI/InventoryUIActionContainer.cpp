@@ -3,38 +3,70 @@
 #include "UI/InventoryUIActionContainer.h"
 #include "UI/InventoryUIAction.h"
 
-bool UInventoryUIActionContainer::AddActionOfClass(const TSubclassOf<UInventoryUIAction2> Class)
+bool UInventoryUIActionContainer::AddActionOfClass(const TSubclassOf<UInventoryUIAction> Class)
 {
-	if (Class)
+	if (IsValid(Class))
 	{
-		Actions.Add(NewObject<UInventoryUIAction2>(this, Class));
+		Actions.Add(NewObject<UInventoryUIAction>(this, Class));
+		return true;
 	}
-	return true;
+	return false;
 }
 
-bool UInventoryUIActionContainer::AddActionInstance(UInventoryUIAction2* Action)
+bool UInventoryUIActionContainer::AddActionInstance(UInventoryUIAction* Action)
 {
-	if (Action)
+	if (IsValid(Action))
 	{
 		Actions.Add(Action);
+		return true;
 	}
-	return true;
+	return false;
 }
 
-bool UInventoryUIActionContainer::RemoveActionOfClass(TSubclassOf<UInventoryUIAction2> Class)
+bool UInventoryUIActionContainer::AddSubContainer(UInventoryUIActionContainer* Container)
+{
+	if (IsValid(Container))
+	{
+		SubContainers.AddUnique(Container);
+		return true;
+	}
+	return false;
+}
+
+bool UInventoryUIActionContainer::RemoveActionsOfClass(TSubclassOf<UInventoryUIAction> Class)
 {
 	return !!Actions.RemoveAll(
-		[Class](const UInventoryUIAction2* Action)
+		[Class](const UInventoryUIAction* Action)
 		{
 			return Action->GetClass() == Class;
 		});
 }
 
-bool UInventoryUIActionContainer::RemoveActionInstance(UInventoryUIAction2* Action)
+bool UInventoryUIActionContainer::RemoveActionInstance(UInventoryUIAction* Action)
 {
-	if (Action)
+	if (IsValid(Action))
 	{
-		Actions.Remove(Action);
+		return !!Actions.Remove(Action);
 	}
-	return true;
+	return false;
+}
+
+bool UInventoryUIActionContainer::RemoveSubContainer(UInventoryUIActionContainer* Container)
+{
+	if (IsValid(Container))
+	{
+		return !!SubContainers.Remove(Container);
+	}
+	return false;
+}
+
+TArray<UInventoryUIAction*> UInventoryUIActionContainer::GetAllActions() const
+{
+	// @todo doesn't check for recursion or duplicates!
+	TArray<UInventoryUIAction*> AllActions = Actions;
+	for (auto&& SubContainer : SubContainers)
+	{
+		AllActions.Append(SubContainer->GetAllActions());
+	}
+	return AllActions;
 }

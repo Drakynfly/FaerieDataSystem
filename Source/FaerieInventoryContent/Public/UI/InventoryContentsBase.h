@@ -6,6 +6,7 @@
 #include "FaerieItemStorage.h"
 #include "InventoryContentsBase.generated.h"
 
+class UInventoryUIActionContainer;
 class UFaerieInventoryClient;
 class UFaerieItemDataComparator;
 class UFaerieItemDataFilter;
@@ -23,6 +24,8 @@ class FAERIEINVENTORYCONTENT_API UInventoryContentsBase : public UUserWidget
 	friend class UInventoryUIAction;
 
 public:
+	UInventoryContentsBase(const FObjectInitializer& ObjectInitializer);
+
 	virtual bool Initialize() override;
 	virtual void NativeConstruct() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
@@ -30,15 +33,13 @@ public:
 private:
 	void Reset();
 
-	void CreateActions();
-
 	bool ExecFilter(const FFaerieItemProxy& Entry);
 	bool ExecSort(const FFaerieItemProxy& A, const FFaerieItemProxy& B);
 
 protected:
-	virtual void NativeEntryAdded(UFaerieItemStorage* Storage, FEntryKey Key);
-	virtual void NativeEntryUpdated(UFaerieItemStorage* Storage, FEntryKey Key);
-	virtual void NativeEntryRemoved(UFaerieItemStorage* Storage, FEntryKey Key);
+	virtual void NativeAddressAdded(UFaerieItemStorage* Storage, FFaerieAddress Address);
+	virtual void NativeAddressUpdated(UFaerieItemStorage* Storage, FFaerieAddress Address);
+	virtual void NativeAddressRemoved(UFaerieItemStorage* Storage, FFaerieAddress Address);
 
 public:
 	// Set the inventory that will be used when this widget is constructed.
@@ -59,7 +60,7 @@ public:
 	void SetInventoryClient(UFaerieInventoryClient* Client);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory Contents|Display")
-	void AddToSortOrder(FInventoryKey Key, bool WarnIfAlreadyExists);
+	void AddToSortOrder(FFaerieAddress Address, bool WarnIfAlreadyExists);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory Contents|Display")
 	void SetFilterByDelegate(const FBlueprintStorageFilter& Filter, bool bResort = true);
@@ -87,13 +88,13 @@ protected:
 	void OnReset();
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Inventory Contents|Display")
-	void OnKeyAdded(FInventoryKey Key);
+	void OnKeyAdded(FFaerieAddress Address);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Inventory Contents|Display")
-	void OnKeyUpdated(FInventoryKey Key);
+	void OnKeyUpdated(FFaerieAddress Address);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Inventory Contents|Display")
-	void OnKeyRemoved(FInventoryKey Key);
+	void OnKeyRemoved(FFaerieAddress Address);
 
 
 	/// ***		SETUP		*** ///
@@ -104,8 +105,8 @@ protected:
 	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Instanced, Category = "Display", NoClear)
 	TObjectPtr<UFaerieItemDataComparator> DefaultSortRule;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Config")
-	TArray<TSubclassOf<UInventoryUIAction>> ActionClasses;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Instanced, Category = "Config")
+	TObjectPtr<UInventoryUIActionContainer> ActionContainer;
 
 	// By default all newly added items are sorted into the display order. Disable this when customizing order or filter
 	// with OnEntryAdded.
@@ -116,7 +117,7 @@ protected:
 	/// ***		RUNTIME		*** ///
 
 	UPROPERTY(BlueprintReadOnly, Category = "Runtime")
-	TArray<FInventoryKey> SortedAndFilteredKeys;
+	TArray<FFaerieAddress> SortedAndFilteredAddresses;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Runtime")
 	TObjectPtr<UFaerieItemDataFilter> ActiveFilterRule;
@@ -131,9 +132,6 @@ protected:
 	/** The storage this widget is representing.  */
 	UPROPERTY(BlueprintReadOnly, Category = "Runtime")
 	TWeakObjectPtr<UFaerieItemStorage> ItemStorage;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Runtime")
-	TArray<TObjectPtr<UInventoryUIAction>> Actions;
 
 private:
 	Faerie::FStorageQuery Query;

@@ -34,9 +34,9 @@ void UFaerieInventoryComponent::PostInitProperties()
 {
 	Super::PostInitProperties();
 
-	ItemStorage->GetOnKeyAdded().AddUObject(this, &ThisClass::PostEntryAdded);
-	ItemStorage->GetOnKeyUpdated().AddUObject(this, &ThisClass::PostEntryChanged);
-	ItemStorage->GetOnKeyRemoved().AddUObject(this, &ThisClass::PreEntryRemoved);
+	ItemStorage->GetOnAddressAdded().AddUObject(this, &ThisClass::PostAddressAdded);
+	ItemStorage->GetOnAddressUpdated().AddUObject(this, &ThisClass::PostAddressChanged);
+	ItemStorage->GetOnAddressRemoved().AddUObject(this, &ThisClass::PreAddressRemoved);
 }
 
 void UFaerieInventoryComponent::ReadyForReplication()
@@ -99,7 +99,7 @@ bool UFaerieInventoryComponent::RemoveExtension(UItemContainerExtensionBase* Ext
 	return ItemStorage->RemoveExtension(Extension);
 }
 
-void UFaerieInventoryComponent::PostEntryAdded(UFaerieItemStorage* Storage, const FEntryKey Key)
+void UFaerieInventoryComponent::PostAddressAdded(UFaerieItemStorage* Storage, const FFaerieAddress Address)
 {
 #if WITH_EDITOR
 	if (GetNetMode() == NM_Client)
@@ -113,7 +113,7 @@ void UFaerieInventoryComponent::PostEntryAdded(UFaerieItemStorage* Storage, cons
 #endif
 }
 
-void UFaerieInventoryComponent::PostEntryChanged(UFaerieItemStorage* Storage, const FEntryKey Key)
+void UFaerieInventoryComponent::PostAddressChanged(UFaerieItemStorage* Storage, const FFaerieAddress Address)
 {
 #if WITH_EDITOR
 	if (GetNetMode() == NM_Client)
@@ -127,7 +127,7 @@ void UFaerieInventoryComponent::PostEntryChanged(UFaerieItemStorage* Storage, co
 #endif
 }
 
-void UFaerieInventoryComponent::PreEntryRemoved(UFaerieItemStorage* Storage, const FEntryKey Key)
+void UFaerieInventoryComponent::PreAddressRemoved(UFaerieItemStorage* Storage, const FFaerieAddress Address)
 {
 #if WITH_EDITOR
 	if (GetNetMode() == NM_Client)
