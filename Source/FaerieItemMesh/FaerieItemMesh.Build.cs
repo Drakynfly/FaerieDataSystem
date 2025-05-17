@@ -12,6 +12,7 @@ public class FaerieItemMesh : ModuleRules
             new []
             {
                 "Core",
+				"DeveloperSettings",
                 "GameplayTags"
             });
 

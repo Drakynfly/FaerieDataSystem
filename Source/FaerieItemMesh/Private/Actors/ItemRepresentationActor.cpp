@@ -15,6 +15,21 @@ void AItemRepresentationActor::Destroyed()
 	Super::Destroyed();
 }
 
+const UFaerieItem* AItemRepresentationActor::GetItemObject() const
+{
+	return DataSource.GetItemObject();
+}
+
+int32 AItemRepresentationActor::GetCopies() const
+{
+	return DataSource.GetCopies();
+}
+
+TScriptInterface<IFaerieItemOwnerInterface> AItemRepresentationActor::GetItemOwner() const
+{
+	return DataSource.GetOwner();
+}
+
 void AItemRepresentationActor::ClearDataDisplay_Implementation()
 {
 }

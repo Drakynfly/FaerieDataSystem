@@ -12,7 +12,7 @@ class UFaerieItemMeshLoader;
  * The base actor class for physical representations of inventory entries.
  */
 UCLASS(Abstract)
-class FAERIEITEMMESH_API AItemRepresentationActor : public AActor
+class FAERIEITEMMESH_API AItemRepresentationActor : public AActor, public IFaerieItemDataProxy
 {
 	GENERATED_BODY()
 
@@ -23,13 +23,19 @@ public:
 
 	virtual void Destroyed() override;
 
+	//~ UFaerieItemDataProxy
+	virtual const UFaerieItem* GetItemObject() const override;
+	virtual int32 GetCopies() const override;
+	virtual TScriptInterface<IFaerieItemOwnerInterface> GetItemOwner() const override;
+	//~ UFaerieItemDataProxy
+
 	UFUNCTION(BlueprintNativeEvent, Category = "Faerie|ItemRepresentationActor")
 	void ClearDataDisplay();
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Faerie|ItemRepresentationActor")
 	void DisplayData();
 
-private:
+protected:
 	void RegenerateDataDisplay();
 
 public:

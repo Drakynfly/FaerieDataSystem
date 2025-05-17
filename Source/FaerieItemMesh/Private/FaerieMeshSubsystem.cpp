@@ -2,6 +2,13 @@
 
 #include "FaerieMeshSubsystem.h"
 #include "FaerieItemMeshLoader.h"
+#include "FaerieMeshSettings.h"
+
+bool UFaerieMeshSubsystem::ShouldCreateSubsystem(UObject* Outer) const
+{
+	auto&& MeshSettings = GetDefault<UFaerieMeshSettings>();
+	return Super::ShouldCreateSubsystem(Outer) && MeshSettings->CreateMeshLoaderWorldSubsystem;
+}
 
 void UFaerieMeshSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
