@@ -208,7 +208,7 @@ void UCraftingActionWithSlots::ConsumeSlotCosts(const IFaerieItemSlotInterface* 
 			// Otherwise, consume the item itself
 			if (!RemovedUse)
 			{
-				(void)ItemProxy->GetOwner()->Release({Item, 1});
+				(void)ItemProxy->GetItemOwner()->Release({Item, 1});
 			}
 		};
 

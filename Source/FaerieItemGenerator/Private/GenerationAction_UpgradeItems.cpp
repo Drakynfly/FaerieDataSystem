@@ -41,7 +41,7 @@ void UGenerationAction_UpgradeItems::Run()
 	int32 Copies = 1;
 
 	const FFaerieItemStackView ReleaseRequest{ItemBeingUpgraded->GetItemObject(), Copies};
-	const FFaerieItemStack Stack = ItemBeingUpgraded->GetOwner()->Release(ReleaseRequest);
+	const FFaerieItemStack Stack = ItemBeingUpgraded->GetItemOwner()->Release(ReleaseRequest);
 
 	if (Stack.Copies == 0)
 	{

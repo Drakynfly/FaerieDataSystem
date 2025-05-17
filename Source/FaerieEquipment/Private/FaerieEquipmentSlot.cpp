@@ -253,7 +253,7 @@ int32 UFaerieEquipmentSlot::GetCopies() const
 	return ItemStack.Copies;
 }
 
-TScriptInterface<IFaerieItemOwnerInterface> UFaerieEquipmentSlot::GetOwner() const
+TScriptInterface<IFaerieItemOwnerInterface> UFaerieEquipmentSlot::GetItemOwner() const
 {
 	return const_cast<ThisClass*>(this);
 }

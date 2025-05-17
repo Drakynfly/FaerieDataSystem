@@ -27,7 +27,7 @@ TScriptInterface<IFaerieItemOwnerInterface> FFaerieItemProxy::GetOwner() const
 {
 	if (IsValid())
 	{
-		return operator->()->GetOwner();
+		return operator->()->GetItemOwner();
 	}
 	return nullptr;
 }

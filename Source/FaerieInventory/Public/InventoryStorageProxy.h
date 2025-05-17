@@ -46,7 +46,7 @@ public:
 	//~ IFaerieItemDataProxy
 	virtual const UFaerieItem* GetItemObject() const override;
 	virtual int32 GetCopies() const override;
-	virtual TScriptInterface<IFaerieItemOwnerInterface> GetOwner() const override;
+	virtual TScriptInterface<IFaerieItemOwnerInterface> GetItemOwner() const override;
 	//~ IFaerieItemDataProxy
 
 	//~ UInventoryEntryProxyBase

@@ -37,7 +37,7 @@ public:
 
 	// Get the Object that owns the item this proxy represents.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataProxy")
-	virtual TScriptInterface<IFaerieItemOwnerInterface> GetOwner() const PURE_VIRTUAL(IFaerieItemDataProxy::GetOwner, return nullptr; )
+	virtual TScriptInterface<IFaerieItemOwnerInterface> GetItemOwner() const PURE_VIRTUAL(IFaerieItemDataProxy::GetItemOwner, return nullptr; )
 };
 
 

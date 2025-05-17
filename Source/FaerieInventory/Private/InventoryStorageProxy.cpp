@@ -59,7 +59,7 @@ int32 UInventoryEntryStorageProxy::GetCopies() const
 	return EntryView.Get().StackSum();
 }
 
-TScriptInterface<IFaerieItemOwnerInterface> UInventoryEntryStorageProxy::GetOwner() const
+TScriptInterface<IFaerieItemOwnerInterface> UInventoryEntryStorageProxy::GetItemOwner() const
 {
 	return GetStorage();
 }

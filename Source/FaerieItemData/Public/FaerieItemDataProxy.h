@@ -21,7 +21,7 @@ public:
 	//~ UFaerieItemDataProxy
 	virtual const UFaerieItem* GetItemObject() const override;
 	virtual int32 GetCopies() const override;
-	virtual TScriptInterface<IFaerieItemOwnerInterface> GetOwner() const override { return const_cast<ThisClass*>(this); }
+	virtual TScriptInterface<IFaerieItemOwnerInterface> GetItemOwner() const override { return const_cast<ThisClass*>(this); }
 	//~ UFaerieItemDataProxy
 
 	//~ IFaerieItemOwnerInterface

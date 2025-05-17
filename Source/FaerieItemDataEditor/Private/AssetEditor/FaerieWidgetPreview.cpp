@@ -10,7 +10,7 @@ const UFaerieItem* UFaerieWidgetPreview::GetItemObject() const
 	return Asset->GetEditorItemView();
 }
 
-TScriptInterface<IFaerieItemOwnerInterface> UFaerieWidgetPreview::GetOwner() const
+TScriptInterface<IFaerieItemOwnerInterface> UFaerieWidgetPreview::GetItemOwner() const
 {
 	return nullptr;
 }
