@@ -55,13 +55,13 @@ namespace Faerie
 		FAERIEITEMDATA_API int32 GetNum() const { return Tokens.Num(); }
 
 		// Resolve into the final token array, but cast into an array of const pointers to prevent mutable pointers leaking out of a const API
-		FAERIEITEMDATA_API TArray<const TObjectPtr<UFaerieItemToken>> operator*() const
+		FAERIEITEMDATA_API const TArray<const TObjectPtr<UFaerieItemToken>>& operator*() const
 		{
 			return *reinterpret_cast<const TArray<const TObjectPtr<UFaerieItemToken>>*>(&Tokens);
 		}
 
 	private:
-		TArray<TObjectPtr<UFaerieItemToken>> BlueprintOnlyAccess() { return Tokens;}
+		const TArray<TObjectPtr<UFaerieItemToken>>& BlueprintOnlyAccess() { return Tokens;}
 
 		TArray<TObjectPtr<UFaerieItemToken>> Tokens;
 	};
