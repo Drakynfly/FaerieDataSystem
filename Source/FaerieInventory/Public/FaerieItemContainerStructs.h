@@ -24,7 +24,7 @@ struct FAERIEINVENTORY_API FFaerieAddress
 	GENERATED_BODY()
 
 	UPROPERTY()
-	int64 Address;
+	int64 Address = 0;
 
 	FORCEINLINE bool IsValid() const
 	{
