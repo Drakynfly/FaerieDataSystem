@@ -82,11 +82,18 @@ void UFaerieEquipmentSlot::LoadSaveData(const FFaerieContainerSaveData& SaveData
 
 	if (StoredKey.IsValid())
 	{
+		KeyGen.SetPosition(StoredKey);
+
 		const FFaerieItemStack LoadedItemStack = Flakes::CreateStruct<Flakes::Binary::Type, FFaerieItemStack>(SlotSaveData->ItemStack, this);
 		if (IsValid(LoadedItemStack.Item) &&
 			LoadedItemStack.Copies > 0)
 		{
 			SetItemInSlot(LoadedItemStack);
+		}
+		else
+		{
+			// Reset key if stack is invalid.
+			StoredKey = FEntryKey();
 		}
 	}
 
