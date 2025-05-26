@@ -29,7 +29,8 @@ public class FaerieInventoryContent : ModuleRules
                 "FaerieInventory",
                 "FaerieItemGenerator",
                 "FaerieItemData",
-                "FaerieItemMesh"
+                "FaerieItemMesh",
+                "FaerieEquipment" // Again, please remove
             });
 
         PrivateDependencyModuleNames.AddRange(

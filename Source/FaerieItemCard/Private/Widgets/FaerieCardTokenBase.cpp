@@ -31,22 +31,20 @@ void UFaerieCardTokenBase::NativeDestruct()
 
 void UFaerieCardTokenBase::OnCardRefreshed()
 {
-	if (!ensure(IsValid(GetTokenClass())))
-	{
-		return;
-	}
-
 	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	ItemToken = nullptr;
 
-	if (auto&& OuterCard = GetTypedOuter<UFaerieCardBase>())
+	if (IsValid(GetTokenClass()))
 	{
-		if (auto&& ItemData = OuterCard->GetItemData();
-			ItemData.IsValid())
+		if (auto&& OuterCard = GetTypedOuter<UFaerieCardBase>())
 		{
-			if (auto&& Object = ItemData->GetItemObject())
+			if (auto&& ItemData = OuterCard->GetItemData();
+				ItemData.IsValid())
 			{
-				ItemToken = Object->GetToken(GetTokenClass());
+				if (auto&& Object = ItemData->GetItemObject())
+				{
+					ItemToken = Object->GetToken(GetTokenClass());
+				}
 			}
 		}
 	}
@@ -88,7 +86,8 @@ const UFaerieItemToken* UFaerieCardTokenBase::GetItemToken() const
 
 bool UFaerieCardTokenBase::GetItemTokenChecked(UFaerieItemToken*& Token, TSubclassOf<UFaerieItemToken>) const
 {
-	// @todo again, BP doesn't understand const-ness :(
+	// @Note: BP doesn't understand const-ness, but since UFaerieItemToken does not have BP accessible API that can
+	// mutate it, its perfectly safe.
 	Token = const_cast<UFaerieItemToken*>(GetItemToken());
 	return IsValid(Token);
 }

@@ -88,7 +88,7 @@ namespace Faerie::UMGWidgetPreview
 				{
 					FKismetEditorUtilities::CompileBlueprint(WidgetBlueprint, EBlueprintCompileOptions::SkipGarbageCollection);
 					WidgetBlueprint->PostEditChange();
-					WidgetBlueprint->MarkPackageDirty();
+					(void)WidgetBlueprint->MarkPackageDirty();
 				}
 
 				return FFixResult::Success();
