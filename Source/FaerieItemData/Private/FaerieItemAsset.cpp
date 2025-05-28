@@ -23,6 +23,9 @@ void UFaerieItemAsset::PreSave(FObjectPreSaveContext SaveContext)
 		Item = NewObject<UFaerieItem>(this);
 	}
 
+	// Setting RF_Public suppresses "Illegal reference to private object" warnings when referenced by a Level.
+	Item->SetFlags(RF_Public);
+
 	Item->MutabilityFlags = EFaerieItemMutabilityFlags::None;
 
 	if (AlwaysMutable)

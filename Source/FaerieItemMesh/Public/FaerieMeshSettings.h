@@ -5,7 +5,7 @@
 #include "Engine/DeveloperSettings.h"
 #include "FaerieMeshSettings.generated.h"
 
-class AItemRepresentationActor;
+class AFaerieItemOwningActorBase;
 
 /**
  *
@@ -26,5 +26,5 @@ public:
 
 	// Default pick-up item actor class
 	UPROPERTY(Config, EditAnywhere, Category = "Classes", meta = (ForceInlineRow))
-	TSoftClassPtr<AItemRepresentationActor> DefaultPickupActor;
+	TSoftClassPtr<AFaerieItemOwningActorBase> DefaultPickupActor;
 };
