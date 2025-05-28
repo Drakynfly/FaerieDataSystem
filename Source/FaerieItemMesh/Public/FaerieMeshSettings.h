@@ -5,7 +5,8 @@
 #include "Engine/DeveloperSettings.h"
 #include "FaerieMeshSettings.generated.h"
 
-class AFaerieItemOwningActorBase;
+class AItemRepresentationActor;
+//class AFaerieItemOwningActorBase;
 
 /**
  *
@@ -25,6 +26,7 @@ public:
 	bool CreateMeshLoaderWorldSubsystem = true;
 
 	// Default pick-up item actor class
+	// @todo should be AFaerieItemOwningActorBase, but module mayhem prevents that for now...
 	UPROPERTY(Config, EditAnywhere, Category = "Classes", meta = (ForceInlineRow))
-	TSoftClassPtr<AFaerieItemOwningActorBase> DefaultPickupActor;
+	TSoftClassPtr<AItemRepresentationActor> DefaultPickupActor;
 };
