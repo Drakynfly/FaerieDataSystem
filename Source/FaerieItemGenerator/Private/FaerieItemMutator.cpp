@@ -6,14 +6,15 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemMutator)
 
-bool UFaerieItemMutator::CanApply(const FFaerieItemProxy Proxy) const
+bool UFaerieItemMutator::CanApply(const FFaerieItemStackView View) const
 {
-	return Proxy.IsInstanceMutable() &&
-		IsValid(ApplicationFilter) &&
-		ApplicationFilter->TryMatch(Proxy);
+	if (!View.IsValid()) return false;
+	if (!View.Item->CanMutate() ) return false;
+	if (!IsValid(ApplicationFilter)) return true;
+	return ApplicationFilter->TryMatch(View);
 }
 
-bool UFaerieItemMutator::TryApply(const FFaerieItemStack& Stack)
+bool UFaerieItemMutator::TryApply(const FFaerieItemStack& Stack, FSquirrelState* Squirrel)
 {
 	if (IsValid(ApplicationFilter) &&
 		!ApplicationFilter->TryMatch(Stack))
@@ -21,7 +22,7 @@ bool UFaerieItemMutator::TryApply(const FFaerieItemStack& Stack)
 		return false;
 	}
 
-	return Apply(Stack);
+	return Apply(Stack, Squirrel);
 }
 
 void UFaerieItemMutator::GetRequiredAssets_Implementation(TArray<TSoftObjectPtr<UObject>>& RequiredAssets) const {}

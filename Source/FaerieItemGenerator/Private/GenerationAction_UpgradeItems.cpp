@@ -3,6 +3,7 @@
 #include "GenerationAction_UpgradeItems.h"
 #include "FaerieItemMutator.h"
 #include "ItemUpgradeConfig.h"
+#include "Squirrel.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(GenerationAction_UpgradeItems)
 
@@ -49,7 +50,7 @@ void UGenerationAction_UpgradeItems::Run()
 	}
 
 	// Apply the mutator
-	if (!UpgradeConfig->Mutator->TryApply(Stack))
+	if (!UpgradeConfig->Mutator->TryApply(Stack, &Squirrel.Get()->GetState()))
 	{
 		return Fail();
 	}

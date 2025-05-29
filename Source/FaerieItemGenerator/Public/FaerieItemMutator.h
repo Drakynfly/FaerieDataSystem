@@ -6,6 +6,7 @@
 #include "UObject/Object.h"
 #include "FaerieItemMutator.generated.h"
 
+struct FSquirrelState;
 class UFaerieItemTemplate;
 
 /**
@@ -17,11 +18,11 @@ class FAERIEITEMGENERATOR_API UFaerieItemMutator : public UObject
 	GENERATED_BODY()
 
 protected:
-	virtual bool CanApply(FFaerieItemProxy Proxy) const;
-	virtual bool Apply(FFaerieItemStack Stack) PURE_VIRTUAL(UFaerieItemMutator::Apply, return false; )
+	virtual bool CanApply(FFaerieItemStackView View) const;
+	virtual bool Apply(FFaerieItemStack Stack, FSquirrelState* Squirrel) PURE_VIRTUAL(UFaerieItemMutator::Apply, return false; )
 
 public:
-	bool TryApply(const FFaerieItemStack& Stack);
+	bool TryApply(const FFaerieItemStack& Stack, FSquirrelState* Squirrel);
 
 	// Any soft assets required to be loaded when Apply is called should be registered here.
 	UFUNCTION(BlueprintNativeEvent, Category = "Mutator")
