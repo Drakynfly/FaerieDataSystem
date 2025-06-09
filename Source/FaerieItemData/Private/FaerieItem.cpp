@@ -1,7 +1,6 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieItem.h"
-#include "FaerieHash.h"
 #include "FaerieHashStatics.h"
 #include "FaerieItemToken.h"
 #include "FaerieUtils.h"
@@ -683,8 +682,9 @@ bool UFaerieItem::FindToken(const TSubclassOf<UFaerieItemToken> Class, UFaerieIt
 		return false;
 	}
 
-	// @todo This function is breaking const safety ...
-	FoundToken = const_cast<UFaerieItemToken*>(GetToken(Class));
+	// @Note: BP doesn't understand const-ness, but since UFaerieItemToken does not have a BP accessible API that can
+	// mutate it, it's perfectly safe.
+	FoundToken = GetToken(Class)->MutateCast();
 	return FoundToken != nullptr;
 }
 
@@ -696,7 +696,8 @@ void UFaerieItem::FindTokens(const TSubclassOf<UFaerieItemToken> Class, TArray<U
 	}
 
 	// Can't use GetMutableTokens here because it'd fail to return anything if *this* is not data mutable as a precaution.
-	// @todo This function is breaking const safety anyways...
+	// @Note: BP doesn't understand const-ness, but since UFaerieItemToken does not have a BP accessible API that can
+	// mutate it, it's perfectly safe.
 	FoundTokens = Type::Cast<TArray<UFaerieItemToken*>>(GetTokens(Class));
 }
 

@@ -86,9 +86,9 @@ const UFaerieItemToken* UFaerieCardTokenBase::GetItemToken() const
 
 bool UFaerieCardTokenBase::GetItemTokenChecked(UFaerieItemToken*& Token, TSubclassOf<UFaerieItemToken>) const
 {
-	// @Note: BP doesn't understand const-ness, but since UFaerieItemToken does not have BP accessible API that can
-	// mutate it, its perfectly safe.
 	Token = const_cast<UFaerieItemToken*>(GetItemToken());
+	// @Note: BP doesn't understand const-ness, but since UFaerieItemToken does not have a BP accessible API that can
+	// mutate it, it's perfectly safe.
 	return IsValid(Token);
 }
 
