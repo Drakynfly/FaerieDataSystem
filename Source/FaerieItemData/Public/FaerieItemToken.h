@@ -78,6 +78,13 @@ public:
 	// Compare the data of this token to another
 	bool CompareWith(const UFaerieItemToken* Other) const;
 
+
+	//~		C++ Token Mutation		~//
+
+	// Mutate cast will return a const_cast'd *this* if the item is a runtime mutable instance. This is the proscribed
+	// method to gain access to the non-const API of UFaerieItemToken.
+	UFaerieItemToken* MutateCast() const;
+
 	void EditToken(const TFunctionRef<bool(UFaerieItemToken*)>& EditFunc);
 
 	template <

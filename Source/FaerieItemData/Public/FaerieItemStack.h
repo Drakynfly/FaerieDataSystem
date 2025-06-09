@@ -27,11 +27,12 @@ struct FAERIEITEMDATA_API FFaerieItemStack
 
 	FFaerieItemStack() = default;
 
-	FFaerieItemStack(UFaerieItem* ItemData, const int32 Copies)
-	  : Item(ItemData),
+	FFaerieItemStack(const UFaerieItem* ItemData, const int32 Copies)
+	  : Item(const_cast<UFaerieItem*>(ItemData)), // @todo const_cast for now, until Item is const.
 		Copies(Copies) {}
 
 	// The item being counted
+	// @todo This *really* should be a const pointer, but that makes a lot of APIs annoying...
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FaerieItemStack")
 	TObjectPtr<UFaerieItem> Item;
 

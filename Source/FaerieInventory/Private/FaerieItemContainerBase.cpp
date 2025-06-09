@@ -151,9 +151,11 @@ void UFaerieItemContainerBase::OnItemMutated(const UFaerieItem* Item, const UFae
 		if (AActor* Actor = GetTypedOuter<AActor>();
 			IsValid(Actor) && Actor->IsUsingRegisteredSubObjectList())
 		{
-			auto MutableToken = const_cast<UFaerieItemToken*>(Token);
-			Actor->AddReplicatedSubObject(MutableToken);
-			MutableToken->InitializeNetObject(Actor);
+			if (UFaerieItemToken* MutableToken = Token->MutateCast())
+			{
+				Actor->AddReplicatedSubObject(MutableToken);
+				MutableToken->InitializeNetObject(Actor);
+			}
 		}
 		return;
 	}
@@ -162,9 +164,11 @@ void UFaerieItemContainerBase::OnItemMutated(const UFaerieItem* Item, const UFae
 		if (AActor* Actor = GetTypedOuter<AActor>();
 			IsValid(Actor) && Actor->IsUsingRegisteredSubObjectList())
 		{
-			auto MutableToken = const_cast<UFaerieItemToken*>(Token);
-			Actor->RemoveReplicatedSubObject(MutableToken);
-			MutableToken->DeinitializeNetObject(Actor);
+			if (UFaerieItemToken* MutableToken = Token->MutateCast())
+			{
+				Actor->RemoveReplicatedSubObject(MutableToken);
+				MutableToken->DeinitializeNetObject(Actor);
+			}
 		}
 		return;
 	}
@@ -175,7 +179,7 @@ void UFaerieItemContainerBase::ReleaseOwnership(const UFaerieItem* Item)
 	if (!ensure(IsValid(Item))) return;
 
 	// When Items are potentially mutable, undo any modifications that rely on this owner.
-	if (const auto MutableItem = Item->MutateCast())
+	if (UFaerieItem* MutableItem = Item->MutateCast())
 	{
 		// @todo this logic could be moved to UFaerieItem::PostRename (if we enforce the RenameBehavior)
 		if (AActor* Actor = GetTypedOuter<AActor>();
@@ -186,8 +190,13 @@ void UFaerieItemContainerBase::ReleaseOwnership(const UFaerieItem* Item)
 			MutableItem->ForEachToken(
 				[Actor](const TObjectPtr<UFaerieItemToken>& Token)
 				{
-					Token->DeinitializeNetObject(Actor);
-					Actor->RemoveReplicatedSubObject(Token);
+					if (Token->MutateCast())
+					{
+						Token->DeinitializeNetObject(Actor);
+						Actor->RemoveReplicatedSubObject(Token);
+					}
+
+					// Continue iteration...
 					return true;
 				});
 		}
@@ -233,8 +242,13 @@ void UFaerieItemContainerBase::TakeOwnership(const UFaerieItem* Item)
 			MutableItem->ForEachToken(
 				[Actor](const TObjectPtr<UFaerieItemToken>& Token)
 				{
-					Actor->AddReplicatedSubObject(Token);
-					Token->InitializeNetObject(Actor);
+					if (Token->MutateCast())
+					{
+						Actor->AddReplicatedSubObject(Token);
+						Token->InitializeNetObject(Actor);
+					}
+
+					// Continue iteration...
 					return true;
 				});
 		}

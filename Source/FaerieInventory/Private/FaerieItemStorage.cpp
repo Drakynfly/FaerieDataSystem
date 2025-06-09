@@ -1223,8 +1223,7 @@ bool UFaerieItemStorage::TakeEntry(const FEntryKey Key, FFaerieItemStack& OutSta
 
 	if (Event.Success)
 	{
-		OutStack.Item = const_cast<UFaerieItem*>(Event.Item.Get());
-		OutStack.Copies = Event.Amount;
+		OutStack = { Event.Item.Get(), Event.Amount };
 	}
 
 	return Event.Success;
@@ -1244,8 +1243,7 @@ bool UFaerieItemStorage::TakeStack(const FInventoryKey Key, FFaerieItemStack& Ou
 
 	if (Event.Success)
 	{
-		OutStack.Item = const_cast<UFaerieItem*>(Event.Item.Get());
-		OutStack.Copies = Event.Amount;
+		OutStack = { Event.Item.Get(), Event.Amount };
 	}
 
 	return Event.Success;
@@ -1335,9 +1333,7 @@ FEntryKey UFaerieItemStorage::MoveEntry(UFaerieItemStorage* ToStorage, const FEn
 		return FEntryKey::InvalidKey;
 	}
 
-	FFaerieItemStack Stack;
-	Stack.Item = const_cast<UFaerieItem*>(Result.Item.Get());
-	Stack.Copies = Result.Amount;
+	const FFaerieItemStack Stack { Result.Item.Get(), Result.Amount };
 	return ToStorage->AddStackImpl(Stack, IfOnlyNewStacks(AddStackBehavior)).EntryTouched;
 }
 

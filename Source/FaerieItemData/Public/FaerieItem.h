@@ -132,6 +132,8 @@ public:
 
 	const UFaerieItemToken* GetToken(const TSubclassOf<UFaerieItemToken>& Class) const;
 	TArray<const UFaerieItemToken*> GetTokens(const TSubclassOf<UFaerieItemToken>& Class) const;
+
+	// @todo Bad Name: this doesn't filter tokens by their mutability. If just returns all tokens if we are mutable.
 	UFaerieItemToken* GetMutableToken(const TSubclassOf<UFaerieItemToken>& Class);
 	TArray<UFaerieItemToken*> GetMutableTokens(const TSubclassOf<UFaerieItemToken>& Class);
 

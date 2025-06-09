@@ -36,17 +36,13 @@ void UInventoryEjectionHandlerExtension::PostRemoval(const UFaerieItemContainerB
 	// Cannot eject null item
 	if (!Event.Item.IsValid()) return;
 
-	FFaerieItemStack Stack;
-	Stack.Copies = Event.Amount;
-
 	if (Event.Item->CanMutate())
 	{
 		// @todo figure out handling ejection of stacks
-		check(Stack.Copies == 1);
+		check(Event.Amount == 1);
 	}
 
-	Stack.Item = const_cast<UFaerieItem*>(Event.Item.Get());
-
+	const FFaerieItemStack Stack { Event.Item.Get(), Event.Amount };
 	Enqueue(Stack);
 }
 

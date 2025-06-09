@@ -99,6 +99,15 @@ bool UFaerieItemToken::CompareWith(const UFaerieItemToken* Other) const
 	return CompareWithImpl(Other);
 }
 
+UFaerieItemToken* UFaerieItemToken::MutateCast() const
+{
+	if (IsMutable())
+	{
+		return const_cast<ThisClass*>(this);
+	}
+	return nullptr;
+}
+
 void UFaerieItemToken::EditToken(const TFunctionRef<bool(UFaerieItemToken*)>& EditFunc)
 {
 	if (EditFunc(this))
