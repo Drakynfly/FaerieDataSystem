@@ -118,7 +118,7 @@ private:
 	static FFaerieAddress Encode(FEntryKey Entry, FStackKey Stack);
 	static void Decode(FFaerieAddress Address, FEntryKey& Entry, FStackKey& Stack);
 
-	FInventoryEntryView GetEntryViewImpl(FEntryKey Key) const;
+	TConstStructView<FInventoryEntry> GetEntryViewImpl(FEntryKey Key) const;
 
 	UInventoryEntryProxy* GetEntryProxyImpl(FEntryKey Key) const;
 	UInventoryStackProxy* GetStackProxyImpl(FInventoryKey Key) const;
@@ -162,7 +162,8 @@ public:
 	Faerie::FAddressEvent::RegistrationType& GetOnAddressUpdated() { return OnAddressUpdatedCallback; }
 	Faerie::FAddressEvent::RegistrationType& GetOnAddressRemoved() { return OnAddressRemovedCallback; }
 
-	FInventoryEntryView GetEntryView(FEntryKey Key) const;
+	UE_DEPRECATED(5.6, "Direct access to FInventoryEntry is being phased out")
+	TConstStructView<FInventoryEntry> GetEntryView(FEntryKey Key) const;
 
 	FFaerieItemStackView GetStackView(FInventoryKey Key) const;
 
@@ -198,7 +199,8 @@ public:
 	 * Full version
 	 * @return Whether an entry was found.
 	 */
-	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Storage|Entry")
+	UE_DEPRECATED(5.6, "Direct access to FInventoryEntry is being phased out.")
+	UFUNCTION(BlueprintCallable, BlueprintPure = false, meta = (DeprecatedFunction, DeprecationMessage = "Direct access to FInventoryEntry is being phased out."))
 	bool GetEntry(FEntryKey Key, FInventoryEntry& Entry) const;
 
 	/**
@@ -225,7 +227,8 @@ public:
 	bool GetStackProxy(FInventoryKey Key, FFaerieItemProxy& Proxy);
 
 	/** Get entries en masse */
-	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Storage|Entry")
+	UE_DEPRECATED(5.6, "Direct access to FInventoryEntry is being phased out.")
+	UFUNCTION(BlueprintCallable, BlueprintPure = false, meta = (DeprecatedFunction, DeprecationMessage = "Direct access to FInventoryEntry is being phased out."))
 	void GetEntryArray(const TArray<FEntryKey>& Keys, TArray<FInventoryEntry>& Entries) const;
 
 	// Query function to filter for the first matching entry.

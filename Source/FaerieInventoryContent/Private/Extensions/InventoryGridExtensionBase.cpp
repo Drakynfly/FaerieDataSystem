@@ -146,6 +146,7 @@ void UInventoryGridExtensionBase::InitializeExtension(const UFaerieItemContainer
 		ItemStorage->ForEachKey(
 			[this, ItemStorage](const FEntryKey Key)
 			{
+				PRAGMA_DISABLE_DEPRECATION_WARNINGS
 				for (const auto EntryView = ItemStorage->GetEntryView(Key);
 					auto&& Entry : EntryView.Get().Stacks)
 				{
@@ -156,6 +157,7 @@ void UInventoryGridExtensionBase::InitializeExtension(const UFaerieItemContainer
 						break;
 					}
 				}
+				PRAGMA_ENABLE_DEPRECATION_WARNINGS
 			});
 	}
 }

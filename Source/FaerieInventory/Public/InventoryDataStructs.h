@@ -190,8 +190,6 @@ struct TStructOpsTypeTraits<FInventoryEntry> : public TStructOpsTypeTraitsBase2<
 	};
 };
 
-using FInventoryEntryView = TConstStructView<FInventoryEntry>;
-
 struct FInventoryContent;
 
 // A minimal struct to replicate a Key and Value pair as an emulation of a TMap

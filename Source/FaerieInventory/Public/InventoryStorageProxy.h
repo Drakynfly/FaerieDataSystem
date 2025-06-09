@@ -22,7 +22,8 @@ class UInventoryEntryProxyBase : public UObject, public IFaerieItemDataProxy
 
 public:
 	/** Get all stacks for this item. */
-	UFUNCTION(BlueprintCallable, Category = "Entry Cache")
+	UE_DEPRECATED(5.6, "Direct access to FKeyedStacks is being phased out")
+	UFUNCTION(BlueprintCallable, meta = (DeprecatedFunction, DeprecationMessage = "Direct access to FKeyedStacks is being phased out"))
 	FAERIEINVENTORY_API TArray<FKeyedStack> GetAllStacks() const;
 
 	/** Get the stack limit of this item. */
@@ -30,7 +31,8 @@ public:
 	FAERIEINVENTORY_API int32 GetStackLimit() const;
 
 protected:
-	virtual FInventoryEntryView GetInventoryEntry() const PURE_VIRTUAL(UInventoryEntryProxyBase::GetInventoryEntry, return FInventoryEntryView(); )
+	UE_DEPRECATED(5.6, "Direct access to FInventoryEntry is being phased out")
+	virtual TConstStructView<FInventoryEntry> GetInventoryEntry() const PURE_VIRTUAL(UInventoryEntryProxyBase::GetInventoryEntry, return TConstStructView<FInventoryEntry>(); )
 };
 
 /*
@@ -50,7 +52,7 @@ public:
 	//~ IFaerieItemDataProxy
 
 	//~ UInventoryEntryProxyBase
-	virtual FInventoryEntryView GetInventoryEntry() const override final;
+	virtual TConstStructView<FInventoryEntry> GetInventoryEntry() const override final;
 	//~ UInventoryEntryProxyBase
 
 	FAERIEINVENTORY_API UFaerieItemStorage* GetStorage() const { return ItemStorage.Get(); }

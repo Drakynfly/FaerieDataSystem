@@ -4,27 +4,25 @@
 #include "FaerieItem.h"
 #include "FaerieItemStorage.h"
 #include "Logging.h"
+#include "Tokens/FaerieStackLimiterToken.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventoryStorageProxy)
 
 TArray<FKeyedStack> UInventoryEntryProxyBase::GetAllStacks() const
 {
-	if (const FInventoryEntryView& Entry = GetInventoryEntry();
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	if (const TConstStructView<FInventoryEntry>& Entry = GetInventoryEntry();
 		ensure(Entry.IsValid()))
 	{
 		return Entry.Get().Stacks;
 	}
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	return {};
 }
 
 int32 UInventoryEntryProxyBase::GetStackLimit() const
 {
-	if (const FInventoryEntryView& Entry = GetInventoryEntry();
-		ensure(Entry.IsValid()))
-	{
-		return Entry.Get().Limit;
-	}
-	return 0;
+	return UFaerieStackLimiterToken::GetItemStackLimit(GetItemObject());
 }
 
 const UFaerieItem* UInventoryEntryStorageProxy::GetItemObject() const
@@ -34,13 +32,8 @@ const UFaerieItem* UInventoryEntryStorageProxy::GetItemObject() const
 		return nullptr;
 	}
 
-	const FInventoryEntryView EntryView = GetStorage()->GetEntryView(GetKey());
-	if (!ensure(EntryView.IsValid()))
-	{
-		return nullptr;
-	}
-
-	return EntryView.Get().ItemObject;
+	const FFaerieItemStackView EntryView = GetStorage()->View(GetKey());
+	return EntryView.Item.Get();
 }
 
 int32 UInventoryEntryStorageProxy::GetCopies() const
@@ -50,13 +43,8 @@ int32 UInventoryEntryStorageProxy::GetCopies() const
 		return 0;
 	}
 
-	const FInventoryEntryView EntryView = GetStorage()->GetEntryView(GetKey());
-	if (!ensure(EntryView.IsValid()))
-	{
-		return 0;
-	}
-
-	return EntryView.Get().StackSum();
+	const FFaerieItemStackView EntryView = GetStorage()->View(GetKey());
+	return EntryView.Copies;
 }
 
 TScriptInterface<IFaerieItemOwnerInterface> UInventoryEntryStorageProxy::GetItemOwner() const
@@ -64,14 +52,16 @@ TScriptInterface<IFaerieItemOwnerInterface> UInventoryEntryStorageProxy::GetItem
 	return GetStorage();
 }
 
-FInventoryEntryView UInventoryEntryStorageProxy::GetInventoryEntry() const
+TConstStructView<FInventoryEntry> UInventoryEntryStorageProxy::GetInventoryEntry() const
 {
 	if (!VerifyStatus())
 	{
-		return FInventoryEntryView();
+		return TConstStructView<FInventoryEntry>();
 	}
 
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	return GetStorage()->GetEntryView(GetKey());
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 void UInventoryEntryStorageProxy::NotifyCreation()
@@ -135,13 +125,7 @@ int32 UInventoryStackProxy::GetCopies() const
 		return 0;
 	}
 
-	const FInventoryEntryView EntryView = ItemStorage->GetEntryView(Key.EntryKey);
-	if (!ensure(EntryView.IsValid()))
-	{
-		return 0;
-	}
-
-	return EntryView.Get().GetStack(Key.StackKey);
+	return ItemStorage->ViewStack(Key.ToAddress()).Copies;
 }
 
 FEntryKey UInventoryStackProxy::GetKey() const

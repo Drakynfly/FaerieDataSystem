@@ -169,7 +169,9 @@ FWeightAndVolume UInventoryCapacityExtension::GetEntryWeightAndVolume(const UFae
 		// @todo a nicer way to do this would be ideal. but since UFaerieItemStorage has custom stacking logic, we
 		// have to sum it separately to handle efficiency per stack correctly
 		// @todo this will be fixed by addresses
-		const FInventoryEntryView EntryView = AsStorage->GetEntryView(Key);
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
+		const TConstStructView<FInventoryEntry> EntryView = AsStorage->GetEntryView(Key);
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 		if (!ensure(EntryView.IsValid()))
 		{
 			return Out;

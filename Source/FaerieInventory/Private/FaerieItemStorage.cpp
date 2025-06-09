@@ -302,7 +302,9 @@ void UFaerieItemStorage::PostContentAdded(const FKeyedInventoryEntry& Entry)
 		return;
 	}
 
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	OnKeyAddedCallback.Broadcast(this, Entry.Key);
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	OnKeyAdded.Broadcast(this, Entry.Key);
 
 	// Proxies may already exist for keys on the client if they are replicated by extensions or other means, and
@@ -351,7 +353,9 @@ void UFaerieItemStorage::PostContentChanged(const FKeyedInventoryEntry& Entry, E
 	// Call updates on any entry and stack proxies
 	if (Contains(Entry.Key))
 	{
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		OnKeyUpdatedCallback.Broadcast(this, Entry.Key);
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 		OnKeyUpdated.Broadcast(this, Entry.Key);
 
 		switch (ChangeType)
@@ -428,7 +432,9 @@ void UFaerieItemStorage::PreContentRemoved(const FKeyedInventoryEntry& Entry)
 		return;
 	}
 
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	OnKeyRemovedCallback.Broadcast(this, Entry.Key);
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	OnKeyRemoved.Broadcast(this, Entry.Key);
 
 	auto Addresses = Switchover_GetAddresses(Entry.Key);
@@ -462,9 +468,9 @@ void UFaerieItemStorage::PreContentRemoved(const FKeyedInventoryEntry& Entry)
 	/*	  INTERNAL IMPLEMENTATIONS	 */
 	/**------------------------------*/
 
-FInventoryEntryView UFaerieItemStorage::GetEntryViewImpl(const FEntryKey Key) const
+TConstStructView<FInventoryEntry> UFaerieItemStorage::GetEntryViewImpl(const FEntryKey Key) const
 {
-	return FInventoryEntryView(EntryMap[Key]);
+	return TConstStructView<FInventoryEntry>(EntryMap[Key]);
 }
 
 UInventoryEntryProxy* UFaerieItemStorage::GetEntryProxyImpl(const FEntryKey Key) const
@@ -733,14 +739,14 @@ Faerie::Inventory::FEventLog UFaerieItemStorage::RemoveFromStackImpl(const FInve
 	/*	 STORAGE API - ALL USERS   */
 	/**------------------------------*/
 
-FInventoryEntryView UFaerieItemStorage::GetEntryView(const FEntryKey Key) const
+TConstStructView<FInventoryEntry> UFaerieItemStorage::GetEntryView(const FEntryKey Key) const
 {
 	return GetEntryViewImpl(Key);
 }
 
 FFaerieItemStackView UFaerieItemStorage::GetStackView(const FInventoryKey Key) const
 {
-	if (const FInventoryEntryView EntryView = GetEntryViewImpl(Key.EntryKey);
+	if (const TConstStructView<FInventoryEntry> EntryView = GetEntryViewImpl(Key.EntryKey);
 		EntryView.IsValid())
 	{
 		FFaerieItemStackView View;
@@ -757,7 +763,7 @@ TArray<FInventoryKey> UFaerieItemStorage::GetInvKeysForEntry(const FEntryKey Key
 
 	if (!Contains(Key)) return Out;
 
-	const FInventoryEntryView Entry = GetEntryViewImpl(Key);
+	const TConstStructView<FInventoryEntry> Entry = GetEntryViewImpl(Key);
 	Out.Reserve(Entry.Get().Stacks.Num());
 	for (const FKeyedStack& Stack : Entry.Get().Stacks)
 	{
@@ -1311,7 +1317,7 @@ FEntryKey UFaerieItemStorage::MoveEntry(UFaerieItemStorage* ToStorage, const FEn
 		return FEntryKey::InvalidKey;
 	}
 
-	const FInventoryEntryView EntryView = GetEntryView(Key);
+	const TConstStructView<FInventoryEntry> EntryView = GetEntryViewImpl(Key);
 	if (!ensure(EntryView.IsValid()))
 	{
 		return FEntryKey::InvalidKey;
