@@ -241,12 +241,12 @@ UFaerieItem* UFaerieItem::CreateNewInstance(const TConstArrayView<UFaerieItemTok
 		// Mutable tokens have to be owned by us.
 		if (Token->IsMutable())
 		{
-			check(Token->GetPackage() == GetTransientPackage())
+			check(Token->GetOuter() == GetTransientPackage())
 			Token->Rename(nullptr, Instance);
 		}
 		else
 		{
-			if (Token->GetPackage() == GetTransientPackage())
+			if (Token->GetOuter() == GetTransientPackage())
 			{
 				Token->Rename(nullptr, Instance);
 			}
@@ -457,25 +457,26 @@ bool UFaerieItem::CompareWith(const UFaerieItem* Other, const EFaerieItemCompari
 	// This is a quicker comparison that uses the CompareWith virtual function implemented by those tokens.
 	if (EnumHasAnyFlags(Flags, EFaerieItemComparisonFlags::Tokens_ComparePrimaryIdentifiers))
 	{
-		TArray<const TObjectPtr<UFaerieItemToken>> ItemAPrimaries = *FilterTokens().ByTag(Faerie::Tags::PrimaryIdentifierToken);
+		Faerie::FTokenFilter ThisFilter(FilterTokens());
+		ThisFilter.ByTag(Faerie::Tags::PrimaryIdentifierToken);
 
-		Faerie::FTokenFilter Filter(Other->FilterTokens());
-		Filter.ByTag(Faerie::Tags::PrimaryIdentifierToken);
+		Faerie::FTokenFilter OtherFilter(Other->FilterTokens());
+		OtherFilter.ByTag(Faerie::Tags::PrimaryIdentifierToken);
 
 		// This already indicates they are not equal.
-		if (Filter.GetNum() != ItemAPrimaries.Num())
+		if (ThisFilter.Num() != OtherFilter.Num())
 		{
 			return false;
 		}
 
 		bool ComparisonFailed = false;
 
-		Filter.ForEach([&ItemAPrimaries, &ComparisonFailed](const TObjectPtr<UFaerieItemToken>& TokenB)
+		OtherFilter.ForEach([&ThisFilter, &ComparisonFailed](const TObjectPtr<UFaerieItemToken>& TokenB)
 			{
 				// Each token from Other must find a token in ItemAPrimaries that it compares to.
 				for (auto It =
-					(*reinterpret_cast<TArray<TObjectPtr<UFaerieItemToken>>*>(&ItemAPrimaries)) // This is a hack to allow us to use RemoveCurrentSwap
-					.CreateIterator(); It; ++It)
+					reinterpret_cast<TArray<TObjectPtr<UFaerieItemToken>>*>(&ThisFilter) // This is a hack to allow us to use RemoveCurrentSwap
+					->CreateIterator(); It; ++It)
 				{
 					if (TokenB->CompareWith(*It))
 					{
@@ -571,9 +572,17 @@ bool UFaerieItem::AddToken(UFaerieItemToken* Token)
 		return false;
 	}
 
-	// If this check fails, then whatever code tried to add the token didn't create it with us as the outer, or needs to
-	// either duplicate or rename the token with us as the outer.
-	check(Token->GetOuter() == this);
+	if (Token->GetOuter() == GetTransientPackage())
+	{
+		// Newly created Tokens need to be outer'd to this item.
+		Token->Rename(nullptr, this);
+	}
+	else
+	{
+		// If this check fails, then whatever code tried to create the token used an outer other than us, and needs to
+		// either duplicate or rename the token with us as the outer.
+		check(Token->GetOuter() == this);
+	}
 
 	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, LastModified, this);
 	LastModified = FDateTime::UtcNow();
@@ -677,24 +686,14 @@ TArray<UFaerieItemToken*> UFaerieItem::GetAllTokens() const
 
 bool UFaerieItem::FindToken(const TSubclassOf<UFaerieItemToken> Class, UFaerieItemToken*& FoundToken) const
 {
-	if (!IsValid(Class))
-	{
-		return false;
-	}
-
 	// @Note: BP doesn't understand const-ness, but since UFaerieItemToken does not have a BP accessible API that can
 	// mutate it, it's perfectly safe.
-	FoundToken = GetToken(Class)->MutateCast();
+	FoundToken = const_cast<UFaerieItemToken*>(GetToken(Class));
 	return FoundToken != nullptr;
 }
 
 void UFaerieItem::FindTokens(const TSubclassOf<UFaerieItemToken> Class, TArray<UFaerieItemToken*>& FoundTokens) const
 {
-	if (!IsValid(Class))
-	{
-		return;
-	}
-
 	// Can't use GetMutableTokens here because it'd fail to return anything if *this* is not data mutable as a precaution.
 	// @Note: BP doesn't understand const-ness, but since UFaerieItemToken does not have a BP accessible API that can
 	// mutate it, it's perfectly safe.
@@ -724,7 +723,7 @@ EFaerieItemSourceType UFaerieItem::GetSourceType() const
 	{
 		// @todo how to determine Dynamic / Asset outer
 	}
-	if (GetPackage() == GetTransientPackage())
+	if (GetOuter() == GetTransientPackage())
 	{
 		// We are a dynamic that is currently unowned.
 		return EFaerieItemSourceType::Dynamic;

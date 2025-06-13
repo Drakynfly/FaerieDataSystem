@@ -132,20 +132,4 @@ struct FAERIEINVENTORY_API FLoggedInventoryEvent
 		Ar << Val.Event;
 		return Ar;
 	}
-
-	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
-	{
-		Ar << *this;
-		bOutSuccess = true;
-		return true;
-	}
-};
-
-template<>
-struct TStructOpsTypeTraits<FLoggedInventoryEvent> : public TStructOpsTypeTraitsBase2<FLoggedInventoryEvent>
-{
-	enum
-	{
-		WithNetSerializer = true,
-	};
 };

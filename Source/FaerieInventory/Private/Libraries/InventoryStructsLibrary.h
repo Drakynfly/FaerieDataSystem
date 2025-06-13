@@ -29,21 +29,6 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Faerie|Inventory|Utils")
 	static FString ToString_InventoryKey(const FInventoryKey Key) { return Key.ToString(); }
 
-	// Selectively equivalate two entries.
-	UFUNCTION(BlueprintPure, Category = "Faerie|Inventory|Utils", meta = (CompactNodeTitle = "=="))
-	static bool Equal_EntryEntry(const FInventoryEntry& A, const FInventoryEntry& B,
-		UPARAM(meta = (Bitmask, BitmaskEnum = "/Script/FaerieInventory.EEntryEquivalencyFlags")) int32 Checks);
-
-	// Sort an array of inventory entries by date modified.
-	UFUNCTION(BlueprintCallable, Category = "Faerie|Inventory|Utils")
-	static void SortEntriesLastModified(UPARAM(ref)TArray<FInventoryEntry>& Entries);
-
-	UFUNCTION(BlueprintPure, Category = "Faerie|Inventory|Utils")
-	static int32 GetStackSum(const FInventoryEntry& Entry);
-
-	UFUNCTION(BlueprintPure, Category = "Faerie|Inventory|Utils")
-	static FFaerieItemStackView EntryToStackView(const FInventoryEntry& Entry);
-
 	/* Returns true if inventory keys are equal */
 	UFUNCTION(BlueprintPure, Category = "Faerie|Inventory|Utils", meta = (DisplayName = "Equal (Inventory Key)", CompactNodeTitle = "==", Keywords = "== equal compare", ScriptOperator = "=="))
 	static bool EqualEqual_InventoryKey(FInventoryKey A, FInventoryKey B);
@@ -51,4 +36,21 @@ public:
 	/* Returns true if inventory keys are equal */
 	UFUNCTION(BlueprintPure, Category = "Faerie|Inventory|Utils", meta = (DisplayName = "Equal (Stack Key)", CompactNodeTitle = "==", Keywords = "== equal compare", ScriptOperator = "=="))
 	static bool EqualEqual_StackKey(FStackKey A, FStackKey B);
+
+	// DEPRECATED
+
+	// Selectively equivalate two entries.
+	UFUNCTION(BlueprintPure, meta = (CompactNodeTitle = "=="), meta = (DeprecatedFunction, DeprecationMessage = "Direct access to FInventoryEntry is being phased out"))
+	static bool Equal_EntryEntry(const FInventoryEntry& A, const FInventoryEntry& B,
+		UPARAM(meta = (Bitmask, BitmaskEnum = "/Script/FaerieInventory.EEntryEquivalencyFlags")) int32 Checks);
+
+	// Sort an array of inventory entries by date modified.
+	UFUNCTION(BlueprintCallable, meta = (DeprecatedFunction, DeprecationMessage = "Direct access to FInventoryEntry is being phased out"))
+	static void SortEntriesLastModified(UPARAM(ref)TArray<FInventoryEntry>& Entries);
+
+	UFUNCTION(BlueprintPure, meta = (DeprecatedFunction, DeprecationMessage = "Direct access to FInventoryEntry is being phased out"))
+	static int32 GetStackSum(const FInventoryEntry& Entry);
+
+	UFUNCTION(BlueprintPure, meta = (DeprecatedFunction, DeprecationMessage = "Direct access to FInventoryEntry is being phased out"))
+	static FFaerieItemStackView EntryToStackView(const FInventoryEntry& Entry);
 };

@@ -75,11 +75,15 @@ void UInventoryEjectionHandlerExtension::HandleNextInQueue()
 	{
 		PostLoadClassToSpawn(ClassToSpawn);
 	}
-	else
+	else if (ClassToSpawn.IsPending())
 	{
 		IsStreaming = true;
 		UAssetManager::GetStreamableManager().RequestAsyncLoad(ClassToSpawn.ToSoftObjectPath(),
 			FStreamableDelegate::CreateUObject(this, &ThisClass::PostLoadClassToSpawn, ClassToSpawn));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("InventoryEjectionHandlerExtension encountered invalid ClassToSpawn, cannot eject Item!"))
 	}
 }
 

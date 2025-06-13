@@ -52,7 +52,7 @@ namespace Faerie
 		// Iterates over the filtered tokens. Return true in the delegate to continue iterating.
 		FAERIEITEMDATA_API FTokenFilter& ForEach(const TFunctionRef<bool(const TObjectPtr<UFaerieItemToken>&)>& Iter);
 
-		FAERIEITEMDATA_API int32 GetNum() const { return Tokens.Num(); }
+		FAERIEITEMDATA_API int32 Num() const { return Tokens.Num(); }
 
 		// Resolve into the final token array, but cast into an array of const pointers to prevent mutable pointers leaking out of a const API
 		FAERIEITEMDATA_API const TArray<const TObjectPtr<UFaerieItemToken>>& operator*() const
@@ -61,12 +61,12 @@ namespace Faerie
 		}
 
 	private:
-		const TArray<TObjectPtr<UFaerieItemToken>>& BlueprintOnlyAccess() { return Tokens;}
+		const TArray<TObjectPtr<UFaerieItemToken>>& BlueprintOnlyAccess() { return Tokens; }
 
 		TArray<TObjectPtr<UFaerieItemToken>> Tokens;
 	};
 
-	using FNotifyOwnerOfSelfMutation = TDelegate<void(const UFaerieItem*, const class UFaerieItemToken*, FGameplayTag)>;
+	using FNotifyOwnerOfSelfMutation = TDelegate<void(const UFaerieItem*, const UFaerieItemToken*, FGameplayTag)>;
 }
 
 /**
