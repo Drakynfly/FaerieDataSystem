@@ -9,7 +9,10 @@
 #include "Widgets/SCompoundWidget.h"
 #include "Widgets/Layout/SBox.h"
 
-class FFaerieItemAssetEditor;
+namespace Faerie::Ed
+{
+	class FItemAssetEditorToolkit;
+}
 
 namespace Faerie::UMGWidgetPreview
 {
@@ -21,7 +24,7 @@ namespace Faerie::UMGWidgetPreview
 		SLATE_BEGIN_ARGS(SWidgetPreviewStatus) {}
 		SLATE_END_ARGS()
 
-		void Construct(const FArguments& Args, const TSharedRef<FFaerieItemAssetEditor>& InToolkit);
+		void Construct(const FArguments& Args, const TSharedRef<Ed::FItemAssetEditorToolkit>& InToolkit);
 
 		virtual ~SWidgetPreviewStatus() override;
 
@@ -38,7 +41,7 @@ namespace Faerie::UMGWidgetPreview
 		FText GetMessage() const;
 
 	private:
-		TWeakPtr<FFaerieItemAssetEditor> WeakToolkit;
+		TWeakPtr<Ed::FItemAssetEditorToolkit> WeakToolkit;
 		TSharedPtr<SBox> MessageContainerWidget;
 
 		FDelegateHandle OnStateChangedHandle;

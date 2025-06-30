@@ -1,61 +1,63 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #pragma once
 
 #include "SCommonEditorViewportToolbarBase.h"
 #include "SEditorViewport.h"
 
-class FFaerieItemAssetEditor;
-class FFaerieItemAssetPreviewScene;
-
-struct FFaerieItemAssetViewportRequiredArgs
+namespace Faerie::Ed
 {
-	FFaerieItemAssetViewportRequiredArgs(const TSharedRef<FFaerieItemAssetPreviewScene>& InPreviewScene, TSharedRef<FFaerieItemAssetEditor> InAssetEditorToolkit)
-	: PreviewScene(InPreviewScene)
-	, AssetEditorToolkit(InAssetEditorToolkit)
+	class FItemAssetEditorToolkit;
+	class FItemDataProxyPreviewScene;
+	class FItemAssetViewportClient;
+
+	struct FFaerieItemAssetViewportRequiredArgs
 	{
-	}
+		FFaerieItemAssetViewportRequiredArgs(const TSharedRef<FItemDataProxyPreviewScene>& InPreviewScene, const TSharedRef<FItemAssetEditorToolkit>& InAssetEditorToolkit)
+		: PreviewScene(InPreviewScene)
+		, AssetEditorToolkit(InAssetEditorToolkit)
+		{
+		}
 
-	TSharedRef<FFaerieItemAssetPreviewScene> PreviewScene;
-	TSharedRef<FFaerieItemAssetEditor> AssetEditorToolkit;
-};
+		TSharedRef<FItemDataProxyPreviewScene> PreviewScene;
+		TSharedRef<FItemAssetEditorToolkit> AssetEditorToolkit;
+	};
 
-class FFaerieItemAssetViewportClient;
+	/**
+	 *
+	 */
+	class SItemAssetEditorViewport final : public SEditorViewport, /*public FGCObject,*/ public ICommonEditorViewportToolbarInfoProvider
+	{
+	public:
+		SLATE_BEGIN_ARGS(SItemAssetEditorViewport) {}
+		SLATE_END_ARGS()
 
-/**
- * 
- */
-class SFaerieItemAssetViewport : public SEditorViewport, /*public FGCObject,*/ public ICommonEditorViewportToolbarInfoProvider
-{
-public:
-	SLATE_BEGIN_ARGS(SFaerieItemAssetViewport) {}
-	SLATE_END_ARGS()
+		void Construct(const FArguments& InArgs, const FFaerieItemAssetViewportRequiredArgs& InRequiredArgs);
+		virtual ~SItemAssetEditorViewport() override;
 
-	void Construct(const FArguments& InArgs, const FFaerieItemAssetViewportRequiredArgs& InRequiredArgs);
-	virtual ~SFaerieItemAssetViewport() override;
+		//~ SEditorViewport
+		virtual void OnFocusViewportToSelection() override;
+		virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() override;
+		//~ SEditorViewport
 
-	//~ SEditorViewport
-	virtual void OnFocusViewportToSelection() override;
-	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() override;
-	//~ SEditorViewport
+		//virtual void AddReferencedObjects(FReferenceCollector& Collector) override {}
 
-	//virtual void AddReferencedObjects(FReferenceCollector& Collector) override {}
+		//~ ICommonEditorViewportToolbarInfoProvider
+		virtual TSharedRef<SEditorViewport> GetViewportWidget() override;
+		virtual TSharedPtr<FExtender> GetExtenders() const override;
+		virtual void OnFloatingButtonClicked() override;
+		//~ ICommonEditorViewportToolbarInfoProvider
 
-	//~ ICommonEditorViewportToolbarInfoProvider
-	virtual TSharedRef<SEditorViewport> GetViewportWidget() override;
-	virtual TSharedPtr<FExtender> GetExtenders() const override;
-	virtual void OnFloatingButtonClicked() override;
-	//~ ICommonEditorViewportToolbarInfoProvider
+		TSharedPtr<FItemAssetViewportClient> GetViewportClient() { return TypedViewportClient; };
 
-	TSharedPtr<FFaerieItemAssetViewportClient> GetViewportClient() { return TypedViewportClient; };
+	private:
+		/** The scene for this viewport. */
+		TSharedPtr<FItemDataProxyPreviewScene> PreviewScene;
 
-private:
-	/** The scene for this viewport. */
-	TSharedPtr<FFaerieItemAssetPreviewScene> PreviewScene;
+		//Shared ptr to the client
+		TSharedPtr<FItemAssetViewportClient> TypedViewportClient;
 
-	//Shared ptr to the client
-	TSharedPtr<FFaerieItemAssetViewportClient> TypedViewportClient;
-
-	//Toolkit Pointer
-	TSharedPtr<FFaerieItemAssetEditor> EditorPtr;
-};
+		//Toolkit Pointer
+		TSharedPtr<FItemAssetEditorToolkit> EditorPtr;
+	};
+}

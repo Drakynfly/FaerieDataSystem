@@ -9,6 +9,11 @@
 
 #include "FaerieItemMeshComponent.generated.h"
 
+namespace Faerie::Ed
+{
+	struct FItemPreviewSceneData;
+}
+
 class UFaerieMeshTokenBase;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMeshRebuilt);
@@ -18,7 +23,7 @@ class FAERIEITEMMESH_API UFaerieItemMeshComponent : public USceneComponent
 {
 	GENERATED_BODY()
 
-	friend class FFaerieItemAssetPreviewScene;
+	friend Faerie::Ed::FItemPreviewSceneData;
 
 public:
 	UFaerieItemMeshComponent();

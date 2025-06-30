@@ -2,15 +2,15 @@
 
 #pragma once
 
+#include "FaerieItemAssetEditorCustomSettings.h"
 #include "FaerieItemDataProxy.h"
 #include "Toolkits/IToolkitHost.h"
 #include "Toolkits/AssetEditorToolkit.h"
 #include "UObject/GCObject.h"
 
+class UFaerieItemAssetEditorCustomSettings;
 enum class EWidgetPreviewWidgetChangeType : uint8;
 class UFaerieWidgetPreview;
-class FFaerieItemAssetPreviewScene;
-class SFaerieItemAssetViewport;
 class UFaerieItemAsset;
 
 namespace Faerie::UMGWidgetPreview
@@ -18,110 +18,121 @@ namespace Faerie::UMGWidgetPreview
 	struct FWidgetPreviewToolkitStateBase;
 }
 
-using FOnStateChanged = TMulticastDelegate<void(Faerie::UMGWidgetPreview::FWidgetPreviewToolkitStateBase* InOldState, Faerie::UMGWidgetPreview::FWidgetPreviewToolkitStateBase* InNewState)>;
-
-/**
- * 
- */
-class FFaerieItemAssetEditor : public FAssetEditorToolkit, public FGCObject, public FNotifyHook
+namespace Faerie::Ed
 {
-public:
-	FFaerieItemAssetEditor() = default;
-	virtual ~FFaerieItemAssetEditor() override;
+	class FItemDataProxyPreviewScene;
+	class SItemAssetEditorViewport;
 
-protected:
-	//~ Begin IToolkit interface
-	virtual FName GetToolkitFName() const override { return "FaerieItemAssetEditor"; }
-	virtual FText GetBaseToolkitName() const override { return INVTEXT("Faerie Item Asset Editor"); }
-	virtual FString GetWorldCentricTabPrefix() const override { return "FaerieItemAsset"; }
-	virtual FLinearColor GetWorldCentricTabColorScale() const override { return {}; }
-	//~ End IToolkit interface
+	using FOnStateChanged = TMulticastDelegate<void(UMGWidgetPreview::FWidgetPreviewToolkitStateBase* InOldState, UMGWidgetPreview::FWidgetPreviewToolkitStateBase* InNewState)>;
 
-	//~ FAssetEditorToolkit
-	virtual void RegisterTabSpawners(const TSharedRef<FTabManager>& InTabManager) override;
-	virtual void UnregisterTabSpawners(const TSharedRef<FTabManager>& InTabManager) override;
-	virtual void PostInitAssetEditor() override;
-	virtual void SaveAsset_Execute() override;
-	virtual void OnClose() override;
-	//~ FAssetEditorToolkit
+	/**
+	 *
+	 */
+	class FItemAssetEditorToolkit : public FAssetEditorToolkit, public FGCObject, public FNotifyHook
+	{
+	public:
+		FItemAssetEditorToolkit() = default;
+		virtual ~FItemAssetEditorToolkit() override;
 
-	//~ FGCObject interface
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
-	virtual FString GetReferencerName() const override;
-	//~ FGCObject interface
+	protected:
+		//~ Begin IToolkit interface
+		virtual FName GetToolkitFName() const override { return "FaerieItemAssetEditor"; }
+		virtual FText GetBaseToolkitName() const override { return INVTEXT("Faerie Item Asset Editor"); }
+		virtual FString GetWorldCentricTabPrefix() const override { return "FaerieItemAsset"; }
+		virtual FLinearColor GetWorldCentricTabColorScale() const override { return {}; }
+		//~ End IToolkit interface
 
-	//~ FNotifyHook
-	virtual void NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, FProperty* PropertyThatChanged) override;
-	virtual void NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, class FEditPropertyChain* PropertyThatChanged) override;
-	//~ FNotifyHook
+		//~ FAssetEditorToolkit
+		virtual void RegisterTabSpawners(const TSharedRef<FTabManager>& InTabManager) override;
+		virtual void UnregisterTabSpawners(const TSharedRef<FTabManager>& InTabManager) override;
+		virtual void PostInitAssetEditor() override;
+		virtual void SaveAsset_Execute() override;
+		virtual void OnClose() override;
+		//~ FAssetEditorToolkit
 
+		//~ FGCObject interface
+		virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
+		virtual FString GetReferencerName() const override;
+		//~ FGCObject interface
 
-	/**		 SETUP		 */
-public:
-	void InitAssetEditor(const EToolkitMode::Type Mode, const TSharedPtr<IToolkitHost>& InitToolkitHost, UFaerieItemAsset* InItemAsset);
-
-protected:
-	void BindCommands();
-	void ExtendToolbars();
-	TSharedRef<FFaerieItemAssetPreviewScene> CreatePreviewScene();
-	UFaerieWidgetPreview* CreateWidgetPreview();
-
-	TSharedRef<SDockTab> SpawnTab_Details(const FSpawnTabArgs& Args) const;
-	TSharedRef<SDockTab> SpawnTab_Viewport(const FSpawnTabArgs& Args) const;
-	TSharedRef<SDockTab> SpawnTab_WidgetPreview(const FSpawnTabArgs& Args) const;
-
-	bool ShouldUpdate() const;
-
-	void OnBlueprintPrecompile(UBlueprint* InBlueprint);
-
-	void OnWidgetChanged(const EWidgetPreviewWidgetChangeType InChangeType);
-
-	void OnFocusChanging(
-		const FFocusEvent& InFocusEvent,
-		const FWeakWidgetPath& InOldWidgetPath, const TSharedPtr<SWidget>& InOldWidget,
-		const FWidgetPath& InNewWidgetPath, const TSharedPtr<SWidget>& InNewWidget);
-
-	/** Resolve and set the current state based on various conditions. */
-	void ResolveState();
-
-	/** Resets to the default state. */
-	void ResetPreview();
+		//~ FNotifyHook
+		virtual void NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, FProperty* PropertyThatChanged) override;
+		virtual void NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, class FEditPropertyChain* PropertyThatChanged) override;
+		//~ FNotifyHook
 
 
-	/**		 GETTERS		 */
-public:
-	FOnStateChanged::RegistrationType& OnStateChanged() { return OnStateChangedDelegate; }
-	Faerie::UMGWidgetPreview::FWidgetPreviewToolkitStateBase* GetState() const { return CurrentState; }
+		/**		 SETUP		 */
+	public:
+		void InitAssetEditor(const EToolkitMode::Type Mode, const TSharedPtr<IToolkitHost>& InitToolkitHost, UFaerieItemAsset* InItemAsset);
 
-	UFaerieItemAsset* GetItemAsset() const { return ItemAsset; }
-	UFaerieWidgetPreview* GetPreview() const { return WidgetPreview; }
+	protected:
+		void BindCommands();
+		void ExtendToolbars();
+		TSharedRef<FItemDataProxyPreviewScene> CreatePreviewScene();
+		UFaerieWidgetPreview* CreateWidgetPreview();
 
-	UWorld* GetPreviewWorld() const;
+		TSharedRef<SDockTab> SpawnTab_Details(const FSpawnTabArgs& Args) const;
+		TSharedRef<SDockTab> SpawnTab_Viewport(const FSpawnTabArgs& Args) const;
+		TSharedRef<SDockTab> SpawnTab_WidgetPreview(const FSpawnTabArgs& Args) const;
+		TSharedRef<SDockTab> SpawnTab_SceneSettings(const FSpawnTabArgs& Args) const;
+
+		bool ShouldUpdate() const;
+
+		void OnBlueprintPrecompile(UBlueprint* InBlueprint);
+
+		void OnWidgetChanged(const EWidgetPreviewWidgetChangeType InChangeType);
+
+		void OnFocusChanging(
+			const FFocusEvent& InFocusEvent,
+			const FWeakWidgetPath& InOldWidgetPath, const TSharedPtr<SWidget>& InOldWidget,
+			const FWidgetPath& InNewWidgetPath, const TSharedPtr<SWidget>& InNewWidget);
+
+		void OnSceneSettingsChanged(const FEditorCustomSettingsEventData& Data);
+
+		/** Resolve and set the current state based on various conditions. */
+		void ResolveState();
+
+		/** Resets to the default state. */
+		void ResetPreview();
 
 
-	/**		 ACTIONS		 */
-protected:
-	void FocusViewport() const;
+		/**		 GETTERS		 */
+	public:
+		FOnStateChanged::RegistrationType& OnStateChanged() { return OnStateChangedDelegate; }
+		UMGWidgetPreview::FWidgetPreviewToolkitStateBase* GetState() const { return CurrentState; }
 
-	/** If the given state is different to the current state, this will handle transitions and events. */
-	void SetState(Faerie::UMGWidgetPreview::FWidgetPreviewToolkitStateBase* InNewState);
+		UFaerieItemAsset* GetItemAsset() const { return ItemAsset; }
+		UFaerieWidgetPreview* GetPreview() const { return WidgetPreview; }
 
-private:
-	TObjectPtr<UFaerieItemAsset> ItemAsset = nullptr;
+		UWorld* GetPreviewWorld() const;
 
-	TObjectPtr<UFaerieWidgetPreview> WidgetPreview = nullptr;
-	TSharedPtr<FFaerieItemAssetPreviewScene> PreviewScene;
 
-	TSharedPtr<SFaerieItemAssetViewport> MeshViewportWidget;
-	TSharedPtr<SWidget> WidgetPreviewWidget;
+		/**		 ACTIONS		 */
+	protected:
+		void FocusViewport() const;
 
-	FOnStateChanged OnStateChangedDelegate;
+		/** If the given state is different to the current state, this will handle transitions and events. */
+		void SetState(UMGWidgetPreview::FWidgetPreviewToolkitStateBase* InNewState);
 
-	Faerie::UMGWidgetPreview::FWidgetPreviewToolkitStateBase* CurrentState = nullptr;
+	private:
+		TObjectPtr<UFaerieItemAsset> ItemAsset = nullptr;
+		TObjectPtr<UFaerieWidgetPreview> WidgetPreview = nullptr;
+		TObjectPtr<UFaerieItemAssetEditorCustomSettings> CustomSceneSettings = nullptr;
 
-	bool bIsFocused = false;
+		TSharedPtr<FItemDataProxyPreviewScene> PreviewScene;
 
-	FDelegateHandle OnBlueprintPrecompileHandle;
-	FDelegateHandle OnWidgetChangedHandle;
-	FDelegateHandle OnFocusChangingHandle;
-};
+		TSharedPtr<SItemAssetEditorViewport> MeshViewportWidget;
+		TSharedPtr<SWidget> WidgetPreviewWidget;
+		TSharedPtr<SWidget> PreviewSettingsWidget;
+
+		FOnStateChanged OnStateChangedDelegate;
+
+		UMGWidgetPreview::FWidgetPreviewToolkitStateBase* CurrentState = nullptr;
+
+		bool bIsFocused = false;
+
+		FDelegateHandle OnBlueprintPrecompileHandle;
+		FDelegateHandle OnWidgetChangedHandle;
+		FDelegateHandle OnFocusChangingHandle;
+	};
+}

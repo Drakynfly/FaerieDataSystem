@@ -30,6 +30,11 @@ public class FaerieItemData : ModuleRules
             }
         );
 
+		if (Target.Type == TargetType.Editor)
+		{
+			PublicDependencyModuleNames.Add("UnrealEd"); // For USceneThumbnailInfo in FaerieItemAsset.h
+		}
+
         SetupIrisSupport(Target);
     }
 }

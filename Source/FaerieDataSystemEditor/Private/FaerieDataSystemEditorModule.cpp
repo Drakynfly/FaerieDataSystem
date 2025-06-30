@@ -92,9 +92,7 @@ FFaerieDataSystemEditorModule::FFaerieDataSystemEditorModule()
     const TCHAR* ExtPng = TEXT(".png");
 
     TMap<FString, FString> PathAssetPairs;
-    PathAssetPairs.Add("IconDefault128", "FaeriePrimaryDataAsset");
-    PathAssetPairs.Add("IconInventory128", "FaerieItemAsset");
-    PathAssetPairs.Add("IconWeapon128", "FaerieWeaponAsset");
+    //PathAssetPairs.Add("IconInventory128", "FaerieItemAsset");
     PathAssetPairs.Add("IconTable128", "FaerieItemPool");
 
     FSlateImageBrush* ThumbnailBrush;

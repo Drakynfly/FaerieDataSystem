@@ -8,8 +8,12 @@
 
 #include "Misc/DataValidation/Fixer.h"
 
+namespace Faerie::Ed
+{
+	class FItemAssetEditorToolkit;
+}
+
 enum class EWidgetPreviewWidgetChangeType : uint8;
-class FFaerieItemAssetEditor;
 
 namespace Faerie::UMGWidgetPreview
 {
@@ -79,7 +83,7 @@ namespace Faerie::UMGWidgetPreview
 		SLATE_BEGIN_ARGS(SWidgetPreview) {}
 		SLATE_END_ARGS()
 
-		void Construct(const FArguments& Args, const TSharedRef<FFaerieItemAssetEditor>& InToolkit);
+		void Construct(const FArguments& Args, const TSharedRef<Ed::FItemAssetEditorToolkit>& InToolkit);
 
 		virtual ~SWidgetPreview() override;
 
@@ -95,7 +99,7 @@ namespace Faerie::UMGWidgetPreview
 		TSharedRef<SWidget> GetCreatedSlateWidget() const;
 
 	private:
-		TWeakPtr<FFaerieItemAssetEditor> WeakToolkit;
+		TWeakPtr<Ed::FItemAssetEditorToolkit> WeakToolkit;
 
 		TSharedPtr<SRetainerWidget> RetainerWidget;
 		TSharedPtr<SBorder> ContainerWidget;

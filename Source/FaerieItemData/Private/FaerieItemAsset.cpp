@@ -3,15 +3,17 @@
 #include "FaerieItemAsset.h"
 
 #include "FaerieItem.h"
+#include "FaerieItemDataProxy.h"
 #include "FaerieItemTemplate.h"
 
+#include "Tokens/FaerieInfoToken.h"
+
+#include "UObject/ObjectSaveContext.h"
+
 #if WITH_EDITOR
+#include "ThumbnailRendering/SceneThumbnailInfo.h"
 #include "Misc/DataValidation.h"
 #endif
-
-#include "FaerieItemDataProxy.h"
-#include "Tokens/FaerieInfoToken.h"
-#include "UObject/ObjectSaveContext.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemAsset)
 
@@ -41,6 +43,19 @@ void UFaerieItemAsset::PreSave(FObjectPreSaveContext SaveContext)
 #endif
 
 	Super::PreSave(SaveContext);
+}
+
+void UFaerieItemAsset::PostLoad()
+{
+	Super::PostLoad();
+
+#if WITH_EDITOR
+	// Make sure thumbnail info exists
+	if (!IsValid(ThumbnailInfo))
+	{
+		ThumbnailInfo = NewObject<USceneThumbnailInfo>(this, NAME_None, RF_Transactional);
+	}
+#endif
 }
 
 #if WITH_EDITOR

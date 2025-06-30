@@ -163,22 +163,38 @@ void UFaerieItemMeshComponent::RebuildMesh()
 	// Create the appropriate new mesh component for the type.
 	if (!IsValid(MeshComponent))
 	{
+#if WITH_EDITOR
+		// If we are in a runtime context where we have an owning actor, use that.
+		UObject* Outer;
+		if (GetOwner())
+		{
+			Outer = GetOwner();
+		}
+		// But in editor-only contexts, just parent the mesh components to the world.
+		else
+		{
+			Outer = GetWorld();
+		}
+#else
+		UObject* Outer = GetOwner();
+#endif
+
 		switch (ActualType)
 		{
 		case EItemMeshType::None: break;
 		case EItemMeshType::Static:
-			MeshComponent = NewObject<UStaticMeshComponent>(GetOuter());
+			MeshComponent = NewObject<UStaticMeshComponent>(Outer);
 			break;
 		case EItemMeshType::Dynamic:
-			MeshComponent = NewObject<UDynamicMeshComponent>(GetOuter());
+			MeshComponent = NewObject<UDynamicMeshComponent>(Outer);
 			break;
 		case EItemMeshType::Skeletal:
-			MeshComponent = NewObject<USkeletalMeshComponent>(GetOuter());
+			MeshComponent = NewObject<USkeletalMeshComponent>(Outer);
 			break;
 		default: checkNoEntry();
 		}
 
-		MeshComponent->RegisterComponent();
+		MeshComponent->RegisterComponentWithWorld(GetWorld());
 
 		// *This* component controls the transform, so hard snap the mesh component to ourself.
 		MeshComponent->AttachToComponent(this, FAttachmentTransformRules::SnapToTargetIncludingScale);

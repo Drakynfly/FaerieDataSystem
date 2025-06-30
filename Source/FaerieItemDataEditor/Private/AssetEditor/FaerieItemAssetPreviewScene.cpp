@@ -1,84 +1,207 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "AssetEditor/FaerieItemAssetPreviewScene.h"
-#include "AssetEditor/FaerieItemAssetEditor.h"
+#include "FaerieItem.h"
 
-#include "FaerieItemAsset.h"
 #include "FaerieItemMeshLoader.h"
-#include "AssetEditor/FaerieWidgetPreview.h"
 #include "Components/BoxComponent.h"
 #include "Components/FaerieItemMeshComponent.h"
 
 #include "GameFramework/WorldSettings.h"
+
 #include "Tokens/FaerieCapacityToken.h"
 #include "Tokens/FaerieMeshToken.h"
 #include "Tokens/FaerieVisualActorClassToken.h"
 
-FFaerieItemAssetPreviewScene::FFaerieItemAssetPreviewScene(ConstructionValues CVS, const TSharedRef<FFaerieItemAssetEditor>& EditorToolkit)
-	: FAdvancedPreviewScene(CVS)
-	, EditorPtr(EditorToolkit)
+namespace Faerie::Ed
 {
-	// Hide default floor
-	SetFloorVisibility(false, false);
-
-	auto World = GetWorld();
-
+	FItemPreviewSceneData::FItemPreviewSceneData(FPreviewScene* Scene)
+		: Scene(Scene)
 	{
-		// Disable killing actors outside of the world
-		AWorldSettings* WorldSettings = World->GetWorldSettings(true);
-		WorldSettings->bEnableWorldBoundsChecks = false;
+		// @todo expose MeshPurpose to AssetEditor
+		MeshPurposeTag = ItemMesh::Tags::MeshPurpose_Default;
 	}
 
+	FItemPreviewSceneData::~FItemPreviewSceneData()
 	{
-		UStaticMesh* PreviewMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/EngineMeshes/Cube.Cube"), nullptr, LOAD_None, nullptr);
+		if (IsValid(ItemActor))
+		{
+			ItemActor->Destroy();
+			ItemActor = nullptr;
+		}
 
-		DefaultCube = NewObject<UStaticMeshComponent>(GetTransientPackage());
-		DefaultCube->SetStaticMesh(PreviewMesh);
-		DefaultCube->SetVisibility(false);
-		DefaultCube->bSelectable = true;
-		
-		FFaerieItemAssetPreviewScene::AddComponent(DefaultCube, FTransform::Identity);
+		if (IsValid(ItemMeshComponent) && !ItemMeshComponent->HasAnyFlags(RF_BeginDestroyed))
+		{
+			ItemMeshComponent->ClearItemMesh();
+			ItemMeshComponent->DestroyComponent();
+			ItemMeshComponent = nullptr;
+		}
 	}
 
+	void FItemPreviewSceneData::InitializeScene()
 	{
-		BoundsBox = NewObject<UBoxComponent>(GetTransientPackage());
-		BoundsBox->SetLineThickness(0.2f);
-		BoundsBox->SetVisibility(false);
+		auto World = Scene->GetWorld();
 
-		FFaerieItemAssetPreviewScene::AddComponent(BoundsBox, FTransform::Identity);
+		{
+			// Disable killing actors outside of the world
+			AWorldSettings* WorldSettings = World->GetWorldSettings(true);
+			WorldSettings->bEnableWorldBoundsChecks = false;
+		}
+
+		{
+			UStaticMesh* PreviewMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/EngineMeshes/Cube.Cube"), nullptr, LOAD_None, nullptr);
+
+			DefaultCube = NewObject<UStaticMeshComponent>(GetTransientPackage());
+			DefaultCube->SetStaticMesh(PreviewMesh);
+			DefaultCube->SetVisibility(false);
+			DefaultCube->bSelectable = true;
+
+			Scene->AddComponent(DefaultCube, FTransform::Identity);
+		}
+
+		{
+			BoundsBox = NewObject<UBoxComponent>(GetTransientPackage());
+			BoundsBox->SetLineThickness(0.2f);
+			BoundsBox->SetVisibility(false);
+
+			Scene->AddComponent(BoundsBox, FTransform::Identity);
+		}
+
+		{
+			ItemMeshComponent = NewObject<UFaerieItemMeshComponent>(GetTransientPackage());
+			ItemMeshComponent->CenterMeshByBounds = true;
+			//ItemMeshComponent->bSelectable = true;
+
+			Scene->AddComponent(ItemMeshComponent, FTransform::Identity);
+		}
 	}
 
+	void FItemPreviewSceneData::SetProxy(const IFaerieItemDataProxy* Proxy)
 	{
-		Actor = World->SpawnActor<AActor>(FVector::ZeroVector, FRotator::ZeroRotator);
+		ItemProxy = Proxy;
+		RefreshItemData();
 	}
 
+	void FItemPreviewSceneData::SetShowBounds(const bool InShowBounds)
 	{
-		ItemMeshComponent = NewObject<UFaerieItemMeshComponent>(Actor);
-		ItemMeshComponent->CenterMeshByBounds = true;
-		//ItemMeshComponent->bSelectable = true;
-
-		FFaerieItemAssetPreviewScene::AddComponent(ItemMeshComponent, FTransform::Identity);
+		ShowBounds = InShowBounds;
+		if (IsValid(BoundsBox))
+		{
+			BoundsBox->SetVisibility(ShowBounds);
+		}
 	}
 
-	MeshLoader = NewObject<UFaerieItemMeshLoader>(Actor, MakeUniqueObjectName(Actor, UFaerieItemMeshLoader::StaticClass()));
-}
-
-FFaerieItemAssetPreviewScene::~FFaerieItemAssetPreviewScene()
-{
-}
-
-void FFaerieItemAssetPreviewScene::AddReferencedObjects(FReferenceCollector& Collector)
-{
-	FAdvancedPreviewScene::AddReferencedObjects(Collector);
-	Collector.AddReferencedObject(MeshLoader);
-}
-
-void FFaerieItemAssetPreviewScene::Tick(const float InDeltaTime)
-{
-	FAdvancedPreviewScene::Tick(InDeltaTime);
-
-	if (const TSharedPtr<FFaerieItemAssetEditor> Toolkit = EditorPtr.Pin())
+	void FItemPreviewSceneData::RefreshItemData()
 	{
+		if (!ensure(IsValid(ItemMeshComponent))) return;
+
+		{
+			// Reset state to default
+			DefaultCube->SetVisibility(false);
+			if (IsValid(ItemActor))
+			{
+				ItemActor->Destroy();
+				ItemActor = nullptr;
+			}
+			ItemMeshComponent->ClearItemMesh();
+		}
+
+		const UFaerieItem* FaerieItem = ItemProxy ? ItemProxy->GetItemObject() : nullptr;
+		if (!IsValid(FaerieItem)) return;
+
+		const UFaerieVisualActorClassToken* ActorClassToken = nullptr;
+		const UFaerieMeshTokenBase* MeshToken = nullptr;
+		const UFaerieCapacityToken* CapToken = nullptr;
+
+		for (auto&& Element : FaerieItem->GetTokens())
+		{
+			if (auto AsActorClassToken = Cast<UFaerieVisualActorClassToken>(Element))
+			{
+				ActorClassToken = AsActorClassToken;
+			}
+			else if (auto AsMeshToken = Cast<UFaerieMeshTokenBase>(Element))
+			{
+				MeshToken = AsMeshToken;
+			}
+			else if (auto AsCapToken = Cast<UFaerieCapacityToken>(Element))
+			{
+				CapToken = AsCapToken;
+			}
+		}
+
+		// Draw Capacity Bounds
+		if (CapToken)
+		{
+			BoundsBox->SetVisibility(ShowBounds);
+			BoundsBox->SetBoxExtent(FVector(CapToken->GetCapacity().Bounds) / 2.0);
+		}
+
+		// Draw Mesh
+		{
+			// Path 1: Spawn Actor
+			if (IsValid(ActorClassToken))
+			{
+				if (auto&& ActorClass = ActorClassToken->LoadActorClassSynchronous())
+				{
+					ItemActor = Scene->GetWorld()->SpawnActor<AItemRepresentationActor>(ActorClass, FActorSpawnParameters());
+					if (IsValid(ItemActor))
+					{
+						ItemActor->GetOnDisplayFinished().AddRaw(this, &FItemPreviewSceneData::OnDisplayFinished);
+
+						FEditorScriptExecutionGuard EditorScriptGuard;
+						ItemActor->SetSourceProxy(ItemProxy);
+						return;
+					}
+				}
+			}
+
+			// Path 2: Spawn Component
+			if (IsValid(MeshToken))
+			{
+				if (FFaerieItemMesh ItemMesh;
+					LoadMeshFromTokenSynchronous(MeshToken, MeshPurposeTag, ItemMesh))
+				{
+					ItemMeshComponent->SetItemMesh(ItemMesh);
+					return;
+				}
+			}
+
+			// If the code above doesn't evaluate to a mesh, show the debug cube.
+			DefaultCube->SetVisibility(true);
+		}
+	}
+
+	FBoxSphereBounds FItemPreviewSceneData::GetBounds() const
+	{
+		return BoundsBox->GetLocalBounds();
+	}
+
+	void FItemPreviewSceneData::OnDisplayFinished(const bool Success)
+	{
+		if (!Success)
+		{
+			return;
+		}
+
+		// Run manual centering logic to keep the actor centered in view.
+		const FBox Bounds = ItemActor->GetComponentsBoundingBox(true);
+		ItemActor->AddActorLocalOffset(-Bounds.GetCenter());
+	}
+
+	FItemDataProxyPreviewScene::FItemDataProxyPreviewScene(ConstructionValues CVS)
+	  : FAdvancedPreviewScene(CVS),
+		SceneData(this)
+	{
+		// Hide default floor
+		SetFloorVisibility(false, false);
+
+		SceneData.InitializeScene();
+	}
+
+	void FItemDataProxyPreviewScene::Tick(const float InDeltaTime)
+	{
+		FAdvancedPreviewScene::Tick(InDeltaTime);
+
 		if (GEditor->bIsSimulatingInEditor ||
 			GEditor->PlayWorld != nullptr)
 		{
@@ -87,88 +210,30 @@ void FFaerieItemAssetPreviewScene::Tick(const float InDeltaTime)
 
 		GetWorld()->Tick(LEVELTICK_All, InDeltaTime);
 	}
-}
 
-FBoxSphereBounds FFaerieItemAssetPreviewScene::GetBounds() const
-{
-	return Actor->GetComponentsBoundingBox(true);
-}
-
-void FFaerieItemAssetPreviewScene::RefreshMesh()
-{
-	if (!ensure(IsValid(ItemMeshComponent))) return;
-	if (!ensure(IsValid(MeshLoader))) return;
-
-	ItemMeshComponent->ClearItemMesh();
-
-	const UFaerieItemAsset* ItemAsset = EditorPtr.Pin()->GetItemAsset();
-	if (!IsValid(ItemAsset)) return;
-
-	const UFaerieVisualActorClassToken* ActorClassToken = nullptr;
-	const UFaerieMeshTokenBase* MeshToken = nullptr;
-	const UFaerieCapacityToken* CapToken = nullptr;
-
-	for (auto&& Element : ItemAsset->GetEditorTokensView())
+	void FItemDataProxyPreviewScene::SetSettings(UFaerieItemAssetEditorCustomSettings* Settings)
 	{
-		if (auto AsActorClassToken = Cast<UFaerieVisualActorClassToken>(Element))
-		{
-			ActorClassToken = AsActorClassToken;
-			continue;
-		}
-
-		if (auto AsMeshToken = Cast<UFaerieMeshTokenBase>(Element))
-		{
-			MeshToken = AsMeshToken;
-			continue;
-		}
-
-		if (auto AsCapToken = Cast<UFaerieCapacityToken>(Element))
-		{
-			CapToken = AsCapToken;
-			continue;
-		}
+		EditorSettings = Settings;
+		SyncSettings();
 	}
 
-	// Draw Capacity Bounds
-	if (CapToken)
+	void FItemDataProxyPreviewScene::SyncSettings()
 	{
-		BoundsBox->SetVisibility(true); // @todo expose to settings panel
-		BoundsBox->SetBoxExtent(FVector(CapToken->GetCapacity().Bounds) / 2.0);
+		SceneData.SetShowBounds(EditorSettings->ShowCapacityBounds);
 	}
 
-	// Draw Mesh
+	FBoxSphereBounds FItemDataProxyPreviewScene::GetBounds() const
 	{
-		DefaultCube->SetVisibility(false);
-		if (IsValid(ItemActor))
-		{
-			ItemActor->Destroy();
-		}
-		ItemMeshComponent->ClearItemMesh();
+		return SceneData.GetBounds();
+	}
 
-		if (IsValid(ActorClassToken))
-		{
-			if (auto ActorClass = ActorClassToken->LoadActorClassSynchronous())
-			{
-				ItemActor = GetWorld()->SpawnActor<AItemRepresentationActor>(ActorClass, FActorSpawnParameters());
-				ItemActor->SetSourceProxy(EditorPtr.Pin()->GetPreview()); // @todo extremely stupid
-				return;
-			}
-		}
+	void FItemDataProxyPreviewScene::SetItemProxy(const IFaerieItemDataProxy* Proxy)
+	{
+		SceneData.SetProxy(Proxy);
+	}
 
-		if (IsValid(MeshToken))
-		{
-			// @todo expose MeshPurpose to AssetEditor
-			const FGameplayTag MeshPurpose = Faerie::ItemMesh::Tags::MeshPurpose_Default;
-
-			if (FFaerieItemMesh ItemMesh;
-				MeshLoader->LoadMeshFromTokenSynchronous(MeshToken, MeshPurpose, ItemMesh))
-			{
-				ItemMeshComponent->SetItemMesh(ItemMesh);
-				return;
-			}
-		}
-
-		// If the code above doesn't evaluate to a mesh, show the debug cube.
-		DefaultCube->SetVisibility(true);
+	void FItemDataProxyPreviewScene::RefreshMesh()
+	{
+		SceneData.RefreshItemData();
 	}
 }

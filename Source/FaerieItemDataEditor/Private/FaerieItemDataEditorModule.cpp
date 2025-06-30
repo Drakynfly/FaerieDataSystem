@@ -2,6 +2,7 @@
 
 #include "FaerieItemDataEditorModule.h"
 #include "FaerieAssetEditorCommands.h"
+#include "FaerieItemAsset.h"
 #include "FaerieItemCardTags.h"
 #include "FaerieItemDataFilter.h"
 
@@ -10,6 +11,8 @@
 #include "PropertyEditorModule.h"
 #include "Customizations/OnTheFlyConfigCustomization.h"
 #include "Customizations/FaerieItemSourceObjectCustomization.h"
+#include "ThumbnailRenderers/FaerieItemAssetThumbnailRenderer.h"
+#include "ThumbnailRendering/ThumbnailManager.h"
 
 #define LOCTEXT_NAMESPACE "FaerieItemDataEditorModule"
 
@@ -32,6 +35,8 @@ void FFaerieItemDataEditorModule::StartupModule()
 		FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FGameplayTagCustomizationPublic::MakeInstance));
 
 	RegisterPropertyCustomizations(StructCustomizations);
+
+	UThumbnailManager::Get().RegisterCustomRenderer(UFaerieItemAsset::StaticClass(), UFaerieItemAssetThumbnailRenderer::StaticClass());
 }
 
 void FFaerieItemDataEditorModule::ShutdownModule()

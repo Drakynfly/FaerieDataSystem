@@ -38,6 +38,11 @@ void AItemRepresentationActor::DisplayData_Implementation()
 {
 }
 
+void AItemRepresentationActor::NotifyDisplayDataFinished(const bool Success)
+{
+	OnDisplayFinished.Broadcast(Success);
+}
+
 void AItemRepresentationActor::RegenerateDataDisplay()
 {
 	ClearDataDisplay();

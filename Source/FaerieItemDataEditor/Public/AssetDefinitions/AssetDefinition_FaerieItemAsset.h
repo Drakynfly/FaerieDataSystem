@@ -32,5 +32,6 @@ public:
 		return Faerie::Editor::DefaultCategories;
 	}
 	virtual EAssetCommandResult OpenAssets(const FAssetOpenArgs& OpenArgs) const override;
+	virtual UThumbnailInfo* LoadThumbnailInfo(const FAssetData& InAssetData) const override;
 	// UAssetDefinition End
 };

@@ -22,6 +22,17 @@ namespace Faerie
 		FGameplayTag Purpose;
 		FItemMeshAsyncLoadResult Callback;
 	};
+
+	FAERIEITEMMESH_API FFaerieItemMesh GetDynamicStaticMeshForData(const FFaerieDynamicStaticMesh& MeshData);
+
+	FAERIEITEMMESH_API FFaerieItemMesh GetDynamicSkeletalMeshForData(const FFaerieDynamicSkeletalMesh& MeshData);
+
+	// WARNING: This can cause a hitch if the mesh is not cached, and it requires a lengthy load or assembly.
+	FAERIEITEMMESH_API bool LoadMeshFromTokenSynchronous(const UFaerieMeshTokenBase* Token, FGameplayTag Purpose, FFaerieItemMesh& Mesh);
+
+	// Immediately retrieves the mesh for an item.
+	// WARNING: This can cause a hitch if the mesh is not cached, and it requires a lengthy load or assembly.
+	FAERIEITEMMESH_API bool LoadMeshFromProxySynchronous(FFaerieItemProxy Proxy, FGameplayTag Purpose, FFaerieItemMesh& Mesh);
 }
 
 /**

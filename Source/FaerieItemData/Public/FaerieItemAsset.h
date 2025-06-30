@@ -21,6 +21,7 @@ class FAERIEITEMDATA_API UFaerieItemAsset : public UObject, public IFaerieItemSo
 
 public:
 	virtual void PreSave(FObjectPreSaveContext SaveContext) override;
+	virtual void PostLoad() override;
 
 #if WITH_EDITOR
 	virtual EDataValidationResult IsDataValid(FDataValidationContext& Context) const override;
@@ -62,5 +63,9 @@ protected:
 	// doesn't have any mutable tokens added by the editor.
 	UPROPERTY(EditInstanceOnly, Category = "ItemAsset")
 	bool AlwaysMutable = false;
+
+public:
+	UPROPERTY(VisibleAnywhere, Instanced, Category = "Thumbnail")
+	TObjectPtr<class USceneThumbnailInfo> ThumbnailInfo;
 #endif
 };

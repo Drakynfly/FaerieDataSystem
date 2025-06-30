@@ -8,6 +8,8 @@
 
 class UFaerieItemMeshLoader;
 
+using FOnItemVisualActorDisplayFinished = TMulticastDelegate<void(bool)>;
+
 /**
  * The base actor class for physical representations of inventory entries.
  */
@@ -29,11 +31,17 @@ public:
 	virtual TScriptInterface<IFaerieItemOwnerInterface> GetItemOwner() const override;
 	//~ UFaerieItemDataProxy
 
+	FOnItemVisualActorDisplayFinished::RegistrationType& GetOnDisplayFinished() { return OnDisplayFinished; }
+
 	UFUNCTION(BlueprintNativeEvent, Category = "Faerie|ItemRepresentationActor")
 	void ClearDataDisplay();
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Faerie|ItemRepresentationActor")
 	void DisplayData();
+
+	// Function for children to call when its logic for DisplayData has finished running.
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemRepresentationActor")
+	void NotifyDisplayDataFinished(bool Success = true);
 
 protected:
 	void RegenerateDataDisplay();
@@ -50,4 +58,6 @@ protected:
 	// needs to extract out the data it needs into a separate replicated variable.
 	UPROPERTY(BlueprintReadOnly, Category = "State")
 	FFaerieItemProxy DataSource = nullptr;
+
+	FOnItemVisualActorDisplayFinished OnDisplayFinished;
 };
