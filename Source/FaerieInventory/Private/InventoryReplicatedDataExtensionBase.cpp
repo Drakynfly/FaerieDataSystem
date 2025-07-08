@@ -100,7 +100,7 @@ FFaerieReplicatedSimMap::FValueWriteScope::~FValueWriteScope()
 
 void FFaerieReplicatedSimMap::PreDataReplicatedRemove(const FFaerieReplicatedValue& Data) const
 {
-	if (OwningWrapper.IsValid())
+	if (IsValid(OwningWrapper))
 	{
 		OwningWrapper->Client_PreContentRemoved(Data);
 	}
@@ -108,7 +108,7 @@ void FFaerieReplicatedSimMap::PreDataReplicatedRemove(const FFaerieReplicatedVal
 
 void FFaerieReplicatedSimMap::PostDataReplicatedAdd(const FFaerieReplicatedValue& Data) const
 {
-	if (OwningWrapper.IsValid())
+	if (IsValid(OwningWrapper))
 	{
 		OwningWrapper->Client_PostContentAdded(Data);
 	}
@@ -116,7 +116,7 @@ void FFaerieReplicatedSimMap::PostDataReplicatedAdd(const FFaerieReplicatedValue
 
 void FFaerieReplicatedSimMap::PostDataReplicatedChange(const FFaerieReplicatedValue& Data) const
 {
-	if (OwningWrapper.IsValid())
+	if (IsValid(OwningWrapper))
 	{
 		OwningWrapper->Client_PostContentChanged(Data);
 	}

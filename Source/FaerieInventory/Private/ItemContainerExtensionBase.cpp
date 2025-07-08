@@ -264,11 +264,11 @@ EEventExtensionResponse UItemContainerExtensionGroup::AllowsEdit(const UFaerieIt
 			break;
 		case EEventExtensionResponse::Allowed:
 			// Flag response as allowed, unless another extension bars with a Disallowed
-				Response = EEventExtensionResponse::Allowed;
+			Response = EEventExtensionResponse::Allowed;
 			break;
 		case EEventExtensionResponse::Disallowed:
 			// Return false immediately if any Extension bars the reason.
-				return EEventExtensionResponse::Disallowed;
+			return EEventExtensionResponse::Disallowed;
 		default: ;
 		}
 	}

@@ -40,7 +40,7 @@ FFaerieGridContent::FScopedStackHandle::~FScopedStackHandle()
 
 void FFaerieGridContent::PreStackReplicatedRemove(const FFaerieGridKeyedStack& Stack) const
 {
-	if (ChangeListener.IsValid())
+	if (IsValid(ChangeListener))
 	{
 		ChangeListener->PreStackRemove_Client(Stack);
 	}
@@ -48,7 +48,7 @@ void FFaerieGridContent::PreStackReplicatedRemove(const FFaerieGridKeyedStack& S
 
 void FFaerieGridContent::PostStackReplicatedAdd(const FFaerieGridKeyedStack& Stack)
 {
-	if (ChangeListener.IsValid())
+	if (IsValid(ChangeListener))
 	{
 		ChangeListener->PostStackAdd(Stack);
 	}
@@ -56,7 +56,7 @@ void FFaerieGridContent::PostStackReplicatedAdd(const FFaerieGridKeyedStack& Sta
 
 void FFaerieGridContent::PostStackReplicatedChange(const FFaerieGridKeyedStack& Stack) const
 {
-	if (ChangeListener.IsValid())
+	if (IsValid(ChangeListener))
 	{
 		ChangeListener->PostStackChange(Stack);
 	}

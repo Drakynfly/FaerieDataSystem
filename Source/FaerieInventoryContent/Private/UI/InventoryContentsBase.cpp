@@ -214,8 +214,8 @@ void UInventoryContentsBase::AddToSortOrder(const FFaerieAddress Address, const 
 		const int32 Index = Algo::LowerBound(SortedAndFilteredAddresses, Address, FInsertKeyPredicate(Query, ItemStorage.Get()));
 
 		// Return if the key we were sorted to or above is ourself.
-		if (SortedAndFilteredAddresses.IsValidIndex(Index) && SortedAndFilteredAddresses[Index] == Address ||
-			(SortedAndFilteredAddresses.IsValidIndex(Index+1) && SortedAndFilteredAddresses[Index+1] == Address))
+		if ((SortedAndFilteredAddresses.IsValidIndex(Index) && (SortedAndFilteredAddresses[Index] == Address)) ||
+			((SortedAndFilteredAddresses.IsValidIndex(Index+1) && (SortedAndFilteredAddresses[Index+1] == Address))))
 		{
 			if (WarnIfAlreadyExists)
 			{

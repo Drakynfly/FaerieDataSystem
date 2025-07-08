@@ -34,7 +34,7 @@ namespace Faerie
 		{
 			if (!Fragment.StaticMesh.IsValid())
 			{
-				UE_LOG(LogTemp, Error, TEXT("Invalid Static Mesh detected while building dynamic mesh!"))
+				UE_LOG(LogTemp, Error, TEXT("%hs: Invalid Static Mesh detected while building dynamic mesh!"), __FUNCTION__)
 				continue;
 			}
 
@@ -102,7 +102,7 @@ namespace Faerie
 	FFaerieItemMesh GetDynamicSkeletalMeshForData(const FFaerieDynamicSkeletalMesh& MeshData)
 	{
 		// @todo implement
-		UE_LOG(LogTemp, Warning, TEXT("GetDynamicSkeletalMeshForData is not implemented."))
+		UE_LOG(LogTemp, Warning, TEXT("%hs: GetDynamicSkeletalMeshForData is not implemented."), __FUNCTION__)
 
 		FSkeletonAndAnimation OutSkeletonAndAnimation;
 		TArray<FFaerieItemMaterial> Materials;
@@ -117,7 +117,7 @@ namespace Faerie
 	{
 		if (!IsValid(Token))
 		{
-			UE_LOG(LogTemp, Warning, __FUNCTION__ TEXT(": No MeshToken on entry"))
+			UE_LOG(LogTemp, Warning, TEXT("%hs: No MeshToken on entry"), __FUNCTION__)
 			return false;
 		}
 
@@ -169,7 +169,7 @@ namespace Faerie
 			return true;
 		}
 
-		UE_LOG(LogTemp, Error, __FUNCTION__ TEXT(": Asset does not contain a mesh suitable for the purpose."))
+		UE_LOG(LogTemp, Error, TEXT("%hs: Asset does not contain a mesh suitable for the purpose."), __FUNCTION__)
 		return false;
 	}
 
@@ -177,13 +177,13 @@ namespace Faerie
 	{
 		if (!ensure(Proxy.IsValid()))
 		{
-			UE_LOG(LogTemp, Warning, __FUNCTION__ TEXT(": Invalid proxy!"))
+			UE_LOG(LogTemp, Warning, TEXT("%hs: Invalid proxy!"), __FUNCTION__)
 			return false;
 		}
 
 		if (!IsValid(Proxy->GetItemObject()))
 		{
-			UE_LOG(LogTemp, Error, __FUNCTION__ TEXT(": Invalid item object!"))
+			UE_LOG(LogTemp, Error, TEXT("%hs: Invalid item object!"), __FUNCTION__)
 			return false;
 		}
 
@@ -222,7 +222,7 @@ void UFaerieItemMeshLoader::LoadMeshFromTokenAsynchronous(const UFaerieMeshToken
 {
 	if (!IsValid(Token))
 	{
-		UE_LOG(LogTemp, Warning, __FUNCTION__ TEXT(": No MeshToken on entry"))
+		UE_LOG(LogTemp, Warning, TEXT("%hs: No MeshToken on entry"), __FUNCTION__)
 		(void)Callback.ExecuteIfBound(false, {});
 	}
 
@@ -377,7 +377,7 @@ void UFaerieItemMeshLoader::LoadMeshFromTokenAsynchronous(const UFaerieMeshToken
 		return;
 	}
 
-	UE_LOG(LogTemp, Error, __FUNCTION__ TEXT(": Asset does not contain a mesh suitable for the purpose."))
+	UE_LOG(LogTemp, Error, TEXT("%hs: Asset does not contain a mesh suitable for the purpose."), __FUNCTION__)
 	(void)Callback.ExecuteIfBound(false, {});
 }
 
@@ -386,13 +386,13 @@ void UFaerieItemMeshLoader::LoadMeshFromProxyAsynchronous(const FFaerieItemProxy
 {
 	if (!ensure(Proxy.IsValid()))
 	{
-		UE_LOG(LogTemp, Warning, __FUNCTION__ TEXT(": Invalid proxy!"))
+		UE_LOG(LogTemp, Warning, TEXT("%hs: Invalid proxy!"), __FUNCTION__)
 		(void)Callback.ExecuteIfBound(false, {});
 	}
 
 	if (!IsValid(Proxy->GetItemObject()))
 	{
-		UE_LOG(LogTemp, Error, __FUNCTION__ TEXT(": Invalid item object!"))
+		UE_LOG(LogTemp, Error, TEXT("%hs: Invalid item object!"), __FUNCTION__)
 		(void)Callback.ExecuteIfBound(false, {});
 	}
 

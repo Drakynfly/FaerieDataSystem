@@ -390,7 +390,7 @@ FInventoryContent::FScopedItemHandle::~FScopedItemHandle()
 
 void FInventoryContent::PreEntryReplicatedRemove(const FKeyedInventoryEntry& Entry) const
 {
-	if (ChangeListener.IsValid())
+	if (IsValid(ChangeListener))
 	{
 		ChangeListener->PreContentRemoved(Entry);
 	}
@@ -398,7 +398,7 @@ void FInventoryContent::PreEntryReplicatedRemove(const FKeyedInventoryEntry& Ent
 
 void FInventoryContent::PostEntryReplicatedAdd(const FKeyedInventoryEntry& Entry) const
 {
-	if (ChangeListener.IsValid())
+	if (IsValid(ChangeListener))
 	{
 		ChangeListener->PostContentAdded(Entry);
 	}
@@ -406,7 +406,7 @@ void FInventoryContent::PostEntryReplicatedAdd(const FKeyedInventoryEntry& Entry
 
 void FInventoryContent::PostEntryReplicatedChange(const FKeyedInventoryEntry& Entry) const
 {
-	if (ChangeListener.IsValid())
+	if (IsValid(ChangeListener))
 	{
 		ChangeListener->PostContentChanged(Entry, UFaerieItemStorage::StackChange);
 	}

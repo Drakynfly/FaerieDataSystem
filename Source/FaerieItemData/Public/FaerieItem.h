@@ -26,7 +26,7 @@ namespace Faerie
 
 	class FTokenFilter : FNoncopyable
 	{
-		friend class UFaerieItem;
+		friend UFaerieItem;
 
 		FTokenFilter(const TArray<TObjectPtr<UFaerieItemToken>>& Tokens)
 		  : Tokens(Tokens) {}

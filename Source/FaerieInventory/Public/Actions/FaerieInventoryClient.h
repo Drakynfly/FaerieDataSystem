@@ -2,70 +2,12 @@
 
 #pragma once
 
-#include "FaerieItemStackView.h"
+#include "FaerieClientActionBase.h"
 #include "StructUtils/InstancedStruct.h"
 #include "Components/ActorComponent.h"
 #include "FaerieInventoryClient.generated.h"
 
 class UFaerieItemContainerBase;
-class UFaerieInventoryClient;
-
-USTRUCT()
-struct FAERIEINVENTORY_API FFaerieClientActionBase
-#if CPP
-	: public FVirtualDestructor
-#endif
-{
-	GENERATED_BODY()
-
-	/*
-	 * Runs on the server when called by UFaerieInventoryClient::RequestExecuteAction.
-	 * Use this to implement Client-to-Server edits to item storage.
-	 */
-	virtual bool Server_Execute(const UFaerieInventoryClient* Client) const PURE_VIRTUAL(FFaerieClientActionBase::Server_Execute, return false; )
-};
-
-template<>
-struct TStructOpsTypeTraits<FFaerieClientActionBase> : public TStructOpsTypeTraitsBase2<FFaerieClientActionBase>
-{
-	enum
-	{
-		WithPureVirtual = true,
-	};
-};
-
-namespace Faerie
-{
-	struct IMoveHandler : public FVirtualDestructor
-	{
-		virtual bool IsValid(const UFaerieInventoryClient* Client) const { return false; }
-		virtual bool View(FFaerieItemStackView& View) const { return false; }
-		virtual bool CanMove(const FFaerieItemStackView& View) const { return false; }
-		virtual bool Possess(const FFaerieItemStack& Stack) const { return false; }
-		virtual bool Release(FFaerieItemStack& Stack) const { return false; }
-
-		// Only needs to be implemented for Target handlers
-		virtual bool IsSwap() const { return false; }
-	};
-}
-
-USTRUCT()
-struct FAERIEINVENTORY_API FFaerieClientAction_MoveHandlerBase
-#if CPP
-	: public Faerie::IMoveHandler
-#endif
-{
-	GENERATED_BODY()
-};
-
-template<>
-struct TStructOpsTypeTraits<FFaerieClientAction_MoveHandlerBase> : public TStructOpsTypeTraitsBase2<FFaerieClientAction_MoveHandlerBase>
-{
-	enum
-	{
-		WithPureVirtual = true,
-	};
-};
 
 UENUM()
 enum class EFaerieClientRequestBatchType : uint8

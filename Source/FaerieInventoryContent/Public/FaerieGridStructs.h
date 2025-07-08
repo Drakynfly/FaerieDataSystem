@@ -65,6 +65,7 @@ struct FFaerieGridKeyedStack : public FFastArraySerializerItem
 	void PostReplicatedChange(const FFaerieGridContent& InArraySerializer);
 };
 
+class UInventoryGridExtensionBase;
 
 USTRUCT(BlueprintType)
 struct FFaerieGridContent : public FFaerieFastArraySerializer,
@@ -73,7 +74,7 @@ struct FFaerieGridContent : public FFaerieFastArraySerializer,
 	GENERATED_BODY()
 
 	friend TBinarySearchOptimizedArray;
-	friend class UInventoryGridExtensionBase;
+	friend UInventoryGridExtensionBase;
 
 private:
 	UPROPERTY(VisibleAnywhere, Category = "FaerieGridContent")
@@ -83,7 +84,7 @@ private:
 
 	/** Owning extension to send Fast Array callbacks to */
 	UPROPERTY()
-	TWeakObjectPtr<UInventoryGridExtensionBase> ChangeListener;
+	TObjectPtr<UInventoryGridExtensionBase> ChangeListener;
 
 	// Is writing to Items locked? Enabled while StackHandles are active.
 	uint32 WriteLock = 0;

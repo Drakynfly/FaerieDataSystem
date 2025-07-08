@@ -56,7 +56,7 @@ void UFaerieItemCraftingSubsystem::SubmitGenerationRequest(const FGenerationRequ
 {
 	if (Request.Drivers.IsEmpty())
 	{
-		UE_LOG(LogItemGeneratorSubsystem, Warning, __FUNCTION__ TEXT(": Drivers are empty!"));
+		UE_LOG(LogItemGeneratorSubsystem, Warning, TEXT("%hs: Drivers are empty!"), __FUNCTION__);
 		return;
 	}
 
@@ -64,7 +64,7 @@ void UFaerieItemCraftingSubsystem::SubmitGenerationRequest(const FGenerationRequ
 	{
 		if (!Driver)
 		{
-			UE_LOG(LogItemGeneratorSubsystem, Warning, __FUNCTION__ TEXT(": Driver is misconfigured!"));
+			UE_LOG(LogItemGeneratorSubsystem, Warning, TEXT("%hs: Driver is misconfigured!"), __FUNCTION__);
 			return;
 		}
 	}
@@ -81,13 +81,13 @@ void UFaerieItemCraftingSubsystem::SubmitUpgradeRequest(const FUpgradeRequest& R
 {
 	if (!IsValid(Request.ItemProxy.GetObject()))
 	{
-		UE_LOG(LogItemGeneratorSubsystem, Warning, __FUNCTION__ TEXT(": ItemProxy is invalid!"));
+		UE_LOG(LogItemGeneratorSubsystem, Warning, TEXT("%hs: ItemProxy is invalid!"), __FUNCTION__);
 		return;
 	}
 
 	if (!IsValid(Request.Config))
 	{
-		UE_LOG(LogItemGeneratorSubsystem, Warning, __FUNCTION__ TEXT(": Config is invalid!"));
+		UE_LOG(LogItemGeneratorSubsystem, Warning, TEXT("%hs: Config is invalid!"), __FUNCTION__);
 		return;
 	}
 
@@ -110,7 +110,8 @@ void UFaerieItemCraftingSubsystem::SubmitUpgradeRequest(const FUpgradeRequest& R
 		{
 			if (!IsValid(SlotPtr->ItemProxy.GetObject()))
 			{
-				UE_LOG(LogItemGeneratorSubsystem, Warning, __FUNCTION__ TEXT(": Proxy is invalid for slot: %s!"), *RequiredSlot.Key.ToString());
+				UE_LOG(LogItemGeneratorSubsystem, Warning, TEXT("%hs: Proxy is invalid for slot: %s!"),
+					__FUNCTION__, *RequiredSlot.Key.ToString());
 				return;
 			}
 
@@ -120,14 +121,15 @@ void UFaerieItemCraftingSubsystem::SubmitUpgradeRequest(const FUpgradeRequest& R
 			}
 			else
 			{
-				UE_LOG(LogItemGeneratorSubsystem, Warning, __FUNCTION__ TEXT(": Required Slot '%s'failed with key: %s"),
-					*SlotPtr->SlotID.ToString(), *SlotPtr->ItemProxy.GetObject()->GetName());
+				UE_LOG(LogItemGeneratorSubsystem, Warning, TEXT("%hs: Required Slot '%s' failed with key: %s"),
+					__FUNCTION__, *SlotPtr->SlotID.ToString(), *SlotPtr->ItemProxy.GetObject()->GetName());
 				return;
 			}
 		}
 		else
 		{
-			UE_LOG(LogItemGeneratorSubsystem, Warning, __FUNCTION__ TEXT(": Request does not contain required slot: %s!"), *RequiredSlot.Key.ToString());
+			UE_LOG(LogItemGeneratorSubsystem, Warning, TEXT("%hs: Request does not contain required slot: %s!"),
+				__FUNCTION__, *RequiredSlot.Key.ToString());
 			return;
 		}
 	}
@@ -142,7 +144,8 @@ void UFaerieItemCraftingSubsystem::SubmitUpgradeRequest(const FUpgradeRequest& R
 		{
 			if (!IsValid(SlotPtr->ItemProxy.GetObject()))
 			{
-				UE_LOG(LogItemGeneratorSubsystem, Warning, __FUNCTION__ TEXT(": Entry is invalid for slot: %s!"), *OptionalSlot.Key.ToString());
+				UE_LOG(LogItemGeneratorSubsystem, Warning, TEXT("%hs: Entry is invalid for slot: %s!"),
+					__FUNCTION__, *OptionalSlot.Key.ToString());
 				return;
 			}
 
@@ -152,8 +155,8 @@ void UFaerieItemCraftingSubsystem::SubmitUpgradeRequest(const FUpgradeRequest& R
 			}
 			else
 			{
-				UE_LOG(LogItemGeneratorSubsystem, Warning, __FUNCTION__ TEXT(": Optional Slot '%s' failed with key: %s"),
-					*SlotPtr->SlotID.ToString(), *SlotPtr->ItemProxy.GetObject()->GetName());
+				UE_LOG(LogItemGeneratorSubsystem, Warning, TEXT("%hs: Optional Slot '%s' failed with key: %s"),
+					__FUNCTION__, *SlotPtr->SlotID.ToString(), *SlotPtr->ItemProxy.GetObject()->GetName());
 				return;
 			}
 		}
@@ -167,7 +170,7 @@ void UFaerieItemCraftingSubsystem::SubmitCraftingRequest_Impl(const FCraftingReq
 {
 	if (!IsValid(Request.Config))
 	{
-		UE_LOG(LogItemGeneratorSubsystem, Warning, __FUNCTION__ TEXT(": Config is invalid!"));
+		UE_LOG(LogItemGeneratorSubsystem, Warning, TEXT("%hs: Config is invalid!"), __FUNCTION__);
 		return;
 	}
 
@@ -192,7 +195,8 @@ void UFaerieItemCraftingSubsystem::SubmitCraftingRequest_Impl(const FCraftingReq
 			{
 				if (!IsValid(SlotPtr->ItemProxy.GetObject()))
 				{
-					UE_LOG(LogItemGeneratorSubsystem, Warning, __FUNCTION__ TEXT(": Entry is invalid for slot: %s!"), *RequiredSlot.Key.ToString());
+					UE_LOG(LogItemGeneratorSubsystem, Warning, TEXT("%hs: Entry is invalid for slot: %s!"),
+						__FUNCTION__, *RequiredSlot.Key.ToString());
 					return;
 				}
 
@@ -202,14 +206,15 @@ void UFaerieItemCraftingSubsystem::SubmitCraftingRequest_Impl(const FCraftingReq
 				}
 				else
 				{
-					UE_LOG(LogItemGeneratorSubsystem, Warning, __FUNCTION__ TEXT(": Required Slot '%s' failed with key: %s"),
-						*SlotPtr->SlotID.ToString(), *SlotPtr->ItemProxy.GetObject()->GetName());
+					UE_LOG(LogItemGeneratorSubsystem, Warning, TEXT("%hs: Required Slot '%s' failed with key: %s"),
+						__FUNCTION__, *SlotPtr->SlotID.ToString(), *SlotPtr->ItemProxy.GetObject()->GetName());
 					return;
 				}
 			}
 			else
 			{
-				UE_LOG(LogItemGeneratorSubsystem, Warning, __FUNCTION__ TEXT(": Request does contain required slot: %s!"), *RequiredSlot.Key.ToString());
+				UE_LOG(LogItemGeneratorSubsystem, Warning, TEXT("%hs: Request does contain required slot: %s!"),
+					__FUNCTION__, *RequiredSlot.Key.ToString());
 				return;
 			}
 		}
@@ -224,7 +229,8 @@ void UFaerieItemCraftingSubsystem::SubmitCraftingRequest_Impl(const FCraftingReq
 			{
 				if (!IsValid(SlotPtr->ItemProxy.GetObject()))
 				{
-					UE_LOG(LogItemGeneratorSubsystem, Warning, __FUNCTION__ TEXT(": Entry is invalid for slot: %s!"), *OptionalSlot.Key.ToString());
+					UE_LOG(LogItemGeneratorSubsystem, Warning, TEXT("%hs: Entry is invalid for slot: %s!"),
+						__FUNCTION__, *OptionalSlot.Key.ToString());
 					return;
 				}
 
@@ -234,8 +240,8 @@ void UFaerieItemCraftingSubsystem::SubmitCraftingRequest_Impl(const FCraftingReq
 				}
 				else
 				{
-					UE_LOG(LogItemGeneratorSubsystem, Warning, __FUNCTION__ TEXT("Optional Slot '%s' failed with key: %s"),
-						*SlotPtr->SlotID.ToString(), *SlotPtr->ItemProxy.GetObject()->GetName());
+					UE_LOG(LogItemGeneratorSubsystem, Warning, TEXT("%hs: Optional Slot '%s' failed with key: %s"),
+						__FUNCTION__, *SlotPtr->SlotID.ToString(), *SlotPtr->ItemProxy.GetObject()->GetName());
 					return;
 				}
 			}

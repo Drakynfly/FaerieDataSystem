@@ -60,7 +60,7 @@ private:
 
 	/** Owning wrapper to send Fast Array callbacks to */
 	UPROPERTY()
-	TWeakObjectPtr<URepDataArrayWrapper> OwningWrapper;
+	TObjectPtr<URepDataArrayWrapper> OwningWrapper;
 
 public:
 	TConstArrayView<FFaerieReplicatedValue> GetView() const { return Entries; }

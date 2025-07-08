@@ -217,6 +217,8 @@ struct FKeyedInventoryEntry : public FFastArraySerializerItem
 	void PostReplicatedChange(const FInventoryContent& InArraySerializer);
 };
 
+class UFaerieItemStorage;
+
 /**
  * FInventoryContent is a Fast Array, containing all FInventoryEntries for an inventory. Lookup is O(Log(n)), as FEntryKeys
  * are used to keep Entries in numeric order, allowing for binary-search accelerated accessors.
@@ -228,7 +230,7 @@ struct FInventoryContent : public FFaerieFastArraySerializer,
 	GENERATED_BODY()
 
 	friend TBinarySearchOptimizedArray;
-	friend class UFaerieItemStorage;
+	friend UFaerieItemStorage;
 
 private:
 	UPROPERTY(VisibleAnywhere, Category = "InventoryContent")
@@ -239,7 +241,7 @@ private:
 
 	/** Owning storage to send Fast Array callbacks to */
 	UPROPERTY()
-	TWeakObjectPtr<UFaerieItemStorage> ChangeListener;
+	TObjectPtr<UFaerieItemStorage> ChangeListener;
 
 	// Is writing to Entries locked? Enabled while ItemHandles are active.
 	uint32 WriteLock = 0;
