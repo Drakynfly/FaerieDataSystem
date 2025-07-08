@@ -5,6 +5,8 @@
 #include "AssetEditor/FaerieItemAssetThumbnailScene.h"
 #include "ThumbnailRendering/SceneThumbnailInfo.h"
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemAssetThumbnailRenderer)
+
 #define LOCTEXT_NAMESPACE "FaerieItemAssetThumbnailRenderer"
 
 void UFaerieItemAssetThumbnailRenderer::BeginDestroy()

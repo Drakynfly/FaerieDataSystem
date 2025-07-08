@@ -2,6 +2,8 @@
 
 #include "AssetEditor/FaerieItemAssetEditorCustomSettings.h"
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemAssetEditorCustomSettings)
+
 void UFaerieItemAssetEditorCustomSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);

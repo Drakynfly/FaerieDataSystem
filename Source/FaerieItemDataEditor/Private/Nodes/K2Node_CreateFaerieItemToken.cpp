@@ -10,6 +10,8 @@
 #include "KismetCompilerMisc.h"
 #include "KismetCompiler.h"
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(K2Node_CreateFaerieItemToken)
+
 #define LOCTEXT_NAMESPACE "K2Node_CreateFaerieItemToken"
 
 UK2Node_CreateFaerieItemToken::UK2Node_CreateFaerieItemToken(const FObjectInitializer& ObjectInitializer)

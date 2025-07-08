@@ -4,6 +4,8 @@
 #include "FaerieItemStorage.h"
 #include "ItemContainerEvent.h"
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieStorageActions)
+
 bool FFaerieClientAction_MoveFromStorage::IsValid(const UFaerieInventoryClient* Client) const
 {
 	if (!::IsValid(Storage) ||

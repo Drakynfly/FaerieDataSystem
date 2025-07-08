@@ -3,6 +3,8 @@
 #include "UI/InventoryUIActionContainer.h"
 #include "UI/InventoryUIAction.h"
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(InventoryUIActionContainer)
+
 bool UInventoryUIActionContainer::AddActionOfClass(const TSubclassOf<UInventoryUIAction> Class)
 {
 	if (IsValid(Class))

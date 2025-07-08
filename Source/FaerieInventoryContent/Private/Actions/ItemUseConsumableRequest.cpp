@@ -5,6 +5,8 @@
 #include "Tokens/FaerieItemConsumableBase.h"
 #include "Tokens/FaerieItemUsesToken.h"
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(ItemUseConsumableRequest)
+
 bool FFaerieClientAction_UseConsumable::Server_Execute(const UFaerieInventoryClient* Client) const
 {
 	if (!Client->CanAccessContainer(Handle.Container.Get(), StaticStruct())) return false;

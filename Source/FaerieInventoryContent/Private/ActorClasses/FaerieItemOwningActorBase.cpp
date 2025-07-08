@@ -6,6 +6,8 @@
 #include "ItemContainerExtensionBase.h"
 #include "Net/UnrealNetwork.h"
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemOwningActorBase)
+
 AFaerieItemOwningActorBase::AFaerieItemOwningActorBase()
 {
 	PrimaryActorTick.bCanEverTick = true;
