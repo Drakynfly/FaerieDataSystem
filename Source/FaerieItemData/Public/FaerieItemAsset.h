@@ -66,6 +66,6 @@ protected:
 
 public:
 	UPROPERTY(VisibleAnywhere, Instanced, Category = "Thumbnail")
-	TObjectPtr<class USceneThumbnailInfo> ThumbnailInfo;
+	TObjectPtr<class UThumbnailInfo> ThumbnailInfo;
 #endif
 };
