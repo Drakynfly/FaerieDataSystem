@@ -1,8 +1,7 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "Extensions/InventoryEjectionHandlerExtension.h"
-
-#include "FaerieItemDataProxy.h"
+#include "FaerieItemDataStackLiteral.h"
 #include "FaerieItemStorage.h"
 #include "ItemContainerEvent.h"
 #include "Tokens/FaerieVisualActorClassToken.h"

@@ -3,7 +3,6 @@
 #include "Widgets/FaerieCardTokenBase.h"
 
 #include "FaerieItem.h"
-#include "FaerieItemDataProxy.h"
 #include "FaerieItemToken.h"
 #include "Widgets/FaerieCardBase.h"
 

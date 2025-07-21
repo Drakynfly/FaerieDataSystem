@@ -2,7 +2,7 @@
 
 #include "FaerieItemEditHandle.h"
 #include "FaerieItem.h"
-#include "FaerieItemDataProxy.h"
+#include "FaerieItemProxy.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemEditHandle)
 

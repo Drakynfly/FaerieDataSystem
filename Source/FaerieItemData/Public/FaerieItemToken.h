@@ -73,6 +73,11 @@ protected:
 	void NotifyOuterOfChange();
 
 public:
+	/**
+	 * Gets the item this token is owned by.
+	 * WARNING: For immutable tokens, this will often return the prototype item, which is *not* mutable. This function
+	 * is only guaranteed to return an instanced (and mutable) item pointer if called on a mutable token.
+	 */
 	UFaerieItem* GetOuterItem() const;
 
 	// Compare the data of this token to another
@@ -99,7 +104,11 @@ public:
 protected:
 	/**		BLUEPRINT API		*/
 
-	/** Get the item this token is part of */
+	/**
+	 * Gets the item this token is owned by.
+	 * WARNING: For immutable tokens, this will often return the prototype item, which is *not* mutable. This function
+	 * is only guaranteed to return an instanced (and mutable) item pointer if called on a mutable token.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "FaerieItemToken", meta = (DisplayName = "Get Faerie Item"))
 	UFaerieItem* BP_GetFaerieItem() const;
 

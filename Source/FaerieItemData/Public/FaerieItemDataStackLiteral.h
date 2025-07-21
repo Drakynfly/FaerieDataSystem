@@ -4,8 +4,7 @@
 
 #include "FaerieItemOwnerInterface.h"
 #include "FaerieItemStack.h"
-#include "FaerieItemDataProxy.generated.h"
-
+#include "FaerieItemDataStackLiteral.generated.h"
 
 /**
  * A simple implementation of ItemDataProxy that *does* own its item, denoted by the 'Literal' suffix.

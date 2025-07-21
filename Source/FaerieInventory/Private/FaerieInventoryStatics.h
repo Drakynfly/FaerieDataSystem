@@ -6,6 +6,7 @@ struct FInventoryEntry;
 struct FInventoryKey;
 struct FKeyedInventoryEntry;
 
+// Note: This namespace is private, as FInventoryEntry and FKeyedInventoryEntry are not meant for external usage.
 namespace Faerie::Inventory
 {
 	/* Sorts an array of inventory entries by their modified data. */

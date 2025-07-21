@@ -2,7 +2,7 @@
 
 #include "GenerationStructs.h"
 #include "FaerieItem.h"
-#include "FaerieItemDataProxy.h"
+#include "FaerieItemDataStackLiteral.h"
 #include "ItemInstancingContext_Crafting.h"
 #include "Squirrel.h"
 

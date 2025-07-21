@@ -92,6 +92,19 @@ void UFaerieItemStorage::LoadSaveData(const FFaerieContainerSaveData& SaveData)
 	// Load in save data
 
 	EntryMap = Flakes::CreateStruct<Flakes::Binary::Type, FInventoryContent>(SaveData.ItemData.Get<FFlake>(), this);
+	TArray<FEntryKey, TInlineAllocator<4>> InvalidKeys;
+	for (const FKeyedInventoryEntry& Entry : EntryMap)
+	{
+		if (!ValidateLoadedItem(Entry.Value.ItemObject))
+		{
+			InvalidKeys.Add(Entry.Key);
+		}
+	}
+
+	for (const FEntryKey InvalidKey : InvalidKeys)
+	{
+		EntryMap.Remove(InvalidKey);
+	}
 
 	EntryMap.MarkArrayDirty();
 	EntryMap.ChangeListener = this;

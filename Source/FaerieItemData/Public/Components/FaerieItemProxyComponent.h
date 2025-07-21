@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "FaerieItemDataProxy.h"
+#include "FaerieItemProxy.h"
 #include "Components/ActorComponent.h"
 #include "FaerieItemProxyComponent.generated.h"
 

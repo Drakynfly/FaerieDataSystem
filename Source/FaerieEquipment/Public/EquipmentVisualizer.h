@@ -2,9 +2,9 @@
 
 #pragma once
 
+#include "FaerieItemProxy.h"
 #include "Components/ActorComponent.h"
 #include "UObject/WeakInterfacePtr.h"
-#include "FaerieItemDataProxy.h"
 #include "GameplayTagContainer.h"
 
 #include "EquipmentVisualizer.generated.h"
@@ -89,7 +89,7 @@ public:
 	FGameplayTag GetPreferredTag() const { return PreferredTag; }
 
 	// For attachments that want to follow the leader pose, get their leader component.
-	USkinnedMeshComponent* GetLeaderBone() const;
+	USkinnedMeshComponent* GetLeaderComponent() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentVisualizer", meta = (DeterminesOutputType = "Class"))
 	UObject* GetSpawnedVisualByClass(TSubclassOf<UObject> Class, FFaerieVisualKey& Key) const;

@@ -2,6 +2,8 @@
 
 #include "GenerationAction_UpgradeItems.h"
 #include "FaerieItemMutator.h"
+#include "FaerieItemOwnerInterface.h"
+#include "FaerieItemStackView.h"
 #include "ItemUpgradeConfig.h"
 #include "Squirrel.h"
 

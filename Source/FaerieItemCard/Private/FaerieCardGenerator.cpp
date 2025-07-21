@@ -2,8 +2,6 @@
 
 #include "FaerieCardGenerator.h"
 #include "CardTokens/FaerieItemCardToken.h"
-
-#include "FaerieItemDataProxy.h"
 #include "FaerieItem.h"
 #include "FaerieItemCardModule.h"
 #include "Engine/AssetManager.h"

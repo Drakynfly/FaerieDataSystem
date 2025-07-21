@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include "FaerieItemDataProxy.h"
+#include "FaerieItemProxy.h"
+#include "FaerieItemStackView.h"
 #include "Blueprint/UserWidget.h"
 #include "FaerieCardBase.generated.h"
 

@@ -83,7 +83,8 @@ private:
 	TArray<FFaerieGridKeyedStack>& GetArray() { return Items; }
 
 	/** Owning extension to send Fast Array callbacks to */
-	UPROPERTY()
+	// UPROPERTY() Fast Arrays cannot have additional properties with Iris
+	// ReSharper disable once CppUE4ProbableMemoryIssuesWithUObject
 	TObjectPtr<UInventoryGridExtensionBase> ChangeListener;
 
 	// Is writing to Items locked? Enabled while StackHandles are active.

@@ -59,7 +59,8 @@ private:
 	TArray<FFaerieReplicatedValue>& GetArray() { return Entries; }
 
 	/** Owning wrapper to send Fast Array callbacks to */
-	UPROPERTY()
+	// UPROPERTY() Fast Arrays cannot have additional properties with Iris
+	// ReSharper disable once CppUE4ProbableMemoryIssuesWithUObject
 	TObjectPtr<URepDataArrayWrapper> OwningWrapper;
 
 public:

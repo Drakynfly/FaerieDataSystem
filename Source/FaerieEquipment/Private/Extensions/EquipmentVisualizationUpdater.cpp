@@ -122,6 +122,13 @@ UEquipmentVisualizer* UEquipmentVisualizationUpdater::GetVisualizer(const UFaeri
 	}
 
 	auto&& Pawn = Relevants->FindActor<APawn>();
+
+	// @Todo: this is a little hacky, but fixes the case where this code is reached by the LevelViewport before the Relevants has been populated.
+	if (!IsValid(Pawn))
+	{
+		Pawn = Relevants->GetTypedOuter<APawn>();
+	}
+
 	if (!IsValid(Pawn))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("GetVisualizer failed: Failed to find relevant Pawn!"))
@@ -231,7 +238,11 @@ void UEquipmentVisualizationUpdater::CreateNewVisualImpl(const UFaerieItemContai
 	// Path 2: A Visual Component
 	{
 		bool CanLeaderPoseMesh = false;
-		FGameplayTag PreferredTag = Visualizer->GetPreferredTag();
+		FGameplayTag PreferredTag = Faerie::ItemMesh::Tags::MeshPurpose_Default;
+		if (Visualizer->GetPreferredTag().IsValid())
+		{
+			PreferredTag = Visualizer->GetPreferredTag();
+		}
 
 		// Some extensions might ban leader poses (like items held in hands)
 		if (IsValid(SlotExtension))
@@ -261,7 +272,7 @@ void UEquipmentVisualizationUpdater::CreateNewVisualImpl(const UFaerieItemContai
 		// If there is no AnimClass on the mesh, it would prefer using LeaderPose as a fallback
 		if (CanLeaderPoseMesh)
 		{
-			NewVisual->SetSkeletalMeshLeaderPoseComponent(Visualizer->GetLeaderBone());
+			NewVisual->SetSkeletalMeshLeaderPoseComponent(Visualizer->GetLeaderComponent());
 		}
 
 		NewVisual->SetPreferredTag(PreferredTag);

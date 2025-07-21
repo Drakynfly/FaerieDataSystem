@@ -3,7 +3,7 @@
 #pragma once
 
 #include "FaerieItemCardTags.h"
-#include "FaerieItemDataProxy.h"
+#include "FaerieItemProxy.h"
 #include "Kismet/BlueprintAsyncActionBase.h"
 
 #include "FaerieCardGenerateAsync.generated.h"

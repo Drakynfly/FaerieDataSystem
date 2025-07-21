@@ -3,7 +3,6 @@
 #pragma once
 
 #include "FaerieItemAssetEditorCustomSettings.h"
-#include "FaerieItemDataProxy.h"
 #include "Toolkits/IToolkitHost.h"
 #include "Toolkits/AssetEditorToolkit.h"
 #include "UObject/GCObject.h"

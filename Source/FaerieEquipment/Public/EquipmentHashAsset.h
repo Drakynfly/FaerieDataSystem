@@ -7,8 +7,6 @@
 #include "EquipmentHashAsset.generated.h"
 
 class UFaerieItemStackHashInstruction;
-class UFaerieItemToken;
-class UFaerieItemDataFilter;
 
 USTRUCT()
 struct FFaerieEquipmentHashAssetConfig

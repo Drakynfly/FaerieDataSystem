@@ -2,7 +2,7 @@
 
 #include "FaerieItemTemplate.h"
 #include "FaerieItemDataFilter.h"
-#include "FaerieItemDataProxy.h"
+#include "FaerieItemStackView.h"
 
 #if WITH_EDITOR
 #include "Misc/DataValidation.h"

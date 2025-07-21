@@ -1,8 +1,8 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
-#include "FaerieItemDataProxy.h"
+#include "FaerieItemDataStackLiteral.h"
 
-#include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemDataProxy)
+#include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemDataStackLiteral)
 
 const UFaerieItem* UFaerieItemDataStackLiteral::GetItemObject() const
 {

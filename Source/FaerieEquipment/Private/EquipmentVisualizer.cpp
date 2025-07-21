@@ -31,7 +31,7 @@ void UEquipmentVisualizer::OnComponentDestroyed(const bool bDestroyingHierarchy)
 	Super::OnComponentDestroyed(bDestroyingHierarchy);
 }
 
-USkinnedMeshComponent* UEquipmentVisualizer::GetLeaderBone() const
+USkinnedMeshComponent* UEquipmentVisualizer::GetLeaderComponent() const
 {
 	return Cast<USkinnedMeshComponent>(LeaderPoseComponent.GetComponent(GetOwner()));
 }

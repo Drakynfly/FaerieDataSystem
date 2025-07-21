@@ -3,8 +3,8 @@
 #pragma once
 
 #include "UObject/Object.h"
-#include "FaerieItemDataProxy.h"
 #include "FaerieItemFilterTypes.h"
+#include "FaerieItemStackView.h"
 #include "FaerieItemDataFilter.generated.h"
 
 namespace Faerie::ItemData

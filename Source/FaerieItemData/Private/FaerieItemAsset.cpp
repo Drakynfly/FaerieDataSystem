@@ -3,7 +3,7 @@
 #include "FaerieItemAsset.h"
 
 #include "FaerieItem.h"
-#include "FaerieItemDataProxy.h"
+#include "FaerieItemStackView.h"
 #include "FaerieItemTemplate.h"
 
 #include "Tokens/FaerieInfoToken.h"
@@ -133,7 +133,11 @@ FFaerieAssetInfo UFaerieItemAsset::GetSourceInfo() const
 UFaerieItem* UFaerieItemAsset::CreateItemInstance(const UItemInstancingContext* Context) const
 {
 	if (!IsValidChecked(Item)) return nullptr;
-	return Item->CreateInstance(Context->Flags);
+	if (IsValid(Context))
+	{
+		return Item->CreateInstance(Context->Flags);
+	}
+	return Item->CreateInstance();
 }
 
 UFaerieItem* UFaerieItemAsset::GetItemInstance(const EFaerieItemInstancingMutability Mutability) const

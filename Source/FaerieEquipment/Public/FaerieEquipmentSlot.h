@@ -108,6 +108,8 @@ protected:
 	virtual void BroadcastChange();
 	virtual void BroadcastDataChange();
 
+	void SetItemInSlot_Impl(const FFaerieItemStack& Stack);
+
 public:
 	FFaerieSlotTag GetSlotID() const { return Config.SlotID; }
 
@@ -128,7 +130,7 @@ public:
 	bool CanTakeFromSlot(int32 Copies) const;
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Faerie|EquipmentSlot")
-	void SetItemInSlot(FFaerieItemStack Stack);
+	bool SetItemInSlot(FFaerieItemStack Stack);
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Faerie|EquipmentSlot")
 	FFaerieItemStack TakeItemFromSlot(int32 Copies);

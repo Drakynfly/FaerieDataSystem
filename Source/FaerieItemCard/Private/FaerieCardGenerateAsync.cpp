@@ -4,7 +4,6 @@
 #include "FaerieCardGenerator.h"
 #include "FaerieCardGeneratorInterface.h"
 #include "FaerieItemCardModule.h"
-#include "FaerieItemDataProxy.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieCardGenerateAsync)
 

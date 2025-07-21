@@ -2,10 +2,11 @@
 
 #pragma once
 
-#include "FaerieItemDataProxy.h"
+#include "FaerieItemStack.h"
 #include "UObject/Object.h"
 #include "FaerieItemMutator.generated.h"
 
+struct FFaerieItemStackView;
 struct FSquirrelState;
 class UFaerieItemTemplate;
 

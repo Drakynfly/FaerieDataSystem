@@ -1,13 +1,18 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieItemProxy.h"
-#include "FaerieItemDataProxy.h"
+#include "FaerieItem.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemProxy)
 
+bool FFaerieItemProxy::IsValid() const
+{
+	return ::IsValid(GetItemObject());
+}
+
 const UFaerieItem* FFaerieItemProxy::GetItemObject() const
 {
-	if (IsValid())
+	if (Proxy.IsValid())
 	{
 		return operator->()->GetItemObject();
 	}
@@ -16,7 +21,7 @@ const UFaerieItem* FFaerieItemProxy::GetItemObject() const
 
 int32 FFaerieItemProxy::GetCopies() const
 {
-	if (IsValid())
+	if (Proxy.IsValid())
 	{
 		return operator->()->GetCopies();
 	}
@@ -25,7 +30,7 @@ int32 FFaerieItemProxy::GetCopies() const
 
 TScriptInterface<IFaerieItemOwnerInterface> FFaerieItemProxy::GetOwner() const
 {
-	if (IsValid())
+	if (Proxy.IsValid())
 	{
 		return operator->()->GetItemOwner();
 	}

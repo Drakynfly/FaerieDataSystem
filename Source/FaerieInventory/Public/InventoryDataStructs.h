@@ -17,6 +17,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogInventoryStructs, Log, All)
 LLM_DECLARE_TAG(ItemStorage);
 
 // Typesafe wrapper around an FFaerieItemKeyBase used for keying stacks in a UFaerieItemStorage.
+// @todo address-refactor, remove API export of this type
 USTRUCT(BlueprintType)
 struct FAERIEINVENTORY_API FStackKey : public FFaerieItemKeyBase
 {
@@ -24,7 +25,7 @@ struct FAERIEINVENTORY_API FStackKey : public FFaerieItemKeyBase
 	using FFaerieItemKeyBase::FFaerieItemKeyBase;
 };
 
-
+// @todo address-refactor, remove API export of this type
 USTRUCT(BlueprintType)
 struct FAERIEINVENTORY_API FKeyedStack
 {
@@ -240,7 +241,8 @@ private:
 	TArray<FKeyedInventoryEntry>& GetArray() { return Entries; }
 
 	/** Owning storage to send Fast Array callbacks to */
-	UPROPERTY()
+	// UPROPERTY() Fast Arrays cannot have additional properties with Iris
+	// ReSharper disable once CppUE4ProbableMemoryIssuesWithUObject
 	TObjectPtr<UFaerieItemStorage> ChangeListener;
 
 	// Is writing to Entries locked? Enabled while ItemHandles are active.

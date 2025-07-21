@@ -1,6 +1,7 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieItemCraftingSubsystem.h"
+#include "FaerieItemStackView.h"
 
 #include "FaerieItemTemplate.h"
 #include "ItemCraftingConfig.h"

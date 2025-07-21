@@ -1,7 +1,7 @@
 // Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "Actors/ItemRepresentationActor.h"
-#include "FaerieItemDataProxy.h"
+#include "FaerieItem.h"
 
 AItemRepresentationActor::AItemRepresentationActor()
 {

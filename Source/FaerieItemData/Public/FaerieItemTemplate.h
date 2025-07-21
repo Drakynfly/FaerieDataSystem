@@ -4,10 +4,9 @@
 
 #include "UObject/Object.h"
 #include "FaerieAssetInfo.h"
-#include "FaerieItemDataProxy.h"
-
 #include "FaerieItemTemplate.generated.h"
 
+struct FFaerieItemStackView;
 class UFaerieItemDataFilter;
 
 /**

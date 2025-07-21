@@ -161,8 +161,7 @@ public:
 #endif
 
 private:
-	// Containers pointing to this group
-	UPROPERTY()
+	// Containers pointing to this group. This is a transient property populated by InitializeExtension.
 	TSet<TWeakObjectPtr<const UFaerieItemContainerBase>> Containers;
 
 	// Subobjects responsible for adding to or customizing container behavior.

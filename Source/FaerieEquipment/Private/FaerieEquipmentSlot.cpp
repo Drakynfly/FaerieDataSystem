@@ -85,14 +85,15 @@ void UFaerieEquipmentSlot::LoadSaveData(const FFaerieContainerSaveData& SaveData
 		KeyGen.SetPosition(StoredKey);
 
 		const FFaerieItemStack LoadedItemStack = Flakes::CreateStruct<Flakes::Binary::Type, FFaerieItemStack>(SlotSaveData->ItemStack, this);
-		if (IsValid(LoadedItemStack.Item) &&
+		if (ValidateLoadedItem(LoadedItemStack.Item) &&
 			LoadedItemStack.Copies > 0)
 		{
-			SetItemInSlot(LoadedItemStack);
+			SetItemInSlot_Impl(LoadedItemStack);
 		}
 		else
 		{
 			// Reset key if stack is invalid.
+			UE_LOG(LogFaerieEquipmentSlot, Error, TEXT("Loading content for slot '%s' failed. Slot has been emptied!"), *Config.SlotID.ToString())
 			StoredKey = FEntryKey();
 		}
 	}
@@ -278,13 +279,7 @@ FFaerieItemStack UFaerieEquipmentSlot::Release(const FFaerieItemStackView Stack)
 
 bool UFaerieEquipmentSlot::Possess(const FFaerieItemStack Stack)
 {
-	if (CanSetInSlot(Stack))
-	{
-		SetItemInSlot(Stack);
-		return true;
-	}
-
-	return false;
+	return SetItemInSlot(Stack);
 }
 
 //~ IFaerieItemOwnerInterface
@@ -299,6 +294,42 @@ void UFaerieEquipmentSlot::BroadcastDataChange()
 {
 	OnItemDataChangedNative.Broadcast(this);
 	OnItemDataChanged.Broadcast(this);
+}
+
+void UFaerieEquipmentSlot::SetItemInSlot_Impl(const FFaerieItemStack& Stack)
+{
+	Extensions->PreAddition(this, Stack);
+
+	Faerie::Inventory::FEventLog Event;
+	Event.Item = Stack.Item;
+	Event.Amount = Stack.Copies;
+	Event.Success = true;
+	Event.Type = Faerie::Equipment::Tags::SlotSet;
+
+	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, ItemStack, this);
+	// Increment key when stored item changes. This is only going to happen if ItemStack.Item is currently nullptr.
+	if (Stack.Item != ItemStack.Item)
+	{
+		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, StoredKey, this);
+		StoredKey = KeyGen.NextKey();
+
+		ItemStack = Stack;
+
+		// Take ownership of the new item.
+		TakeOwnership(ItemStack.Item);
+
+		Event.EntryTouched = StoredKey;
+		Extensions->PostAddition(this, Event);
+	}
+	else
+	{
+		ItemStack.Copies += Stack.Copies;
+
+		Event.EntryTouched = StoredKey;
+		Extensions->PostEntryChanged(this, Event);
+	}
+
+	BroadcastChange();
 }
 
 bool UFaerieEquipmentSlot::CouldSetInSlot(const FFaerieItemStackView View) const
@@ -378,49 +409,18 @@ bool UFaerieEquipmentSlot::CanTakeFromSlot(const int32 Copies) const
 	return true;
 }
 
-void UFaerieEquipmentSlot::SetItemInSlot(const FFaerieItemStack Stack)
+bool UFaerieEquipmentSlot::SetItemInSlot(const FFaerieItemStack Stack)
 {
 	if (!CanSetInSlot(Stack))
 	{
 		UE_LOG(LogFaerieEquipmentSlot, Warning,
 			TEXT("Invalid request to set into slot '%s'!"), *GetSlotInfo().ObjectName.ToString())
-		return;
+		return false;
 	}
 
 	// If the above check passes, then either the Stack's item is the same as our's, or we are currently empty!
-
-	Extensions->PreAddition(this, Stack);
-
-	Faerie::Inventory::FEventLog Event;
-	Event.Item = Stack.Item;
-	Event.Amount = Stack.Copies;
-	Event.Success = true;
-	Event.Type = Faerie::Equipment::Tags::SlotSet;
-
-	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, ItemStack, this);
-	// Increment key when stored item changes. This is only going to happen if ItemStack.Item is currently nullptr.
-	if (Stack.Item != ItemStack.Item)
-	{
-		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, StoredKey, this);
-		StoredKey = KeyGen.NextKey();
-
-		ItemStack = Stack;
-
-		// Take ownership of the new item.
-		TakeOwnership(ItemStack.Item);
-
-		Event.EntryTouched = StoredKey;
-		Extensions->PostAddition(this, Event);
-	}
-	else
-	{
-		ItemStack.Copies += Stack.Copies;
-
-		Event.EntryTouched = StoredKey;
-		Extensions->PostEntryChanged(this, Event);
-	}
-
-	BroadcastChange();
+	SetItemInSlot_Impl(Stack);
+	return true;
 }
 
 FFaerieItemStack UFaerieEquipmentSlot::TakeItemFromSlot(int32 Copies)

@@ -2,9 +2,9 @@
 
 #include "GenerationAction_CraftItems.h"
 #include "FaerieItem.h"
-#include "FaerieItemDataProxy.h"
 #include "FaerieItemRecipe.h"
 #include "FaerieItemSource.h"
+#include "FaerieItemStackView.h"
 #include "ItemCraftingConfig.h"
 #include "ItemInstancingContext_Crafting.h"
 

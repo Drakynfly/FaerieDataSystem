@@ -2,9 +2,11 @@
 
 #pragma once
 
-#include "FaerieItemDataProxy.h"
+#include "FaerieItemProxy.h"
 #include "WidgetPreview.h"
 #include "FaerieWidgetPreview.generated.h"
+
+class UFaerieItemAsset;
 
 /**
  * 

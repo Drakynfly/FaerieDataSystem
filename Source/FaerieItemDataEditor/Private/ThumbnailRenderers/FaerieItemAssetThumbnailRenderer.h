@@ -2,9 +2,11 @@
 
 #pragma once
 
-#include "FaerieItemDataProxy.h"
+#include "FaerieItemProxy.h"
 #include "ThumbnailRendering/DefaultSizedThumbnailRenderer.h"
 #include "FaerieItemAssetThumbnailRenderer.generated.h"
+
+class UFaerieItemAsset;
 
 namespace Faerie::Ed
 {

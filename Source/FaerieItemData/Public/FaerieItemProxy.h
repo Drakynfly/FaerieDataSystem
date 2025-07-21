@@ -76,10 +76,7 @@ private:
 	TWeakObjectPtr<const UObject> Proxy;
 
 public:
-	bool IsValid() const
-	{
-		return Proxy.IsValid();
-	}
+	bool IsValid() const;
 
 	const UObject* GetObject() const
 	{

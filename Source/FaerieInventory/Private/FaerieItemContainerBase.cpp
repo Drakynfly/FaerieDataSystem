@@ -108,6 +108,10 @@ void UFaerieItemContainerBase::RavelExtensionData(TMap<FGuid, FInstancedStruct>&
 void UFaerieItemContainerBase::UnravelExtensionData(const TMap<FGuid, FInstancedStruct>& Data)
 {
 	UnclaimedExtensionData = Data;
+	if (UnclaimedExtensionData.IsEmpty())
+	{
+		return;
+	}
 
 	Extensions->ForEachExtension(
 		[this](UItemContainerExtensionBase* Extension)
@@ -116,13 +120,9 @@ void UFaerieItemContainerBase::UnravelExtensionData(const TMap<FGuid, FInstanced
 		});
 
 	TSet<UFaerieItemContainerBase*> SubContainers;
-	ForEachKey(
-		[this, &SubContainers](const FEntryKey Key)
+	ForEachItem([&SubContainers](const UFaerieItem* Item)
 		{
-			if (const UFaerieItem* Item = View(Key).Item.Get())
-			{
-				SubContainers.Append(UFaerieItemContainerToken::GetAllContainersInItem(Item));
-			}
+			SubContainers.Append(UFaerieItemContainerToken::GetAllContainersInItem(Item));
 		});
 
 	for (UFaerieItemContainerBase* SubContainer : SubContainers)
@@ -142,6 +142,29 @@ void UFaerieItemContainerBase::TryApplyUnclaimedSaveData(UItemContainerExtension
 		Extension->LoadSaveData(this, *SaveData);
 		UnclaimedExtensionData.RemoveByHash(IdentifierHash, Identifier);
 	}
+}
+
+bool UFaerieItemContainerBase::ValidateLoadedItem(const UFaerieItem* Item)
+{
+	if (!IsValid(Item))
+	{
+		UE_LOG(LogTemp, Error, TEXT("ValidateLoadedItem: Item pointer is invalid."))
+		return false;
+	}
+
+	bool HitError = false;
+
+	auto Tokens = Item->GetTokens();
+	for (int32 i = 0; i < Tokens.Num(); ++i)
+	{
+		if (!IsValid(Tokens[i]))
+		{
+			UE_LOG(LogTemp, Error, TEXT("ValidateLoadedItem: Token[%i] is invalid."), i)
+			HitError |= true;
+		}
+	}
+
+	return !HitError;
 }
 
 void UFaerieItemContainerBase::OnItemMutated(const UFaerieItem* Item, const UFaerieItemToken* Token, const FGameplayTag EditTag)

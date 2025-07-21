@@ -1,6 +1,6 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
-#include "FaerieItemDataProxy.h"
+#include "FaerieItemProxy.h"
 #include "AssetEditor/FaerieItemAssetThumbnailScene.h"
 #include "ThumbnailRendering/SceneThumbnailInfo.h"
 

@@ -2,10 +2,11 @@
 
 #pragma once
 
-#include "FaerieItemDataProxy.h"
+#include "FaerieItemStackView.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "FaerieItemProxyUtils.generated.h"
 
+struct FFaerieItemProxy;
 class IFaerieItemOwnerInterface;
 class UFaerieItem;
 

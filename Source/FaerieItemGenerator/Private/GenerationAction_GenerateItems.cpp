@@ -1,9 +1,8 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "GenerationAction_GenerateItems.h"
-
 #include "FaerieItem.h"
-#include "FaerieItemDataProxy.h"
+#include "FaerieItemStack.h"
 #include "ItemGeneratorConfig.h"
 #include "ItemInstancingContext_Crafting.h"
 
