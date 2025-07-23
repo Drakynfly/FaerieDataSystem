@@ -21,9 +21,19 @@
 			"LoadingPhase": "PreDefault"
 		},
 		{
+			"Name": "FaerieDataUtils",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
 			"Name": "FaerieInventory",
 			"Type": "Runtime",
 			"LoadingPhase": "PreDefault"
+		},
+		{
+			"Name": "FaerieInventoryEditor",
+			"Type": "Editor",
+			"LoadingPhase": "Default"
 		},
 		{
 			"Name": "FaerieInventoryContent",
@@ -76,13 +86,8 @@
 			"LoadingPhase": "Default"
 		},
 		{
-			"Name": "FaerieInventoryEditor",
+			"Name": "FaerieDataSystemTests",
 			"Type": "Editor",
-			"LoadingPhase": "Default"
-		},
-		{
-			"Name": "FaerieDataUtils",
-			"Type": "Runtime",
 			"LoadingPhase": "Default"
 		}
 	],

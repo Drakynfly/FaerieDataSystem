@@ -140,7 +140,7 @@ UFaerieItem* UFaerieItemAsset::CreateItemInstance(const UItemInstancingContext* 
 	return Item->CreateInstance();
 }
 
-UFaerieItem* UFaerieItemAsset::GetItemInstance(const EFaerieItemInstancingMutability Mutability) const
+const UFaerieItem* UFaerieItemAsset::GetItemInstance(const EFaerieItemInstancingMutability Mutability) const
 {
 	if (!IsValidChecked(Item)) return nullptr;
 	return Item->CreateInstance(Mutability);

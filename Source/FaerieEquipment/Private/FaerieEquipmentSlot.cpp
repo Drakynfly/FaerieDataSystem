@@ -5,6 +5,7 @@
 #include "FaerieEquipmentSlotDescription.h"
 #include "FaerieAssetInfo.h"
 #include "FaerieItem.h"
+#include "FaerieItemDataStatics.h"
 #include "FaerieItemTemplate.h"
 #include "InventoryDataEnums.h"
 #include "ItemContainerEvent.h"
@@ -85,7 +86,7 @@ void UFaerieEquipmentSlot::LoadSaveData(const FFaerieContainerSaveData& SaveData
 		KeyGen.SetPosition(StoredKey);
 
 		const FFaerieItemStack LoadedItemStack = Flakes::CreateStruct<Flakes::Binary::Type, FFaerieItemStack>(SlotSaveData->ItemStack, this);
-		if (ValidateLoadedItem(LoadedItemStack.Item) &&
+		if (Faerie::ValidateLoadedItem(LoadedItemStack.Item) &&
 			LoadedItemStack.Copies > 0)
 		{
 			SetItemInSlot_Impl(LoadedItemStack);

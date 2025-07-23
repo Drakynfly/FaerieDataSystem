@@ -20,7 +20,7 @@ bool UFaerieItemDataLibrary::Equal_ItemToken(const UFaerieItemToken* A, const UF
 	return A->CompareWith(B);
 }
 
-UFaerieItem* UFaerieItemDataLibrary::GetItemInstance(const UFaerieItemAsset* Asset, const EFaerieItemInstancingMutability Mutability)
+const UFaerieItem* UFaerieItemDataLibrary::GetItemInstance(const UFaerieItemAsset* Asset, const EFaerieItemInstancingMutability Mutability)
 {
 	if (IsValid(Asset))
 	{

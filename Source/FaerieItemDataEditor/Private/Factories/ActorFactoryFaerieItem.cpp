@@ -62,9 +62,11 @@ void UActorFactoryFaerieItem::PostSpawnActor(UObject* Asset, AActor* NewActor)
 		return;
 	}
 
-	FFaerieItemStack Stack;
-	Stack.Item = ItemAsset->GetItemInstance(EFaerieItemInstancingMutability::Automatic);
-	Stack.Copies = 1;
+	const FFaerieItemStack Stack
+	{
+		ItemAsset->GetItemInstance(EFaerieItemInstancingMutability::Automatic),
+		1
+	};
 
 	if (AFaerieItemOwningActorBase* Visual = Cast<AFaerieItemOwningActorBase>(NewActor))
 	{

@@ -31,7 +31,7 @@ public:
 
 	// Get the item instance this asset represents. By default, this will return the immutable asset if possible.
 	UFUNCTION(BlueprintPure, Category = "Faerie|ItemAsset", meta = (AdvancedDisplay = 1))
-	static UFaerieItem* GetItemInstance(const UFaerieItemAsset* Asset, const EFaerieItemInstancingMutability Mutability);
+	static const UFaerieItem* GetItemInstance(const UFaerieItemAsset* Asset, const EFaerieItemInstancingMutability Mutability);
 
 	UFUNCTION(BlueprintPure, Category = "Faerie|ItemInstance", meta = (AdvancedDisplay = 1))
 	static UFaerieItem* NewItemInstance(const TArray<UFaerieItemToken*>& Tokens, EFaerieItemInstancingMutability Mutability);

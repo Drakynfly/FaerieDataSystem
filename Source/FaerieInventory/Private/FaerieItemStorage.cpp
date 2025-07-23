@@ -4,6 +4,7 @@
 #include "FaerieInventorySettings.h"
 
 #include "FaerieItem.h"
+#include "FaerieItemDataStatics.h"
 #include "InventoryStorageProxy.h"
 #include "ItemContainerExtensionBase.h"
 #include "Tokens/FaerieItemStorageToken.h"
@@ -95,7 +96,7 @@ void UFaerieItemStorage::LoadSaveData(const FFaerieContainerSaveData& SaveData)
 	TArray<FEntryKey, TInlineAllocator<4>> InvalidKeys;
 	for (const FKeyedInventoryEntry& Entry : EntryMap)
 	{
-		if (!ValidateLoadedItem(Entry.Value.ItemObject))
+		if (!Faerie::ValidateLoadedItem(Entry.Value.ItemObject))
 		{
 			InvalidKeys.Add(Entry.Key);
 		}

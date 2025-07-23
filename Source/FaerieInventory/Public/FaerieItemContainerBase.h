@@ -52,7 +52,6 @@ protected:
 
 	void TryApplyUnclaimedSaveData(UItemContainerExtensionBase* Extension);
 
-	[[nodiscard]] static bool ValidateLoadedItem(const UFaerieItem* Item);
 
 	/**------------------------------*/
 	/*		 ITEM ENTRY API (OLD)	 */
