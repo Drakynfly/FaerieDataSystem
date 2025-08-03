@@ -3,11 +3,11 @@
 #pragma once
 
 #include "FaerieContainerExtensionInterface.h"
-#include "FaerieEquipmentSlotConfig.h"
-#include "FaerieItemContainerStructs.h"
+#include "FaerieEquipmentSlotStructs.h"
 #include "FaerieSlotTag.h"
 #include "FaerieStoragePath.h"
 #include "Components/ActorComponent.h"
+#include "StructUtils/InstancedStruct.h"
 
 #include "FaerieEquipmentManager.generated.h"
 
@@ -39,7 +39,10 @@ struct FFaerieEquipmentSaveData
 	GENERATED_BODY()
 
 	UPROPERTY()
-	TArray<FFaerieContainerSaveData> PerSlotData;
+	TArray<FFaerieEquipmentSlotSaveData> PerSlotData;
+
+	UPROPERTY()
+	TMap<FGuid, FInstancedStruct> ExtensionData;
 
 	UPROPERTY()
 	FGameplayTagContainer RemovedDefaultSlots;
@@ -108,8 +111,8 @@ public:
 	/*		 SAVE DATA API			 */
 	/**------------------------------*/
 
-	virtual FFaerieContainerSaveData MakeSaveData() const;
-	virtual void LoadSaveData(const FFaerieContainerSaveData& SaveData);
+	virtual FFaerieEquipmentSaveData MakeSaveData() const;
+	virtual void LoadSaveData(const FFaerieEquipmentSaveData& SaveData);
 
 
 	/**------------------------------*/

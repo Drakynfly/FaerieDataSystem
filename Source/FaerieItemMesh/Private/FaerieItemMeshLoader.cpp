@@ -232,9 +232,12 @@ void UFaerieItemMeshLoader::LoadMeshFromTokenAsynchronous(const UFaerieMeshToken
 	LoadRequest.Callback = MoveTemp(Callback);
 
 	FGameplayTagContainer PurposeHierarchy;
-	if (Purpose != Faerie::ItemMesh::Tags::MeshPurpose_Default)
+	if (Purpose.IsValid() && Purpose != Faerie::ItemMesh::Tags::MeshPurpose_Default)
 	{
-		PurposeHierarchy.AddTagFast(Purpose);
+		if (ensure(Purpose.GetTagName().IsValid()))
+		{
+			PurposeHierarchy.AddTagFast(Purpose);
+		}
 	}
 	PurposeHierarchy.AddTagFast(Faerie::ItemMesh::Tags::MeshPurpose_Default);
 

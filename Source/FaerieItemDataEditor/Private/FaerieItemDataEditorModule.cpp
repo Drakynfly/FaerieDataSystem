@@ -13,6 +13,7 @@
 #include "Customizations/FaerieItemSourceObjectCustomization.h"
 #include "ThumbnailRenderers/FaerieItemAssetThumbnailRenderer.h"
 #include "ThumbnailRendering/ThumbnailManager.h"
+#include "Toolkits/AssetEditorToolkit.h"
 
 #define LOCTEXT_NAMESPACE "FaerieItemDataEditorModule"
 

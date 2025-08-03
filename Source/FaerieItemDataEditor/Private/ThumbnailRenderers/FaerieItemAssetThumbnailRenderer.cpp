@@ -2,6 +2,7 @@
 
 #include "FaerieItemAssetThumbnailRenderer.h"
 #include "FaerieItemAsset.h"
+#include "SceneView.h"
 #include "AssetEditor/FaerieItemAssetThumbnailScene.h"
 #include "ThumbnailRendering/SceneThumbnailInfo.h"
 

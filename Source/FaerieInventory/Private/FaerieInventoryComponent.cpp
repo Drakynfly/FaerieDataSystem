@@ -3,6 +3,7 @@
 #include "FaerieInventoryComponent.h"
 #include "FaerieItemStorage.h"
 #include "ItemContainerExtensionBase.h"
+#include "GameFramework/Actor.h"
 #include "Net/UnrealNetwork.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieInventoryComponent)
@@ -17,7 +18,7 @@ UFaerieInventoryComponent::UFaerieInventoryComponent()
 
 	ItemStorage = CreateDefaultSubobject<UFaerieItemStorage>(FName{TEXTVIEW("ItemStorage")});
 	Extensions = CreateDefaultSubobject<UItemContainerExtensionGroup>(FName{TEXTVIEW("Extensions")});
-	Extensions->SetIdentifier();
+	SET_NEW_IDENTIFIER(Extensions, TEXT("InventoryComponentGroup"))
 }
 
 void UFaerieInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -34,9 +35,7 @@ void UFaerieInventoryComponent::PostInitProperties()
 {
 	Super::PostInitProperties();
 
-	ItemStorage->GetOnAddressAdded().AddUObject(this, &ThisClass::PostAddressAdded);
-	ItemStorage->GetOnAddressUpdated().AddUObject(this, &ThisClass::PostAddressChanged);
-	ItemStorage->GetOnAddressRemoved().AddUObject(this, &ThisClass::PreAddressRemoved);
+	ItemStorage->GetOnAddressEvent().AddUObject(this, &ThisClass::HandleAddressEvent);
 }
 
 void UFaerieInventoryComponent::ReadyForReplication()
@@ -51,7 +50,7 @@ void UFaerieInventoryComponent::ReadyForReplication()
 	if (IsValid(Extensions))
 	{
 		Extensions->ReplicationFixup();
-		ItemStorage->AddExtension(Extensions);
+		ItemStorage->GetExtensionGroup()->SetParentGroup(Extensions);
 	}
 
 	if (!Owner->IsUsingRegisteredSubObjectList())
@@ -99,44 +98,42 @@ bool UFaerieInventoryComponent::RemoveExtension(UItemContainerExtensionBase* Ext
 	return ItemStorage->RemoveExtension(Extension);
 }
 
-void UFaerieInventoryComponent::PostAddressAdded(UFaerieItemStorage* Storage, const FFaerieAddress Address)
+void UFaerieInventoryComponent::HandleAddressEvent(UFaerieItemStorage* Storage, const EFaerieAddressEventType Type,
+	FFaerieAddress Address)
 {
 #if WITH_EDITOR
-	if (GetNetMode() == NM_Client)
+	switch (Type)
 	{
-		UE_LOG(LogFaerieInventoryComponent, Log, TEXT("Client Received PostContentAdded"))
-	}
-	else
-	{
-		UE_LOG(LogFaerieInventoryComponent, Log, TEXT("Server Received PostContentAdded"))
-	}
-#endif
-}
-
-void UFaerieInventoryComponent::PostAddressChanged(UFaerieItemStorage* Storage, const FFaerieAddress Address)
-{
-#if WITH_EDITOR
-	if (GetNetMode() == NM_Client)
-	{
-		UE_LOG(LogFaerieInventoryComponent, Log, TEXT("Client Received PostContentChanged"))
-	}
-	else
-	{
-		UE_LOG(LogFaerieInventoryComponent, Log, TEXT("Server Received PostContentChanged"))
-	}
-#endif
-}
-
-void UFaerieInventoryComponent::PreAddressRemoved(UFaerieItemStorage* Storage, const FFaerieAddress Address)
-{
-#if WITH_EDITOR
-	if (GetNetMode() == NM_Client)
-	{
-		UE_LOG(LogFaerieInventoryComponent, Log, TEXT("Client Received PreContentRemoved"))
-	}
-	else
-	{
-		UE_LOG(LogFaerieInventoryComponent, Log, TEXT("Server Received PreContentRemoved"))
+	case EFaerieAddressEventType::PostAdd:
+		if (GetNetMode() == NM_Client)
+		{
+			UE_LOG(LogFaerieInventoryComponent, Log, TEXT("Client Received PostContentAdded"))
+		}
+		else
+		{
+			UE_LOG(LogFaerieInventoryComponent, Log, TEXT("Server Received PostContentAdded"))
+		}
+		break;
+	case EFaerieAddressEventType::PreRemove:
+		if (GetNetMode() == NM_Client)
+		{
+			UE_LOG(LogFaerieInventoryComponent, Log, TEXT("Client Received PreContentRemoved"))
+		}
+		else
+		{
+			UE_LOG(LogFaerieInventoryComponent, Log, TEXT("Server Received PreContentRemoved"))
+		}
+		break;
+	case EFaerieAddressEventType::Edit:
+		if (GetNetMode() == NM_Client)
+		{
+			UE_LOG(LogFaerieInventoryComponent, Log, TEXT("Client Received PostContentChanged"))
+		}
+		else
+		{
+			UE_LOG(LogFaerieInventoryComponent, Log, TEXT("Server Received PostContentChanged"))
+		}
+		break;
 	}
 #endif
 }

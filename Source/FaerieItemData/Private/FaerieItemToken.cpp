@@ -2,6 +2,7 @@
 
 #include "FaerieItemToken.h"
 #include "FaerieItem.h"
+#include "UObject/CoreNet.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemToken)
 

@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "Containers/Array.h"
+
 struct FInventoryEntry;
 struct FInventoryKey;
 struct FKeyedInventoryEntry;

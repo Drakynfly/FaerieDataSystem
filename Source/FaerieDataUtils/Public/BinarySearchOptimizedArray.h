@@ -3,8 +3,8 @@
 #pragma once
 
 #include "Algo/BinarySearch.h"
+#include "Algo/IsSorted.h"
 #include "Algo/Sort.h"
-#include "Containers/Array.h"
 
 /**
  * This is a template base for types that wrap a struct array where the struct contains a Key and Value pair.

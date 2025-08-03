@@ -3,7 +3,6 @@
 #pragma once
 
 #include "FaerieItemKey.h"
-#include "StructUtils/InstancedStruct.h"
 #include "FaerieItemContainerStructs.generated.h"
 
 class UFaerieItemContainerBase;
@@ -67,19 +66,4 @@ struct FAERIEINVENTORY_API FFaerieAddressableHandle
 	FFaerieAddress Address;
 
 	bool IsValid() const;
-};
-
-/**
- * Struct to hold the data to save/load an inventory state from.
- */
-USTRUCT()
-struct FAERIEINVENTORY_API FFaerieContainerSaveData
-{
-	GENERATED_BODY()
-
-	UPROPERTY(SaveGame)
-	FInstancedStruct ItemData;
-
-	UPROPERTY(SaveGame)
-	TMap<FGuid, FInstancedStruct> ExtensionData;
 };

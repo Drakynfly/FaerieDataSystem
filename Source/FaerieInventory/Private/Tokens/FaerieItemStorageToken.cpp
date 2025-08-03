@@ -3,9 +3,12 @@
 #include "Tokens/FaerieItemStorageToken.h"
 #include "FaerieItemStorage.h"
 #include "ItemContainerExtensionBase.h"
+#include "GameFramework/Actor.h"
 #include "Net/UnrealNetwork.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemStorageToken)
+
+using namespace Faerie;
 
 void UFaerieItemContainerToken::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
@@ -33,7 +36,7 @@ TSet<UFaerieItemContainerBase*> UFaerieItemContainerToken::GetAllContainersInIte
 		[&Containers](const TObjectPtr<const UFaerieItemContainerToken>& Token)
 		{
 			Containers.Add(Token->ItemContainer);
-			return true;
+			return Continue;
 		});
 
 	return Containers;
@@ -55,7 +58,7 @@ TSet<UFaerieItemContainerBase*> UFaerieItemContainerToken::GetContainersInItemOf
 			{
 				Containers.Add(Token->ItemContainer);
 			}
-			return true;
+			return Continue;
 		});
 
 	return Containers;
@@ -65,7 +68,7 @@ UFaerieItemStorageToken::UFaerieItemStorageToken()
 {
 	ItemContainer = CreateDefaultSubobject<UFaerieItemStorage>(FName{TEXTVIEW("ItemContainer")});
 	Extensions = CreateDefaultSubobject<UItemContainerExtensionGroup>(FName{TEXTVIEW("Extensions")});
-	Extensions->SetIdentifier();
+	SET_NEW_IDENTIFIER(Extensions, TEXT("ItemStorageTokenGroup"))
 }
 
 void UFaerieItemStorageToken::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -84,12 +87,12 @@ void UFaerieItemStorageToken::InitializeNetObject(AActor* Actor)
 	Actor->AddReplicatedSubObject(Extensions);
 	Extensions->InitializeNetObject(Actor);
 
-	ItemContainer->AddExtension(Extensions);
+	ItemContainer->GetExtensionGroup()->SetParentGroup(Extensions);
 }
 
 void UFaerieItemStorageToken::DeinitializeNetObject(AActor* Actor)
 {
-	ItemContainer->RemoveExtension(Extensions);
+	ItemContainer->GetExtensionGroup()->SetParentGroup(nullptr);
 
 	Actor->RemoveReplicatedSubObject(ItemContainer);
 	ItemContainer->DeinitializeNetObject(Actor);

@@ -7,7 +7,7 @@
 #include "FaerieItem.h"
 #include "FaerieItemAsset.h"
 #include "FaerieItemDataEnums.h"
-#include "FaerieItemDataStatics.h"
+#include "FaerieItemStorageStatics.h"
 #include "FaerieItemStack.h"
 #include "FlakesInterface.h"
 #include "Engine/AssetManager.h"
@@ -39,11 +39,11 @@ bool FaerieItemSerializationTests::RunTest(const FString& Parameters)
 
 		FFaerieItemStack ItemStack { ImmutableItem, 1 };
 
-		const FFlake StackFlake = Flakes::MakeFlake<Flakes::Binary::Type>(FConstStructView::Make(ItemStack));
+		const FFlake StackFlake = Flakes::MakeFlake<Flakes::Binary::Type>(ItemStack, nullptr);
 		TestTrue(TEXT("Make Flake from immutable stack"), StackFlake.Struct.TryLoad() == FFaerieItemStack::StaticStruct());
 
 		FFaerieItemStack ItemStack2 = Flakes::CreateStruct<Flakes::Binary::Type, FFaerieItemStack>(StackFlake);
-		TestTrue(TEXT("Create Struct"), Faerie::ValidateLoadedItem(ItemStack2.Item));
+		TestTrue(TEXT("Create Struct"), Faerie::ValidateItemData(ItemStack2.Item));
 
 		TestTrue(TEXT("Immutable load is original"), ImmutableItem == ItemStack2.Item);
 
@@ -74,7 +74,7 @@ bool FaerieItemSerializationTests::RunTest(const FString& Parameters)
 		TestTrue(TEXT("Immutable item asset is unloaded2"), SoftImmutableItemAsset.IsPending());
 
 		FFaerieItemStack ItemStack3 = Flakes::CreateStruct<Flakes::Binary::Type, FFaerieItemStack>(StackFlake);
-		TestTrue(TEXT("Create Struct after unload"), Faerie::ValidateLoadedItem(ItemStack3.Item));
+		TestTrue(TEXT("Create Struct after unload (immutable)"), Faerie::ValidateItemData(ItemStack3.Item));
 	}
 
 	// A dummy object to own the mutable items we instantiate.
@@ -95,17 +95,36 @@ bool FaerieItemSerializationTests::RunTest(const FString& Parameters)
 
 		FFaerieItemStack ItemStack { MutableItem, 1 };
 
-		const FFlake StackFlake = Flakes::MakeFlake<Flakes::Binary::Type>(FConstStructView::Make(ItemStack), ItemOwner);
-		TestTrue(TEXT("Make Flake from mutable stack"), StackFlake.Struct.TryLoad() == FFaerieItemStack::StaticStruct());
+		const FFlake StackFlake_NoOuter = Flakes::MakeFlake<Flakes::Binary::Type>(ItemStack, nullptr);
+		TestTrue(TEXT("Make Flake from mutable stack"), StackFlake_NoOuter.Struct.TryLoad() == FFaerieItemStack::StaticStruct());
 
-		FFaerieItemStack ItemStack2 = Flakes::CreateStruct<Flakes::Binary::Type, FFaerieItemStack>(StackFlake, ItemOwner);
-		TestTrue(TEXT("Create Struct"), Faerie::ValidateLoadedItem(ItemStack2.Item));
+		FFaerieItemStack ItemStackNoOuter = Flakes::CreateStruct<Flakes::Binary::Type, FFaerieItemStack>(StackFlake_NoOuter, nullptr);
+		TestTrue(TEXT("Create Struct"), Faerie::ValidateItemData(ItemStackNoOuter.Item));
 
-		TestTrue(TEXT("Mutable load is not original"), MutableItem != ItemStack2.Item);
+		// Item was serialized without an outer, should be the same item (as the original MutableItem)
+		TestTrue(TEXT("Mutable load is not original when serialized with outer"), MutableItem == ItemStackNoOuter.Item);
+		{
+			AddInfo("MutableItem = " + MutableItem->GetFullName());
+			AddInfo("Loaded item = " + ItemStackNoOuter.Item->GetFullName());
+		}
+
+		const FFlake StackFlake_WithOuter = Flakes::MakeFlake<Flakes::Binary::Type>(ItemStack, ItemOwner);
+		TestTrue(TEXT("Make Flake from mutable stack"), StackFlake_WithOuter.Struct.TryLoad() == FFaerieItemStack::StaticStruct());
+
+		FFaerieItemStack ItemStackWithOuter = Flakes::CreateStruct<Flakes::Binary::Type, FFaerieItemStack>(StackFlake_WithOuter, ItemOwner);
+		TestTrue(TEXT("Create Struct"), Faerie::ValidateItemData(ItemStackWithOuter.Item));
+
+		// Item was serialized with a valid outer, should be a new same item (not the original MutableItem)
+		if (!TestFalse(TEXT("Mutable load is original when serialized without outer"), MutableItem == ItemStackWithOuter.Item))
+		{
+			AddInfo("MutableItem = " + MutableItem->GetFullName());
+			AddInfo("Loaded item = " + ItemStackWithOuter.Item->GetFullName());
+		}
 
 		MutableItem = nullptr;
 		ItemStack = FFaerieItemStack();
-		ItemStack2 = FFaerieItemStack();
+		ItemStackNoOuter = FFaerieItemStack();
+		ItemStackWithOuter = FFaerieItemStack();
 
 
 		TArray<UObject*> Objs;
@@ -129,8 +148,13 @@ bool FaerieItemSerializationTests::RunTest(const FString& Parameters)
 		TestFalse(TEXT("Mutable item asset is unloaded1"), SoftMutableItemAsset.IsValid());
 		TestTrue(TEXT("Mutable item asset is unloaded2"), SoftMutableItemAsset.IsPending());
 
-		FFaerieItemStack ItemStack3 = Flakes::CreateStruct<Flakes::Binary::Type, FFaerieItemStack>(StackFlake, ItemOwner);
-		TestTrue(TEXT("Create Struct after unload"), Faerie::ValidateLoadedItem(ItemStack3.Item));
+		// This item should not be able to load, as it was only exported as reference.
+		FFaerieItemStack ItemStack3 = Flakes::CreateStruct<Flakes::Binary::Type, FFaerieItemStack>(StackFlake_NoOuter, ItemOwner);
+		TestFalse(TEXT("Create Struct after unload failure"), IsValid(ItemStack3.Item));
+
+		// This item should be able to load, as it was fully exported (due to having an outer)
+		FFaerieItemStack ItemStack4 = Flakes::CreateStruct<Flakes::Binary::Type, FFaerieItemStack>(StackFlake_WithOuter, ItemOwner);
+		TestTrue(TEXT("Create Struct after unload (mutable)"), Faerie::ValidateItemData(ItemStack4.Item));
 	}
 
 	ItemOwner->RemoveFromRoot();

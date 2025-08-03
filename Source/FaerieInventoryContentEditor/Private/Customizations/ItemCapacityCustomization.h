@@ -4,6 +4,9 @@
 
 #include "IPropertyTypeCustomization.h"
 
+class SWidget;
+class STextBlock;
+
 class FInventoryWeightCustomization final : public IPropertyTypeCustomization
 {
 public:

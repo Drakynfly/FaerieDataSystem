@@ -4,7 +4,7 @@
 
 #include "FaerieItemDataEnums.generated.h"
 
-UENUM(Meta = (Bitflags, UseEnumValuesAsMaskValuesInEditor = "true"))
+UENUM(Flags, Meta = (Bitflags, UseEnumValuesAsMaskValuesInEditor = "true"))
 enum class EFaerieItemMutabilityFlags : uint8
 {
 	None = 0,
@@ -56,7 +56,7 @@ FORCEINLINE EFaerieItemMutabilityFlags ToFlags(const EFaerieItemInstancingMutabi
 	}
 }
 
-UENUM(Meta = (Bitflags, UseEnumValuesAsMaskValuesInEditor = "true"))
+UENUM(Flags, Meta = (Bitflags, UseEnumValuesAsMaskValuesInEditor = "true"))
 enum class EFaerieItemComparisonFlags : uint8
 {
 	None = 0,

@@ -1,6 +1,10 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "EquipmentVisualizer.h"
+#include "Components/SceneComponent.h"
+#include "Components/SkinnedMeshComponent.h"
+#include "Engine/World.h"
+#include "GameFramework/Actor.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(EquipmentVisualizer)
 
@@ -156,10 +160,10 @@ AActor* UEquipmentVisualizer::SpawnVisualActor(const FFaerieVisualKey Key, const
 		SpawnedActors.Add(Key, NewActor);
 		ReverseMap.Add(NewActor, Key);
 
-		auto TempMetadata = Attachment;
-
 		if (Attachment.Parent.IsValid())
 		{
+			auto TempMetadata = Attachment;
+
 			// @todo these are hardcoded for now.
 			TempMetadata.TransformRules.LocationRule = EAttachmentRule::SnapToTarget;
 			TempMetadata.TransformRules.RotationRule = EAttachmentRule::SnapToTarget;
@@ -202,7 +206,15 @@ USceneComponent* UEquipmentVisualizer::SpawnVisualComponent(const FFaerieVisualK
 		ReverseMap.Add(NewComponent, Key);
 
 		KeyedMetadata.FindOrAdd(Key).Attachment = Attachment;
-		NewComponent->AttachToComponent(Attachment.Parent.Get(), Attachment.TransformRules, Attachment.Socket);
+
+		auto TempMetadata = Attachment;
+
+		// @todo these are hardcoded for now.
+		TempMetadata.TransformRules.LocationRule = EAttachmentRule::SnapToTarget;
+		TempMetadata.TransformRules.RotationRule = EAttachmentRule::SnapToTarget;
+		TempMetadata.TransformRules.ScaleRule = EAttachmentRule::KeepRelative;
+
+		NewComponent->AttachToComponent(TempMetadata.Parent.Get(), TempMetadata.TransformRules, TempMetadata.Socket);
 
 		KeyedMetadata.FindOrAdd(Key).ChangeCallback.Broadcast(Key, NewComponent);
 		OnAnyVisualSpawnedNative.Broadcast(Key, NewComponent);

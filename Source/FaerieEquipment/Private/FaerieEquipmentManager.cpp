@@ -4,6 +4,7 @@
 #include "FaerieEquipmentSlot.h"
 #include "FaerieItemStorage.h"
 #include "ItemContainerExtensionBase.h"
+#include "GameFramework/Actor.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "Tokens/FaerieItemStorageToken.h"
@@ -18,7 +19,7 @@ UFaerieEquipmentManager::UFaerieEquipmentManager()
 	SetIsReplicatedByDefault(true);
 	bReplicateUsingRegisteredSubObjectList = true;
 	ExtensionGroup = CreateDefaultSubobject<UItemContainerExtensionGroup>("ExtensionGroup");
-	ExtensionGroup->SetIdentifier();
+	SET_NEW_IDENTIFIER(ExtensionGroup, TEXT("EquipmentManagerGroup"))
 }
 
 void UFaerieEquipmentManager::PostInitProperties()
@@ -29,7 +30,7 @@ void UFaerieEquipmentManager::PostInitProperties()
 	{
 		if (IsValid(DefaultSlot.ExtensionGroup))
 		{
-			DefaultSlot.ExtensionGroup->SetIdentifier();
+			SET_NEW_IDENTIFIER(DefaultSlot.ExtensionGroup, TEXT("EquipmentManagerInstanceDefaultSlot"))
 		}
 	}
 }
@@ -145,30 +146,22 @@ void UFaerieEquipmentManager::OnSlotItemChanged(UFaerieEquipmentSlot* Slot, cons
 	OnEquipmentChangedEvent.Broadcast(Slot, Type);
 }
 
-FFaerieContainerSaveData UFaerieEquipmentManager::MakeSaveData() const
+FFaerieEquipmentSaveData UFaerieEquipmentManager::MakeSaveData() const
 {
 	FFaerieEquipmentSaveData SlotSaveData;
+
 	SlotSaveData.PerSlotData.Reserve(Slots.Num());
 	for (auto&& Slot : Slots)
 	{
-		SlotSaveData.PerSlotData.Add(Slot->MakeSaveData());
+		SlotSaveData.PerSlotData.Add(Slot->MakeSlotData(SlotSaveData.ExtensionData));
 	}
 	SlotSaveData.RemovedDefaultSlots = RemovedDefaultSlots;
 
-	FFaerieContainerSaveData SaveData;
-	SaveData.ItemData = FInstancedStruct::Make(SlotSaveData);
-	// @todo shouldn't we use the SaveData.ExtensionData for our extensions?
-	return SaveData;
+	return SlotSaveData;
 }
 
-void UFaerieEquipmentManager::LoadSaveData(const FFaerieContainerSaveData& SaveData)
+void UFaerieEquipmentManager::LoadSaveData(const FFaerieEquipmentSaveData& SaveData)
 {
-	const FFaerieEquipmentSaveData* EquipmentSaveData = SaveData.ItemData.GetPtr<FFaerieEquipmentSaveData>();
-	if (!EquipmentSaveData)
-	{
-		return;
-	}
-
 	ON_SCOPE_EXIT
 	{
 		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Slots, this);
@@ -176,26 +169,24 @@ void UFaerieEquipmentManager::LoadSaveData(const FFaerieContainerSaveData& SaveD
 
 	Slots.Reset();
 
-	RemovedDefaultSlots = EquipmentSaveData->RemovedDefaultSlots;
+	RemovedDefaultSlots = SaveData.RemovedDefaultSlots;
 	AddDefaultSlots();
 
-	for (const FFaerieContainerSaveData& PerSlotDatum : EquipmentSaveData->PerSlotData)
-	{
-		const FFaerieEquipmentSlotSaveData* SlotSaveData = PerSlotDatum.ItemData.GetPtr<FFaerieEquipmentSlotSaveData>();
-		if (!SlotSaveData)
-		{
-			return;
-		}
+	// Construct container to hold extension data for later retrieval.
+	UFaerieItemContainerExtensionData* ExtensionData = NewObject<UFaerieItemContainerExtensionData>(this);
+	ExtensionData->Data = SaveData.ExtensionData;
 
-		UFaerieEquipmentSlot* EquipmentSlot = FindSlot(SlotSaveData->Config.SlotID);
+	for (const FFaerieEquipmentSlotSaveData& PerSlotDatum : SaveData.PerSlotData)
+	{
+		UFaerieEquipmentSlot* EquipmentSlot = FindSlot(PerSlotDatum.Config.SlotID);
 		if (!IsValid(EquipmentSlot))
 		{
-			EquipmentSlot = AddSlot(SlotSaveData->Config);
+			EquipmentSlot = AddSlot(PerSlotDatum.Config);
 		}
 
 		if (IsValid(EquipmentSlot))
 		{
-			EquipmentSlot->LoadSaveData(PerSlotDatum);
+			EquipmentSlot->LoadSlotData(PerSlotDatum, ExtensionData);
 		}
 	}
 
@@ -224,7 +215,7 @@ UFaerieEquipmentSlot* UFaerieEquipmentManager::AddSlot(const FFaerieEquipmentSlo
 		NewSlot->OnItemChangedNative.AddUObject(this, &ThisClass::OnSlotItemChanged, false);
 		NewSlot->OnItemDataChangedNative.AddUObject(this, &ThisClass::OnSlotItemChanged, true);
 
-		NewSlot->AddExtension(ExtensionGroup);
+		NewSlot->GetExtensionGroup()->SetParentGroup(ExtensionGroup);
 
 		OnEquipmentSlotAddedNative.Broadcast(NewSlot);
 		OnEquipmentSlotAdded.Broadcast(NewSlot);
@@ -247,7 +238,7 @@ bool UFaerieEquipmentManager::RemoveSlot(UFaerieEquipmentSlot* Slot)
 		OnPreEquipmentSlotRemovedNative.Broadcast(Slot);
 		OnPreEquipmentSlotRemoved.Broadcast(Slot);
 
-		Slot->RemoveExtension(ExtensionGroup);
+		Slot->GetExtensionGroup()->SetParentGroup(nullptr);
 
 		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Slots, this)
 		Slot->DeinitializeNetObject(GetOwner());
@@ -344,7 +335,7 @@ UItemContainerExtensionBase* UFaerieEquipmentManager::AddExtensionToSlot(const F
 	}
 
 	UItemContainerExtensionBase* NewExtension = NewObject<UItemContainerExtensionBase>(Slot, ExtensionClass);
-	NewExtension->SetIdentifier();
+	SET_NEW_IDENTIFIER(NewExtension, TEXT("NewExt:EquipmentManager"))
 
 	GetOwner()->AddReplicatedSubObject(NewExtension);
 	NewExtension->InitializeNetObject(GetOwner());

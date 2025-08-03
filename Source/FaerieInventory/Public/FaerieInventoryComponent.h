@@ -8,6 +8,7 @@
 
 #include "FaerieInventoryComponent.generated.h"
 
+enum class EFaerieAddressEventType : uint8;
 class UItemContainerExtensionGroup;
 class UItemContainerExtensionBase;
 class UFaerieItemStorage;
@@ -40,9 +41,8 @@ public:
 	virtual bool RemoveExtension(UItemContainerExtensionBase* Extension) override;
 	//~ IFaerieContainerExtensionInterface
 
-	virtual void PostAddressAdded(UFaerieItemStorage* Storage, FFaerieAddress Address);
-	virtual void PostAddressChanged(UFaerieItemStorage* Storage, FFaerieAddress Address);
-	virtual void PreAddressRemoved(UFaerieItemStorage* Storage, FFaerieAddress Address);
+protected:
+	virtual void HandleAddressEvent(UFaerieItemStorage* Storage, EFaerieAddressEventType Type, FFaerieAddress Address);
 
 
 	/**------------------------------*/

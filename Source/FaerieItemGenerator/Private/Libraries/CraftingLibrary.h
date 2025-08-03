@@ -2,14 +2,15 @@
 
 #pragma once
 
+#include "Kismet/BlueprintFunctionLibrary.h"
 #include "CraftingLibrary.generated.h"
 
-class UFaerieItemTemplate;
-struct FFaerieItemSlotHandle;
 struct FFaerieItemCraftingSlots;
-class IFaerieItemSlotInterface;
+struct FFaerieItemSlotHandle;
 struct FGeneratorAmountBase;
 struct FWeightedDrop;
+class IFaerieItemSlotInterface;
+class UFaerieItemTemplate;
 class UItemGenerationConfig;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogCraftingLibrary, Log, All);

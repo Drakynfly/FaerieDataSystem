@@ -5,7 +5,10 @@
 #include "DetailWidgetRow.h"
 #include "Widgets/Layout/SUniformGridPanel.h"
 #include "IDetailChildrenBuilder.h"
+#include "ScopedTransaction.h"
 #include "SpatialTypes.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Layout/SBox.h"
 
 #define LOCTEXT_NAMESPACE "ItemShapeCustomization"
 

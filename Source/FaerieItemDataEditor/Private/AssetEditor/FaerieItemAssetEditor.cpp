@@ -7,6 +7,7 @@
 #include "FaerieItemAsset.h"
 #include "FaerieItemCardTags.h"
 #include "FaerieItemDataEditorModule.h"
+#include "PropertyEditorModule.h"
 #include "SWidgetPreview.h"
 #include "SWidgetPreviewStatus.h"
 #include "AssetEditor/FaerieItemAssetEditorCustomSettings.h"
@@ -15,6 +16,10 @@
 #include "AssetEditor/FaerieWidgetPreview.h"
 #include "Blueprint/UserWidget.h"
 #include "CardTokens/FaerieItemCardToken.h"
+#include "Engine/Blueprint.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Modules/ModuleManager.h"
+#include "Widgets/Docking/SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "FaerieItemAssetEditor"
 

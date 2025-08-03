@@ -4,6 +4,7 @@
 
 #include "FaerieHash.h"
 #include "ItemContainerExtensionBase.h"
+#include "UObject/ObjectKey.h"
 #include "ContentHashExtension.generated.h"
 
 class UFaerieItemContainerBase;

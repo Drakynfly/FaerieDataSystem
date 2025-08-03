@@ -88,7 +88,7 @@ public:
 
 	// Mutate cast will return a const_cast'd *this* if the item is a runtime mutable instance. This is the proscribed
 	// method to gain access to the non-const API of UFaerieItemToken.
-	UFaerieItemToken* MutateCast() const;
+	[[nodiscard]] UFaerieItemToken* MutateCast() const;
 
 	void EditToken(const TFunctionRef<bool(UFaerieItemToken*)>& EditFunc);
 

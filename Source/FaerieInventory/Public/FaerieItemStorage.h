@@ -13,11 +13,24 @@
 struct FFaerieExtensionAllowsAdditionArgs;
 DECLARE_LOG_CATEGORY_EXTERN(LogFaerieItemStorage, Log, All);
 
+UENUM(BlueprintType)
+enum class EFaerieAddressEventType : uint8
+{
+	// Broadcast whenever an address is added, or a stack amount is increased.
+	PostAdd,
+
+	// Broadcast whenever an address is removed entirely, or a stack amount is decreased.
+	PreRemove,
+
+	// Broadcast whenever data for an address is changed.
+	Edit
+};
+
 namespace Faerie
 {
 	using FEntryKeyEvent = TMulticastDelegate<void(UFaerieItemStorage*, FEntryKey)>;
 
-	using FAddressEvent = TMulticastDelegate<void(UFaerieItemStorage*, FFaerieAddress)>;
+	using FAddressEvent = TMulticastDelegate<void(UFaerieItemStorage*, EFaerieAddressEventType, FFaerieAddress)>;
 	using FStorageFilterFunc = TFunctionRef<bool(const FFaerieItemProxy&)>;
 	using FStorageFilter = TDelegate<bool(const FFaerieItemProxy&)>;
 	using FStorageComparator = TDelegate<bool(const FFaerieItemProxy&, const FFaerieItemProxy&)>;
@@ -57,6 +70,8 @@ class UInventoryStackProxy;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FEntryKeyEvent, UFaerieItemStorage*, Storage, FEntryKey, Key);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FFaerieAddressEvent, UFaerieItemStorage*, Storage, EFaerieAddressEventType, Type, FFaerieAddress, Key);
+
 /**
  *
  */
@@ -81,13 +96,13 @@ public:
 	//~ UNetSupportedObject
 
 	//~ UFaerieItemContainerBase
-	virtual FFaerieContainerSaveData MakeSaveData() const override;
-	virtual void LoadSaveData(const FFaerieContainerSaveData& SaveData) override;
+	virtual FInstancedStruct MakeSaveData(TMap<FGuid, FInstancedStruct>& ExtensionData) const override;
+	virtual void LoadSaveData(FConstStructView ItemData, UFaerieItemContainerExtensionData* ExtensionData) override;
 	virtual bool Contains(FEntryKey Key) const override;
 	virtual FFaerieItemStackView View(FEntryKey Key) const override;
 	virtual FFaerieItemProxy Proxy(FEntryKey Key) const override;
 	virtual FFaerieItemStack Release(FEntryKey Key, int32 Copies) override;
-	virtual void ForEachKey(const TFunctionRef<void(FEntryKey)>& Func) const override;
+	virtual void ForEachKey(Faerie::TLoop<FEntryKey> Func) const override;
 	virtual int32 GetStack(FEntryKey Key) const override;
 	virtual TArray<FFaerieAddress> Switchover_GetAddresses(FEntryKey Key) const override;
 
@@ -97,17 +112,16 @@ public:
 	virtual FFaerieItemStackView ViewStack(FFaerieAddress Address) const override;
 	virtual FFaerieItemProxy Proxy(FFaerieAddress Address) const override;
 	virtual FFaerieItemStack Release(FFaerieAddress Address, int32 Copies) override;
-	virtual void ForEachAddress(const TFunctionRef<void(FFaerieAddress)>& Func) const override;
-	virtual void ForEachItem(const TFunctionRef<void(const UFaerieItem*)>& Func) const override;
-
-protected:
-	virtual void OnItemMutated(const UFaerieItem* Item, const UFaerieItemToken* Token, FGameplayTag EditTag) override;
+	virtual void ForEachAddress(Faerie::TLoop<FFaerieAddress> Func) const override;
+	virtual void ForEachItem(Faerie::TLoop<const UFaerieItem*> Func) const override;
 	//~ UFaerieItemContainerBase
 
-public:
 	//~ IFaerieItemOwnerInterface
 	virtual FFaerieItemStack Release(FFaerieItemStackView Stack) override;
 	virtual bool Possess(FFaerieItemStack Stack) override;
+
+protected:
+	virtual void OnItemMutated(const UFaerieItem* Item, const UFaerieItemToken* Token, FGameplayTag EditTag) override;
 	//~ IFaerieItemOwnerInterface
 
 
@@ -144,6 +158,8 @@ private:
 	void PostContentChanged(const FKeyedInventoryEntry& Entry, EContentChangeType ChangeType);
 	void PreContentRemoved(const FKeyedInventoryEntry& Entry);
 
+	void BroadcastAddressEvent(EFaerieAddressEventType Type, FFaerieAddress Address);
+
 
 	/**------------------------------*/
 	/*	  STORAGE API - ALL USERS    */
@@ -158,9 +174,7 @@ public:
 	Faerie::FEntryKeyEvent::RegistrationType& GetOnKeyRemoved() { return OnKeyRemovedCallback; }
 	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
-	Faerie::FAddressEvent::RegistrationType& GetOnAddressAdded() { return OnAddressAddedCallback; }
-	Faerie::FAddressEvent::RegistrationType& GetOnAddressUpdated() { return OnAddressUpdatedCallback; }
-	Faerie::FAddressEvent::RegistrationType& GetOnAddressRemoved() { return OnAddressRemovedCallback; }
+	Faerie::FAddressEvent::RegistrationType& GetOnAddressEvent() { return OnAddressEventCallback; }
 
 	UE_DEPRECATED(5.6, "Direct access to FInventoryEntry is being phased out")
 	TConstStructView<FInventoryEntry> GetEntryView(FEntryKey Key) const;
@@ -347,6 +361,8 @@ public:
 	/*	 DELEGATES	*/
 	/**-------------*/
 protected:
+	Faerie::FAddressEvent OnAddressEventCallback;
+
 	UE_DEPRECATED(5.6, "Use Address version")
 	Faerie::FEntryKeyEvent OnKeyAddedCallback;
 	UE_DEPRECATED(5.6, "Use Address version")
@@ -354,9 +370,9 @@ protected:
 	UE_DEPRECATED(5.6, "Use Address version")
 	Faerie::FEntryKeyEvent OnKeyRemovedCallback;
 
-	Faerie::FAddressEvent OnAddressAddedCallback;
-	Faerie::FAddressEvent OnAddressUpdatedCallback;
-	Faerie::FAddressEvent OnAddressRemovedCallback;
+	// Broadcast whenever an entry is added, or a stack amount is increased.
+	UPROPERTY(BlueprintAssignable, Transient, Category = "Events")
+	FFaerieAddressEvent OnAddressEvent;
 
 	// Broadcast whenever an entry is added, or a stack amount is increased.
 	UPROPERTY(BlueprintAssignable, Transient, Category = "Events")

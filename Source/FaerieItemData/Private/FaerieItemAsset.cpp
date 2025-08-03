@@ -20,9 +20,13 @@
 void UFaerieItemAsset::PreSave(FObjectPreSaveContext SaveContext)
 {
 #if WITH_EDITOR
-	if (!IsValid(Item))
+	static const FName ItemInstanceName = TEXT("AssetInstance");
+	if (!IsValid(Item) || (Item->GetName() != ItemInstanceName))
 	{
-		Item = NewObject<UFaerieItem>(this);
+		Item = NewObject<UFaerieItem>(this, ItemInstanceName);
+
+		// We call this manually, to update the LastModified.
+		Item->PreSave(SaveContext);
 	}
 
 	// Setting RF_Public suppresses "Illegal reference to private object" warnings when referenced by a Level.
@@ -36,9 +40,29 @@ void UFaerieItemAsset::PreSave(FObjectPreSaveContext SaveContext)
 	}
 
 	Item->Tokens.Empty();
+	TMultiMap<UClass*, UFaerieItemToken*> ClassMap;
 	for (auto&& Token : Tokens)
 	{
-		Item->Tokens.Add(DuplicateObject(Token, Item));
+		ClassMap.Add(Token->GetClass(), Token);
+	}
+	TArray<UClass*> Keys;
+	ClassMap.GetKeys(Keys);
+	for (auto&& KeyClass : Keys)
+	{
+		TArray<UFaerieItemToken*, TInlineAllocator<1>> TokensOfClass;
+		ClassMap.MultiFind(KeyClass, TokensOfClass);
+		if (TokensOfClass.Num() == 1)
+		{
+			Item->Tokens.Add(DuplicateObject(TokensOfClass[0], Item, KeyClass->GetFName()));
+		}
+		else
+		{
+			for (auto&& It = TokensOfClass.CreateIterator(); It; ++It)
+			{
+				const FName TokenName(KeyClass->GetName() + TEXT("_") + LexToString(It.GetIndex()));
+				Item->Tokens.Add(DuplicateObject(*It, Item, TokenName));
+			}
+		}
 	}
 #endif
 

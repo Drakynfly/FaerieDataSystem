@@ -6,9 +6,20 @@
 #include "FaerieContainerExtensionInterface.h"
 #include "FaerieItemContainerStructs.h"
 #include "FaerieItemOwnerInterface.h"
+#include "StructUtils/StructView.h"
 #include "FaerieItemContainerBase.generated.h"
 
 class UItemContainerExtensionBase;
+
+UCLASS()
+class UFaerieItemContainerExtensionData : public UObject
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY()
+	TMap<FGuid, FInstancedStruct> Data;
+};
 
 /**
  * Base class for objects that store FaerieItems
@@ -31,8 +42,12 @@ public:
 	//~ IFaerieItemOwnerInterface
 	virtual FFaerieItemStack Release(FFaerieItemStackView Stack) override;
 	virtual bool Possess(FFaerieItemStack Stack) override;
+
+protected:
+	virtual void OnItemMutated(const UFaerieItem* Item, const UFaerieItemToken* Token, FGameplayTag EditTag) override;
 	//~ IFaerieItemOwnerInterface
 
+	public:
 	//~ IFaerieContainerExtensionInterface
 	virtual UItemContainerExtensionGroup* GetExtensionGroup() const override final;
 	virtual bool AddExtension(UItemContainerExtensionBase* Extension) override;
@@ -43,12 +58,12 @@ public:
 	/*		 SAVE DATA API			 */
 	/**------------------------------*/
 public:
-	virtual FFaerieContainerSaveData MakeSaveData() const PURE_VIRTUAL(UFaerieItemContainerBase::MakeSaveData, return {}; )
-	virtual void LoadSaveData(const FFaerieContainerSaveData& SaveData) PURE_VIRTUAL(UFaerieItemContainerBase::SaveData, )
+	virtual FInstancedStruct MakeSaveData(TMap<FGuid, FInstancedStruct>& ExtensionData) const PURE_VIRTUAL(UFaerieItemContainerBase::MakeSaveData, return {}; )
+	virtual void LoadSaveData(FConstStructView ItemData, UFaerieItemContainerExtensionData* ExtensionData) PURE_VIRTUAL(UFaerieItemContainerBase::SaveData, )
 
 protected:
-	void RavelExtensionData(TMap<FGuid, FInstancedStruct>& Data) const;
-	void UnravelExtensionData(const TMap<FGuid, FInstancedStruct>& Data);
+	void RavelExtensionData(TMap<FGuid, FInstancedStruct>& ExtensionData) const;
+	void UnravelExtensionData(UFaerieItemContainerExtensionData* ExtensionData);
 
 	void TryApplyUnclaimedSaveData(UItemContainerExtensionBase* Extension);
 
@@ -57,25 +72,25 @@ protected:
 	/*		 ITEM ENTRY API (OLD)	 */
 	/**------------------------------*/
 public:
-	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainer")
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainer", DisplayName = "Contains (deprecated)")
 	virtual bool Contains(FEntryKey Key) const PURE_VIRTUAL(UFaerieItemContainerBase::Contains, return false; )
 
 	// Get a view of an entry
-	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainer")
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainer", DisplayName = "View (deprecated)")
 	virtual FFaerieItemStackView View(FEntryKey Key) const PURE_VIRTUAL(UFaerieItemContainerBase::View, return FFaerieItemStackView(); )
 
 	// Creates or retrieves a proxy for an entry
-	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainer")
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainer", DisplayName = "Proxy (deprecated)")
 	virtual FFaerieItemProxy Proxy(FEntryKey Key) const PURE_VIRTUAL(UFaerieItemContainerBase::Proxy, return nullptr; )
 
 	// A more efficient overload of Release if we already know the Key.
 	virtual FFaerieItemStack Release(FEntryKey Key, int32 Copies) PURE_VIRTUAL(UFaerieItemContainerBase::Release, return FFaerieItemStack(); )
 
 	// Iterate over and perform a task for each key.
-	virtual void ForEachKey(const TFunctionRef<void(FEntryKey)>& Func) const PURE_VIRTUAL(UFaerieItemContainerBase::ForEachKey, ; )
+	virtual void ForEachKey(Faerie::TLoop<FEntryKey> Func) const PURE_VIRTUAL(UFaerieItemContainerBase::ForEachKey, ; )
 
 	// Get the stack for a key.
-	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainer")
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainer", DisplayName = "Get Stack (deprecated)")
 	virtual int32 GetStack(FEntryKey Key) const PURE_VIRTUAL(UFaerieItemContainerBase::GetStack, return 0; )
 
 	// Temporary function while switching over to new API. Converts am entry key to addresses.
@@ -106,36 +121,27 @@ public:
 	virtual FFaerieItemStack Release(FFaerieAddress Address, int32 Copies) PURE_VIRTUAL(UFaerieItemContainerBase::Release, return FFaerieItemStack(); )
 
 	// Iterate over and perform a task for each address.
-	virtual void ForEachAddress(const TFunctionRef<void(FFaerieAddress)>& Func) const PURE_VIRTUAL(UFaerieItemContainerBase::ForEachAddress, ; )
+	virtual void ForEachAddress(Faerie::TLoop<FFaerieAddress> Func) const PURE_VIRTUAL(UFaerieItemContainerBase::ForEachAddress, ; )
 
 	// Iterate over and perform a task for each item instance.
 	// Similar behavior to ForEachAddress, except it is guaranteed to only run once per instance.
-	virtual void ForEachItem(const TFunctionRef<void(const UFaerieItem*)>& Func) const PURE_VIRTUAL(UFaerieItemContainerBase::ForEachItem, ; )
+	virtual void ForEachItem(Faerie::TLoop<const UFaerieItem*> Func) const PURE_VIRTUAL(UFaerieItemContainerBase::ForEachItem, ; )
 
 protected: // Blueprint versions (temp, until Old Blueprint versions are removed)
-	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainer")
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainer", DisplayName = "Contains")
 	bool Contains_Address(const FFaerieAddress Address) const { return Contains(Address); }
 
 	// Get a view of an entry
-	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainer")
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainer", DisplayName = "View")
 	FFaerieItemStackView View_Address(const FFaerieAddress Address) const { return ViewStack(Address); }
 
 	// Creates or retrieves a proxy for an entry
-	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainer")
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainer", DisplayName = "Proxy")
 	FFaerieItemProxy Proxy_Address(const FFaerieAddress Address) const { return Proxy(Address); }
 
 	// Get the stack for a key.
-	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainer")
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainer", DisplayName = "Get Stack")
 	int32 GetStack_Address(const FFaerieAddress Address) const { return GetStack(Address); }
-
-protected:
-	virtual void OnItemMutated(const UFaerieItem* Item, const UFaerieItemToken* Token, FGameplayTag EditTag);
-
-	// This function must be called by child classes when binding items to new keys.
-	void ReleaseOwnership(const UFaerieItem* Item);
-
-	// This function must be called by child classes when releasing a key.
-	void TakeOwnership(const UFaerieItem* Item);
 
 
 	/**------------------------------*/
@@ -149,7 +155,7 @@ protected:
 
 	// Save data for extensions that did not exist on us during unraveling.
 	UPROPERTY(Transient)
-	TMap<FGuid, FInstancedStruct> UnclaimedExtensionData;
+	TObjectPtr<UFaerieItemContainerExtensionData> UnclaimedExtensionData;
 
 	Faerie::TKeyGen<FEntryKey> KeyGen;
 };

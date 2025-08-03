@@ -3,6 +3,7 @@
 #pragma once
 
 #include "UObject/Interface.h"
+#include "Components/ActorComponent.h"
 #include "FaerieDependencyFetcherInterface.generated.h"
 
 UINTERFACE(Blueprintable)

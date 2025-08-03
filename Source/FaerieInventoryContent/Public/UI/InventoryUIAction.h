@@ -7,6 +7,7 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogInventoryUIAction, Log, All);
 
+class UTexture2D;
 class UFaerieInventoryClient;
 
 // Responses to actions being unable to run.

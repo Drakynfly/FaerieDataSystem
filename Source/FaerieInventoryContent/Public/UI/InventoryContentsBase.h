@@ -37,9 +37,7 @@ private:
 	bool ExecSort(const FFaerieItemProxy& A, const FFaerieItemProxy& B);
 
 protected:
-	virtual void NativeAddressAdded(UFaerieItemStorage* Storage, FFaerieAddress Address);
-	virtual void NativeAddressUpdated(UFaerieItemStorage* Storage, FFaerieAddress Address);
-	virtual void NativeAddressRemoved(UFaerieItemStorage* Storage, FFaerieAddress Address);
+	virtual void HandleAddressEvent(UFaerieItemStorage* Storage, const EFaerieAddressEventType Type, FFaerieAddress Address);
 
 public:
 	// Set the inventory that will be used when this widget is constructed.

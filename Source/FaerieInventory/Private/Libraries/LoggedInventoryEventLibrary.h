@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Kismet/BlueprintFunctionLibrary.h"
 #include "LoggedInventoryEventLibrary.generated.h"
 
 struct FEntryKey;

@@ -1,6 +1,9 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "NetSupportedObject.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "Engine/NetDriver.h"
+#include "GameFramework/Actor.h"
 
 #if UE_WITH_IRIS
 #include "Iris/ReplicationSystem/ReplicationFragmentUtil.h"

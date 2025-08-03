@@ -2,8 +2,10 @@
 
 #pragma once
 
+#include "FaerieItemContainerStructs.h"
+#include "FaerieItemStack.h"
 #include "FaerieSlotTag.h"
-#include "FaerieEquipmentSlotConfig.generated.h"
+#include "FaerieEquipmentSlotStructs.generated.h"
 
 class UFaerieEquipmentSlotDescription;
 
@@ -22,4 +24,19 @@ struct FFaerieEquipmentSlotConfig
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Config")
 	bool SingleItemSlot = true;
+};
+
+USTRUCT()
+struct FFaerieEquipmentSlotSaveData
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FFaerieEquipmentSlotConfig Config;
+
+	UPROPERTY()
+	FFaerieItemStack ItemStack;
+
+	UPROPERTY()
+	FEntryKey StoredKey;
 };

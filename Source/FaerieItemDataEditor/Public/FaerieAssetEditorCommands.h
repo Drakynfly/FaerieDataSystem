@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Framework/Commands/Commands.h"
 #include "Styling/AppStyle.h"
 #include "Templates/SharedPointer.h"
 

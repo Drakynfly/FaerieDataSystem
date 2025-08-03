@@ -4,14 +4,19 @@
 #include "FaerieInventorySettings.h"
 
 #include "FaerieItem.h"
-#include "FaerieItemDataStatics.h"
+#include "FaerieItemStorageStatics.h"
 #include "InventoryStorageProxy.h"
 #include "ItemContainerExtensionBase.h"
+#include "Algo/Copy.h"
 #include "Tokens/FaerieItemStorageToken.h"
 #include "Tokens/FaerieStackLimiterToken.h"
 
 #include "Net/UnrealNetwork.h"
 #include "Providers/FlakesBinarySerializer.h"
+
+#if WITH_EDITOR
+#include "Engine/Engine.h"
+#endif
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemStorage)
 
@@ -70,18 +75,16 @@ void UFaerieItemStorage::DeinitializeNetObject(AActor* Actor)
 	Super::DeinitializeNetObject(Actor);
 }
 
-FFaerieContainerSaveData UFaerieItemStorage::MakeSaveData() const
+FInstancedStruct UFaerieItemStorage::MakeSaveData(TMap<FGuid, FInstancedStruct>& ExtensionData) const
 {
 	ensureMsgf(GetDefault<UFaerieInventorySettings>()->ContainerMutableBehavior == EFaerieContainerOwnershipBehavior::Rename,
 		TEXT("Flakes relies on ownership of sub-objects. Rename must be enabled! (ProjectSettings -> Faerie Inventory -> Container Mutable Behavior)"));
 
-	FFaerieContainerSaveData SaveData;
-	SaveData.ItemData = FInstancedStruct::Make(Flakes::MakeFlake<Flakes::Binary::Type>(FConstStructView::Make(EntryMap), this));
-	RavelExtensionData(SaveData.ExtensionData);
-	return SaveData;
+	RavelExtensionData(ExtensionData);
+	return FInstancedStruct::Make(Flakes::MakeFlake<Flakes::Binary::Type>(EntryMap, this));
 }
 
-void UFaerieItemStorage::LoadSaveData(const FFaerieContainerSaveData& SaveData)
+void UFaerieItemStorage::LoadSaveData(const FConstStructView ItemData, UFaerieItemContainerExtensionData* ExtensionData)
 {
 	// Clear out state
 
@@ -92,11 +95,11 @@ void UFaerieItemStorage::LoadSaveData(const FFaerieContainerSaveData& SaveData)
 
 	// Load in save data
 
-	EntryMap = Flakes::CreateStruct<Flakes::Binary::Type, FInventoryContent>(SaveData.ItemData.Get<FFlake>(), this);
+	EntryMap = Flakes::CreateStruct<Flakes::Binary::Type, FInventoryContent>(ItemData.Get<const FFlake>(), this);
 	TArray<FEntryKey, TInlineAllocator<4>> InvalidKeys;
 	for (const FKeyedInventoryEntry& Entry : EntryMap)
 	{
-		if (!Faerie::ValidateLoadedItem(Entry.Value.ItemObject))
+		if (!Faerie::ValidateItemData(Entry.Value.ItemObject))
 		{
 			InvalidKeys.Add(Entry.Key);
 		}
@@ -122,7 +125,7 @@ void UFaerieItemStorage::LoadSaveData(const FFaerieContainerSaveData& SaveData)
 
 	Extensions->InitializeExtension(this);
 
-	UnravelExtensionData(SaveData.ExtensionData);
+	UnravelExtensionData(ExtensionData);
 }
 
 bool UFaerieItemStorage::Contains(const FEntryKey Key) const
@@ -150,7 +153,7 @@ FFaerieItemStack UFaerieItemStorage::Release(const FEntryKey Key, const int32 Co
 	return FFaerieItemStack();
 }
 
-void UFaerieItemStorage::ForEachKey(const TFunctionRef<void(FEntryKey)>& Func) const
+void UFaerieItemStorage::ForEachKey(Faerie::TLoop<FEntryKey> Func) const
 {
 	for (const FKeyedInventoryEntry& Element : EntryMap)
 	{
@@ -248,7 +251,7 @@ FFaerieItemStack UFaerieItemStorage::Release(const FFaerieAddress Address, const
 	return FFaerieItemStack();
 }
 
-void UFaerieItemStorage::ForEachAddress(const TFunctionRef<void(FFaerieAddress)>& Func) const
+void UFaerieItemStorage::ForEachAddress(Faerie::TLoop<FFaerieAddress> Func) const
 {
 	for (const FKeyedInventoryEntry& Element : EntryMap)
 	{
@@ -259,26 +262,11 @@ void UFaerieItemStorage::ForEachAddress(const TFunctionRef<void(FFaerieAddress)>
 	}
 }
 
-void UFaerieItemStorage::ForEachItem(const TFunctionRef<void(const UFaerieItem*)>& Func) const
+void UFaerieItemStorage::ForEachItem(Faerie::TLoop<const UFaerieItem*> Func) const
 {
 	for (const FKeyedInventoryEntry& Element : EntryMap)
 	{
 		Func(Element.Value.ItemObject);
-	}
-}
-
-void UFaerieItemStorage::OnItemMutated(const UFaerieItem* Item, const UFaerieItemToken* Token, const FGameplayTag EditTag)
-{
-	Super::OnItemMutated(Item, Token, EditTag);
-
-	// @todo annoying but acceptable
-	for (const FKeyedInventoryEntry& Element : EntryMap)
-	{
-		if (Element.Value.ItemObject == Item)
-		{
-			PostContentChanged(Element, ItemMutation);
-			return;
-		}
 	}
 }
 
@@ -294,6 +282,21 @@ bool UFaerieItemStorage::Possess(const FFaerieItemStack Stack)
 		Stack.Copies < 1) return false;
 
 	return AddStackImpl(Stack, false).Success;
+}
+
+void UFaerieItemStorage::OnItemMutated(const UFaerieItem* Item, const UFaerieItemToken* Token, const FGameplayTag EditTag)
+{
+	Super::OnItemMutated(Item, Token, EditTag);
+
+	// @todo annoying but acceptable
+	for (const FKeyedInventoryEntry& Element : EntryMap)
+	{
+		if (Element.Value.ItemObject == Item)
+		{
+			PostContentChanged(Element, ItemMutation);
+			return;
+		}
+	}
 }
 
 FFaerieAddress UFaerieItemStorage::Encode(const FEntryKey Entry, const FStackKey Stack)
@@ -327,7 +330,7 @@ void UFaerieItemStorage::PostContentAdded(const FKeyedInventoryEntry& Entry)
 	auto Addresses = Switchover_GetAddresses(Entry.Key);
 	for (const FFaerieAddress& Address : Addresses)
 	{
-		OnAddressAddedCallback.Broadcast(this, Address);
+		BroadcastAddressEvent(EFaerieAddressEventType::PostAdd, Address);
 	}
 
 	if (auto&& EntryProxy = LocalEntryProxies.Find(Entry.Key))
@@ -351,7 +354,7 @@ void UFaerieItemStorage::PostContentAdded(const FKeyedInventoryEntry& Entry)
 	}
 }
 
-void UFaerieItemStorage::PostContentChanged(const FKeyedInventoryEntry& Entry, EContentChangeType ChangeType)
+void UFaerieItemStorage::PostContentChanged(const FKeyedInventoryEntry& Entry, const EContentChangeType ChangeType)
 {
 	if (!ensure(Entry.Key.IsValid()))
 	{
@@ -380,7 +383,7 @@ void UFaerieItemStorage::PostContentChanged(const FKeyedInventoryEntry& Entry, E
 				auto Addresses = Switchover_GetAddresses(Entry.Key);
 				for (const FFaerieAddress& Address : Addresses)
 				{
-					OnAddressUpdatedCallback.Broadcast(this, Address);
+					BroadcastAddressEvent(EFaerieAddressEventType::Edit, Address);
 				}
 			}
 			break;
@@ -389,7 +392,7 @@ void UFaerieItemStorage::PostContentChanged(const FKeyedInventoryEntry& Entry, E
 				auto Addresses = Switchover_GetAddresses(Entry.Key);
 				for (const FFaerieAddress& Address : Addresses)
 				{
-					OnAddressUpdatedCallback.Broadcast(this, Address);
+					BroadcastAddressEvent(EFaerieAddressEventType::Edit, Address);
 				}
 			}
 			break;
@@ -454,7 +457,7 @@ void UFaerieItemStorage::PreContentRemoved(const FKeyedInventoryEntry& Entry)
 	auto Addresses = Switchover_GetAddresses(Entry.Key);
 	for (const FFaerieAddress& Address : Addresses)
 	{
-		OnAddressRemovedCallback.Broadcast(this, Address);
+		BroadcastAddressEvent(EFaerieAddressEventType::PreRemove, Address);
 	}
 
 	// Cleanup local views.
@@ -477,8 +480,14 @@ void UFaerieItemStorage::PreContentRemoved(const FKeyedInventoryEntry& Entry)
 	}
 }
 
+void UFaerieItemStorage::BroadcastAddressEvent(const EFaerieAddressEventType Type, const FFaerieAddress Address)
+{
+	OnAddressEventCallback.Broadcast(this, Type, Address);
+	OnAddressEvent.Broadcast(this, Type, Address);
+}
 
-	/**------------------------------*/
+
+/**------------------------------*/
 	/*	  INTERNAL IMPLEMENTATIONS	 */
 	/**------------------------------*/
 
@@ -612,7 +621,7 @@ Faerie::Inventory::FEventLog UFaerieItemStorage::AddStackImpl(const FFaerieItemS
 		// will keep the EntryMap sorted.
 		Event.EntryTouched = KeyGen.NextKey();
 
-		TakeOwnership(InStack.Item);
+		Faerie::TakeOwnership(this, InStack.Item);
 
 		FInventoryEntry NewEntry;
 		NewEntry.ItemObject = InStack.Item;
@@ -660,7 +669,7 @@ Faerie::Inventory::FEventLog UFaerieItemStorage::RemoveFromEntryImpl(const FEntr
 		{
 			Event.Amount = Sum;
 			Event.StackKeys = Handle->CopyKeys();
-			ReleaseOwnership(Handle->ItemObject);
+			Faerie::ReleaseOwnership(this, Handle->ItemObject);
 			Remove = true;
 		}
 		else // Remove part of the entry
@@ -718,7 +727,7 @@ Faerie::Inventory::FEventLog UFaerieItemStorage::RemoveFromStackImpl(const FInve
 
 			if (Handle->Stacks.IsEmpty())
 			{
-				ReleaseOwnership(Handle->ItemObject);
+				Faerie::ReleaseOwnership(this, Handle->ItemObject);
 				Remove = true;
 			}
 		}

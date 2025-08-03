@@ -7,7 +7,7 @@
 /**
  * This enum holds the flags to bitwise equivalate inventory entries.
  */
-UENUM(BlueprintType, Meta = (Bitflags, UseEnumValuesAsMaskValuesInEditor))
+UENUM(BlueprintType, Flags, Meta = (Bitflags, UseEnumValuesAsMaskValuesInEditor = "true"))
 enum class EEntryEquivalencyFlags : uint8
 {
 	None = 0 UMETA(Hidden),

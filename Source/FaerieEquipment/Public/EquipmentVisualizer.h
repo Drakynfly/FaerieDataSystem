@@ -5,6 +5,7 @@
 #include "FaerieItemProxy.h"
 #include "Components/ActorComponent.h"
 #include "UObject/WeakInterfacePtr.h"
+#include "UObject/ObjectKey.h"
 #include "GameplayTagContainer.h"
 
 #include "EquipmentVisualizer.generated.h"
@@ -181,9 +182,7 @@ protected:
 
 	UPROPERTY()
 	TMap<FFaerieVisualKey, TObjectPtr<USceneComponent>> SpawnedComponents;
-
-	UPROPERTY()
-	TMap<TObjectPtr<UObject>, FFaerieVisualKey> ReverseMap;
+	TMap<FObjectKey, FFaerieVisualKey> ReverseMap;
 
 	UPROPERTY()
 	TMap<FFaerieVisualKey, FEquipmentVisualMetadata> KeyedMetadata;

@@ -6,6 +6,7 @@
 
 #include "FaerieResourceToken.generated.h"
 
+class UMaterialInterface;
 class UDurabilityGradeAsset;
 
 // @todo remove or merge with DurabilityToken

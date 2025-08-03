@@ -3,7 +3,8 @@
 #include "FaerieItem.h"
 #include "FaerieHashStatics.h"
 #include "FaerieItemToken.h"
-#include "FaerieUtils.h"
+#include "AssetLoadFlagFixer.h"
+#include "Algo/Copy.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "UObject/ObjectSaveContext.h"
@@ -87,13 +88,13 @@ namespace Faerie
 		return *this;
 	}
 
-	FTokenFilter& FTokenFilter::ForEach(const TFunctionRef<bool(const TObjectPtr<UFaerieItemToken>&)>& Iter)
+	FTokenFilter& FTokenFilter::ForEach(TBreakableLoop<const TObjectPtr<UFaerieItemToken>&> Iter)
 	{
 		for (auto&& Token : Tokens)
 		{
 			if (IsValid(Token))
 			{
-				if (!Iter(Token))
+				if (Iter(Token) == Stop)
 				{
 					return *this;
 				}
@@ -103,6 +104,8 @@ namespace Faerie
 		return *this;
 	}
 }
+
+using namespace Faerie;
 
 void UFaerieItem::PreSave(FObjectPreSaveContext SaveContext)
 {
@@ -166,7 +169,7 @@ void UFaerieItem::GetReplicatedCustomConditionState(FCustomPropertyConditionStat
 	}
 }
 
-void UFaerieItem::ForEachToken(const TFunctionRef<bool(const TObjectPtr<UFaerieItemToken>&)>& Iter)
+void UFaerieItem::ForEachToken(TBreakableLoop<const TObjectPtr<UFaerieItemToken>&> Iter)
 {
 	TScopeCounter<uint32> IterationLock(WriteLock);
 
@@ -174,7 +177,7 @@ void UFaerieItem::ForEachToken(const TFunctionRef<bool(const TObjectPtr<UFaerieI
 	{
 		if (IsValid(Token))
 		{
-			if (!Iter(Token))
+			if (Iter(Token) == Stop)
 			{
 				return;
 			}
@@ -182,7 +185,7 @@ void UFaerieItem::ForEachToken(const TFunctionRef<bool(const TObjectPtr<UFaerieI
 	}
 }
 
-void UFaerieItem::ForEachToken(const TFunctionRef<bool(const TObjectPtr<const UFaerieItemToken>&)>& Iter) const
+void UFaerieItem::ForEachToken(TBreakableLoop<const TObjectPtr<const UFaerieItemToken>&> Iter) const
 {
 	TScopeCounter<uint32> IterationLock(WriteLock);
 
@@ -190,7 +193,7 @@ void UFaerieItem::ForEachToken(const TFunctionRef<bool(const TObjectPtr<const UF
 	{
 		if (IsValid(Token))
 		{
-			if (!Iter(Token))
+			if (Iter(Token) == Stop)
 			{
 				return;
 			}
@@ -198,7 +201,7 @@ void UFaerieItem::ForEachToken(const TFunctionRef<bool(const TObjectPtr<const UF
 	}
 }
 
-void UFaerieItem::ForEachTokenOfClass(const TFunctionRef<bool(const TObjectPtr<UFaerieItemToken>&)>& Iter, const TSubclassOf<UFaerieItemToken>& Class)
+void UFaerieItem::ForEachTokenOfClass(TBreakableLoop<const TObjectPtr<UFaerieItemToken>&> Iter, const TSubclassOf<UFaerieItemToken>& Class)
 {
 	TScopeCounter<uint32> IterationLock(WriteLock);
 
@@ -206,7 +209,7 @@ void UFaerieItem::ForEachTokenOfClass(const TFunctionRef<bool(const TObjectPtr<U
 	{
 		if (IsValid(Token) && Token->IsA(Class))
 		{
-			if (!Iter(Token))
+			if (Iter(Token) == Stop)
 			{
 				return;
 			}
@@ -214,7 +217,7 @@ void UFaerieItem::ForEachTokenOfClass(const TFunctionRef<bool(const TObjectPtr<U
 	}
 }
 
-void UFaerieItem::ForEachTokenOfClass(const TFunctionRef<bool(const TObjectPtr<const UFaerieItemToken>&)>& Iter, const TSubclassOf<UFaerieItemToken>& Class) const
+void UFaerieItem::ForEachTokenOfClass(TBreakableLoop<const TObjectPtr<const UFaerieItemToken>&> Iter, const TSubclassOf<UFaerieItemToken>& Class) const
 {
 	TScopeCounter<uint32> IterationLock(WriteLock);
 
@@ -222,7 +225,7 @@ void UFaerieItem::ForEachTokenOfClass(const TFunctionRef<bool(const TObjectPtr<c
 	{
 		if (IsValid(Token) && Token->IsA(Class))
 		{
-			if (!Iter(Token))
+			if (Iter(Token) == Stop)
 			{
 				return;
 			}
@@ -309,14 +312,14 @@ UFaerieItem* UFaerieItem::CreateDuplicate(const EFaerieItemInstancingMutability 
 			// Mutable tokens must be duplicated.
 			if (Token->IsMutable())
 			{
-				Duplicate->Tokens.Add(Faerie::DuplicateObjectFromDiskForReplication(Token, Duplicate));
+				Duplicate->Tokens.Add(DuplicateObjectFromDiskForReplication(Token, Duplicate));
 			}
 			// Immutable tokens can be referenced from the asset directly.
 			else
 			{
 				Duplicate->Tokens.Add(ConstCast(Token));
 			}
-			return true;
+			return Continue;
 		});
 
 	// Initialize token mutability.
@@ -413,9 +416,9 @@ TArray<UFaerieItemToken*> UFaerieItem::GetMutableTokens(const TSubclassOf<UFaeri
 	return OutTokens;
 }
 
-Faerie::FTokenFilter UFaerieItem::FilterTokens() const
+FTokenFilter UFaerieItem::FilterTokens() const
 {
-	return Faerie::FTokenFilter(Tokens);
+	return FTokenFilter(Tokens);
 }
 
 bool UFaerieItem::Compare(const UFaerieItem* A, const UFaerieItem* B, const EFaerieItemComparisonFlags Flags)
@@ -457,11 +460,11 @@ bool UFaerieItem::CompareWith(const UFaerieItem* Other, const EFaerieItemCompari
 	// This is a quicker comparison that uses the CompareWith virtual function implemented by those tokens.
 	if (EnumHasAnyFlags(Flags, EFaerieItemComparisonFlags::Tokens_ComparePrimaryIdentifiers))
 	{
-		Faerie::FTokenFilter ThisFilter(FilterTokens());
-		ThisFilter.ByTag(Faerie::Tags::PrimaryIdentifierToken);
+		FTokenFilter ThisFilter(FilterTokens());
+		ThisFilter.ByTag(Tags::PrimaryIdentifierToken);
 
-		Faerie::FTokenFilter OtherFilter(Other->FilterTokens());
-		OtherFilter.ByTag(Faerie::Tags::PrimaryIdentifierToken);
+		FTokenFilter OtherFilter(Other->FilterTokens());
+		OtherFilter.ByTag(Tags::PrimaryIdentifierToken);
 
 		// This already indicates they are not equal.
 		if (ThisFilter.Num() != OtherFilter.Num())
@@ -480,16 +483,15 @@ bool UFaerieItem::CompareWith(const UFaerieItem* Other, const EFaerieItemCompari
 				{
 					if (TokenB->CompareWith(*It))
 					{
-						// The token is a match! Remove from the ItemA list, and exit iteration.
+						// The token is a match! Remove from the ItemA list, and continue to the next token.
 						It.RemoveCurrentSwap();
-						return false;
+						return Continue;
 					}
-					// Okay, continue to the next token.
 				}
 
 				// No match was found, marked comparison as failed, and exit.
 				ComparisonFailed = true;
-				return false;
+				return Stop;
 			});
 
 		return !ComparisonFailed;
@@ -524,13 +526,13 @@ bool UFaerieItem::CompareWith(const UFaerieItem* Other, const EFaerieItemCompari
 	TokenAHashes.Reserve(TokensA.Num());
 	for (auto&& TokenA : TokensA)
 	{
-		TokenAHashes.Add(Faerie::Hash::HashObjectByProps(TokenA, true));
+		TokenAHashes.Add(Hash::HashObjectByProps(TokenA, true));
 	}
 
 	// While hashing all of B's tokens, check that they all have a match.
 	for (auto&& TokenB : TokensB)
 	{
-		if (const uint32 TokenBHash = Faerie::Hash::HashObjectByProps(TokenB, true);
+		if (const uint32 TokenBHash = Hash::HashObjectByProps(TokenB, true);
 			TokenAHashes.RemoveSwap(TokenBHash))
 		{
 			// The token was matched! Continue iteration.
@@ -590,7 +592,7 @@ bool UFaerieItem::AddToken(UFaerieItemToken* Token)
 	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Tokens, this);
 	Tokens.Add(Token);
 
-	(void)NotifyOwnerOfSelfMutation.ExecuteIfBound(this, Token, Faerie::Tags::TokenAdd);
+	(void)NotifyOwnerOfSelfMutation.ExecuteIfBound(this, Token, Tags::TokenAdd);
 	return true;
 }
 
@@ -619,7 +621,7 @@ bool UFaerieItem::RemoveToken(UFaerieItemToken* Token)
 		LastModified = FDateTime::UtcNow();
 		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, LastModified, this);
 
-		(void)NotifyOwnerOfSelfMutation.ExecuteIfBound(this, Token, Faerie::Tags::TokenRemove);
+		(void)NotifyOwnerOfSelfMutation.ExecuteIfBound(this, Token, Tags::TokenRemove);
 
 		return true;
 	}
@@ -670,7 +672,7 @@ int32 UFaerieItem::RemoveTokensByClass(const TSubclassOf<UFaerieItemToken> Class
 
 		for (auto&& Token : TokensRemoved)
 		{
-			(void)NotifyOwnerOfSelfMutation.ExecuteIfBound(this, Token, Faerie::Tags::TokenRemove);
+			(void)NotifyOwnerOfSelfMutation.ExecuteIfBound(this, Token, Tags::TokenRemove);
 		}
 
 		return Removed;
@@ -753,7 +755,7 @@ void UFaerieItem::OnTokenEdited(const UFaerieItemToken* Token)
 	check(CanMutate())
 	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, LastModified, this);
 	LastModified = FDateTime::UtcNow();
-	(void)NotifyOwnerOfSelfMutation.ExecuteIfBound(this, Token, Faerie::Tags::TokenGenericPropertyEdit);
+	(void)NotifyOwnerOfSelfMutation.ExecuteIfBound(this, Token, Tags::TokenGenericPropertyEdit);
 }
 
 void UFaerieItem::CacheTokenMutability()

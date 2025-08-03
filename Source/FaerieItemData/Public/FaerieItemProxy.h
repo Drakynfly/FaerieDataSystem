@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "UObject/Interface.h"
 #include "UObject/WeakInterfacePtr.h"
 
 #include "FaerieItemProxy.generated.h"

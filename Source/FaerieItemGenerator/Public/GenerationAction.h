@@ -4,9 +4,11 @@
 
 #include "FaerieItemProxy.h"
 #include "ItemSlotHandle.h"
+#include "Engine/TimerHandle.h"
 
 #include "GenerationAction.generated.h"
 
+struct FStreamableHandle;
 struct FFaerieItemSlotHandle;
 struct FFaerieItemStack;
 class IFaerieItemDataProxy;
@@ -34,8 +36,8 @@ struct FCraftingActionSparseClassStruct
 	FCraftingActionSparseClassStruct() = default;
 
 	// The maximum duration an action can run, in seconds, before timing out.
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Configuration")
-	float DefaultTimeoutTime = 10.f;
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Configuration", meta = (Units = s))
+	float DefaultTimeoutTime = 30.f;
 };
 
 class IFaerieItemSlotInterface;
@@ -65,7 +67,7 @@ protected:
 	virtual TArray<FSoftObjectPath> GetAssetsToLoad() const { return {}; }
 
 	// Internal virtual run function. This must be implemented per subclass. It must finish before the timer has ran out.
-	virtual void Run() PURE_VIRTUAL(UGenerationActionBase::Run, )
+	virtual void Run() PURE_VIRTUAL(UCraftingActionBase::Run, )
 
 	bool IsRunning() const;
 
@@ -107,6 +109,8 @@ protected:
 private:
 	UPROPERTY()
 	FTimerHandle TimerHandle;
+
+	TSharedPtr<FStreamableHandle> RunningStreamHandle;
 
 #if WITH_EDITORONLY_DATA
 	// Running state of the action. All errors related to this should be discovered and resolved in the editor.

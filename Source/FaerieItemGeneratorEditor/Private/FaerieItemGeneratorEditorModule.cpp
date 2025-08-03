@@ -1,8 +1,9 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieItemGeneratorEditorModule.h"
-#include "ItemCraftingConfig.h"
+#include "Modules/ModuleManager.h"
 
+#include "ItemCraftingConfig.h"
 #include "ItemGeneratorConfig.h"
 #include "ItemUpgradeConfig.h"
 #include "PropertyEditorModule.h"

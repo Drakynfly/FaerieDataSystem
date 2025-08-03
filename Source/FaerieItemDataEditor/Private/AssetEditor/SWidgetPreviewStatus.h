@@ -6,6 +6,7 @@
 // as it is private, and cannot be used outside its module. As Epic continues to develop the UMGWidgetPreview plugin in
 // future engine versions, I will hopefully be able to remove this, and use the built-in classes.
 
+#include "Logging/TokenizedMessage.h"
 #include "Widgets/SCompoundWidget.h"
 #include "Widgets/Layout/SBox.h"
 

@@ -5,7 +5,7 @@
 #include "FaerieEquipmentSlotDescription.h"
 #include "FaerieAssetInfo.h"
 #include "FaerieItem.h"
-#include "FaerieItemDataStatics.h"
+#include "FaerieItemStorageStatics.h"
 #include "FaerieItemTemplate.h"
 #include "InventoryDataEnums.h"
 #include "ItemContainerEvent.h"
@@ -40,66 +40,20 @@ void UFaerieEquipmentSlot::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, StoredKey, SharedParams);
 }
 
-FFaerieContainerSaveData UFaerieEquipmentSlot::MakeSaveData() const
+FInstancedStruct UFaerieEquipmentSlot::MakeSaveData(TMap<FGuid, FInstancedStruct>& ExtensionData) const
 {
-	FFaerieEquipmentSlotSaveData SlotSaveData;
-	SlotSaveData.Config = Config;
-	SlotSaveData.StoredKey = StoredKey;
-	if (StoredKey.IsValid())
-	{
-		SlotSaveData.ItemStack = Flakes::MakeFlake<Flakes::Binary::Type>(FConstStructView::Make(ItemStack), this);
-	}
-
-	FFaerieContainerSaveData SaveData;
-	SaveData.ItemData = FInstancedStruct::Make(SlotSaveData);
-	RavelExtensionData(SaveData.ExtensionData);
-	return SaveData;
+	return FInstancedStruct::Make(MakeSlotData(ExtensionData));
 }
 
-void UFaerieEquipmentSlot::LoadSaveData(const FFaerieContainerSaveData& SaveData)
+void UFaerieEquipmentSlot::LoadSaveData(const FConstStructView ItemData, UFaerieItemContainerExtensionData* ExtensionData)
 {
-	const FFaerieEquipmentSlotSaveData* SlotSaveData = SaveData.ItemData.GetPtr<FFaerieEquipmentSlotSaveData>();
+	const FFaerieEquipmentSlotSaveData* SlotSaveData = ItemData.GetPtr<const FFaerieEquipmentSlotSaveData>();
 	if (!SlotSaveData)
 	{
 		return;
 	}
 
-	// @todo should check all Config members, not just SlotID
-	if (!ensure(Config.SlotID == SlotSaveData->Config.SlotID))
-	{
-		return;
-	}
-
-	// Clear any current content.
-	if (IsFilled())
-	{
-		TakeItemFromSlot(-1);
-	}
-
-	// Cannot change Config here, as it only replicates once!
-
-	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, StoredKey, this);
-	StoredKey = SlotSaveData->StoredKey;
-
-	if (StoredKey.IsValid())
-	{
-		KeyGen.SetPosition(StoredKey);
-
-		const FFaerieItemStack LoadedItemStack = Flakes::CreateStruct<Flakes::Binary::Type, FFaerieItemStack>(SlotSaveData->ItemStack, this);
-		if (Faerie::ValidateLoadedItem(LoadedItemStack.Item) &&
-			LoadedItemStack.Copies > 0)
-		{
-			SetItemInSlot_Impl(LoadedItemStack);
-		}
-		else
-		{
-			// Reset key if stack is invalid.
-			UE_LOG(LogFaerieEquipmentSlot, Error, TEXT("Loading content for slot '%s' failed. Slot has been emptied!"), *Config.SlotID.ToString())
-			StoredKey = FEntryKey();
-		}
-	}
-
-	UnravelExtensionData(SaveData.ExtensionData);
+	LoadSlotData(*SlotSaveData, ExtensionData);
 }
 
 //~ UFaerieItemContainerBase
@@ -108,7 +62,7 @@ bool UFaerieEquipmentSlot::Contains(const FEntryKey Key) const
 	return StoredKey == Key;
 }
 
-void UFaerieEquipmentSlot::ForEachKey(const TFunctionRef<void(FEntryKey)>& Func) const
+void UFaerieEquipmentSlot::ForEachKey(Faerie::TLoop<FEntryKey> Func) const
 {
 	if (StoredKey.IsValid())
 	{
@@ -221,7 +175,7 @@ TArray<FFaerieAddress> UFaerieEquipmentSlot::Switchover_GetAddresses(const FEntr
 	return {};
 }
 
-void UFaerieEquipmentSlot::ForEachAddress(const TFunctionRef<void(FFaerieAddress)>& Func) const
+void UFaerieEquipmentSlot::ForEachAddress(Faerie::TLoop<FFaerieAddress> Func) const
 {
 	if (StoredKey.IsValid())
 	{
@@ -229,7 +183,7 @@ void UFaerieEquipmentSlot::ForEachAddress(const TFunctionRef<void(FFaerieAddress
 	}
 }
 
-void UFaerieEquipmentSlot::ForEachItem(const TFunctionRef<void(const UFaerieItem*)>& Func) const
+void UFaerieEquipmentSlot::ForEachItem(Faerie::TLoop<const UFaerieItem*> Func) const
 {
 	if (StoredKey.IsValid())
 	{
@@ -237,12 +191,58 @@ void UFaerieEquipmentSlot::ForEachItem(const TFunctionRef<void(const UFaerieItem
 	}
 }
 
-void UFaerieEquipmentSlot::OnItemMutated(const UFaerieItem* InItem, const UFaerieItemToken* Token, const FGameplayTag EditTag)
+FFaerieEquipmentSlotSaveData UFaerieEquipmentSlot::MakeSlotData(TMap<FGuid, FInstancedStruct>& ExtensionData) const
 {
-	Super::OnItemMutated(InItem, Token, EditTag);
-	check(ItemStack.Item == InItem);
+	RavelExtensionData(ExtensionData);
 
-	BroadcastDataChange();
+	FFaerieEquipmentSlotSaveData SlotSaveData;
+	SlotSaveData.Config = Config;
+	SlotSaveData.StoredKey = StoredKey;
+	if (StoredKey.IsValid())
+	{
+		SlotSaveData.ItemStack = ItemStack;
+	}
+	return SlotSaveData;
+}
+
+void UFaerieEquipmentSlot::LoadSlotData(const FFaerieEquipmentSlotSaveData& SlotData, UFaerieItemContainerExtensionData* ExtensionData)
+{
+	// @todo should check all Config members, not just SlotID
+	if (!ensure(Config.SlotID == SlotData.Config.SlotID))
+	{
+		return;
+	}
+
+	// Clear any current content.
+	if (IsFilled())
+	{
+		TakeItemFromSlot(-1);
+	}
+
+	// Cannot change Config here, as it only replicates once!
+
+	if (SlotData.StoredKey.IsValid())
+	{
+		KeyGen.SetPosition(SlotData.StoredKey);
+
+		const FFaerieItemStack LoadedItemStack = SlotData.ItemStack;
+		if (Faerie::ValidateItemData(LoadedItemStack.Item) &&
+			LoadedItemStack.Copies > 0)
+		{
+			// We do need to ClearOwnership here, as whatever loaded the data may have parented the items automatically.
+			Faerie::ClearOwnership(LoadedItemStack.Item);
+			SetItemInSlot_Impl(LoadedItemStack);
+		}
+		else
+		{
+			// Reset key if stack is invalid.
+			UE_LOG(LogFaerieEquipmentSlot, Error, TEXT("Loading content for slot '%s' failed. Slot has been emptied!"), *Config.SlotID.ToString())
+			MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, StoredKey, this);
+			StoredKey = FEntryKey();
+		}
+	}
+
+	UnravelExtensionData(ExtensionData);
 }
 
 int32 UFaerieEquipmentSlot::GetStack() const
@@ -283,6 +283,14 @@ bool UFaerieEquipmentSlot::Possess(const FFaerieItemStack Stack)
 	return SetItemInSlot(Stack);
 }
 
+void UFaerieEquipmentSlot::OnItemMutated(const UFaerieItem* Item, const UFaerieItemToken* Token, const FGameplayTag EditTag)
+{
+	Super::OnItemMutated(Item, Token, EditTag);
+	check(ItemStack.Item == Item);
+
+	BroadcastDataChange();
+}
+
 //~ IFaerieItemOwnerInterface
 
 void UFaerieEquipmentSlot::BroadcastChange()
@@ -317,7 +325,7 @@ void UFaerieEquipmentSlot::SetItemInSlot_Impl(const FFaerieItemStack& Stack)
 		ItemStack = Stack;
 
 		// Take ownership of the new item.
-		TakeOwnership(ItemStack.Item);
+		Faerie::TakeOwnership(this, ItemStack.Item);
 
 		Event.EntryTouched = StoredKey;
 		Extensions->PostAddition(this, Event);
@@ -467,7 +475,7 @@ FFaerieItemStack UFaerieEquipmentSlot::TakeItemFromSlot(int32 Copies)
 		ItemStack = FFaerieItemStack();
 
 		// Release ownership of this item.
-		ReleaseOwnership(OutStack.Item);
+		Faerie::ReleaseOwnership(this, OutStack.Item);
 
 		Extensions->PostRemoval(this, Event);
 	}

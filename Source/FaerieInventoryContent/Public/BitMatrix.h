@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "Containers/Array.h"
+
 namespace Faerie
 {
 	class FBitMatrix

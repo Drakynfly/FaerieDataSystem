@@ -3,10 +3,12 @@
 #pragma once
 
 #include "FaerieItemDataEnums.h"
+#include "LoopUtils.h"
 #include "GameplayTagContainer.h"
 #include "NativeGameplayTags.h"
 #include "NetSupportedObject.h"
 #include "TypeCastingUtils.h"
+#include "Templates/SubclassOf.h"
 
 #include "FaerieItem.generated.h"
 
@@ -50,7 +52,7 @@ namespace Faerie
 		FAERIEITEMDATA_API FTokenFilter& ByTagQuery(const FGameplayTagQuery& Query);
 
 		// Iterates over the filtered tokens. Return true in the delegate to continue iterating.
-		FAERIEITEMDATA_API FTokenFilter& ForEach(const TFunctionRef<bool(const TObjectPtr<UFaerieItemToken>&)>& Iter);
+		FAERIEITEMDATA_API FTokenFilter& ForEach(TBreakableLoop<const TObjectPtr<UFaerieItemToken>&> Iter);
 
 		FAERIEITEMDATA_API int32 Num() const { return Tokens.Num(); }
 
@@ -77,7 +79,7 @@ class FAERIEITEMDATA_API UFaerieItem : public UNetSupportedObject
 {
 	GENERATED_BODY()
 
-	friend class UFaerieItemToken;
+	friend UFaerieItemToken;
 	friend class UFaerieItemAsset;
 
 public:
@@ -89,22 +91,22 @@ public:
 	//~ Emd UObject interface
 
 	// Iterates over each contained token. Return true in the delegate to continue iterating.
-	void ForEachToken(const TFunctionRef<bool(const TObjectPtr<		 UFaerieItemToken>&)>& Iter);
-	void ForEachToken(const TFunctionRef<bool(const TObjectPtr<const UFaerieItemToken>&)>& Iter) const;
+	void ForEachToken(Faerie::TBreakableLoop<const TObjectPtr<	  UFaerieItemToken>&> Iter);
+	void ForEachToken(Faerie::TBreakableLoop<const TObjectPtr<const UFaerieItemToken>&> Iter) const;
 
 	// Iterates over each contained token. Return true in the delegate to continue iterating.
-	void ForEachTokenOfClass(const TFunctionRef<bool(const TObjectPtr<UFaerieItemToken>&)>& Iter, const TSubclassOf<UFaerieItemToken>& Class);
-	void ForEachTokenOfClass(const TFunctionRef<bool(const TObjectPtr<const UFaerieItemToken>&)>& Iter, const TSubclassOf<UFaerieItemToken>& Class) const;
+	void ForEachTokenOfClass(Faerie::TBreakableLoop<const TObjectPtr<	   UFaerieItemToken>&> Iter, const TSubclassOf<UFaerieItemToken>& Class);
+	void ForEachTokenOfClass(Faerie::TBreakableLoop<const TObjectPtr<const UFaerieItemToken>&> Iter, const TSubclassOf<UFaerieItemToken>& Class) const;
 
 	// Iterates over each contained token. Return true in the delegate to continue iterating.
 	template <
 		typename TFaerieItemToken
 		UE_REQUIRES(TIsDerivedFrom<TFaerieItemToken, UFaerieItemToken>::Value)
 	>
-	void ForEachToken(const TFunctionRef<bool(const TObjectPtr<TFaerieItemToken>&)>& Iter)
+	void ForEachToken(Faerie::TBreakableLoop<const TObjectPtr<TFaerieItemToken>&> Iter)
 	{
 		ForEachTokenOfClass(
-			*reinterpret_cast<const TFunctionRef<bool(const TObjectPtr<UFaerieItemToken>&)>*>(&Iter)
+			*reinterpret_cast<const TFunctionRef<Faerie::ELoopControl(const TObjectPtr<UFaerieItemToken>&)>*>(&Iter)
 			, TFaerieItemToken::StaticClass());
 	}
 
@@ -112,10 +114,10 @@ public:
 		typename TFaerieItemToken
 		UE_REQUIRES(TIsDerivedFrom<TFaerieItemToken, UFaerieItemToken>::Value)
 	>
-	void ForEachToken(const TFunctionRef<bool(const TObjectPtr<const TFaerieItemToken>&)>& Iter) const
+	void ForEachToken(Faerie::TBreakableLoop<const TObjectPtr<const TFaerieItemToken>&> Iter) const
 	{
 		ForEachTokenOfClass(
-			*reinterpret_cast<const TFunctionRef<bool(const TObjectPtr<const UFaerieItemToken>&)>*>(&Iter)
+			*reinterpret_cast<const TFunctionRef<Faerie::ELoopControl(const TObjectPtr<const UFaerieItemToken>&)>*>(&Iter)
 			, TFaerieItemToken::StaticClass());
 	}
 
@@ -187,7 +189,7 @@ public:
 
 	// Mutate cast will return a const_cast'd *this* if the item is a runtime mutable instance. This is the proscribed
 	// method to gain access to the non-const API of UFaerieItem.
-	UFaerieItem* MutateCast() const;
+	[[nodiscard]] UFaerieItem* MutateCast() const;
 	bool AddToken(UFaerieItemToken* Token);
 	bool RemoveToken(UFaerieItemToken* Token);
 	int32 RemoveTokensByClass(TSubclassOf<UFaerieItemToken> Class);

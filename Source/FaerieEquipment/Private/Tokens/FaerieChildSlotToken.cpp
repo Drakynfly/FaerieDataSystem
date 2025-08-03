@@ -10,13 +10,14 @@
 #include "FaerieEquipmentSlotDescription.h"
 #endif
 
+#include "GameFramework/Actor.h"
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieChildSlotToken)
 
 UFaerieChildSlotToken::UFaerieChildSlotToken()
 {
 	ItemContainer = CreateDefaultSubobject<UFaerieEquipmentSlot>(FName{TEXTVIEW("ItemContainer")});
 	Extensions = CreateDefaultSubobject<UItemContainerExtensionGroup>(FName{TEXTVIEW("Extensions")});
-	Extensions->SetIdentifier();
+	SET_NEW_IDENTIFIER(Extensions, TEXT("ChildSlotTokenGroup"))
 }
 
 void UFaerieChildSlotToken::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -80,12 +81,12 @@ void UFaerieChildSlotToken::InitializeNetObject(AActor* Actor)
 	Actor->AddReplicatedSubObject(Extensions);
 	Extensions->InitializeNetObject(Actor);
 
-	ItemContainer->AddExtension(Extensions);
+	ItemContainer->GetExtensionGroup()->SetParentGroup(Extensions);
 }
 
 void UFaerieChildSlotToken::DeinitializeNetObject(AActor* Actor)
 {
-	ItemContainer->RemoveExtension(Extensions);
+	ItemContainer->GetExtensionGroup()->SetParentGroup(nullptr);
 
 	Actor->RemoveReplicatedSubObject(ItemContainer);
 	ItemContainer->DeinitializeNetObject(Actor);

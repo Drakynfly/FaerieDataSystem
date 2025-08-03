@@ -11,31 +11,24 @@
 
 #include "Actors/ItemRepresentationActor.h"
 #include "Components/FaerieItemMeshComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Tokens/FaerieMeshToken.h"
 #include "Tokens/FaerieVisualActorClassToken.h"
 #include "Tokens/FaerieVisualEquipment.h"
 
 #include "GameFramework/Character.h"
+#include "Tokens/FaerieItemStorageToken.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(EquipmentVisualizationUpdater)
 
 void UEquipmentVisualizationUpdater::InitializeExtension(const UFaerieItemContainerBase* Container)
 {
-	if (auto Slot = Cast<UFaerieEquipmentSlot>(Container))
-	{
-		auto&& Visualizer = GetVisualizer(Container);
-		if (!IsValid(Visualizer))
-		{
-			return;
-		}
-
-		Container->ForEachKey(
-			[this, Container, Visualizer](const FEntryKey Key)
-			{
-				CreateNewVisualImpl(Container, Visualizer, Container->Proxy(Key));
-				SpawnKeys.Add(Container, Key);
-			});
-	}
+	/*
+	 * Normally, extensions run logic here for the container being initialized.
+	 * However, we cannot in this case, as the visuals this extension generates can be dependent on the state of other
+	 * containers, which may not have been Initialized with us yet. Instead, PostAddition handles logic for dependent
+	 * containers, as CreateVisualImpl recurses over children.
+	 */
 }
 
 void UEquipmentVisualizationUpdater::DeinitializeExtension(const UFaerieItemContainerBase* Container)
@@ -59,7 +52,7 @@ void UEquipmentVisualizationUpdater::DeinitializeExtension(const UFaerieItemCont
 
 		for (auto&& Key : Keys)
 		{
-			RemoveOldVisualImpl(Visualizer, Container->Proxy(Key));
+			RemoveVisualImpl(Visualizer, Container->Proxy(Key));
 		}
 	}
 }
@@ -70,10 +63,9 @@ void UEquipmentVisualizationUpdater::PostAddition(const UFaerieItemContainerBase
 	if (auto Slot = Cast<UFaerieEquipmentSlot>(Container))
 	{
 		// A previously empty slot now has been filled with an item.
-		CreateNewVisual(Container, Event.EntryTouched);
+		CreateVisualForEntry(Container, Event.EntryTouched);
 	}
 }
-
 
 void UEquipmentVisualizationUpdater::PreRemoval(const UFaerieItemContainerBase* Container, const FEntryKey Key,
 	const int32 Removal)
@@ -83,7 +75,7 @@ void UEquipmentVisualizationUpdater::PreRemoval(const UFaerieItemContainerBase* 
 		// If the whole stack is being removed, remove the visual for it
 		if (Container->GetStack(Key) == Removal || Removal == Faerie::ItemData::UnlimitedStack)
 		{
-			RemoveOldVisual(Container, Key);
+			RemoveVisualForEntry(Container, Key);
 		}
 	}
 }
@@ -102,8 +94,8 @@ void UEquipmentVisualizationUpdater::PostEntryChanged(const UFaerieItemContainer
 			return;
 		}
 		const FFaerieItemProxy Proxy = Container->Proxy(Event.EntryTouched);
-		RemoveOldVisualImpl(Visualizer, Proxy);
-		CreateNewVisualImpl(Container, Visualizer, Proxy);
+		RemoveVisualImpl(Visualizer, Proxy);
+		CreateVisualImpl(Container, Visualizer, Proxy);
 	}
 }
 
@@ -117,7 +109,7 @@ UEquipmentVisualizer* UEquipmentVisualizationUpdater::GetVisualizer(const UFaeri
 	auto&& Relevants = GetExtension<URelevantActorsExtension>(Container, true);
 	if (!IsValid(Relevants))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GetVisualizer failed: Requires a RelevantActorsExtension on the container to find the pawn!"))
+		UE_LOG(LogTemp, Warning, TEXT("GetVisualizer failed: Requires a RelevantActorsExtension on the container to find the pawn (%s)!"), *Container->GetName())
 		return nullptr;
 	}
 
@@ -131,21 +123,98 @@ UEquipmentVisualizer* UEquipmentVisualizationUpdater::GetVisualizer(const UFaeri
 
 	if (!IsValid(Pawn))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GetVisualizer failed: Failed to find relevant Pawn!"))
+		UE_LOG(LogTemp, Warning, TEXT("GetVisualizer failed: Failed to find relevant Pawn (%s)!"), *Container->GetName())
 		return nullptr;
 	}
 
 	auto&& Visualizer = Pawn->GetComponentByClass<UEquipmentVisualizer>();
 	if (!IsValid(Visualizer))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GetVisualizer failed: Pawn does not container a visualizer!"))
+		UE_LOG(LogTemp, Warning, TEXT("GetVisualizer failed: Pawn does not have a visualizer component (%s)!"), *Container->GetName())
 		return nullptr;
 	}
 
 	return Visualizer;
 }
 
-void UEquipmentVisualizationUpdater::CreateNewVisual(const UFaerieItemContainerBase* Container, const FEntryKey Key)
+FEquipmentVisualAttachment UEquipmentVisualizationUpdater::FindAttachmentParent(const UFaerieItemContainerBase* Container, const UVisualSlotExtension*& SlotExtension, const UEquipmentVisualizer* Visualizer)
+{
+	FEquipmentVisualAttachment Attachment;
+
+	// If there is a VisualSlotExtension on this container, then defer to it.
+	SlotExtension = GetExtension<UVisualSlotExtension>(Container, true);
+
+	AActor* ParentActor = nullptr;
+	USceneComponent* ParentComponent = nullptr;
+
+	// See if we are owned by a slot, and try to determine attachment to it.
+	UFaerieEquipmentSlot* OwningSlot = Container->GetTypedOuter<UFaerieEquipmentSlot>();
+	if (IsValid(OwningSlot))
+	{
+		UObject* Visual = Visualizer->GetSpawnedVisualByKey({ OwningSlot->Proxy() });
+
+		if (AActor* Actor = Cast<AActor>(Visual))
+		{
+			ParentActor = Actor;
+		}
+		else if (USceneComponent* Component = Cast<USceneComponent>(Visual))
+		{
+			ParentComponent = Component;
+		}
+
+		if (IsValid(ParentComponent))
+		{
+			Attachment.Parent = ParentComponent;
+		}
+		else if (IsValid(ParentActor))
+		{
+			Attachment.Parent = ParentComponent;
+		}
+	}
+	else
+	{
+		// In the case of no owning slot, use the parent actor.
+		ParentActor = Visualizer->GetOwner();
+	}
+
+	// If we directly found a Component, great, use it!
+	if (IsValid(ParentComponent))
+	{
+		if (UFaerieItemMeshComponent* ItemMeshComponent = Cast<UFaerieItemMeshComponent>(ParentComponent))
+		{
+			Attachment.Parent = ItemMeshComponent->GetGeneratedMeshComponent();
+		}
+		else
+		{
+			Attachment.Parent = ParentComponent;
+		}
+	}
+	// If we only found an Actor, determine the component to use.
+	else if (IsValid(ParentActor))
+	{
+		// First choice is the one specified by the Extension (if applicable)
+		if (auto Component = IsValid(SlotExtension)
+				? ParentActor->FindComponentByTag<USceneComponent>(SlotExtension->GetComponentTag()) : nullptr;
+			IsValid(Component))
+		{
+			Attachment.Parent = Component;
+		}
+		else if (const ACharacter* Character = Cast<ACharacter>(ParentActor))
+		{
+			Attachment.Parent = Character->GetMesh();
+		}
+		else
+		{
+			Attachment.Parent = ParentActor->GetRootComponent();
+		}
+	}
+
+	Attachment.Socket = SlotExtension->GetSocket();
+
+	return Attachment;
+}
+
+void UEquipmentVisualizationUpdater::CreateVisualForEntry(const UFaerieItemContainerBase* Container, const FEntryKey Key)
 {
 	auto&& Visualizer = GetVisualizer(Container);
 	if (!IsValid(Visualizer))
@@ -153,11 +222,17 @@ void UEquipmentVisualizationUpdater::CreateNewVisual(const UFaerieItemContainerB
 		return;
 	}
 
-	CreateNewVisualImpl(Container, Visualizer, Container->Proxy(Key));
+	if (SpawnKeys.Contains(Container))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Container already has an visual spawned. Existing visuals must be removed before creating new ones!"));
+		return;
+	}
+
+	CreateVisualImpl(Container, Visualizer, Container->Proxy(Key));
 	SpawnKeys.Add(Container, Key);
 }
 
-void UEquipmentVisualizationUpdater::RemoveOldVisual(const UFaerieItemContainerBase* Container, const FEntryKey Key)
+void UEquipmentVisualizationUpdater::RemoveVisualForEntry(const UFaerieItemContainerBase* Container, const FEntryKey Key)
 {
 	auto&& Visualizer = GetVisualizer(Container);
 	if (!IsValid(Visualizer))
@@ -165,12 +240,12 @@ void UEquipmentVisualizationUpdater::RemoveOldVisual(const UFaerieItemContainerB
 		return;
 	}
 
-	RemoveOldVisualImpl(Visualizer, Container->Proxy(Key));
+	RemoveVisualImpl(Visualizer, Container->Proxy(Key));
 	SpawnKeys.RemoveSingle(Container, Key);
 }
 
-void UEquipmentVisualizationUpdater::CreateNewVisualImpl(const UFaerieItemContainerBase* Container,
-	UEquipmentVisualizer* Visualizer, const FFaerieItemProxy Proxy)
+void UEquipmentVisualizationUpdater::CreateVisualImpl(const UFaerieItemContainerBase* Container,
+													  UEquipmentVisualizer* Visualizer, const FFaerieItemProxy Proxy)
 {
 	if (!Proxy.IsValid())
 	{
@@ -178,24 +253,9 @@ void UEquipmentVisualizationUpdater::CreateNewVisualImpl(const UFaerieItemContai
 	}
 
 	// Step 1: Figure out what we are attaching to.
-	FEquipmentVisualAttachment Attachment;
 
-	// If there is a VisualSlotExtension on the slot, then defer to it.
-	auto&& SlotExtension = GetExtension<UVisualSlotExtension>(Container, true);
-	if (IsValid(SlotExtension))
-	{
-		Attachment.Parent = Visualizer->GetOwner()->FindComponentByTag<USceneComponent>(SlotExtension->GetComponentTag());
-		if (!Attachment.Parent.IsValid() && Visualizer->GetOwner()->IsA<ACharacter>())
-		{
-			// Default to using the character mesh for attachment if no other is found.
-			Attachment.Parent = Cast<ACharacter>(Visualizer->GetOwner())->GetMesh();
-		}
-		Attachment.Socket = SlotExtension->GetSocket();
-	}
-	else
-	{
-		// @todo fallback attachment
-	}
+	const UVisualSlotExtension* SlotExtension = nullptr;
+	FEquipmentVisualAttachment Attachment = FindAttachmentParent(Container, SlotExtension, Visualizer);
 
 	// Step 2: What are we creating as a visual.
 
@@ -239,7 +299,8 @@ void UEquipmentVisualizationUpdater::CreateNewVisualImpl(const UFaerieItemContai
 	{
 		bool CanLeaderPoseMesh = false;
 		FGameplayTag PreferredTag = Faerie::ItemMesh::Tags::MeshPurpose_Default;
-		if (Visualizer->GetPreferredTag().IsValid())
+		if (Visualizer->GetPreferredTag().IsValid() &&
+			ensure(Visualizer->GetPreferredTag().GetTagName().IsValid()))
 		{
 			PreferredTag = Visualizer->GetPreferredTag();
 		}
@@ -256,7 +317,8 @@ void UEquipmentVisualizationUpdater::CreateNewVisualImpl(const UFaerieItemContai
 				Attachment.Socket = NAME_None;
 			}
 
-			if (SlotExtension->GetPreferredTag().IsValid())
+			if (SlotExtension->GetPreferredTag().IsValid() &&
+				ensure(SlotExtension->GetPreferredTag().GetTagName().IsValid()))
 			{
 				PreferredTag = SlotExtension->GetPreferredTag();
 			}
@@ -264,26 +326,45 @@ void UEquipmentVisualizationUpdater::CreateNewVisualImpl(const UFaerieItemContai
 
 		UFaerieItemMeshComponent* NewVisual = Visualizer->SpawnVisualComponentNative<UFaerieItemMeshComponent>(
 			{ Proxy }, UFaerieItemMeshComponent::StaticClass(), Attachment);
-		if (!IsValid(NewVisual))
+		if (IsValid(NewVisual))
 		{
-			return;
-		}
+			// If there is no AnimClass on the mesh, it would prefer using LeaderPose as a fallback
+			if (CanLeaderPoseMesh)
+			{
+				NewVisual->SetSkeletalMeshLeaderPoseComponent(Visualizer->GetLeaderComponent());
+			}
 
-		// If there is no AnimClass on the mesh, it would prefer using LeaderPose as a fallback
-		if (CanLeaderPoseMesh)
+			NewVisual->SetPreferredTag(PreferredTag);
+			NewVisual->SetIsReplicated(true); // Enable replication, as it's off by default.
+			NewVisual->SetItemMeshFromToken(Proxy->GetItemObject()->GetToken<UFaerieMeshTokenBase>());
+		}
+	}
+
+	// Step 3: Recurse over children
+	auto SubContainers = UFaerieItemContainerToken::GetContainersInItem<UFaerieEquipmentSlot>(Proxy->GetItemObject());
+	for (auto SubContainer : SubContainers)
+	{
+		auto Key = SubContainer->GetCurrentKey();
+		if (Key.IsValid())
 		{
-			NewVisual->SetSkeletalMeshLeaderPoseComponent(Visualizer->GetLeaderComponent());
+			CreateVisualForEntry(SubContainer, Key);
 		}
-
-		NewVisual->SetPreferredTag(PreferredTag);
-		NewVisual->SetIsReplicated(true); // Enable replication, as it's off by default.
-		NewVisual->SetItemMeshFromToken(Proxy->GetItemObject()->GetToken<UFaerieMeshTokenBase>());
-		return;
 	}
 }
 
-void UEquipmentVisualizationUpdater::RemoveOldVisualImpl(UEquipmentVisualizer* Visualizer, const FFaerieItemProxy Proxy)
+void UEquipmentVisualizationUpdater::RemoveVisualImpl(UEquipmentVisualizer* Visualizer, const FFaerieItemProxy Proxy)
 {
 	check(Visualizer);
 	Visualizer->DestroyVisualByKey({Proxy});
+
+	// Recurse over children
+	auto SubContainers = UFaerieItemContainerToken::GetContainersInItem<UFaerieEquipmentSlot>(Proxy->GetItemObject());
+	for (auto SubContainer : SubContainers)
+	{
+		auto Key = SubContainer->GetCurrentKey();
+		if (Key.IsValid())
+		{
+			RemoveVisualForEntry(SubContainer, Key);
+		}
+	}
 }

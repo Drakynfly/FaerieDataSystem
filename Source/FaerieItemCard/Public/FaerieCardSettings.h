@@ -4,6 +4,7 @@
 
 #include "FaerieItemCardTags.h"
 #include "Engine/DeveloperSettings.h"
+#include "Templates/SubclassOf.h"
 #include "FaerieCardSettings.generated.h"
 
 class UFaerieCardBase;

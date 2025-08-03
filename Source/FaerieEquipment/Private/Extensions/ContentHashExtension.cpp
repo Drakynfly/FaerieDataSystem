@@ -3,6 +3,7 @@
 #include "Extensions/ContentHashExtension.h"
 #include "FaerieInventoryHashStatics.h"
 #include "FaerieItemContainerBase.h"
+#include "GameFramework/Actor.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
 
@@ -51,8 +52,7 @@ void UContentHashExtension::PostAddition(const UFaerieItemContainerBase* Contain
 void UContentHashExtension::RecalcContainerHash(const UFaerieItemContainerBase* Container)
 {
 	FFaerieHash& Hash = PerContainerHash.FindOrAdd(Container);
-	const FFaerieHash NewHash = Faerie::Hash::HashContainer(Container, &Faerie::Hash::HashItemByName);
-	Hash = NewHash;
+	Hash = Faerie::Hash::HashContainer(Container, &Faerie::Hash::HashItemByName);
 	RecalcLocalChecksum();
 }
 

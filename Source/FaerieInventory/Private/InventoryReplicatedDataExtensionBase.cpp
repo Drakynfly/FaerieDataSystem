@@ -3,8 +3,13 @@
 #include "InventoryReplicatedDataExtensionBase.h"
 #include "FaerieItemContainerBase.h"
 #include "ItemContainerEvent.h"
+#include "GameFramework/Actor.h"
 #include "StructUtils/StructView.h"
 #include "Net/UnrealNetwork.h"
+
+#if WITH_EDITOR
+#include "UObject/UObjectThreadContext.h"
+#endif
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventoryReplicatedDataExtensionBase)
 
@@ -331,7 +336,7 @@ FConstStructView UInventoryReplicatedDataExtensionBase::GetDataForHandle(const F
 	return FConstStructView();
 }
 
-bool UInventoryReplicatedDataExtensionBase::EditDataForHandle(const FFaerieAddressableHandle Handle, const TFunctionRef<void(FStructView)>& Edit)
+bool UInventoryReplicatedDataExtensionBase::EditDataForHandle(const FFaerieAddressableHandle Handle, Faerie::TLoop<FStructView> Edit)
 {
 	const TStructView<FFaerieReplicatedSimMap> ContainerData = FindFastArrayForContainer(Handle.Container.Get());
 	if (!ContainerData.IsValid())

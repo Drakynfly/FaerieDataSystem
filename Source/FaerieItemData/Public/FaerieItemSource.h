@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "UObject/Interface.h"
 #include "UObject/Object.h"
 #include "FaerieAssetInfo.h"
 
@@ -14,8 +15,6 @@ UCLASS(Const)
 class FAERIEITEMDATA_API UItemInstancingContext : public UObject
 {
 	GENERATED_BODY()
-
-	friend class UFaerieItem;
 
 public:
 	// Flags to mark instances with

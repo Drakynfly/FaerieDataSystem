@@ -5,9 +5,13 @@
 
 #if WITH_EDITOR
 #include "Misc/DataValidation.h"
+#include "UObject/UObjectThreadContext.h"
 #endif
 
-#include "FaerieUtils.h"
+#include "AssetLoadFlagFixer.h"
+#include "Logging.h"
+#include "Engine/EngineTypes.h"
+#include "GameFramework/Actor.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
 
@@ -15,13 +19,15 @@
 
 #define LOCTEXT_NAMESPACE "ItemContainerExtensionGroup"
 
+using namespace Faerie;
+
 void UItemContainerExtensionBase::PostDuplicate(const EDuplicateMode::Type DuplicateMode)
 {
 	Super::PostDuplicate(DuplicateMode);
 	if (DuplicateMode == EDuplicateMode::PIE) return;
 
-	// Make a new identifier when duplicated
-	SetIdentifier();
+	// Make a new identifier when duplicated (keep editor identifier for debugging)
+	SET_NEW_IDENTIFIER(this, GetEditorIdentifier())
 }
 
 void UItemContainerExtensionBase::InitializeNetObject(AActor* Actor)
@@ -47,13 +53,22 @@ void UItemContainerExtensionBase::SetIdentifier(const FGuid* GuidToUse)
 	}
 }
 
+#if WITH_EDITOR
+void UItemContainerExtensionBase::SetEditorIdentifier(const FString& StringId)
+{
+	EditorIdentifier = StringId;
+}
+#endif
+
 void UItemContainerExtensionGroup::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	FDoRepLifetimeParams Params;
 	Params.bIsPushBased = true;
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, ParentGroup, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, Extensions, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, DynamicExtensions, Params);
 }
 
 void UItemContainerExtensionGroup::PostLoad()
@@ -68,6 +83,14 @@ void UItemContainerExtensionGroup::PostLoad()
 	Extensions.RemoveAll(
 		[](const TObjectPtr<UItemContainerExtensionBase>& Extension){ return !IsValid(Extension); });
 #endif
+
+	for (auto&& Extension : Extensions)
+	{
+		if (UItemContainerExtensionGroup* Group = Cast<UItemContainerExtensionGroup>(Extension))
+		{
+			Group->SetParentGroup(this);
+		}
+	}
 }
 
 #if WITH_EDITOR
@@ -95,7 +118,7 @@ void UItemContainerExtensionGroup::InitializeNetObject(AActor* Actor)
 	Super::InitializeNetObject(Actor);
 
 	ForEachExtension(
-		[Actor](UItemContainerExtensionBase* Extension)
+		[this, Actor](UItemContainerExtensionBase* Extension)
 		{
 			Actor->AddReplicatedSubObject(Extension);
 			Extension->InitializeNetObject(Actor);
@@ -118,7 +141,8 @@ void UItemContainerExtensionGroup::InitializeExtension(const UFaerieItemContaine
 	if (Containers.Contains(Container)) return;
 
 #if WITH_EDITOR
-	checkf(FUObjectThreadContext::Get().IsInConstructor == false, TEXT("Do not call InitializeExtension from a constructor! Use InitializeNetObject if available."));
+	checkf(FUObjectThreadContext::Get().IsInConstructor == false,
+		TEXT("Do not call InitializeExtension from a constructor! Use InitializeNetObject if available."));
 
 	// Explanation: For UFaerieInventoryComponents that are added to Blueprint Classes, sometimes in PIE, the
 	// component's GEN_VARIABLE version will somehow slip through and try to be added as a container. They are invalid.
@@ -159,24 +183,24 @@ EEventExtensionResponse UItemContainerExtensionGroup::AllowsAddition(const UFaer
 	EEventExtensionResponse Response = EEventExtensionResponse::NoExplicitResponse;
 
 	// Check each extension, to see if the reason is allowed or denied.
-	for (auto&& Extension : Extensions)
-	{
-		if (!ensure(IsValid(Extension))) continue;
-
-		switch (Extension->AllowsAddition(Container, Views, Args))
+	ForEachExtension([&](const UItemContainerExtensionBase* Extension)
 		{
-		case EEventExtensionResponse::NoExplicitResponse:
-			break;
-		case EEventExtensionResponse::Allowed:
-			// Flag response as allowed, unless another extension bars with a Disallowed
-			Response = EEventExtensionResponse::Allowed;
-			break;
-		case EEventExtensionResponse::Disallowed:
-			// Return false immediately if any Extension bars the reason.
-			return EEventExtensionResponse::Disallowed;
-		default: ;
-		}
-	}
+			switch (Extension->AllowsAddition(Container, Views, Args))
+			{
+			case EEventExtensionResponse::NoExplicitResponse:
+				return Continue;
+			case EEventExtensionResponse::Allowed:
+				// Flag response as allowed, unless another extension bars with a Disallowed
+				Response = EEventExtensionResponse::Allowed;
+				return Continue;
+			case EEventExtensionResponse::Disallowed:
+				// Return false immediately if any Extension bars the reason.
+				Response = EEventExtensionResponse::Disallowed;
+				return Stop;
+			default:
+				return Continue;
+			}
+		});
 
 	return Response;
 }
@@ -191,7 +215,7 @@ void UItemContainerExtensionGroup::PreAddition(const UFaerieItemContainerBase* C
 }
 
 void UItemContainerExtensionGroup::PostAddition(const UFaerieItemContainerBase* Container,
-												const Faerie::Inventory::FEventLog& Event)
+												const Inventory::FEventLog& Event)
 {
 	ForEachExtension(
 		[Container, &Event](UItemContainerExtensionBase* Extension)
@@ -206,24 +230,24 @@ EEventExtensionResponse UItemContainerExtensionGroup::AllowsRemoval(const UFaeri
 	EEventExtensionResponse Response = EEventExtensionResponse::NoExplicitResponse;
 
 	// Check each extension, to see if the reason is allowed or denied.
-	for (auto&& Extension : Extensions)
-	{
-		if (!ensure(IsValid(Extension))) continue;
-
-		switch (Extension->AllowsRemoval(Container, Key, Reason))
+	ForEachExtensionWithBreak([&](const UItemContainerExtensionBase* Extension)
 		{
-		case EEventExtensionResponse::NoExplicitResponse:
-			break;
-		case EEventExtensionResponse::Allowed:
-			// Flag response as allowed, unless another extension bars with a Disallowed
-			Response = EEventExtensionResponse::Allowed;
-			break;
-		case EEventExtensionResponse::Disallowed:
-			// Return false immediately if any Extension bars the reason.
-			return EEventExtensionResponse::Disallowed;
-		default: ;
-		}
-	}
+			switch (Extension->AllowsRemoval(Container, Key, Reason))
+			{
+			case EEventExtensionResponse::NoExplicitResponse:
+				return Continue;
+			case EEventExtensionResponse::Allowed:
+				// Flag response as allowed, unless another extension bars with a Disallowed
+				Response = EEventExtensionResponse::Allowed;
+				return Continue;
+			case EEventExtensionResponse::Disallowed:
+				// Return false immediately if any Extension bars the reason.
+				Response = EEventExtensionResponse::Disallowed;
+				return Stop;
+			default:
+				return Continue;
+			}
+		});
 
 	return Response;
 }
@@ -238,7 +262,7 @@ void UItemContainerExtensionGroup::PreRemoval(const UFaerieItemContainerBase* Co
 }
 
 void UItemContainerExtensionGroup::PostRemoval(const UFaerieItemContainerBase* Container,
-                                           const Faerie::Inventory::FEventLog& Event)
+                                           const Inventory::FEventLog& Event)
 {
 	ForEachExtension(
 		[Container, &Event](UItemContainerExtensionBase* Extension)
@@ -253,31 +277,31 @@ EEventExtensionResponse UItemContainerExtensionGroup::AllowsEdit(const UFaerieIt
 {
 	EEventExtensionResponse Response = EEventExtensionResponse::NoExplicitResponse;
 
-	// Check each extension, to see if the edit tag is allowed or denied.
-	for (auto&& Extension : Extensions)
-	{
-		if (!ensure(IsValid(Extension))) continue;
-
-		switch (Extension->AllowsEdit(Container, Key, EditTag))
+	// Check each extension, to see if the reason is allowed or denied.
+	ForEachExtensionWithBreak([&](const UItemContainerExtensionBase* Extension)
 		{
-		case EEventExtensionResponse::NoExplicitResponse:
-			break;
-		case EEventExtensionResponse::Allowed:
-			// Flag response as allowed, unless another extension bars with a Disallowed
-			Response = EEventExtensionResponse::Allowed;
-			break;
-		case EEventExtensionResponse::Disallowed:
-			// Return false immediately if any Extension bars the reason.
-			return EEventExtensionResponse::Disallowed;
-		default: ;
-		}
-	}
+			switch (Extension->AllowsEdit(Container, Key, EditTag))
+			{
+			case EEventExtensionResponse::NoExplicitResponse:
+				return Continue;
+			case EEventExtensionResponse::Allowed:
+				// Flag response as allowed, unless another extension bars with a Disallowed
+				Response = EEventExtensionResponse::Allowed;
+				return Continue;
+			case EEventExtensionResponse::Disallowed:
+				// Return false immediately if any Extension bars the reason.
+				Response = EEventExtensionResponse::Disallowed;
+				return Stop;
+			default:
+				return Continue;
+			}
+		});
 
 	return Response;
 }
 
 void UItemContainerExtensionGroup::PostEntryChanged(const UFaerieItemContainerBase* Container,
-	const Faerie::Inventory::FEventLog& Event)
+	const Inventory::FEventLog& Event)
 {
 	ForEachExtension(
 		[Container, &Event](UItemContainerExtensionBase* Extension)
@@ -291,12 +315,55 @@ UItemContainerExtensionGroup* UItemContainerExtensionGroup::GetExtensionGroup() 
 	return const_cast<UItemContainerExtensionGroup*>(this);
 }
 
-void UItemContainerExtensionGroup::ForEachExtension(const TFunctionRef<void(UItemContainerExtensionBase*)>& Func)
+void UItemContainerExtensionGroup::ForEachExtension(TLoop<UItemContainerExtensionBase*> Func)
+{
+	ForEachExtension(*reinterpret_cast<const TFunctionRef<void(const UItemContainerExtensionBase*)>*>(&Func));
+}
+
+void UItemContainerExtensionGroup::ForEachExtension(TLoop<const UItemContainerExtensionBase*> Func) const
 {
 	for (auto&& Extension : Extensions)
 	{
-		if (!ensureMsgf(IsValid(Extension), TEXT("Invalid Extension while iterating. Investigate!"))) continue;
+		if (!ensureMsgf(IsValid(Extension), TEXT("Invalid Default Extension while iterating. Investigate!"))) continue;
 		Func(Extension);
+	}
+	for (auto&& Extension : DynamicExtensions)
+	{
+		if (!ensureMsgf(IsValid(Extension), TEXT("Invalid Dynamic Extension while iterating. Investigate!"))) continue;
+		Func(Extension);
+	}
+	if (IsValid(ParentGroup))
+	{
+		ParentGroup->ForEachExtension(Func);
+	}
+}
+
+void UItemContainerExtensionGroup::ForEachExtensionWithBreak(TBreakableLoop<UItemContainerExtensionBase*> Func)
+{
+	ForEachExtensionWithBreak(*reinterpret_cast<const TFunctionRef<ELoopControl(const UItemContainerExtensionBase*)>*>(&Func));
+}
+
+void UItemContainerExtensionGroup::ForEachExtensionWithBreak(TBreakableLoop<const UItemContainerExtensionBase*> Func) const
+{
+	for (auto&& Extension : Extensions)
+	{
+		if (!ensureMsgf(IsValid(Extension), TEXT("Invalid Default Extension while iterating. Investigate!"))) continue;
+		if (Func(Extension) == Stop)
+		{
+			return;
+		}
+	}
+	for (auto&& Extension : DynamicExtensions)
+	{
+		if (!ensureMsgf(IsValid(Extension), TEXT("Invalid Dynamic Extension while iterating. Investigate!"))) continue;
+		if (Func(Extension) == Stop)
+		{
+			return;
+		}
+	}
+	if (IsValid(ParentGroup))
+	{
+		ParentGroup->ForEachExtensionWithBreak(Func);
 	}
 }
 
@@ -351,6 +418,15 @@ void UItemContainerExtensionGroup::PrintDebugData() const
 		}
 		UE_LOG(LogTemp, Warning,  TEXT("	Registered Extension: '%s'"), *Extension->GetName())
 	}
+	for (auto&& Extension : DynamicExtensions)
+	{
+		if (!IsValid(Extension))
+		{
+			UE_LOG(LogTemp, Warning,  TEXT("	Invalid Extension in PrintDebugData. Investigate!"))
+			continue;
+		}
+		UE_LOG(LogTemp, Warning,  TEXT("	Registered Extension: '%s'"), *Extension->GetName())
+	}
 }
 #endif
 
@@ -360,13 +436,19 @@ bool UItemContainerExtensionGroup::AddExtension(UItemContainerExtensionBase* Ext
 		TEXT("Extension with invalid Identifier. Setup code-path with SetIdentifier called before AddExtension"))
 	if (!ensure(IsValid(Extension))) return false;
 
-	if (!ensureAlwaysMsgf(!Extensions.Contains(Extension), TEXT("Trying to add Extension twice. This is bad. Track down why!")))
+	if (!ensureAlwaysMsgf(!Extensions.Contains(Extension),
+		TEXT("Trying to add a dynamic Extension that is already in default. This is bad. Track down why this was attempted!")))
+	{
+		return false;
+	}
+	if (!ensureAlwaysMsgf(!DynamicExtensions.Contains(Extension),
+		TEXT("Trying to add dynamic Extension twice. This is bad. Track down why this was attempted!")))
 	{
 		return false;
 	}
 
 	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Extensions, this);
-	Extensions.Add(Extension);
+	DynamicExtensions.Add(Extension);
 	for (auto&& Container : Containers)
 	{
 		if (Container.IsValid())
@@ -380,7 +462,15 @@ bool UItemContainerExtensionGroup::AddExtension(UItemContainerExtensionBase* Ext
 bool UItemContainerExtensionGroup::RemoveExtension(UItemContainerExtensionBase* Extension)
 {
 	if (!ensure(IsValid(Extension))) return false;
-	if (!Extensions.Contains(Extension)) return false;
+
+	if (!ensureAlwaysMsgf(!Extensions.Contains(Extension),
+		TEXT("Trying to remove a default Extension. This is not allowed. Track down why this was attempted!")))
+	{
+		return false;
+	}
+
+	// Ignore attempts to remove an extension we don't contain.
+	if (!DynamicExtensions.Contains(Extension)) return false;
 
 	for (auto&& Container : Containers)
 	{
@@ -391,10 +481,11 @@ bool UItemContainerExtensionGroup::RemoveExtension(UItemContainerExtensionBase* 
 	}
 
 	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Extensions, this);
-	return !!Extensions.Remove(Extension);
+	return !!DynamicExtensions.Remove(Extension);
 }
 
-bool UItemContainerExtensionGroup::HasExtension(const TSubclassOf<UItemContainerExtensionBase> ExtensionClass, const bool RecursiveSearch) const
+bool UItemContainerExtensionGroup::HasExtension(
+	const TSubclassOf<UItemContainerExtensionBase> ExtensionClass, const bool RecursiveSearch) const
 {
 	if (!ensure(
 		IsValid(ExtensionClass) &&
@@ -405,65 +496,111 @@ bool UItemContainerExtensionGroup::HasExtension(const TSubclassOf<UItemContainer
 
 	if (!IsValid(ExtensionClass) || ExtensionClass == UItemContainerExtensionBase::StaticClass()) return false;
 
-	for (auto&& Extension : Extensions)
-	{
-		if (!Extension) continue;
-
-		// Find extension by direct search
-		if (Extension->IsA(ExtensionClass))
+	bool Result = false;
+	ForEachExtensionWithBreak([&](const UItemContainerExtensionBase* Extension)
 		{
-			return true;
-		}
-
-		if (RecursiveSearch)
-		{
-			// Find extension via recursive search
-			if (auto&& Group = Cast<ThisClass>(Extension))
+			// Find extension by direct search
+			if (Extension->IsA(ExtensionClass))
 			{
-				if (Group->HasExtension(ExtensionClass, true))
+				Result = true;
+				return Stop;
+			}
+
+			if (RecursiveSearch)
+			{
+				// Find extension via recursive search
+				if (auto&& Group = Cast<ThisClass>(Extension))
 				{
-					return true;
+					if (Group->HasExtension(ExtensionClass, true))
+					{
+						Result = true;
+						return Stop;
+					}
 				}
 			}
-		}
-	}
 
-	return false;
+			return Continue;
+		});
+
+	return Result;
 }
 
-UItemContainerExtensionBase* UItemContainerExtensionGroup::GetExtension(const TSubclassOf<UItemContainerExtensionBase> ExtensionClass, const bool RecursiveSearch) const
+UItemContainerExtensionBase* UItemContainerExtensionGroup::GetExtension(
+	const TSubclassOf<UItemContainerExtensionBase> ExtensionClass, const bool RecursiveSearch) const
 {
 	if (!IsValid(ExtensionClass) || ExtensionClass == UItemContainerExtensionBase::StaticClass()) return nullptr;
 
-	for (auto&& Extension : Extensions)
-	{
-		if (!Extension) continue;
-
-		// Find extension by direct search
-		if (Extension->IsA(ExtensionClass))
+	UItemContainerExtensionBase* Result = nullptr;
+	ForEachExtensionWithBreak([&](const UItemContainerExtensionBase* Extension)
 		{
-			return Extension;
-		}
-
-		if (RecursiveSearch)
-		{
-			// Find extension via recursive search
-			if (auto&& Group = Cast<ThisClass>(Extension))
+			// Find extension by direct search
+			if (Extension->IsA(ExtensionClass))
 			{
-				if (auto&& Found = Group->GetExtension(ExtensionClass, true))
+				Result = const_cast<UItemContainerExtensionBase*>(Extension);
+				return Stop;
+			}
+
+			if (RecursiveSearch)
+			{
+				// Find extension via recursive search
+				if (auto&& Group = Cast<ThisClass>(Extension))
 				{
-					return Found;
+					if (auto&& Found = Group->GetExtension(ExtensionClass, true))
+					{
+						Result = Found;
+						return Stop;
+					}
 				}
 			}
+
+			return Continue;
+		});
+
+	return Result;
+}
+
+void UItemContainerExtensionGroup::SetParentGroup(UItemContainerExtensionGroup* Parent)
+{
+	if (!IsValid(Parent))
+	{
+		if (IsValid(ParentGroup))
+		{
+			for (auto&& Container : Containers)
+			{
+				if (Container.IsValid())
+				{
+					ParentGroup->DeinitializeExtension(Container.Get());
+				}
+			}
+			MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, ParentGroup, this);
+			ParentGroup = nullptr;
 		}
+		return;
 	}
 
-	return nullptr;
+	checkf(Parent->GetIdentifier().IsValid(),
+		TEXT("Parent with invalid Identifier. Setup code-path with SetIdentifier called before SetParentGroup"))
+
+	if (!ensureAlwaysMsgf(!IsValid(ParentGroup),
+		TEXT("Attempted to set parent group while one is already assigned!")))
+	{
+		return;
+	}
+
+	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, ParentGroup, this);
+	ParentGroup = Parent;
+	for (auto&& Container : Containers)
+	{
+		if (Container.IsValid())
+		{
+			ParentGroup->InitializeExtension(Container.Get());
+		}
+	}
 }
 
 void UItemContainerExtensionGroup::ReplicationFixup()
 {
-	Faerie::ClearLoadFlags(this);
+	ClearLoadFlags(this);
 	ForEachExtension([](UItemContainerExtensionBase* Extension)
 	{
 		if (UItemContainerExtensionGroup* Group = Cast<UItemContainerExtensionGroup>(Extension))
@@ -472,9 +609,36 @@ void UItemContainerExtensionGroup::ReplicationFixup()
 		}
 		else
 		{
-			Faerie::ClearLoadFlags(Extension);
+			ClearLoadFlags(Extension);
 		}
 	});
+}
+
+void UItemContainerExtensionGroup::ValidateGroup()
+{
+	if (!Identifier.IsValid())
+	{
+		UE_LOG(LogFaerieInventory, Warning, TEXT("Invalid extension identifier for '%s'"), *GetName())
+	}
+
+	for (auto&& It = Extensions.CreateIterator(); It; ++It)
+	{
+		if (!IsValid(*It))
+		{
+			UE_LOG(LogFaerieInventory, Warning,
+				TEXT("Removing invalid extension pointer during PostLoadFixup at index [%i] for '%s'"),
+				It.GetIndex(), *GetName())
+			It.RemoveCurrent();
+		}
+		if (UItemContainerExtensionGroup* AsGroup = Cast<UItemContainerExtensionGroup>(*It))
+		{
+			AsGroup->ValidateGroup();
+		}
+		else if (!(*It)->Identifier.IsValid())
+		{
+			UE_LOG(LogFaerieInventory, Warning, TEXT("Invalid extension identifier for '%s'"), *(*It)->GetName())
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

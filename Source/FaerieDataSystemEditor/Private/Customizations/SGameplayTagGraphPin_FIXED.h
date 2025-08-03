@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "EdGraphSchema_K2.h"
 #include "KismetPins/SGraphPinStructInstance.h"
 #include "GameplayTagContainer.h"
 

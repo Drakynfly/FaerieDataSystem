@@ -7,6 +7,10 @@
 // future engine versions, I will hopefully be able to remove this, and use the built-in classes.
 
 #include "Misc/DataValidation/Fixer.h"
+#include "Widgets/SCompoundWidget.h"
+
+class SBorder;
+class UUserWidget;
 
 namespace Faerie::Ed
 {

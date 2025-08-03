@@ -2,6 +2,7 @@
 
 #include "SWidgetPreview.h"
 #include "ObjectEditorUtils.h"
+#include "ScopedTransaction.h"
 #include "WidgetBlueprint.h"
 #include "AssetEditor/FaerieItemAssetEditor.h"
 #include "AssetEditor/FaerieWidgetPreview.h"

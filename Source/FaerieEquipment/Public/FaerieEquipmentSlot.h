@@ -2,17 +2,15 @@
 
 #pragma once
 
-#include "FaerieEquipmentSlotConfig.h"
+#include "FaerieEquipmentSlotStructs.h"
 #include "FaerieInventoryTag.h"
 #include "FaerieItemContainerBase.h"
 #include "FaerieSlotTag.h"
-#include "FlakesData.h"
 #include "Actions/FaerieInventoryClient.h"
 #include "FaerieEquipmentSlot.generated.h"
 
 struct FFaerieAssetInfo;
 class UFaerieEquipmentSlot;
-class UFaerieEquipmentSlotDescription;
 class UFaerieItem;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogFaerieEquipmentSlot, Log, All)
@@ -22,22 +20,6 @@ namespace Faerie::Equipment::Tags
 	FAERIEEQUIPMENT_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, SlotSet)
 	FAERIEEQUIPMENT_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, SlotTake)
 }
-
-USTRUCT()
-struct FFaerieEquipmentSlotSaveData
-{
-	GENERATED_BODY()
-
-	UPROPERTY()
-	FFaerieEquipmentSlotConfig Config;
-
-	UPROPERTY()
-	FFlake ItemStack;
-
-	UPROPERTY()
-	FEntryKey StoredKey;
-};
-
 
 using FEquipmentSlotEventNative = TMulticastDelegate<void(UFaerieEquipmentSlot*)>;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FEquipmentSlotEvent, UFaerieEquipmentSlot*, Slot);
@@ -58,10 +40,10 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	//~ UFaerieItemContainerBase
-	virtual FFaerieContainerSaveData MakeSaveData() const override;
-	virtual void LoadSaveData(const FFaerieContainerSaveData& SaveData) override;
+	virtual FInstancedStruct MakeSaveData(TMap<FGuid, FInstancedStruct>& ExtensionData) const override;
+	virtual void LoadSaveData(FConstStructView ItemData, UFaerieItemContainerExtensionData* ExtensionData) override;
 	virtual bool Contains(FEntryKey Key) const override;
-	virtual void ForEachKey(const TFunctionRef<void(FEntryKey)>& Func) const override;
+	virtual void ForEachKey(Faerie::TLoop<FEntryKey> Func) const override;
 
 private:
 	virtual FFaerieItemStackView View(FEntryKey Key) const override;
@@ -80,8 +62,8 @@ private:
 	virtual FFaerieItemStack Release(FFaerieAddress Address, int32 Copies) override;
 	virtual TArray<FFaerieAddress> Switchover_GetAddresses(FEntryKey Key) const override;
 
-	virtual void ForEachAddress(const TFunctionRef<void(FFaerieAddress)>& Func) const override;
-	virtual void ForEachItem(const TFunctionRef<void(const UFaerieItem*)>& Func) const override;
+	virtual void ForEachAddress(Faerie::TLoop<FFaerieAddress> Func) const override;
+	virtual void ForEachItem(Faerie::TLoop<const UFaerieItem*> Func) const override;
 
 public:
 	FFaerieItemStackView View() const;
@@ -89,7 +71,8 @@ public:
 	int32 GetStack() const;
 
 protected:
-	virtual void OnItemMutated(const UFaerieItem* InItem, const UFaerieItemToken* Token, FGameplayTag EditTag) override;
+	FFaerieEquipmentSlotSaveData MakeSlotData(TMap<FGuid, FInstancedStruct>& ExtensionData) const;
+	void LoadSlotData(const FFaerieEquipmentSlotSaveData& SlotData, UFaerieItemContainerExtensionData* ExtensionData);
 	//~ UFaerieItemContainerBase
 
 public:
@@ -102,6 +85,9 @@ public:
 	//~ IFaerieItemOwnerInterface
 	virtual FFaerieItemStack Release(FFaerieItemStackView Stack) override;
 	virtual bool Possess(FFaerieItemStack Stack) override;
+
+protected:
+	virtual void OnItemMutated(const UFaerieItem* Item, const UFaerieItemToken* Token, FGameplayTag EditTag) override;
 	//~ IFaerieItemOwnerInterface
 
 protected:

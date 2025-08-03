@@ -83,10 +83,7 @@ struct FAERIEITEMMESH_API FSoftSkeletonAndAnimation
 		return !(Lhs == Rhs);
 	}
 
-	FSkeletonAndAnimation LoadSynchronous() const
-	{
-		return FSkeletonAndAnimation{ Mesh.LoadSynchronous(), AnimClass.LoadSynchronous(), AnimationAsset.LoadSynchronous() };
-	}
+	FSkeletonAndAnimation LoadSynchronous() const;
 
 	FORCEINLINE friend uint32 GetTypeHash(const FSoftSkeletonAndAnimation& Thing)
 	{

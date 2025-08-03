@@ -26,7 +26,7 @@ public class FaerieItemData : ModuleRules
                 "NetCore",
                 "Squirrel",
                 "Flakes",
-                "FlakesJson"
+                "FlakesJson" // Used by FaerieItemDataLibrary
             }
         );
 

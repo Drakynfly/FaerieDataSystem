@@ -2,7 +2,7 @@
 
 #include "ActorClasses/FaerieItemOwningActorBase.h"
 #include "FaerieEquipmentSlot.h"
-#include "FaerieUtils.h"
+#include "AssetLoadFlagFixer.h"
 #include "ItemContainerExtensionBase.h"
 #include "Net/UnrealNetwork.h"
 

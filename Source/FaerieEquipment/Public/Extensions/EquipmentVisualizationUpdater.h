@@ -2,10 +2,11 @@
 
 #pragma once
 
+#include "EquipmentVisualizer.h"
 #include "ItemContainerExtensionBase.h"
 #include "EquipmentVisualizationUpdater.generated.h"
 
-class UEquipmentVisualizer;
+class UVisualSlotExtension;
 
 /**
  *
@@ -26,11 +27,13 @@ protected:
 private:
 	static UEquipmentVisualizer* GetVisualizer(const UFaerieItemContainerBase* Container);
 
-	void CreateNewVisual(const UFaerieItemContainerBase* Container, FEntryKey Key);
-	void RemoveOldVisual(const UFaerieItemContainerBase* Container, FEntryKey Key);
+	static FEquipmentVisualAttachment FindAttachmentParent(const UFaerieItemContainerBase* Container, const UVisualSlotExtension*& SlotExtension, const UEquipmentVisualizer* Visualizer);
 
-	static void CreateNewVisualImpl(const UFaerieItemContainerBase* Container, UEquipmentVisualizer* Visualizer, FFaerieItemProxy Proxy);
-	static void RemoveOldVisualImpl(UEquipmentVisualizer* Visualizer, FFaerieItemProxy Proxy);
+	void CreateVisualForEntry(const UFaerieItemContainerBase* Container, FEntryKey Key);
+	void RemoveVisualForEntry(const UFaerieItemContainerBase* Container, FEntryKey Key);
+
+	void CreateVisualImpl(const UFaerieItemContainerBase* Container, UEquipmentVisualizer* Visualizer, FFaerieItemProxy Proxy);
+	void RemoveVisualImpl(UEquipmentVisualizer* Visualizer, FFaerieItemProxy Proxy);
 
 	TMultiMap<TWeakObjectPtr<const UFaerieItemContainerBase>, FEntryKey> SpawnKeys;
 };

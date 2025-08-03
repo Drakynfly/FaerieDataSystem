@@ -31,4 +31,9 @@ public:
 	// It is implied, and is the responsibility of the implementing class, to either accept ownership of the whole stack,
 	// or none. Partial possession is not allowed.
 	[[nodiscard]] virtual bool Possess(FFaerieItemStack Stack) PURE_VIRTUAL(IFaerieItemOwnerInterface::Possess, return false; )
+
+//protected:
+	// Note: this should be protected, not public, but i don't have a workaround for this yet.
+	// This is an optional function to override to add logic when an item mutates while owned by this.
+	virtual void OnItemMutated(const UFaerieItem* Item, const UFaerieItemToken* Token, FGameplayTag EditTag) {}
 };

@@ -2,6 +2,8 @@
 
 #include "Extensions/RelevantActorsExtension.h"
 #include "FaerieItemContainerBase.h"
+#include "GameFramework/Controller.h"
+#include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerState.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(RelevantActorsExtension)

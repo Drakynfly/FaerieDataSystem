@@ -1,7 +1,8 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
-#include "FaerieItemProxy.h"
 #include "AssetEditor/FaerieItemAssetThumbnailScene.h"
+#include "Editor.h"
+#include "FaerieItemProxy.h"
 #include "ThumbnailRendering/SceneThumbnailInfo.h"
 
 namespace Faerie::Ed

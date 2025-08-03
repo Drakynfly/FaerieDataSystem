@@ -6,7 +6,7 @@
 #include "CapacityStructs.h"
 #include "InventoryCapacityExtension.generated.h"
 
-UENUM(BlueprintType, Meta = (Bitflags, UseEnumValuesAsMaskValuesInEditor = "true"))
+UENUM(BlueprintType, Flags, Meta = (Bitflags, UseEnumValuesAsMaskValuesInEditor = "true"))
 enum class ECapacityChecks : uint8
 {
     None    = 0 UMETA(Hidden),

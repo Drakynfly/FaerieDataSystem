@@ -188,7 +188,7 @@ private:
 protected:
 	FConstStructView GetDataForHandle(FFaerieAddressableHandle Handle) const;
 
-	bool EditDataForHandle(FFaerieAddressableHandle Handle, const TFunctionRef<void(FStructView)>& Edit);
+	bool EditDataForHandle(FFaerieAddressableHandle Handle, Faerie::TLoop<FStructView> Edit);
 
 private:
 	TStructView<FFaerieReplicatedSimMap> FindFastArrayForContainer(const UFaerieItemContainerBase* Container);

@@ -4,6 +4,7 @@
 #include "FaerieItemStackHashInstruction.h"
 #include "Squirrel.h"
 #include "Tokens/FaerieInfoToken.h"
+#include "UObject/TextProperty.h"
 #include "UObject/PropertyOptional.h"
 
 // WARNING: Changing this will invalidate all existing hashes generated with CombineHashes.

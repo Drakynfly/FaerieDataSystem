@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Misc/EnumRange.h"
 #include "FaerieGridEnums.generated.h"
 
 /* Degrees to rotate a shape by */

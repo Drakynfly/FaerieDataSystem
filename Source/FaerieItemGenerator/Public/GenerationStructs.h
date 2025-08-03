@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Curves/CurveFloat.h"
 #include "FaerieItemSource.h"
 #include "StructUtils/InstancedStruct.h"
 #include "ItemSlotHandle.h"

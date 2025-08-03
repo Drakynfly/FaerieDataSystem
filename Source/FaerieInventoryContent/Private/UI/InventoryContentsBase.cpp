@@ -76,9 +76,7 @@ void UInventoryContentsBase::Reset()
 
 	if (ItemStorage.IsValid())
 	{
-		ItemStorage->GetOnAddressAdded().RemoveAll(this);
-		ItemStorage->GetOnAddressUpdated().RemoveAll(this);
-		ItemStorage->GetOnAddressRemoved().RemoveAll(this);
+		ItemStorage->GetOnAddressEvent().RemoveAll(this);
 	}
 
 	OnReset();
@@ -105,29 +103,30 @@ bool UInventoryContentsBase::ExecSort(const FFaerieItemProxy& A, const FFaerieIt
 	return ActiveSortRule->Exec(A, B);
 }
 
-void UInventoryContentsBase::NativeAddressAdded(UFaerieItemStorage* Storage, const FFaerieAddress Address)
+void UInventoryContentsBase::HandleAddressEvent(UFaerieItemStorage* Storage, const EFaerieAddressEventType Type, const FFaerieAddress Address)
 {
-	if (bAlwaysAddNewToSortOrder)
+	switch (Type)
 	{
-		AddToSortOrder(Address, true);
-		OnKeyAdded(Address);
-	}
-}
-
-void UInventoryContentsBase::NativeAddressUpdated(UFaerieItemStorage* Storage, const FFaerieAddress Address)
-{
-	if (bAlwaysAddNewToSortOrder)
-	{
-		AddToSortOrder(Address, false);
-		OnKeyUpdated(Address);
-	}
-}
-
-void UInventoryContentsBase::NativeAddressRemoved(UFaerieItemStorage* Storage, const FFaerieAddress Address)
-{
-	if (!!SortedAndFilteredAddresses.Remove(Address))
-	{
-		OnKeyRemoved(Address);
+	case EFaerieAddressEventType::PostAdd:
+		if (bAlwaysAddNewToSortOrder)
+		{
+			AddToSortOrder(Address, true);
+			OnKeyAdded(Address);
+		}
+		break;
+	case EFaerieAddressEventType::PreRemove:
+		if (!!SortedAndFilteredAddresses.Remove(Address))
+		{
+			OnKeyRemoved(Address);
+		}
+		break;
+	case EFaerieAddressEventType::Edit:
+		if (bAlwaysAddNewToSortOrder)
+		{
+			AddToSortOrder(Address, false);
+			OnKeyUpdated(Address);
+		}
+		break;
 	}
 }
 
@@ -152,9 +151,7 @@ void UInventoryContentsBase::InitWithInventory(UFaerieItemStorage* Storage)
 	{
 		ItemStorage = Storage;
 
-		ItemStorage->GetOnAddressAdded().AddUObject(this, &ThisClass::NativeAddressAdded);
-		ItemStorage->GetOnAddressUpdated().AddUObject(this, &ThisClass::NativeAddressUpdated);
-		ItemStorage->GetOnAddressRemoved().AddUObject(this, &ThisClass::NativeAddressRemoved);
+		ItemStorage->GetOnAddressEvent().AddUObject(this, &ThisClass::HandleAddressEvent);
 
 		OnInitWithInventory();
 

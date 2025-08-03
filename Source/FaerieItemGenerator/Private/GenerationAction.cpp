@@ -10,6 +10,8 @@
 #include "FaerieItemOwnerInterface.h"
 #include "FaerieItemSlotInterface.h"
 #include "FaerieItemTemplate.h"
+#include "TimerManager.h"
+#include "Engine/World.h"
 #include "Tokens/FaerieItemUsesToken.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(GenerationAction)
@@ -77,6 +79,11 @@ void UCraftingActionBase::Finish(const EGenerationActionResult Result)
 	}
 #endif
 
+	if (RunningStreamHandle.IsValid())
+	{
+		RunningStreamHandle->CancelHandle();
+	}
+
 	GetTimerManager().ClearTimer(TimerHandle);
 
 	(void)OnCompletedCallback.ExecuteIfBound(Result);
@@ -118,12 +125,12 @@ void UCraftingActionBase::Start()
 
 	UE_LOG(LogGenerationAction, Log, TEXT("- Objects to load: %i"), ObjectsToLoad.Num());
 
-	// The check to HasBegunPlay forces this action to be ran in the editor synchronously
-	if (GetWorld()->HasBegunPlay())
+	// The check for IsGameWorld forces this action to be ran in the editor synchronously
+	if (GetWorld()->IsGameWorld())
 	{
 		// Suspend generation to async load drop assets, then continue
 		const FStreamableDelegate Delegate = FStreamableDelegate::CreateUObject(this, &ThisClass::Run);
-		UAssetManager::GetStreamableManager().RequestAsyncLoad(ObjectsToLoad, Delegate);
+		RunningStreamHandle = UAssetManager::GetStreamableManager().RequestAsyncLoad(ObjectsToLoad, Delegate);
 	}
 	else
 	{

@@ -1,11 +1,13 @@
 // Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "AssetEditor/FaerieItemAssetPreviewScene.h"
+#include "Editor.h"
 #include "FaerieItem.h"
 
 #include "FaerieItemMeshLoader.h"
 #include "Components/BoxComponent.h"
 #include "Components/FaerieItemMeshComponent.h"
+#include "Components/StaticMeshComponent.h"
 
 #include "GameFramework/WorldSettings.h"
 

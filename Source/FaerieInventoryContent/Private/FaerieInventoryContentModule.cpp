@@ -1,6 +1,7 @@
 // Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieInventoryContentModule.h"
+#include "Modules/ModuleManager.h"
 
 #define LOCTEXT_NAMESPACE "FaerieInventoryContentModule"
 

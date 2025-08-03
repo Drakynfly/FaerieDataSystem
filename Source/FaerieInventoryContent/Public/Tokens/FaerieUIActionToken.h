@@ -3,6 +3,7 @@
 #pragma once
 
 #include "FaerieItemToken.h"
+#include "Templates/SubclassOf.h"
 #include "FaerieUIActionToken.generated.h"
 
 class UInventoryUIAction;

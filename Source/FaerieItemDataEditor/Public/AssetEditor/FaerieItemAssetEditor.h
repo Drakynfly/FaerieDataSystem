@@ -3,14 +3,15 @@
 #pragma once
 
 #include "FaerieItemAssetEditorCustomSettings.h"
+#include "Misc/NotifyHook.h"
 #include "Toolkits/IToolkitHost.h"
 #include "Toolkits/AssetEditorToolkit.h"
 #include "UObject/GCObject.h"
 
-class UFaerieItemAssetEditorCustomSettings;
 enum class EWidgetPreviewWidgetChangeType : uint8;
-class UFaerieWidgetPreview;
 class UFaerieItemAsset;
+class UFaerieItemAssetEditorCustomSettings;
+class UFaerieWidgetPreview;
 
 namespace Faerie::UMGWidgetPreview
 {

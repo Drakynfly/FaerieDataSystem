@@ -1,20 +1,21 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieItemContainerBase.h"
-#include "FaerieInventorySettings.h"
-
 #include "FaerieItemStorage.h"
-#include "FaerieUtils.h"
+#include "AssetLoadFlagFixer.h"
 #include "ItemContainerExtensionBase.h"
+#include "GameFramework/Actor.h"
 #include "Net/UnrealNetwork.h"
 #include "Tokens/FaerieItemStorageToken.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemContainerBase)
 
+using namespace Faerie;
+
 UFaerieItemContainerBase::UFaerieItemContainerBase()
 {
 	Extensions = CreateDefaultSubobject<UItemContainerExtensionGroup>(FName{TEXTVIEW("Extensions")});
-	Extensions->SetIdentifier();
+	SET_NEW_IDENTIFIER(Extensions, TEXT("ItemContainerBaseGroup"))
 }
 
 void UFaerieItemContainerBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -58,6 +59,37 @@ bool UFaerieItemContainerBase::Possess(FFaerieItemStack Stack)
 	return false;
 }
 
+void UFaerieItemContainerBase::OnItemMutated(const UFaerieItem* Item, const UFaerieItemToken* Token, const FGameplayTag EditTag)
+{
+	// @todo more logic from the TakeOwnership protocol might belong here, in which case, maybe just move most of this there.
+	if (EditTag == Tags::TokenAdd)
+	{
+		if (AActor* Actor = GetTypedOuter<AActor>();
+			IsValid(Actor) && Actor->IsUsingRegisteredSubObjectList())
+		{
+			if (UFaerieItemToken* MutableToken = Token->MutateCast())
+			{
+				Actor->AddReplicatedSubObject(MutableToken);
+				MutableToken->InitializeNetObject(Actor);
+			}
+		}
+		return;
+	}
+	if (EditTag == Tags::TokenRemove)
+	{
+		if (AActor* Actor = GetTypedOuter<AActor>();
+			IsValid(Actor) && Actor->IsUsingRegisteredSubObjectList())
+		{
+			if (UFaerieItemToken* MutableToken = Token->MutateCast())
+			{
+				Actor->RemoveReplicatedSubObject(MutableToken);
+				MutableToken->DeinitializeNetObject(Actor);
+			}
+		}
+		return;
+	}
+}
+
 UItemContainerExtensionGroup* UFaerieItemContainerBase::GetExtensionGroup() const
 {
 	return Extensions;
@@ -74,18 +106,22 @@ bool UFaerieItemContainerBase::AddExtension(UItemContainerExtensionBase* Extensi
 	return false;
 }
 
-void UFaerieItemContainerBase::RavelExtensionData(TMap<FGuid, FInstancedStruct>& Data) const
+void UFaerieItemContainerBase::RavelExtensionData(TMap<FGuid, FInstancedStruct>& ExtensionData) const
 {
 	Extensions->ForEachExtension(
-		[this, &Data](const UItemContainerExtensionBase* Extension)
+		[this, &ExtensionData](const UItemContainerExtensionBase* Extension)
 		{
 			const FGuid Identifier = Extension->GetIdentifier();
 			if (!ensure(Identifier.IsValid())) return;
 
+			// Skip if we have already included this extension.
+			const uint32 IdentifierHash = GetTypeHash(Identifier);
+			if (ExtensionData.ContainsByHash(IdentifierHash, Identifier)) return;
+
 			if (const FInstancedStruct SaveData = Extension->MakeSaveData(this);
 				SaveData.IsValid())
 			{
-				Data.Add(Identifier, SaveData);
+				ExtensionData.AddByHash(IdentifierHash, Identifier, SaveData);
 			}
 		});
 
@@ -101,14 +137,14 @@ void UFaerieItemContainerBase::RavelExtensionData(TMap<FGuid, FInstancedStruct>&
 
 	for (const UFaerieItemContainerBase* SubContainer : SubContainers)
 	{
-		SubContainer->RavelExtensionData(Data);
+		SubContainer->RavelExtensionData(ExtensionData);
 	}
 }
 
-void UFaerieItemContainerBase::UnravelExtensionData(const TMap<FGuid, FInstancedStruct>& Data)
+void UFaerieItemContainerBase::UnravelExtensionData(UFaerieItemContainerExtensionData* ExtensionData)
 {
-	UnclaimedExtensionData = Data;
-	if (UnclaimedExtensionData.IsEmpty())
+	UnclaimedExtensionData = ExtensionData;
+	if (!IsValid(UnclaimedExtensionData))
 	{
 		return;
 	}
@@ -133,131 +169,18 @@ void UFaerieItemContainerBase::UnravelExtensionData(const TMap<FGuid, FInstanced
 
 void UFaerieItemContainerBase::TryApplyUnclaimedSaveData(UItemContainerExtensionBase* Extension)
 {
+	if (!IsValid(UnclaimedExtensionData))
+	{
+		return;
+	}
+
 	const FGuid Identifier = Extension->Identifier;
 	if (!ensure(Identifier.IsValid())) return;
 
 	const uint32 IdentifierHash = GetTypeHash(Identifier);
-	if (auto&& SaveData = UnclaimedExtensionData.FindByHash(IdentifierHash, Identifier))
+	if (auto&& SaveData = UnclaimedExtensionData->Data.FindByHash(IdentifierHash, Identifier))
 	{
 		Extension->LoadSaveData(this, *SaveData);
-		UnclaimedExtensionData.RemoveByHash(IdentifierHash, Identifier);
-	}
-}
-
-void UFaerieItemContainerBase::OnItemMutated(const UFaerieItem* Item, const UFaerieItemToken* Token, const FGameplayTag EditTag)
-{
-	if (EditTag == Faerie::Tags::TokenAdd)
-	{
-		if (AActor* Actor = GetTypedOuter<AActor>();
-			IsValid(Actor) && Actor->IsUsingRegisteredSubObjectList())
-		{
-			if (UFaerieItemToken* MutableToken = Token->MutateCast())
-			{
-				Actor->AddReplicatedSubObject(MutableToken);
-				MutableToken->InitializeNetObject(Actor);
-			}
-		}
-		return;
-	}
-	if (EditTag == Faerie::Tags::TokenRemove)
-	{
-		if (AActor* Actor = GetTypedOuter<AActor>();
-			IsValid(Actor) && Actor->IsUsingRegisteredSubObjectList())
-		{
-			if (UFaerieItemToken* MutableToken = Token->MutateCast())
-			{
-				Actor->RemoveReplicatedSubObject(MutableToken);
-				MutableToken->DeinitializeNetObject(Actor);
-			}
-		}
-		return;
-	}
-}
-
-void UFaerieItemContainerBase::ReleaseOwnership(const UFaerieItem* Item)
-{
-	if (!ensure(IsValid(Item))) return;
-
-	// When Items are potentially mutable, undo any modifications that rely on this owner.
-	if (UFaerieItem* MutableItem = Item->MutateCast())
-	{
-		// @todo this logic could be moved to UFaerieItem::PostRename (if we enforce the RenameBehavior)
-		if (AActor* Actor = GetTypedOuter<AActor>();
-			IsValid(Actor) && Actor->IsUsingRegisteredSubObjectList())
-		{
-			MutableItem->DeinitializeNetObject(Actor);
-			Actor->RemoveReplicatedSubObject(MutableItem);
-			MutableItem->ForEachToken(
-				[Actor](const TObjectPtr<UFaerieItemToken>& Token)
-				{
-					if (Token->MutateCast())
-					{
-						Token->DeinitializeNetObject(Actor);
-						Actor->RemoveReplicatedSubObject(Token);
-					}
-
-					// Continue iteration...
-					return true;
-				});
-		}
-
-		// If we renamed the item to ourself when we took ownership of this item, then we need to release that now.
-		if (MutableItem->GetOuter() == this)
-		{
-			MutableItem->Rename(nullptr, GetTransientPackage(), REN_DontCreateRedirectors);
-		}
-
-		MutableItem->GetNotifyOwnerOfSelfMutation().Unbind();
-
-		// Remove our group of extensions from any sub-storages
-		for (auto&& ChildContainers = UFaerieItemContainerToken::GetAllContainersInItem(MutableItem);
-			 auto&& ChildContainer : ChildContainers)
-		{
-			ChildContainer->RemoveExtension(Extensions);
-		}
-	}
-}
-
-void UFaerieItemContainerBase::TakeOwnership(const UFaerieItem* Item)
-{
-	if (!ensure(IsValid(Item))) return;
-
-	if (UFaerieItem* MutableItem = Item->MutateCast())
-	{
-		checkfSlow(Item->GetOuter() == GetTransientPackage(), TEXT("ReleaseOwnership was not called correctly on this item, before attempting to give ownership here!"));
-		checkfSlow(!MutableItem->GetNotifyOwnerOfSelfMutation().IsBound(), TEXT("This should always have been unbound by the previous owner!"))
-		MutableItem->GetNotifyOwnerOfSelfMutation().BindUObject(this, &ThisClass::OnItemMutated);
-
-		if (GetDefault<UFaerieInventorySettings>()->ContainerMutableBehavior == EFaerieContainerOwnershipBehavior::Rename)
-		{
-			MutableItem->Rename(nullptr, this, REN_DontCreateRedirectors);
-		}
-
-		// @todo this logic could be moved to UFaerieItem::PostRename (if we enforce the RenameBehavior)
-		if (AActor* Actor = GetTypedOuter<AActor>();
-			IsValid(Actor) && Actor->IsUsingRegisteredSubObjectList())
-		{
-			Actor->AddReplicatedSubObject(MutableItem);
-			MutableItem->InitializeNetObject(Actor);
-			MutableItem->ForEachToken(
-				[Actor](const TObjectPtr<UFaerieItemToken>& Token)
-				{
-					if (Token->MutateCast())
-					{
-						Actor->AddReplicatedSubObject(Token);
-						Token->InitializeNetObject(Actor);
-					}
-
-					// Continue iteration...
-					return true;
-				});
-		}
-
-		// Add our group of extensions to any sub-storages
-		for (auto&& ChildContainers = UFaerieItemContainerToken::GetAllContainersInItem(MutableItem);
-			 auto&& Container : ChildContainers)
-		{
-			Container->AddExtension(Extensions);
-		}
+		UnclaimedExtensionData->Data.RemoveByHash(IdentifierHash, Identifier);
 	}
 }

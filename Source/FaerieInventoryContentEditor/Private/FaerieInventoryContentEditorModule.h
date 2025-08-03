@@ -3,7 +3,6 @@
 #pragma once
 
 #include "FaerieDataSystemEditorModule.h"
-#include "Modules/ModuleManager.h"
 
 class FFaerieInventoryContentEditorModule : public IFaerieDataSystemEditorModuleBase
 {

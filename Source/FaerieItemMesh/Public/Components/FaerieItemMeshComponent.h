@@ -14,6 +14,7 @@ namespace Faerie::Ed
 	struct FItemPreviewSceneData;
 }
 
+class UMeshComponent;
 class UFaerieMeshTokenBase;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMeshRebuilt);
@@ -48,6 +49,8 @@ protected:
 	void OnRep_PreferredTag();
 
 public:
+	UMeshComponent* GetGeneratedMeshComponent() const { return MeshComponent; }
+
 	// Set the mesh to use directly. This is local only, as the ItemMesh struct does not replicate.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataMesh")
 	void SetItemMesh(const FFaerieItemMesh& InMeshData);

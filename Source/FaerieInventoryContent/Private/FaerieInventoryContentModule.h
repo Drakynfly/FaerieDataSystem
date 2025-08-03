@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "Modules/ModuleInterface.h"
+
 class FFaerieInventoryContentModule final : public IModuleInterface
 {
 public:
