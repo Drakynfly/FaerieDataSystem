@@ -182,7 +182,16 @@ FEquipmentVisualAttachment UEquipmentVisualizationUpdater::FindAttachmentParent(
 	{
 		if (UFaerieItemMeshComponent* ItemMeshComponent = Cast<UFaerieItemMeshComponent>(ParentComponent))
 		{
-			Attachment.Parent = ItemMeshComponent->GetGeneratedMeshComponent();
+			// If the Generated Mesh already exists, use it.
+			if (ItemMeshComponent->GetGeneratedMeshComponent())
+			{
+				Attachment.Parent = ItemMeshComponent->GetGeneratedMeshComponent();
+			}
+			// If it doesn't, then just return the ItemMeshComponent, and have CreateVisualImpl move us to Pending.
+			else
+			{
+				Attachment.Parent = ItemMeshComponent;
+			}
 		}
 		else
 		{
@@ -205,11 +214,26 @@ FEquipmentVisualAttachment UEquipmentVisualizationUpdater::FindAttachmentParent(
 		}
 		else
 		{
-			Attachment.Parent = ParentActor->GetRootComponent();
+			Attachment.Parent = ParentActor->GetDefaultAttachComponent();
+
+			if (UFaerieItemMeshComponent* ItemMeshComponent = Cast<UFaerieItemMeshComponent>(Attachment.Parent.Get()))
+			{
+				// If the Generated Mesh already exists, use it.
+				if (ItemMeshComponent->GetGeneratedMeshComponent())
+				{
+					Attachment.Parent = ItemMeshComponent->GetGeneratedMeshComponent();
+				}
+				// If it doesn't, then just return the ItemMeshComponent, and have CreateVisualImpl move us to Pending.
+				else
+				{
+					Attachment.Parent = ItemMeshComponent;
+				}
+			}
 		}
 	}
 
-	Attachment.Socket = SlotExtension->GetSocket();
+	Attachment.ParentSocket = SlotExtension->GetSocket();
+	Attachment.ChildSocket = SlotExtension->GetChildSocket();
 
 	return Attachment;
 }
@@ -255,21 +279,31 @@ void UEquipmentVisualizationUpdater::CreateVisualImpl(const UFaerieItemContainer
 	// Step 1: Figure out what we are attaching to.
 
 	const UVisualSlotExtension* SlotExtension = nullptr;
+	bool CanLeaderPoseMesh = false;
 	FEquipmentVisualAttachment Attachment = FindAttachmentParent(Container, SlotExtension, Visualizer);
 
+	// FindAttachmentParent will return a UFaerieItemMeshComponent when it wants us to defer for a pending attaching.
+	if (Attachment.Parent->IsA<UFaerieItemMeshComponent>())
+	{
+		// Enable hidden while in Pending. This allows this attachment to still start async loading itself, even while not attached.
+		Attachment.Hidden = true;
+		Pending.Emplace(Proxy, Attachment);
+	}
+
 	// Step 2: What are we creating as a visual.
+	const UFaerieItem* ItemObject = Proxy->GetItemObject();
 
 	// Path 1: A Visual Actor
 	{
 		TSoftClassPtr<AItemRepresentationActor> ActorClass = nullptr;
 
-		if (auto&& VisualToken_Deprecated = Proxy->GetItemObject()->GetToken<UFaerieVisualEquipment>();
+		if (auto&& VisualToken_Deprecated = ItemObject->GetToken<UFaerieVisualEquipment>();
 			IsValid(VisualToken_Deprecated))
 		{
 			ActorClass = VisualToken_Deprecated->GetActorClass();
 		}
 
-		if (auto&& VisualToken = Proxy->GetItemObject()->GetToken<UFaerieVisualActorClassToken>();
+		if (auto&& VisualToken = ItemObject->GetToken<UFaerieVisualActorClassToken>();
 			IsValid(VisualToken))
 		{
 			ActorClass = VisualToken->GetActorClass();
@@ -289,6 +323,24 @@ void UEquipmentVisualizationUpdater::CreateVisualImpl(const UFaerieItemContainer
 				{ Proxy }, VisualClass, Attachment);
 			if (IsValid(NewVisual))
 			{
+				NewVisual->GetOnDisplayFinished().AddWeakLambda(this,
+					[this, Visualizer](bool Success, AItemRepresentationActor* Actor)
+					{
+						for (auto&& It = Pending.CreateIterator(); It; ++It)
+						{
+							if (It->Attachment.Parent->GetOwner() == Actor)
+							{
+								It->Attachment.Parent = Actor->GetDefaultAttachComponent();
+								It->Attachment.Hidden = false;
+								Visualizer->UpdateAttachment({It->Proxy}, It->Attachment);
+								It.RemoveCurrentSwap();
+								return;
+							}
+						}
+
+						// If this wasn't pending, just update its attachment after a rebuilt.
+						Visualizer->ResetAttachment({Actor->GetSourceProxy() });
+					});
 				NewVisual->SetSourceProxy(Proxy);
 				return;
 			}
@@ -297,7 +349,6 @@ void UEquipmentVisualizationUpdater::CreateVisualImpl(const UFaerieItemContainer
 
 	// Path 2: A Visual Component
 	{
-		bool CanLeaderPoseMesh = false;
 		FGameplayTag PreferredTag = Faerie::ItemMesh::Tags::MeshPurpose_Default;
 		if (Visualizer->GetPreferredTag().IsValid() &&
 			ensure(Visualizer->GetPreferredTag().GetTagName().IsValid()))
@@ -312,9 +363,10 @@ void UEquipmentVisualizationUpdater::CreateVisualImpl(const UFaerieItemContainer
 			{
 				CanLeaderPoseMesh = true;
 
-				// Reset attachment parent to main mesh when using LeaderPose.
+				// Reset attachment location to main mesh when using LeaderPose.
 				Attachment.Parent = Cast<ACharacter>(Visualizer->GetOwner())->GetMesh();
-				Attachment.Socket = NAME_None;
+				Attachment.ParentSocket = NAME_None;
+				Attachment.ChildSocket = NAME_None;
 			}
 
 			if (SlotExtension->GetPreferredTag().IsValid() &&
@@ -336,12 +388,30 @@ void UEquipmentVisualizationUpdater::CreateVisualImpl(const UFaerieItemContainer
 
 			NewVisual->SetPreferredTag(PreferredTag);
 			NewVisual->SetIsReplicated(true); // Enable replication, as it's off by default.
-			NewVisual->SetItemMeshFromToken(Proxy->GetItemObject()->GetToken<UFaerieMeshTokenBase>());
+			NewVisual->GetOnMeshRebuilt().AddWeakLambda(this,
+				[this, Proxy, Visualizer](UFaerieItemMeshComponent* ItemMeshComponent)
+				{
+					for (auto&& It = Pending.CreateIterator(); It; ++It)
+					{
+						if (It->Attachment.Parent == ItemMeshComponent)
+						{
+							It->Attachment.Parent = ItemMeshComponent->GetGeneratedMeshComponent();
+							It->Attachment.Hidden = false;
+							Visualizer->UpdateAttachment({It->Proxy}, It->Attachment);
+							It.RemoveCurrentSwap();
+							return;
+						}
+					}
+
+					// If this wasn't pending, just update its attachment after a rebuilt.
+					Visualizer->ResetAttachment({ Proxy });
+				});
+			NewVisual->SetItemMeshFromToken(ItemObject->GetToken<UFaerieMeshTokenBase>());
 		}
 	}
 
 	// Step 3: Recurse over children
-	auto SubContainers = UFaerieItemContainerToken::GetContainersInItem<UFaerieEquipmentSlot>(Proxy->GetItemObject());
+	auto SubContainers = UFaerieItemContainerToken::GetContainersInItem<UFaerieEquipmentSlot>(ItemObject);
 	for (auto SubContainer : SubContainers)
 	{
 		auto Key = SubContainer->GetCurrentKey();

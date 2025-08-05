@@ -17,12 +17,16 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	FName GetSocket() const { return Socket; }
+	FName GetChildSocket() const { return ChildSocket; }
 	FName GetComponentTag() const { return ComponentTag; }
 	FGameplayTag GetPreferredTag() const { return PreferredTag; }
 	bool GetAllowLeaderPose() const { return AllowLeaderPose; }
 
 	UFUNCTION(BlueprintSetter, Category = "Faerie|VisualSlotExtension")
 	void SetSocket(FName InSocket);
+
+	UFUNCTION(BlueprintSetter, Category = "Faerie|VisualSlotExtension")
+	void SetChildSocket(FName InSocket);
 
 	UFUNCTION(BlueprintSetter, Category = "Faerie|VisualSlotExtension")
 	void SetComponentTag(FName InComponentTag);
@@ -34,8 +38,13 @@ public:
 	void SetAllowLeaderPose(bool InAllowLeaderPose);
 
 protected:
+	// The socket to attach children to on the parent.
 	UPROPERTY(EditAnywhere, Replicated, BlueprintSetter = "SetSocket", Category = "VisualSlotExtension")
 	FName Socket;
+
+	// The socket to attach children at on the child.
+	UPROPERTY(EditAnywhere, Replicated, BlueprintSetter = "SetSocket", Category = "VisualSlotExtension")
+	FName ChildSocket;
 
 	UPROPERTY(EditAnywhere, Replicated, BlueprintSetter = "SetComponentTag", Category = "VisualSlotExtension")
 	FName ComponentTag;

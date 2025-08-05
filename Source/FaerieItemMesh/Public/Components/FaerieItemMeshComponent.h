@@ -57,6 +57,7 @@ protected:
 public:
 	Faerie::FOnMeshRebuiltEvent::RegistrationType& GetOnMeshRebuilt() { return OnMeshRebuiltNative; }
 
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataMesh")
 	UMeshComponent* GetGeneratedMeshComponent() const { return MeshComponent; }
 
 	// Set the mesh to use directly. This is local only, as the ItemMesh struct does not replicate.

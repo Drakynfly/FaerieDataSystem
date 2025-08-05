@@ -39,8 +39,17 @@ struct FEquipmentVisualAttachment
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EquipmentVisualAttachment")
 	TWeakObjectPtr<USceneComponent> Parent;
 
+	// The attachment point on the parent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EquipmentVisualAttachment")
-	FName Socket;
+	FName ParentSocket;
+
+	// The attachment point on the child
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EquipmentVisualAttachment")
+	FName ChildSocket;
+
+	// Is this visual currently hidden (will not render)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EquipmentVisualAttachment")
+	bool Hidden = false;
 
 	FAttachmentTransformRules TransformRules = FAttachmentTransformRules::SnapToTargetNotIncludingScale;
 };
@@ -148,6 +157,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentVisualizer")
 	void ResetAttachment(FFaerieVisualKey Key);
+
+	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentVisualizer")
+	void UpdateAttachment(FFaerieVisualKey Key, const FEquipmentVisualAttachment& Attachment);
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentVisualizer")
 	void AwaitOrReceiveUpdate(FFaerieVisualKey Key, FEquipmentVisualizerCallback Callback);

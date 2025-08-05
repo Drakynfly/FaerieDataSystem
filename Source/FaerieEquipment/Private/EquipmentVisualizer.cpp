@@ -8,6 +8,48 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(EquipmentVisualizer)
 
+namespace Faerie
+{
+	void UpdateActorAttachment(AActor* Visual, const FEquipmentVisualAttachment& Metadata)
+	{
+		if (IsValid(Metadata.Parent.Get()))
+		{
+			Visual->AttachToComponent(Metadata.Parent.Get(), Metadata.TransformRules, Metadata.ParentSocket);
+
+			const USceneComponent* SelfComponent = Visual->GetDefaultAttachComponent();
+			if (SelfComponent->DoesSocketExist(Metadata.ChildSocket))
+			{
+				const FVector Offset = -SelfComponent->GetSocketTransform(Metadata.ChildSocket, RTS_Component).GetTranslation();
+				Visual->AddActorLocalOffset(Offset);
+			}
+
+			Visual->SetActorHiddenInGame(Metadata.Hidden);
+		}
+		else
+		{
+			Visual->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+		}
+	}
+
+	void UpdateComponentAttachment(USceneComponent* Visual, const FEquipmentVisualAttachment& Metadata)
+	{
+		if (IsValid(Metadata.Parent.Get()))
+		{
+			Visual->AttachToComponent(Metadata.Parent.Get(), Metadata.TransformRules, Metadata.ParentSocket);
+			if (Visual->DoesSocketExist(Metadata.ChildSocket))
+			{
+				const FVector Offset = -Visual->GetSocketTransform(Metadata.ChildSocket, RTS_Component).GetTranslation();
+				Visual->AddLocalOffset(Offset);
+			}
+			Visual->SetVisibility(!Metadata.Hidden, true);
+		}
+		else
+		{
+			Visual->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+		}
+	}
+}
+
 UEquipmentVisualizer::UEquipmentVisualizer()
 {
 	PrimaryComponentTick.bCanEverTick = false;
@@ -163,13 +205,11 @@ AActor* UEquipmentVisualizer::SpawnVisualActor(const FFaerieVisualKey Key, const
 		if (Attachment.Parent.IsValid())
 		{
 			auto TempMetadata = Attachment;
-
-			// @todo these are hardcoded for now.
 			TempMetadata.TransformRules.LocationRule = EAttachmentRule::SnapToTarget;
 			TempMetadata.TransformRules.RotationRule = EAttachmentRule::SnapToTarget;
 			TempMetadata.TransformRules.ScaleRule = EAttachmentRule::KeepRelative;
 
-			NewActor->AttachToComponent(TempMetadata.Parent.Get(), TempMetadata.TransformRules, TempMetadata.Socket);
+			Faerie::UpdateActorAttachment(NewActor, TempMetadata);
 
 			KeyedMetadata.FindOrAdd(Key).Attachment = Attachment;
 		}
@@ -214,7 +254,7 @@ USceneComponent* UEquipmentVisualizer::SpawnVisualComponent(const FFaerieVisualK
 		TempMetadata.TransformRules.RotationRule = EAttachmentRule::SnapToTarget;
 		TempMetadata.TransformRules.ScaleRule = EAttachmentRule::KeepRelative;
 
-		NewComponent->AttachToComponent(TempMetadata.Parent.Get(), TempMetadata.TransformRules, TempMetadata.Socket);
+		Faerie::UpdateComponentAttachment(NewComponent, TempMetadata);
 
 		KeyedMetadata.FindOrAdd(Key).ChangeCallback.Broadcast(Key, NewComponent);
 		OnAnyVisualSpawnedNative.Broadcast(Key, NewComponent);
@@ -301,17 +341,31 @@ bool UEquipmentVisualizer::DestroyVisualByKey(const FFaerieVisualKey Key, const 
 
 void UEquipmentVisualizer::ResetAttachment(const FFaerieVisualKey Key)
 {
+	const FEquipmentVisualMetadata* Metadata = KeyedMetadata.Find(Key);
+	if (!Metadata) return;
+	FEquipmentVisualAttachment TempMetadata = Metadata->Attachment;
+
+	// @todo these are hardcoded for now.
+	TempMetadata.TransformRules.LocationRule = EAttachmentRule::SnapToTarget;
+	TempMetadata.TransformRules.RotationRule = EAttachmentRule::SnapToTarget;
+	TempMetadata.TransformRules.ScaleRule = EAttachmentRule::KeepRelative;
+
 	if (AActor* Visual = GetSpawnedActorByKey(Key))
 	{
-		if (KeyedMetadata.Contains(Key))
-		{
-			const FEquipmentVisualAttachment& Attachment = KeyedMetadata[Key].Attachment;
-			Visual->AttachToComponent(Attachment.Parent.Get(), Attachment.TransformRules, Attachment.Socket);
-		}
-		else
-		{
-			Visual->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-		}
+		Faerie::UpdateActorAttachment(Visual, TempMetadata);
+	}
+	else if (USceneComponent* VisualComponent = GetSpawnedComponentByKey(Key))
+	{
+		Faerie::UpdateComponentAttachment(VisualComponent, TempMetadata);
+	}
+}
+
+void UEquipmentVisualizer::UpdateAttachment(const FFaerieVisualKey Key, const FEquipmentVisualAttachment& Attachment)
+{
+	if (FEquipmentVisualMetadata* Metadata = KeyedMetadata.Find(Key))
+	{
+		Metadata->Attachment = Attachment;
+		ResetAttachment(Key);
 	}
 }
 

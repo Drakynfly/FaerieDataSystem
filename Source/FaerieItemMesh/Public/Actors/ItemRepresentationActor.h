@@ -8,7 +8,8 @@
 
 class UFaerieItemMeshLoader;
 
-using FOnItemVisualActorDisplayFinished = TMulticastDelegate<void(bool)>;
+class AItemRepresentationActor;
+using FOnItemVisualActorDisplayFinished = TMulticastDelegate<void(bool, AItemRepresentationActor*)>;
 
 /**
  * The base actor class for physical representations of inventory entries.
@@ -23,7 +24,10 @@ class FAERIEITEMMESH_API AItemRepresentationActor : public AActor, public IFaeri
 public:
 	AItemRepresentationActor();
 
+	//~ UFaerieItemDataProxy
+	virtual USceneComponent* GetDefaultAttachComponent() const override;
 	virtual void Destroyed() override;
+	//~ UFaerieItemDataProxy
 
 	//~ UFaerieItemDataProxy
 	virtual const UFaerieItem* GetItemObject() const override;
@@ -31,7 +35,11 @@ public:
 	virtual TScriptInterface<IFaerieItemOwnerInterface> GetItemOwner() const override;
 	//~ UFaerieItemDataProxy
 
+	FFaerieItemProxy GetSourceProxy() const { return DataSource; }
 	FOnItemVisualActorDisplayFinished::RegistrationType& GetOnDisplayFinished() { return OnDisplayFinished; }
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Faerie|ItemRepresentationActor")
+	USceneComponent* GetDefaultMeshComponent() const;
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Faerie|ItemRepresentationActor")
 	void ClearDataDisplay();

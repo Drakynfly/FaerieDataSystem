@@ -36,4 +36,11 @@ private:
 	void RemoveVisualImpl(UEquipmentVisualizer* Visualizer, FFaerieItemProxy Proxy);
 
 	TMultiMap<TWeakObjectPtr<const UFaerieItemContainerBase>, FEntryKey> SpawnKeys;
+
+	struct FPendingAttachment
+	{
+		FFaerieItemProxy Proxy;
+		FEquipmentVisualAttachment Attachment;
+	};
+	TArray<FPendingAttachment> Pending;
 };

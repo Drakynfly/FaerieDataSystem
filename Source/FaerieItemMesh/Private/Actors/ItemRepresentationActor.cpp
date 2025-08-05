@@ -9,6 +9,16 @@ AItemRepresentationActor::AItemRepresentationActor()
 	bReplicates = true;
 }
 
+USceneComponent* AItemRepresentationActor::GetDefaultAttachComponent() const
+{
+	USceneComponent* MeshComponent = GetDefaultMeshComponent();
+	if (IsValid(MeshComponent))
+	{
+		return MeshComponent;
+	}
+	return Super::GetDefaultAttachComponent();
+}
+
 void AItemRepresentationActor::Destroyed()
 {
 	ClearDataDisplay();
@@ -40,7 +50,7 @@ void AItemRepresentationActor::DisplayData_Implementation()
 
 void AItemRepresentationActor::NotifyDisplayDataFinished(const bool Success)
 {
-	OnDisplayFinished.Broadcast(Success);
+	OnDisplayFinished.Broadcast(Success, this);
 }
 
 void AItemRepresentationActor::RegenerateDataDisplay()

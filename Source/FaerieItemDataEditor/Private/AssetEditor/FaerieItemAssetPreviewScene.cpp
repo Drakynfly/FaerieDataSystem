@@ -178,7 +178,7 @@ namespace Faerie::Ed
 		return BoundsBox->GetLocalBounds();
 	}
 
-	void FItemPreviewSceneData::OnDisplayFinished(const bool Success)
+	void FItemPreviewSceneData::OnDisplayFinished(const bool Success, AItemRepresentationActor* Actor)
 	{
 		if (!Success)
 		{

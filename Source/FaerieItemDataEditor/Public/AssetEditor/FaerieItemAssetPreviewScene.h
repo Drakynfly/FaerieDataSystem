@@ -29,7 +29,7 @@ namespace Faerie::Ed
 		FBoxSphereBounds GetBounds() const;
 
 	//private:
-		void OnDisplayFinished(bool Success);
+		void OnDisplayFinished(bool Success, AItemRepresentationActor* Actor);
 
 		bool ShowBounds = false;
 
