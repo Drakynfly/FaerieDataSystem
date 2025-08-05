@@ -72,6 +72,9 @@ void UCraftingActionBase::Finish(const EGenerationActionResult Result)
 	case EGenerationActionResult::Timeout:
 		UE_LOG(LogGenerationAction, Warning, TEXT("+==+ Generation Action \"%s\" timed-out at: %s. Time passed: %s"), *GetName(), *TimeFinished.ToString(), *TimePassed.ToString());
 		break;
+	case EGenerationActionResult::Cancelled:
+		UE_LOG(LogGenerationAction, Log, TEXT("+==+ Generation Action \"%s\" cancelled at: %s. Time passed: %s"), *GetName(), *TimeFinished.ToString(), *TimePassed.ToString());
+		break;
 	case EGenerationActionResult::Succeeded:
 		UE_LOG(LogGenerationAction, Log, TEXT("+==+ Generation Action \"%s\" succeeded at: %s. Time passed: %s"), *GetName(), *TimeFinished.ToString(), *TimePassed.ToString());
 		break;
@@ -142,6 +145,11 @@ void UCraftingActionBase::Start()
 
 		Run();
 	}
+}
+
+void UCraftingActionBase::Cancel()
+{
+	Finish(EGenerationActionResult::Cancelled);
 }
 
 void UCraftingActionBase::Complete()

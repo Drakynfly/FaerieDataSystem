@@ -21,6 +21,7 @@ class FAERIEITEMGENERATOR_API UFaerieItemCraftingSubsystem : public UWorldSubsys
 
 public:
 	//virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+	virtual void Deinitialize() override;
 
 private:
 	void BeginRunningAction(UCraftingActionBase* Action);

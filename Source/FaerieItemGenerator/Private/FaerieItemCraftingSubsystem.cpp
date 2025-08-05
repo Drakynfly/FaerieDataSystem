@@ -17,6 +17,20 @@
 
 DEFINE_LOG_CATEGORY(LogItemGeneratorSubsystem)
 
+void UFaerieItemCraftingSubsystem::Deinitialize()
+{
+	Super::Deinitialize();
+
+	if (IsValid(ActiveAction))
+	{
+		ActiveAction->Cancel();
+		ActiveAction = nullptr;
+	}
+
+	TStrongObjectPtr<UCraftingActionBase> Next;
+	while (PendingActions.Dequeue(Next)) {}
+}
+
 void UFaerieItemCraftingSubsystem::BeginRunningAction(UCraftingActionBase* Action)
 {
 	check(Action);

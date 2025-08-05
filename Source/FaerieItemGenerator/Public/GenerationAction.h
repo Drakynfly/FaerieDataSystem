@@ -21,6 +21,7 @@ enum class EGenerationActionResult : uint8
 {
 	Failed,
 	Timeout,
+	Cancelled,
 	Succeeded
 };
 
@@ -95,6 +96,9 @@ protected:
 public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|CraftingAction")
 	void Start();
+
+	UFUNCTION(BlueprintCallable, Category = "Faerie|CraftingAction")
+	void Cancel();
 
 protected:
 	UPROPERTY()
