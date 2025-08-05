@@ -134,7 +134,7 @@ namespace Faerie
 		}
 	}
 
-	void TakeOwnership(UObject* Owner, const UFaerieItem* Item)
+	void TakeOwnership_Impl(UObject* Owner, const UFaerieItem* Item, const bool RenameToOwner)
 	{
 		if (!ensure(IsValid(Item))) return;
 
@@ -152,7 +152,7 @@ namespace Faerie
 
 			//UE_LOG(LogTemp, Verbose, TEXT("Assigning Ownership of %s to %s"), *Item->GetFullName(), *Owner->GetName())
 
-			if (GetDefault<UFaerieInventorySettings>()->ContainerMutableBehavior == EFaerieContainerOwnershipBehavior::Rename)
+			if (GetDefault<UFaerieInventorySettings>()->ContainerMutableBehavior == EFaerieContainerOwnershipBehavior::Rename && RenameToOwner)
 			{
 				MutableItem->Rename(nullptr, Owner, REN_DontCreateRedirectors);
 			}
@@ -202,12 +202,18 @@ namespace Faerie
 					{
 						ContainerToken->GetItemContainer()->ForEachItem([Owner](const UFaerieItem* ChildItem)
 						{
-							TakeOwnership(Owner, ChildItem);
+							// Children do not get renamed. They already belong to this outer chain if we are renamed.
+							TakeOwnership_Impl(Owner, ChildItem, false);
 						});
 					}
 
 					return Continue;
 				});
 		}
+	}
+
+	void TakeOwnership(UObject* Owner, const UFaerieItem* Item)
+	{
+		TakeOwnership_Impl(Owner, Item, true);
 	}
 }
