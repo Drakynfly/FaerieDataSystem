@@ -5,9 +5,6 @@
 #include "FaerieItemToken.h"
 #include "FaerieItemConsumableBase.generated.h"
 
-// @todo bad forward declare! this is from a module that ItemGenerator doesn't include. restructure modules...
-class UFaerieInventoryClient;
-
 /**
  * Base class for tokens that represent a consumable e.g., contain logic for performing some action.
  * To achieve a "multi-use" consumable, pair with a UsesToken.
@@ -23,13 +20,18 @@ class FAERIEITEMGENERATOR_API UFaerieItemConsumableBase : public UFaerieItemToke
 	GENERATED_BODY()
 
 public:
+	// This function is const so that it can be called on const pointers. Mutation-safety is implemented by the function.
+	// The owning item must be passed in, in case this token is immutable (and therefore cannot determine its own item)
+	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Consumable")
+	bool TryConsume(const UFaerieItem* Item, AActor* Consumer) const;
+
 	// Consumable logic for tokens that have no effect on themselves.
-	virtual void OnConsumed(const UFaerieInventoryClient* Client) const
+	virtual void OnConsumed(AActor* Consumer) const
 		PURE_VIRTUAL(UFaerieItemConsumableBase::OnConsumed, );
 
 	// Consumable logic for tokens that effect themselves.
-	virtual void OnConsumed_Mutable(const UFaerieInventoryClient* Client)
+	virtual void OnConsumed_Mutable(AActor* Consumer)
 	{
-		OnConsumed(Client);
+		OnConsumed(Consumer);
 	}
 };
