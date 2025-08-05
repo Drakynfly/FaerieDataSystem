@@ -78,7 +78,7 @@ public:
 	 * WARNING: For immutable tokens, this will often return the prototype item, which is *not* mutable. This function
 	 * is only guaranteed to return an instanced (and mutable) item pointer if called on a mutable token.
 	 */
-	UFaerieItem* GetOuterItem() const;
+	const UFaerieItem* GetOuterItem() const;
 
 	// Compare the data of this token to another
 	bool CompareWith(const UFaerieItemToken* Other) const;
@@ -89,6 +89,15 @@ public:
 	// Mutate cast will return a const_cast'd *this* if the item is a runtime mutable instance. This is the proscribed
 	// method to gain access to the non-const API of UFaerieItemToken.
 	[[nodiscard]] UFaerieItemToken* MutateCast() const;
+
+	template <
+		typename TFaerieItemToken
+		UE_REQUIRES(TIsDerivedFrom<TFaerieItemToken, UFaerieItemToken>::Value)
+	>
+	TFaerieItemToken* MutateCast() const
+	{
+		return Cast<TFaerieItemToken>(MutateCast());
+	}
 
 	void EditToken(const TFunctionRef<bool(UFaerieItemToken*)>& EditFunc);
 
@@ -110,7 +119,7 @@ protected:
 	 * is only guaranteed to return an instanced (and mutable) item pointer if called on a mutable token.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "FaerieItemToken", meta = (DisplayName = "Get Faerie Item"))
-	UFaerieItem* BP_GetFaerieItem() const;
+	const UFaerieItem* BP_GetFaerieItem() const;
 
 	/** Attempt to modify this token. Pass in a predicate that must perform the edit. */
 	UFUNCTION(BlueprintCallable, Category = "FaerieItemToken", meta = (DisplayName = "Edit Token"), meta = (DeprecatedFunction, DeprecationMessage = "Use UFaerieItemDataLibrary::EditToken"))

@@ -74,16 +74,14 @@ void UFaerieItemToken::ReplicateAllPropertiesInitialOnly(TArray<class FLifetimeP
 
 void UFaerieItemToken::NotifyOuterOfChange()
 {
-	auto&& Item = GetOuterItem();
-	if (!Item)
+	if (auto&& Item = GetOuterItem()->MutateCast();
+		IsValid(Item))
 	{
-		return;
+		Item->OnTokenEdited(this);
 	}
-
-	Item->OnTokenEdited(this);
 }
 
-UFaerieItem* UFaerieItemToken::GetOuterItem() const
+const UFaerieItem* UFaerieItemToken::GetOuterItem() const
 {
 	return GetTypedOuter<UFaerieItem>();
 }
@@ -117,7 +115,7 @@ void UFaerieItemToken::EditToken(const TFunctionRef<bool(UFaerieItemToken*)>& Ed
 	}
 }
 
-UFaerieItem* UFaerieItemToken::BP_GetFaerieItem() const
+const UFaerieItem* UFaerieItemToken::BP_GetFaerieItem() const
 {
 	return GetOuterItem();
 }
