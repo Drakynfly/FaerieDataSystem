@@ -50,6 +50,8 @@ namespace Faerie::Ed
 		FGameplayTag MeshPurposeTag;
 
 		const IFaerieItemDataProxy* ItemProxy = nullptr;
+
+		bool CenterMeshByBounds = true;
 	};
 
 	/**

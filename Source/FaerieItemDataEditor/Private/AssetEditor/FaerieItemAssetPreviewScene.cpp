@@ -71,7 +71,7 @@ namespace Faerie::Ed
 
 		{
 			ItemMeshComponent = NewObject<UFaerieItemMeshComponent>(GetTransientPackage());
-			ItemMeshComponent->CenterMeshByBounds = true;
+			ItemMeshComponent->CenterMeshByBounds = CenterMeshByBounds;
 			//ItemMeshComponent->bSelectable = true;
 
 			Scene->AddComponent(ItemMeshComponent, FTransform::Identity);

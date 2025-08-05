@@ -11,7 +11,7 @@ namespace Faerie::Ed
 		: SceneData(this)
 	{
 		SceneData.ItemProxy = Proxy;
-
+		SceneData.CenterMeshByBounds = false;
 		SceneData.InitializeScene();
 	}
 
