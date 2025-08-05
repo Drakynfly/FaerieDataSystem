@@ -142,7 +142,7 @@ void UFaerieEquipmentManager::AddSubobjectsForReplication()
 void UFaerieEquipmentManager::OnSlotItemChanged(UFaerieEquipmentSlot* Slot, const bool TokenEdit)
 {
 	const EFaerieEquipmentSlotChangeType Type = TokenEdit ? EFaerieEquipmentSlotChangeType::TokenEdit : EFaerieEquipmentSlotChangeType::ItemChange;
-	OnEquipmentChangedEventNative.Broadcast(Slot, Type);
+	OnEquipmentSlotEventNative.Broadcast(Slot, Type);
 	OnEquipmentChangedEvent.Broadcast(Slot, Type);
 }
 
@@ -217,8 +217,8 @@ UFaerieEquipmentSlot* UFaerieEquipmentManager::AddSlot(const FFaerieEquipmentSlo
 
 		NewSlot->GetExtensionGroup()->SetParentGroup(ExtensionGroup);
 
-		OnEquipmentSlotAddedNative.Broadcast(NewSlot);
-		OnEquipmentSlotAdded.Broadcast(NewSlot);
+		OnEquipmentSlotEventNative.Broadcast(NewSlot, EFaerieEquipmentSlotChangeType::Addition);
+		OnEquipmentChangedEvent.Broadcast(NewSlot, EFaerieEquipmentSlotChangeType::Addition);
 
 		return NewSlot;
 	}
@@ -235,8 +235,8 @@ bool UFaerieEquipmentManager::RemoveSlot(UFaerieEquipmentSlot* Slot)
 
 	if (Slots.Remove(Slot))
 	{
-		OnPreEquipmentSlotRemovedNative.Broadcast(Slot);
-		OnPreEquipmentSlotRemoved.Broadcast(Slot);
+		OnEquipmentSlotEventNative.Broadcast(Slot, EFaerieEquipmentSlotChangeType::Removal);
+		OnEquipmentChangedEvent.Broadcast(Slot, EFaerieEquipmentSlotChangeType::Removal);
 
 		Slot->GetExtensionGroup()->SetParentGroup(nullptr);
 

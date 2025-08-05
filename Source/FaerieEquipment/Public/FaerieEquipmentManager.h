@@ -51,16 +51,23 @@ struct FFaerieEquipmentSaveData
 UENUM(BlueprintType)
 enum class EFaerieEquipmentSlotChangeType : uint8
 {
-	// The item in a slot has changed
+	// This slot was added
+	Addition,
+
+	// This slot is being removed
+	Removal,
+
+	// The item in this slot has changed
 	ItemChange,
 
-	// A token from an item in a slot was edited
+	// A token from an item in this slot was edited
 	TokenEdit
 };
 
-using FEquipmentChangedEventSimpleNative = TMulticastDelegate<void(UFaerieEquipmentSlot*)>;
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FEquipmentChangedEventSimple, UFaerieEquipmentSlot*, Slot);
-using FEquipmentChangedEventNative = TMulticastDelegate<void(UFaerieEquipmentSlot*, EFaerieEquipmentSlotChangeType)>;
+namespace Faerie
+{
+	using FEquipmentSlotEvent = TMulticastDelegate<void(UFaerieEquipmentSlot*, EFaerieEquipmentSlotChangeType)>;
+}
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FEquipmentChangedEvent, UFaerieEquipmentSlot*, Slot, EFaerieEquipmentSlotChangeType, Type);
 
 /*
@@ -119,9 +126,7 @@ public:
 	/*			SLOTS API			 */
 	/**------------------------------*/
 
-	FEquipmentChangedEventSimpleNative::RegistrationType& GetOnEquipmentSlotAdded() { return OnEquipmentSlotAddedNative; }
-	FEquipmentChangedEventSimpleNative::RegistrationType& GetOnPreEquipmentSlotRemoved() { return OnPreEquipmentSlotRemovedNative; }
-	FEquipmentChangedEventNative::RegistrationType& GetOnEquipmentChangedEvent() { return OnEquipmentChangedEventNative; }
+	Faerie::FEquipmentSlotEvent::RegistrationType& GetOnEquipmentSlotEvent() { return OnEquipmentSlotEventNative; }
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Faerie|EquipmentManager")
 	UFaerieEquipmentSlot* AddSlot(const FFaerieEquipmentSlotConfig& Config);
@@ -173,20 +178,12 @@ public:
 	/**------------------------------*/
 
 protected:
-	UPROPERTY(BlueprintAssignable, Transient, Category = "Events")
-	FEquipmentChangedEventSimple OnEquipmentSlotAdded;
-
-	UPROPERTY(BlueprintAssignable, Transient, Category = "Events")
-	FEquipmentChangedEventSimple OnPreEquipmentSlotRemoved;
-
-	// A generic event when any slot is changed, either by adding or removing the item, or the item itself is changed.
+	// A generic event when any slot is added, removed, or changed, either by adding or removing the item, or the item itself is changed.
 	UPROPERTY(BlueprintAssignable, Transient, Category = "Events")
 	FEquipmentChangedEvent OnEquipmentChangedEvent;
 
 private:
-	FEquipmentChangedEventSimpleNative OnEquipmentSlotAddedNative;
-	FEquipmentChangedEventSimpleNative OnPreEquipmentSlotRemovedNative;
-	FEquipmentChangedEventNative OnEquipmentChangedEventNative;
+	Faerie::FEquipmentSlotEvent OnEquipmentSlotEventNative;
 
 protected:
 	UE_DEPRECATED(5.5, "Use InstanceDefaultSlots instead")

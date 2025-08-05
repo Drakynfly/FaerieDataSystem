@@ -17,7 +17,13 @@ namespace Faerie::Ed
 class UMeshComponent;
 class UFaerieMeshTokenBase;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMeshRebuilt);
+class UFaerieItemMeshComponent;
+namespace Faerie
+{
+	using FOnMeshRebuiltEvent = TMulticastDelegate<void(UFaerieItemMeshComponent*)>;
+}
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FFaerieOnMeshRebuilt);
 
 UCLASS(ClassGroup = ("Faerie"), meta = (BlueprintSpawnableComponent))
 class FAERIEITEMMESH_API UFaerieItemMeshComponent : public USceneComponent
@@ -49,6 +55,8 @@ protected:
 	void OnRep_PreferredTag();
 
 public:
+	Faerie::FOnMeshRebuiltEvent::RegistrationType& GetOnMeshRebuilt() { return OnMeshRebuiltNative; }
+
 	UMeshComponent* GetGeneratedMeshComponent() const { return MeshComponent; }
 
 	// Set the mesh to use directly. This is local only, as the ItemMesh struct does not replicate.
@@ -76,8 +84,10 @@ public:
 	FBoxSphereBounds GetBounds() const;
 
 protected:
+	Faerie::FOnMeshRebuiltEvent OnMeshRebuiltNative;
+
 	UPROPERTY(BlueprintAssignable, Category = "Events")
-	FOnMeshRebuilt OnMeshRebuilt;
+	FFaerieOnMeshRebuilt OnMeshRebuilt;
 
 	UPROPERTY(VisibleInstanceOnly, ReplicatedUsing = "OnRep_SourceMeshToken", BlueprintReadOnly, Category = "Config")
 	TObjectPtr<const UFaerieMeshTokenBase> SourceMeshToken;

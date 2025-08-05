@@ -273,6 +273,7 @@ void UFaerieItemMeshComponent::RebuildMesh()
 	default: checkNoEntry();
 	}
 
+	OnMeshRebuiltNative.Broadcast(this);
 	OnMeshRebuilt.Broadcast();
 }
 
