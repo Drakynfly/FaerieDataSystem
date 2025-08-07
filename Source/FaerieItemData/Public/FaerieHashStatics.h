@@ -6,6 +6,11 @@
 
 class UFaerieItem;
 
+namespace Faerie
+{
+	class FTokenFilter;
+}
+
 namespace Faerie::Hash
 {
 	// A function that takes in a UFaerieItem and returns a hash for it.
@@ -26,4 +31,7 @@ namespace Faerie::Hash
 
 	// A simple HashFunction that hashes the name of an item by its InfoToken
 	FAERIEITEMDATA_API [[nodiscard]] uint32 HashItemByName(const UFaerieItem* Item);
+
+	// A simple HashFunction that hashes the name of an item by its InfoToken
+	FAERIEITEMDATA_API [[nodiscard]] uint32 HashItemByTokens(FTokenFilter& Filter);
 }

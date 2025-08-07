@@ -31,6 +31,8 @@ protected:
 		return CastChecked<ThisClass>(Other)->Tags == Tags;
 	}
 
+	virtual uint32 GetTokenHashImpl() const override;
+
 public:
 	static UFaerieTagToken* CreateInstance(const FGameplayTagContainer& Tags);
 

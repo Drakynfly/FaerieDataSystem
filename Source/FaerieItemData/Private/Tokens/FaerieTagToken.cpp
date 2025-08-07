@@ -1,6 +1,7 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "Tokens/FaerieTagToken.h"
+#include "FaerieHashStatics.h"
 #include "Net/UnrealNetwork.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieTagToken)
@@ -17,6 +18,11 @@ void UFaerieTagToken::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>
 	Params.bIsPushBased = true;
 	Params.Condition = COND_InitialOnly;
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, Tags, Params);
+}
+
+uint32 UFaerieTagToken::GetTokenHashImpl() const
+{
+	return GetTypeHash(Tags.GetGameplayTagArray());
 }
 
 UFaerieTagToken* UFaerieTagToken::CreateInstance(const FGameplayTagContainer& Tags)

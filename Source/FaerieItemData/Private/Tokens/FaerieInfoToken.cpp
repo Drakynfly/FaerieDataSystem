@@ -32,6 +32,11 @@ bool UFaerieInfoToken::CompareWithImpl(const UFaerieItemToken* Other) const
 	return true;
 }
 
+uint32 UFaerieInfoToken::GetTokenHashImpl() const
+{
+	return TextKeyUtil::HashString(Info.ObjectName.BuildSourceString());
+}
+
 UFaerieInfoToken* UFaerieInfoToken::CreateInstance(const FFaerieAssetInfo& AssetInfo)
 {
 	UFaerieInfoToken* NewToken = NewObject<UFaerieInfoToken>();

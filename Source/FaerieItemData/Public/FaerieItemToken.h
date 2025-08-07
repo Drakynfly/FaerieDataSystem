@@ -63,6 +63,14 @@ protected:
 	 */
 	virtual bool CompareWithImpl(const UFaerieItemToken* Other) const;
 
+	/*
+	 * Combine the data of this token into a hash. Most of the time, there is no need to override this. This function is
+	 * used to create hashes from one or more tokens for determinism or checksum tests.
+	 * Usually, only tokens that are a primary identifier need to implement this. Unlike CompareWithImpl, this function
+	 * is still necessary for mutable tokens.
+	 */
+	virtual uint32 GetTokenHashImpl() const { return 0; }
+
 	// Are we in an item that is mutable?
 	bool IsOuterItemMutable() const;
 
@@ -80,8 +88,11 @@ public:
 	 */
 	const UFaerieItem* GetOuterItem() const;
 
-	// Compare the data of this token to another
+	// Compare the data of this token to another.
 	bool CompareWith(const UFaerieItemToken* Other) const;
+
+	// Get the data of this token as a hash.
+	uint32 GetTokenHash() const;
 
 
 	//~		C++ Token Mutation		~//

@@ -158,9 +158,20 @@ namespace Faerie::Hash
 
 		if (const UFaerieInfoToken* InfoToken = Item->GetToken<UFaerieInfoToken>())
 		{
-			return TextKeyUtil::HashString(InfoToken->GetItemName().BuildSourceString());
+			return InfoToken->GetTokenHash();
 		}
 
 		return 0;
+	}
+
+	uint32 HashItemByTokens(FTokenFilter& Filter)
+	{
+		uint32 Hash = 0;
+		Filter.ForEach([&Hash](const TObjectPtr<UFaerieItemToken>& Token)
+		{
+			Hash = Combine(Hash, Token->GetTokenHash());
+			return Continue;
+		});
+		return Hash;
 	}
 }

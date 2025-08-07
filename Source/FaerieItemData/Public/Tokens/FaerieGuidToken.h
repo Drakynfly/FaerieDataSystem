@@ -30,6 +30,7 @@ protected:
 	{
 		return CastChecked<ThisClass>(Other)->Guid == Guid;
 	}
+	virtual uint32 GetTokenHashImpl() const override;
 	//~ UFaerieItemToken
 
 public:

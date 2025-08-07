@@ -31,6 +31,11 @@ void UFaerieGuidToken::PostDuplicate(EDuplicateMode::Type DuplicateMode)
 	Guid = FGuid::NewGuid();
 }
 
+uint32 UFaerieGuidToken::GetTokenHashImpl() const
+{
+	return GetTypeHash(Guid);
+}
+
 UFaerieGuidToken* UFaerieGuidToken::CreateInstance(const FGuid* ExistingGuid)
 {
 	UFaerieGuidToken* NewToken = NewObject<UFaerieGuidToken>();

@@ -23,6 +23,8 @@ protected:
 	// This doesn't mean that an item *cannot* be renamed, just that if it is, it's considered a separate item.
 	virtual bool CompareWithImpl(const UFaerieItemToken* Other) const override;
 
+	virtual uint32 GetTokenHashImpl() const override;
+
 public:
 	static UFaerieInfoToken* CreateInstance(const FFaerieAssetInfo& Info);
 

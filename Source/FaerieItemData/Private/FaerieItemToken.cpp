@@ -98,6 +98,11 @@ bool UFaerieItemToken::CompareWith(const UFaerieItemToken* Other) const
 	return CompareWithImpl(Other);
 }
 
+uint32 UFaerieItemToken::GetTokenHash() const
+{
+	return GetTokenHashImpl();
+}
+
 UFaerieItemToken* UFaerieItemToken::MutateCast() const
 {
 	if (IsMutable())
