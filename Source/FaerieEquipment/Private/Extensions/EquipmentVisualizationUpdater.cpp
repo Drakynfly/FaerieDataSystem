@@ -232,8 +232,11 @@ FEquipmentVisualAttachment UEquipmentVisualizationUpdater::FindAttachmentParent(
 		}
 	}
 
-	Attachment.ParentSocket = SlotExtension->GetSocket();
-	Attachment.ChildSocket = SlotExtension->GetChildSocket();
+	if (IsValid(SlotExtension))
+	{
+		Attachment.ParentSocket = SlotExtension->GetSocket();
+		Attachment.ChildSocket = SlotExtension->GetChildSocket();
+	}
 
 	return Attachment;
 }
