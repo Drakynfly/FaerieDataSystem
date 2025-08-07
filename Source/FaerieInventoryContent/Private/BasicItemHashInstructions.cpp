@@ -96,8 +96,6 @@ uint32 UFISHI_Tokens::Hash(const FFaerieItemStackView StackView) const
 {
 	uint32 Hash = 0;
 
-	constexpr bool IncludeSuper = false;
-
 	for (auto&& TokenClass : TokenClasses)
 	{
 		const TArray<const UFaerieItemToken*> Tokens = StackView.Item->GetTokens(TokenClass);
@@ -110,7 +108,7 @@ uint32 UFISHI_Tokens::Hash(const FFaerieItemStackView StackView) const
 		{
 			for (auto&& Token : Tokens)
 			{
-				Hash = Squirrel::HashCombine(Hash, Faerie::Hash::HashObjectByProps(Token, IncludeSuper));
+				Hash = Squirrel::HashCombine(Hash, Token->GetTokenHash());
 			}
 		}
 	}

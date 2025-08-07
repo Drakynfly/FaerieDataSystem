@@ -1,7 +1,6 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieItem.h"
-#include "FaerieHashStatics.h"
 #include "FaerieItemToken.h"
 #include "AssetLoadFlagFixer.h"
 #include "Algo/Copy.h"
@@ -526,13 +525,13 @@ bool UFaerieItem::CompareWith(const UFaerieItem* Other, const EFaerieItemCompari
 	TokenAHashes.Reserve(TokensA.Num());
 	for (auto&& TokenA : TokensA)
 	{
-		TokenAHashes.Add(Hash::HashObjectByProps(TokenA, true));
+		TokenAHashes.Add(TokenA->GetTokenHash());
 	}
 
 	// While hashing all of B's tokens, check that they all have a match.
 	for (auto&& TokenB : TokensB)
 	{
-		if (const uint32 TokenBHash = Hash::HashObjectByProps(TokenB, true);
+		if (const uint32 TokenBHash = TokenB->GetTokenHash();
 			TokenAHashes.RemoveSwap(TokenBHash))
 		{
 			// The token was matched! Continue iteration.
