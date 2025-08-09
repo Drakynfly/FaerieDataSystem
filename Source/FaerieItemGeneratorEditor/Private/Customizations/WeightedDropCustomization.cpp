@@ -1,7 +1,7 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "WeightedDropCustomization.h"
-#include "GenerationStructs.h"
+#include "Generation/FaerieGenerationStructs.h"
 
 #include "DetailWidgetRow.h"
 #include "IDetailChildrenBuilder.h"
@@ -9,6 +9,8 @@
 
 #define LOCTEXT_NAMESPACE "WeightedDropCustomization"
 
+namespace Faerie
+{
 TSharedRef<IPropertyTypeCustomization> FWeightedDropCustomization::MakeInstance()
 {
     return MakeShared<FWeightedDropCustomization>();
@@ -18,12 +20,12 @@ void FWeightedDropCustomization::CustomizeHeader(const TSharedRef<IPropertyHandl
                                                  FDetailWidgetRow& HeaderRow,
                                                  IPropertyTypeCustomizationUtils& CustomizationUtils)
 {
-    const TSharedRef<IPropertyHandle> WeightHandle = PropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FWeightedDrop, Weight)).ToSharedRef();
-    const TSharedRef<IPropertyHandle> AdjustedHandle = PropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FWeightedDrop, AdjustedWeight)).ToSharedRef();
-    const TSharedRef<IPropertyHandle> DropHandle = PropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FWeightedDrop, Drop)).ToSharedRef();
-    const TSharedRef<IPropertyHandle> PercentageHandle = PropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FWeightedDrop, PercentageChanceToDrop)).ToSharedRef();
+    const TSharedRef<IPropertyHandle> WeightHandle = PropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FFaerieWeightedDrop, Weight)).ToSharedRef();
+    const TSharedRef<IPropertyHandle> AdjustedHandle = PropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FFaerieWeightedDrop, AdjustedWeight)).ToSharedRef();
+    const TSharedRef<IPropertyHandle> DropHandle = PropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FFaerieWeightedDrop, Drop)).ToSharedRef();
+    const TSharedRef<IPropertyHandle> PercentageHandle = PropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FFaerieWeightedDrop, PercentageChanceToDrop)).ToSharedRef();
 
-    const TSharedRef<IPropertyHandle> AssetHandle = DropHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FTableDrop, Asset)).ToSharedRef();
+    const TSharedRef<IPropertyHandle> AssetHandle = DropHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FFaerieTableDrop, Asset)).ToSharedRef();
     const TSharedRef<IPropertyHandle> ObjectHandle = AssetHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FFaerieItemSourceObject, Object)).ToSharedRef();
 
     if (!WeightHandle->IsValidHandle() || !DropHandle->IsValidHandle()) return;
@@ -77,12 +79,13 @@ void FWeightedDropCustomization::CustomizeChildren(const TSharedRef<IPropertyHan
                                                    IDetailChildrenBuilder& StructBuilder,
                                                    IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
-    const TSharedRef<IPropertyHandle> DropHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FWeightedDrop, Drop)).ToSharedRef();
-    const TSharedRef<IPropertyHandle> AssetHandle = DropHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FTableDrop, Asset)).ToSharedRef();
-    const TSharedRef<IPropertyHandle> SlotsHandle = DropHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FTableDrop, StaticResourceSlots)).ToSharedRef();
+    const TSharedRef<IPropertyHandle> DropHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FFaerieWeightedDrop, Drop)).ToSharedRef();
+    const TSharedRef<IPropertyHandle> AssetHandle = DropHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FFaerieTableDrop, Asset)).ToSharedRef();
+    const TSharedRef<IPropertyHandle> SlotsHandle = DropHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FFaerieTableDrop, StaticResourceSlots)).ToSharedRef();
     const TSharedRef<IPropertyHandle> ObjectHandle = AssetHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FFaerieItemSourceObject, Object)).ToSharedRef();
 
     StructBuilder.AddProperty(SlotsHandle);
+}
 }
 
 #undef LOCTEXT_NAMESPACE

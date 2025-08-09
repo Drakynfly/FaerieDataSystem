@@ -6,7 +6,7 @@
 #include "ItemGenerationBench.generated.h"
 
 class USquirrel;
-class UItemGenerationConfig;
+class UFaerieItemGenerationConfig;
 
 /**
  *
@@ -25,7 +25,7 @@ public:
 
 protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, NoClear, Category = "ItemGeneration", meta = (NoResetToDefault))
-	TArray<TObjectPtr<UItemGenerationConfig>> Drivers;
+	TArray<TObjectPtr<UFaerieItemGenerationConfig>> Drivers;
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, NoClear, Category = "ItemGeneration", meta = (NoResetToDefault, DisplayThumbnail = false, ShowInnerProperties))
 	TObjectPtr<USquirrel> Squirrel;

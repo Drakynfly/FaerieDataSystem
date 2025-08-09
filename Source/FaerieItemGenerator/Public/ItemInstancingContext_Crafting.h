@@ -9,8 +9,8 @@
 
 class USquirrel;
 
-UCLASS()
-class FAERIEITEMGENERATOR_API UItemInstancingContext_Crafting : public UItemInstancingContext
+USTRUCT()
+struct FAERIEITEMGENERATOR_API FFaerieItemInstancingContext_Crafting : public FFaerieItemInstancingContext
 {
 	GENERATED_BODY()
 
@@ -23,4 +23,9 @@ public:
 	// resolve to non-seeded output.
 	UPROPERTY()
 	TObjectPtr<USquirrel> Squirrel = nullptr;
+
+	virtual const UScriptStruct* GetScriptStruct() const override
+	{
+		return FFaerieItemInstancingContext_Crafting::StaticStruct();
+	}
 };

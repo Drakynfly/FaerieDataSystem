@@ -2,14 +2,18 @@
 
 #include "TableDropCustomization.h"
 
+#include "Generation/FaerieGenerationStructs.h"
+
 #include "DetailWidgetRow.h"
 #include "FaerieItemSlotInterface.h"
-#include "GenerationStructs.h"
+#include "FaerieItemSource.h"
 #include "IDetailChildrenBuilder.h"
 #include "IPropertyUtilities.h"
 #include "PropertyHandle.h"
 #include "Algo/ForEach.h"
 
+namespace Faerie
+{
 TSharedRef<IPropertyTypeCustomization> FTableDropCustomization::MakeInstance()
 {
 	return MakeShared<FTableDropCustomization>();
@@ -18,7 +22,7 @@ TSharedRef<IPropertyTypeCustomization> FTableDropCustomization::MakeInstance()
 void FTableDropCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> PropertyHandle, FDetailWidgetRow& HeaderRow,
 	IPropertyTypeCustomizationUtils& CustomizationUtils)
 {
-	auto&& AssetProp = PropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FTableDrop, Asset));
+	auto&& AssetProp = PropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FFaerieTableDrop, Asset));
 	auto&& ObjectProp = AssetProp->GetChildHandle(GET_MEMBER_NAME_CHECKED(FFaerieItemSourceObject, Object));
 
 	HeaderRow
@@ -42,10 +46,10 @@ void FTableDropCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> Proper
 void FTableDropCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> PropertyHandle,
 	IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& CustomizationUtils)
 {
-	auto&& AssetProp = PropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FTableDrop, Asset));
+	auto&& AssetProp = PropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FFaerieTableDrop, Asset));
 	auto&& ObjectProp = AssetProp->GetChildHandle(GET_MEMBER_NAME_CHECKED(FFaerieItemSourceObject, Object));
 
-	auto&& SlotsHandle = PropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FTableDrop, StaticResourceSlots));
+	auto&& SlotsHandle = PropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FFaerieTableDrop, StaticResourceSlots));
 
     UObject* ObjectValue = nullptr;
     if (auto&& SoftObjectProperty = CastField<FSoftObjectProperty>(ObjectProp->GetProperty()))
@@ -58,7 +62,7 @@ void FTableDropCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> Prop
     	}
     }
 
-	TMap<FFaerieItemSlotHandle, TInstancedStruct<FTableDrop>>* SlotsAddress;
+	TMap<FFaerieItemSlotHandle, TInstancedStruct<FFaerieTableDrop>>* SlotsAddress;
 	SlotsHandle->GetValueData(reinterpret_cast<void*&>(SlotsAddress));
 
 	if (!IsValid(ObjectValue))
@@ -114,4 +118,5 @@ void FTableDropCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> Prop
 	{
 		ChildBuilder.AddProperty(SlotsHandle.ToSharedRef());
 	}
+}
 }

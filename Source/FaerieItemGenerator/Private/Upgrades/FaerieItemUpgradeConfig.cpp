@@ -1,21 +1,18 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
-#include "ItemUpgradeConfig.h"
-#include "FaerieItemMutator.h"
+#include "Upgrades/FaerieItemUpgradeConfig.h"
 
 #if WITH_EDITOR
 #include "Misc/DataValidation.h"
 #endif
 
-DEFINE_LOG_CATEGORY(LogItemUpgradeConfig)
-
-#include UE_INLINE_GENERATED_CPP_BY_NAME(ItemUpgradeConfig)
+#include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemUpgradeConfig)
 
 #if WITH_EDITOR
 
-#define LOCTEXT_NAMESPACE "ItemUpgradeConfigValidation"
+#define LOCTEXT_NAMESPACE "FaerieItemUpgradeConfig_IsDataValid"
 
-EDataValidationResult UItemUpgradeConfig::IsDataValid(FDataValidationContext& Context) const
+EDataValidationResult UFaerieItemUpgradeConfig::IsDataValid(FDataValidationContext& Context) const
 {
 	if (!Mutator)
 	{
@@ -34,7 +31,7 @@ EDataValidationResult UItemUpgradeConfig::IsDataValid(FDataValidationContext& Co
 
 #endif
 
-FFaerieCraftingSlotsView UItemUpgradeConfig::GetCraftingSlots() const
+FFaerieCraftingSlotsView UFaerieItemUpgradeConfig::GetCraftingSlots() const
 {
 	return FFaerieCraftingSlotsView();
 	//return Faerie::Crafting::GetCraftingSlots(Mutator);

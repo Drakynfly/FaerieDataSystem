@@ -7,22 +7,20 @@
 
 struct FFaerieItemCraftingSlots;
 struct FFaerieItemSlotHandle;
-struct FGeneratorAmountBase;
-struct FWeightedDrop;
+struct FFaerieGeneratorAmountBase;
+struct FFaerieWeightedDrop;
 class IFaerieItemSlotInterface;
 class UFaerieItemTemplate;
-class UItemGenerationConfig;
-
-DECLARE_LOG_CATEGORY_EXTERN(LogCraftingLibrary, Log, All);
+class UFaerieItemGenerationConfig;
 
 UCLASS()
-class UCraftingLibrary : public UBlueprintFunctionLibrary
+class UFaerieCraftingLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|Crafting")
-	static UItemGenerationConfig* CreateGenerationDriver(const TArray<FWeightedDrop>& DropList, const FGeneratorAmountBase& Amount);
+	static UFaerieItemGenerationConfig* CreateGenerationDriver(const TArray<FFaerieWeightedDrop>& DropList, const FFaerieGeneratorAmountBase& Amount);
 
 	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Item Creator")
 	static void GetCraftingSlots(const TScriptInterface<IFaerieItemSlotInterface> Interface, FFaerieItemCraftingSlots& Slots);

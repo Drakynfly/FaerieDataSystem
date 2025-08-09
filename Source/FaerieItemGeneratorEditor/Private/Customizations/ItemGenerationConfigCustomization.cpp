@@ -3,7 +3,6 @@
 #include "ItemGenerationConfigCustomization.h"
 
 #include "DetailLayoutBuilder.h"
-#include "ItemGeneratorConfig.h"
 #include "FaerieItemPool.h"
 
 TSharedRef<IDetailCustomization> FItemGenerationConfigCustomization::MakeInstance()

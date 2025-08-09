@@ -38,12 +38,3 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataFilter")
 	virtual bool Exec(FFaerieItemStackView View) const PURE_VIRTUAL(UFaerieItemDataFilter::Exec, return false; )
 };
-
-USTRUCT(BlueprintType)
-struct FAERIEITEMDATA_API FInlineFaerieItemDataFilter
-{
-	GENERATED_BODY()
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Instanced, Category = "Inline Inventory Filter Filter")
-	TObjectPtr<UFaerieItemDataFilter> Filter = nullptr;
-};

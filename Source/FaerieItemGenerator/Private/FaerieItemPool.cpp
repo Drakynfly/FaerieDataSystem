@@ -12,13 +12,14 @@
 #include "Misc/DataValidation.h"
 #endif
 
+#include "FaerieItemGenerationLog.h"
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemPool)
 
-const FTableDrop* FFaerieWeightedDropPool::GetDrop(const double RanWeight) const
+const FFaerieTableDrop* FFaerieWeightedPool::GetDrop(const double RanWeight) const
 {
 	if (DropList.IsEmpty())
 	{
-		UE_LOG(LogTemp, Error, TEXT("Exiting generation: Empty Table"));
+		UE_LOG(LogItemGeneration, Error, TEXT("Exiting generation: Empty Table"));
 		return nullptr;
 	}
 
@@ -28,11 +29,11 @@ const FTableDrop* FFaerieWeightedDropPool::GetDrop(const double RanWeight) const
 		return &DropList[0].Drop;
 	}
 
-	const int32 BinarySearchResult = Algo::LowerBoundBy(DropList, RanWeight, &FWeightedDrop::AdjustedWeight);
+	const int32 BinarySearchResult = Algo::LowerBoundBy(DropList, RanWeight, &FFaerieWeightedDrop::AdjustedWeight);
 
 	if (!DropList.IsValidIndex(BinarySearchResult))
 	{
-		UE_LOG(LogTemp, Error, TEXT("Binary search returned out-of-bounds index!"));
+		UE_LOG(LogItemGeneration, Error, TEXT("Binary search returned out-of-bounds index!"));
 		return nullptr;
 	}
 
@@ -40,7 +41,7 @@ const FTableDrop* FFaerieWeightedDropPool::GetDrop(const double RanWeight) const
 }
 
 #if WITH_EDITOR
-void FFaerieWeightedDropPool::CalculatePercentages()
+void FFaerieWeightedPool::CalculatePercentages()
 {
 	/**
 	 * Sum all weights into a total weight value, while also adjusting the weight of each drop to include to weight
@@ -48,30 +49,30 @@ void FFaerieWeightedDropPool::CalculatePercentages()
 	 */
 
 	int32 WeightSum = 0;
-	for (FWeightedDrop& Entry : DropList)
+	for (FFaerieWeightedDrop& Entry : DropList)
 	{
 		WeightSum += Entry.Weight;
 		Entry.AdjustedWeight = WeightSum;
 	}
 
-	for (FWeightedDrop& Entry : DropList)
+	for (FFaerieWeightedDrop& Entry : DropList)
 	{
 		Entry.AdjustedWeight /= WeightSum;
 		Entry.PercentageChanceToDrop = 100.f * (static_cast<float>(Entry.Weight) / static_cast<float>(WeightSum));
 	}
 }
 
-void FFaerieWeightedDropPool::SortTable()
+void FFaerieWeightedPool::SortTable()
 {
-	Algo::SortBy(DropList, &FWeightedDrop::AdjustedWeight);
+	Algo::SortBy(DropList, &FFaerieWeightedDrop::AdjustedWeight);
 }
 
 namespace Faerie::Editor
 {
-	bool HasMutableDrops(const TArray<FWeightedDrop>& Table)
+	bool HasMutableDrops(const TArray<FFaerieWeightedDrop>& Table)
 	{
 		return Algo::AnyOf(Table,
-			[](const FWeightedDrop& Drop)
+			[](const FFaerieWeightedDrop& Drop)
 			{
 				auto&& Interface = Cast<IFaerieItemSource>(Drop.Drop.Asset.Object.LoadSynchronous());
 				return Interface && Interface->CanBeMutable();
@@ -113,7 +114,7 @@ EDataValidationResult UFaerieItemPool::IsDataValid(FDataValidationContext& Conte
 {
 	TArray<FFaerieItemSourceObject> AssetList;
 
-	for (const FWeightedDrop& Entry : DropPool.DropList)
+	for (const FFaerieWeightedDrop& Entry : DropPool.DropList)
 	{
 		if (!Entry.Drop.IsValid())
 		{
@@ -172,16 +173,16 @@ FFaerieAssetInfo UFaerieItemPool::GetSourceInfo() const
 	return TableInfo;
 }
 
-UFaerieItem* UFaerieItemPool::CreateItemInstance(const UItemInstancingContext* Context) const
+const UFaerieItem* UFaerieItemPool::CreateItemInstance(const FFaerieItemInstancingContext* Context) const
 {
-	const UItemInstancingContext_Crafting* CraftingContent = Cast<UItemInstancingContext_Crafting>(Context);
-	if (!IsValid(CraftingContent))
+	const FFaerieItemInstancingContext_Crafting* CraftingContent = Context->Cast<FFaerieItemInstancingContext_Crafting>();
+	if (!CraftingContent)
 	{
-		UE_LOG(LogTemp, Error, TEXT("UFaerieItemPool requires a Content of type UItemInstancingContext_Crafting!"));
+		UE_LOG(LogItemGeneration, Error, TEXT("UFaerieItemPool requires a Content of type FItemInstancingContext_Crafting!"));
 		return nullptr;
 	}
 
-	const FTableDrop* Drop = [this, CraftingContent]
+	const FFaerieTableDrop* Drop = [this, CraftingContent]
 		{
 			if (IsValid(CraftingContent->Squirrel))
 			{
@@ -192,41 +193,41 @@ UFaerieItem* UFaerieItemPool::CreateItemInstance(const UItemInstancingContext* C
 
 	if (Drop && Drop->IsValid())
 	{
-		return Drop->Resolve(CraftingContent);
+		return Drop->Resolve(*CraftingContent);
 	}
 
 	return nullptr;
 }
 
-const FTableDrop* UFaerieItemPool::GetDrop(const double RanWeight) const
+const FFaerieTableDrop* UFaerieItemPool::GetDrop(const double RanWeight) const
 {
 	return DropPool.GetDrop(RanWeight);
 }
 
-const FTableDrop* UFaerieItemPool::GetDrop_Seeded(USquirrel* Squirrel) const
+const FFaerieTableDrop* UFaerieItemPool::GetDrop_Seeded(USquirrel* Squirrel) const
 {
 	return DropPool.GetDrop(Squirrel->NextReal());
 }
 
-TConstArrayView<FWeightedDrop> UFaerieItemPool::ViewDropPool() const
+TConstArrayView<FFaerieWeightedDrop> UFaerieItemPool::ViewDropPool() const
 {
 	return DropPool.DropList;
 }
 
-FTableDrop UFaerieItemPool::GenerateDrop(const double RanWeight) const
+FFaerieTableDrop UFaerieItemPool::GenerateDrop(const double RanWeight) const
 {
 	if (auto&& DropPtr = GetDrop(RanWeight))
 	{
 		return *DropPtr;
 	}
-	return FTableDrop();
+	return FFaerieTableDrop();
 }
 
-FTableDrop UFaerieItemPool::GenerateDrop_Seeded(USquirrel* Squirrel) const
+FFaerieTableDrop UFaerieItemPool::GenerateDrop_Seeded(USquirrel* Squirrel) const
 {
 	if (auto&& DropPtr = GetDrop_Seeded(Squirrel))
 	{
 		return *DropPtr;
 	}
-	return FTableDrop();
+	return FFaerieTableDrop();
 }

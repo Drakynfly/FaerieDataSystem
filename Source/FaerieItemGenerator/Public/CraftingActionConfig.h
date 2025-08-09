@@ -8,8 +8,8 @@
 /**
 * Base class for configuration objects passed into UFaerieItemCraftingSubsystem functions.
 */
-UCLASS(Abstract, Const, DefaultToInstanced, BlueprintType, ClassGroup = "Faerie", CollapseCategories)
-class FAERIEITEMGENERATOR_API UCraftingActionConfig : public UObject
+UCLASS(Abstract, Const, DefaultToInstanced, EditInlineNew, BlueprintType, ClassGroup = "Faerie", CollapseCategories)
+class FAERIEITEMGENERATOR_API UFaerieCraftingActionConfig : public UObject
 {
 	GENERATED_BODY()
 

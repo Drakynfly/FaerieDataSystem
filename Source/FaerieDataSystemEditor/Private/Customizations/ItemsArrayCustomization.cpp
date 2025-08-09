@@ -6,6 +6,8 @@
 
 #define LOCTEXT_NAMESPACE "ItemsArrayCustomization"
 
+namespace Faerie
+{
 TSharedRef<IPropertyTypeCustomization> FItemsArrayCustomization::MakeInstance()
 {
 	return MakeShared<FItemsArrayCustomization>();
@@ -52,6 +54,7 @@ void FItemsArrayCustomization::OnGenerateElement(TSharedRef<IPropertyHandle> Ele
 												 IDetailChildrenBuilder& ChildrenBuilder)
 {
 	ChildrenBuilder.AddProperty(ElementProperty);
+}
 }
 
 #undef LOCTEXT_NAMESPACE

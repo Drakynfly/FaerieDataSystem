@@ -154,10 +154,10 @@ FFaerieAssetInfo UFaerieItemAsset::GetSourceInfo() const
 	return FFaerieAssetInfo();
 }
 
-UFaerieItem* UFaerieItemAsset::CreateItemInstance(const UItemInstancingContext* Context) const
+const UFaerieItem* UFaerieItemAsset::CreateItemInstance(const FFaerieItemInstancingContext* Context) const
 {
 	if (!IsValidChecked(Item)) return nullptr;
-	if (IsValid(Context))
+	if (Context)
 	{
 		return Item->CreateInstance(Context->Flags);
 	}

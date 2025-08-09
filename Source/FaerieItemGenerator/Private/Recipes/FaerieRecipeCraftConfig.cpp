@@ -1,21 +1,19 @@
 // Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
-#include "ItemCraftingConfig.h"
+#include "Recipes/FaerieRecipeCraftConfig.h"
 #include "FaerieItemRecipe.h"
 
 #if WITH_EDITOR
 #include "Misc/DataValidation.h"
 #endif
 
-#include UE_INLINE_GENERATED_CPP_BY_NAME(ItemCraftingConfig)
-
-DEFINE_LOG_CATEGORY(LogItemCraftingConfig)
+#include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieRecipeCraftConfig)
 
 #if WITH_EDITOR
 
-#define LOCTEXT_NAMESPACE "ItemCraftingConfig_IsDataValid"
+#define LOCTEXT_NAMESPACE "FaerieRecipeCraftConfig_IsDataValid"
 
-EDataValidationResult UItemCraftingConfig::IsDataValid(FDataValidationContext& Context) const
+EDataValidationResult UFaerieRecipeCraftConfig::IsDataValid(FDataValidationContext& Context) const
 {
 	if (!Recipe)
 	{
@@ -33,7 +31,7 @@ EDataValidationResult UItemCraftingConfig::IsDataValid(FDataValidationContext& C
 
 #endif
 
-FFaerieCraftingSlotsView UItemCraftingConfig::GetCraftingSlots() const
+FFaerieCraftingSlotsView UFaerieRecipeCraftConfig::GetCraftingSlots() const
 {
 	return Faerie::Crafting::GetCraftingSlots(Recipe);
 }

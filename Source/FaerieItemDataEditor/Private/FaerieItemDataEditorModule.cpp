@@ -4,12 +4,10 @@
 #include "FaerieAssetEditorCommands.h"
 #include "FaerieItemAsset.h"
 #include "FaerieItemCardTags.h"
-#include "FaerieItemDataFilter.h"
 
 #include "FaerieItemSource.h"
 #include "GameplayTagsEditorModule.h"
 #include "PropertyEditorModule.h"
-#include "Customizations/OnTheFlyConfigCustomization.h"
 #include "Customizations/FaerieItemSourceObjectCustomization.h"
 #include "ThumbnailRenderers/FaerieItemAssetThumbnailRenderer.h"
 #include "ThumbnailRendering/ThumbnailManager.h"
@@ -29,8 +27,6 @@ void FFaerieItemDataEditorModule::StartupModule()
 
 	StructCustomizations.Add(FFaerieItemSourceObject::StaticStruct()->GetFName(),
 		FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FFaerieItemSourceObjectCustomization::MakeInstance));
-	StructCustomizations.Add(FInlineFaerieItemDataFilter::StaticStruct()->GetFName(),
-		FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FOnTheFlyConfigCustomization::MakeInstance));
 
 	StructCustomizations.Add(FFaerieItemCardType::StaticStruct()->GetFName(),
 		FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FGameplayTagCustomizationPublic::MakeInstance));

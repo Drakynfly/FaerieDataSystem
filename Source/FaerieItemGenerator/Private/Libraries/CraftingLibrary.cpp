@@ -2,21 +2,19 @@
 
 #include "CraftingLibrary.h"
 #include "FaerieItemSlotInterface.h"
-#include "ItemGeneratorConfig.h"
+#include "Generation/FaerieItemGenerationConfig.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(CraftingLibrary)
 
-DEFINE_LOG_CATEGORY(LogCraftingLibrary);
-
-UItemGenerationConfig* UCraftingLibrary::CreateGenerationDriver(const TArray<FWeightedDrop>& DropList, const FGeneratorAmountBase& Amount)
+UFaerieItemGenerationConfig* UFaerieCraftingLibrary::CreateGenerationDriver(const TArray<FFaerieWeightedDrop>& DropList, const FFaerieGeneratorAmountBase& Amount)
 {
-    UItemGenerationConfig* NewDriver = NewObject<UItemGenerationConfig>();
+    UFaerieItemGenerationConfig* NewDriver = NewObject<UFaerieItemGenerationConfig>();
     NewDriver->DropPool.DropList = DropList;
-    NewDriver->AmountResolver = TInstancedStruct<FGeneratorAmountBase>::Make(Amount);
+    NewDriver->AmountResolver = TInstancedStruct<FFaerieGeneratorAmountBase>::Make(Amount);
     return NewDriver;
 }
 
-void UCraftingLibrary::GetCraftingSlots(const TScriptInterface<IFaerieItemSlotInterface> Interface, FFaerieItemCraftingSlots& Slots)
+void UFaerieCraftingLibrary::GetCraftingSlots(const TScriptInterface<IFaerieItemSlotInterface> Interface, FFaerieItemCraftingSlots& Slots)
 {
     Slots = FFaerieItemCraftingSlots();
 
@@ -30,7 +28,7 @@ void UCraftingLibrary::GetCraftingSlots(const TScriptInterface<IFaerieItemSlotIn
     }
 }
 
-void UCraftingLibrary::GetCraftingSlots_Message(UObject* Object, FFaerieItemCraftingSlots& Slots)
+void UFaerieCraftingLibrary::GetCraftingSlots_Message(UObject* Object, FFaerieItemCraftingSlots& Slots)
 {
     if (Object && Object->Implements<UFaerieItemSlotInterface>())
     {
@@ -38,12 +36,12 @@ void UCraftingLibrary::GetCraftingSlots_Message(UObject* Object, FFaerieItemCraf
     }
 }
 
-bool UCraftingLibrary::IsSlotOptional(const TScriptInterface<IFaerieItemSlotInterface> Interface, const FFaerieItemSlotHandle& Name)
+bool UFaerieCraftingLibrary::IsSlotOptional(const TScriptInterface<IFaerieItemSlotInterface> Interface, const FFaerieItemSlotHandle& Name)
 {
     return Faerie::Crafting::IsSlotOptional(Interface.GetInterface(), Name);
 }
 
-bool UCraftingLibrary::FindSlot(const TScriptInterface<IFaerieItemSlotInterface> Interface,
+bool UFaerieCraftingLibrary::FindSlot(const TScriptInterface<IFaerieItemSlotInterface> Interface,
                                       const FFaerieItemSlotHandle& Name, UFaerieItemTemplate*& OutSlot)
 {
     return Faerie::Crafting::FindSlot(Interface.GetInterface(), Name, OutSlot);

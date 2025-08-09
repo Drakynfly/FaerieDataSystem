@@ -39,7 +39,8 @@ private:
 
 	void HandleNextInQueue();
 
-	void PostLoadClassToSpawn(TSoftClassPtr<AItemRepresentationActor> ClassToSpawn);
+	void PostLoadClassToSpawn(TSharedPtr<struct FStreamableHandle> Handle);
+	void SpawnVisualizer(const TSubclassOf<AItemRepresentationActor>& Class);
 
 protected:
 	// Default visual actor when the item has no custom class.

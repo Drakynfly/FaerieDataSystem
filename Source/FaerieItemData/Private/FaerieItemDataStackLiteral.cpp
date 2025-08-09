@@ -48,10 +48,9 @@ bool UFaerieItemDataStackLiteral::Possess(const FFaerieItemStack Stack)
 	return true;
 }
 
-void UFaerieItemDataStackLiteral::SetValue(UFaerieItem* Item)
+void UFaerieItemDataStackLiteral::SetValue(const UFaerieItem* Item)
 {
-	ItemStack.Item = Item;
-	ItemStack.Copies = 1;
+	ItemStack = FFaerieItemStack(Item, 1);
 }
 
 void UFaerieItemDataStackLiteral::SetValue(const FFaerieItemStack InStack)

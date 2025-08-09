@@ -73,13 +73,13 @@ void UInventoryEjectionHandlerExtension::HandleNextInQueue()
 
 	if (ClassToSpawn.IsValid())
 	{
-		PostLoadClassToSpawn(ClassToSpawn);
+		SpawnVisualizer(ClassToSpawn.Get());
 	}
 	else if (ClassToSpawn.IsPending())
 	{
 		IsStreaming = true;
 		UAssetManager::GetStreamableManager().RequestAsyncLoad(ClassToSpawn.ToSoftObjectPath(),
-			FStreamableDelegate::CreateUObject(this, &ThisClass::PostLoadClassToSpawn, ClassToSpawn));
+			FStreamableDelegateWithHandle::CreateUObject(this, &ThisClass::PostLoadClassToSpawn));
 	}
 	else
 	{
@@ -87,11 +87,11 @@ void UInventoryEjectionHandlerExtension::HandleNextInQueue()
 	}
 }
 
-void UInventoryEjectionHandlerExtension::PostLoadClassToSpawn(const TSoftClassPtr<AItemRepresentationActor> ClassToSpawn)
+void UInventoryEjectionHandlerExtension::PostLoadClassToSpawn(TSharedPtr<struct FStreamableHandle> Handle)
 {
 	IsStreaming = false;
 
-	const TSubclassOf<AItemRepresentationActor> ActorClass = ClassToSpawn.Get();
+	const TSubclassOf<AItemRepresentationActor> ActorClass = Handle->GetLoadedAsset<UClass>();
 
 	if (!IsValid(ActorClass))
 	{
@@ -105,6 +105,11 @@ void UInventoryEjectionHandlerExtension::PostLoadClassToSpawn(const TSoftClassPt
 		return;
 	}
 
+	SpawnVisualizer(ActorClass);
+}
+
+void UInventoryEjectionHandlerExtension::SpawnVisualizer(const TSubclassOf<AItemRepresentationActor>& Class)
+{
 	const AActor* OwningActor = GetTypedOuter<AActor>();
 
 	if (!IsValid(OwningActor))
@@ -117,7 +122,7 @@ void UInventoryEjectionHandlerExtension::PostLoadClassToSpawn(const TSoftClassPt
 	SpawnTransform = SpawnTransform.GetRelativeTransform(RelativeSpawningTransform);
 	FActorSpawnParameters Args;
 	Args.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-	AItemRepresentationActor* NewPickup = OwningActor->GetWorld()->SpawnActor<AItemRepresentationActor>(ActorClass, SpawnTransform, Args);
+	AItemRepresentationActor* NewPickup = OwningActor->GetWorld()->SpawnActor<AItemRepresentationActor>(Class, SpawnTransform, Args);
 
 	// @todo REPLICATION: Literals do not replicate! Enforce usage of a Representation actor that can TakeOwnership of the stack!
 	if (IsValid(NewPickup))

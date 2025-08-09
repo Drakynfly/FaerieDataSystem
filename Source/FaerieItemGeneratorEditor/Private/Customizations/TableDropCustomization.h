@@ -4,6 +4,8 @@
 
 #include "IPropertyTypeCustomization.h"
 
+namespace Faerie
+{
 class FTableDropCustomization final : public IPropertyTypeCustomization
 {
 public:
@@ -12,3 +14,4 @@ public:
 	virtual void CustomizeHeader(TSharedRef<IPropertyHandle> PropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& CustomizationUtils) override;
 	virtual void CustomizeChildren(TSharedRef<IPropertyHandle> PropertyHandle, IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& CustomizationUtils) override;
 };
+}

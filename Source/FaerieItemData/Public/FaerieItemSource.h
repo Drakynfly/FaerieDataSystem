@@ -11,15 +11,30 @@
 enum class EFaerieItemInstancingMutability : uint8;
 class UFaerieItem;
 
-UCLASS(Const)
-class FAERIEITEMDATA_API UItemInstancingContext : public UObject
+USTRUCT()
+struct FAERIEITEMDATA_API FFaerieItemInstancingContext
 {
 	GENERATED_BODY()
 
 public:
+	virtual ~FFaerieItemInstancingContext() = default;
+
 	// Flags to mark instances with
 	UPROPERTY()
 	EFaerieItemInstancingMutability Flags;
+
+	// Children must implement this to allow safe casting.
+	virtual const UScriptStruct* GetScriptStruct() const { return FFaerieItemInstancingContext::StaticStruct(); }
+
+	template <typename T>
+	const T* Cast() const
+	{
+		if (GetScriptStruct()->IsChildOf(T::StaticStruct()))
+		{
+			return static_cast<const T*>(this);
+		}
+		return nullptr;
+	}
 };
 
 // This class does not need to be modified.
@@ -46,7 +61,7 @@ public:
 
 	// Create a item instance from this source.
 	// An InstancingContext may be required to provide contextual data from the requester of the item.
-	virtual UFaerieItem* CreateItemInstance(const UItemInstancingContext* Context) const
+	virtual const UFaerieItem* CreateItemInstance(const FFaerieItemInstancingContext* Context) const
 		PURE_VIRTUAL(IFaerieItemSource::CreateItemInstance, return nullptr; )
 };
 

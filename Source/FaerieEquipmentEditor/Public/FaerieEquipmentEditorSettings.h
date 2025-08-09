@@ -10,7 +10,7 @@ class UDurabilityGradeAsset;
 /**
  *
  */
-UCLASS(Config = EditorPerProjectUserSettings, defaultconfig, meta = (DisplayName = "Faerie Data System Editor"))
+UCLASS(Config = EditorPerProjectUserSettings, defaultconfig, meta = (DisplayName = "Faerie Equipment Editor"))
 class FAERIEEQUIPMENTEDITOR_API UFaerieEquipmentEditorSettings : public UDeveloperSettings
 {
 	GENERATED_BODY()

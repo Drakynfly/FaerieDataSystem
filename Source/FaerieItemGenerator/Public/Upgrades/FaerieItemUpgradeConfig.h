@@ -4,15 +4,13 @@
 
 #include "CraftingActionConfig.h"
 #include "FaerieItemSlotInterface.h"
-#include "ItemUpgradeConfig.generated.h"
-
-DECLARE_LOG_CATEGORY_EXTERN(LogItemUpgradeConfig, Log, All);
+#include "FaerieItemUpgradeConfig.generated.h"
 
 /**
  *
  */
 UCLASS()
-class FAERIEITEMGENERATOR_API UItemUpgradeConfig : public UCraftingActionConfig, public IFaerieItemSlotInterface
+class FAERIEITEMGENERATOR_API UFaerieItemUpgradeConfig : public UFaerieCraftingActionConfig, public IFaerieItemSlotInterface
 {
 	GENERATED_BODY()
 
@@ -26,14 +24,4 @@ public:
 	// Mutator object, created inline.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Refinement Config")
 	TObjectPtr<class UFaerieItemMutator> Mutator;
-};
-
-USTRUCT(BlueprintType)
-struct FOnTheFlyItemUpgradeConfig
-{
-	GENERATED_BODY()
-
-	// Options to upgrade or refine this asset.
-	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Instanced, Category = "Crafting", NoClear)
-	TObjectPtr<UItemUpgradeConfig> Config =	nullptr;
 };

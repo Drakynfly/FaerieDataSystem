@@ -4,6 +4,8 @@
 
 #include "IPropertyTypeCustomization.h"
 
+namespace Faerie
+{
 class FAERIEDATASYSTEMEDITOR_API FItemsArrayCustomization final : public IPropertyTypeCustomization
 {
 public:
@@ -14,3 +16,4 @@ public:
 
 	void OnGenerateElement(TSharedRef<IPropertyHandle> ElementProperty, int32 ElementIndex, IDetailChildrenBuilder& ChildrenBuilder);
 };
+}

@@ -29,7 +29,7 @@ public:
 	//~ IFaerieItemOwnerInterface
 
 public:
-	void SetValue(UFaerieItem* Item);
+	void SetValue(const UFaerieItem* Item);
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataStackLiteral")
 	void SetValue(FFaerieItemStack InStack);

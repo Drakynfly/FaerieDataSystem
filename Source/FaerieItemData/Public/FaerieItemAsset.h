@@ -30,7 +30,7 @@ public:
 	//~ IFaerieItemSource
 	virtual bool CanBeMutable() const override;
 	virtual FFaerieAssetInfo GetSourceInfo() const override;
-	virtual UFaerieItem* CreateItemInstance(const UItemInstancingContext* Context) const override;
+	virtual const UFaerieItem* CreateItemInstance(const FFaerieItemInstancingContext* Context) const override;
 	//~ IFaerieItemSource
 
 	// Get the item instance this asset represents. By default, this will return the immutable asset if possible.
