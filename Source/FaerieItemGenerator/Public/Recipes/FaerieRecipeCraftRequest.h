@@ -14,17 +14,16 @@ struct FAERIEITEMGENERATOR_API FFaerieRecipeCraftRequest : public FFaerieCraftin
 {
 	GENERATED_BODY()
 
-	virtual bool Configure(UFaerieCraftingRunner* Runner) const override;
 	virtual void Run(UFaerieCraftingRunner* Runner) const override;
 
 	// These should be sourced from cooked assets, or spawned by the server, if needed at runtime. Clients cannot create them.
 	UPROPERTY(BlueprintReadWrite, Category = "Crafting Request")
-	TObjectPtr<UFaerieRecipeCraftConfig> Config = nullptr;
+	TObjectPtr<UFaerieRecipeCraftConfig> Config;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Crafting Request")
 	TArray<FFaerieCraftingRequestSlot> Slots;
 
 	// Should ConsumeSlotCosts be called during Run. This is disabled to preview output before commiting to the action.
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite, Category = "Crafting Request")
 	bool RunConsumeStep = false;
 };

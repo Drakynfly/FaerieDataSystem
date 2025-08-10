@@ -4,14 +4,13 @@
 
 #include "FaerieItemProxy.h"
 #include "ItemSlotHandle.h"
-#include "Engine/TimerHandle.h"
 #include "StructUtils/InstancedStruct.h"
 
 #include "FaerieCraftingRunner.generated.h"
 
 struct FInstancedStruct;
-struct FStreamableHandle;
 struct FFaerieItemStack;
+struct FStreamableHandle;
 class IFaerieItemDataProxy;
 class UFaerieCraftingRunner;
 class USquirrel;
@@ -29,8 +28,6 @@ namespace Faerie
 {
 	using FGenerationActionComplete = TDelegate<void(UFaerieCraftingRunner*, EGenerationActionResult)>;
 }
-DECLARE_DYNAMIC_DELEGATE_TwoParams(FGenerationActionOnCompleteBinding, EGenerationActionResult, Result, const TArray<FFaerieItemStack>&, Items);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FGenerationActionCompleted, EGenerationActionResult, Result, const TArray<FFaerieItemStack>&, Items);
 
 USTRUCT(BlueprintType)
 struct FFaerieCraftingRequestBase
@@ -39,9 +36,6 @@ struct FFaerieCraftingRequestBase
 
 	virtual ~FFaerieCraftingRequestBase() = default;
 
-	virtual bool Configure(UFaerieCraftingRunner* Runner) const { return true; }
-	virtual bool LoadAssets(UFaerieCraftingRunner* Runner) const { return false; }
-
 	// Virtual run function. This must be implemented per subtype. It must finish before the timer has ran out.
 	virtual void Run(UFaerieCraftingRunner* Runner) const
 		PURE_VIRTUAL(FFaerieCraftingRequestBase::Run, )
@@ -49,11 +43,17 @@ struct FFaerieCraftingRequestBase
 	// The squirrel provided for deterministic generation (optional).
 	UPROPERTY(BlueprintReadWrite, Category = "Crafting Request")
 	TWeakObjectPtr<USquirrel> Squirrel;
-
-	UPROPERTY(BlueprintReadWrite, Category = "Upgrade Request")
-	FGenerationActionOnCompleteBinding OnComplete;
 };
 
+// The results of a crafting action
+USTRUCT(BlueprintType)
+struct FFaerieCraftingActionData
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	TArray<FFaerieItemStack> ProcessStacks;
+};
 
 USTRUCT(BlueprintType)
 struct FCraftingActionSparseClassStruct
@@ -81,6 +81,8 @@ class FAERIEITEMGENERATOR_API UFaerieCraftingRunner final : public UObject
 public:
 	virtual UWorld* GetWorld() const override;
 
+	Faerie::FGenerationActionComplete::RegistrationType& GetOnCompletedCallback() { return OnCompletedCallback; }
+
 private:
 	FTimerManager& GetTimerManager() const;
 
@@ -89,15 +91,8 @@ private:
 	// This MUST be called during the actions execution or this action will be timed-out.
 	void Finish(EGenerationActionResult Result);
 
-protected:
-	void Run();
-
 public:
-	Faerie::FGenerationActionComplete::RegistrationType& GetOnCompletedCallback() { return OnCompletedCallback; }
-
-public:
-	UFUNCTION(BlueprintCallable, Category = "Faerie|CraftingAction")
-	void Start(TInstancedStruct<FFaerieCraftingRequestBase>& Request);
+	void Start(const TInstancedStruct<FFaerieCraftingRequestBase>& Request);
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|CraftingAction")
 	void Cancel();
@@ -108,21 +103,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|CraftingAction")
 	void Fail();
 
-protected:
-	UPROPERTY()
-	TWeakObjectPtr<USquirrel> Squirrel;
-
-	UPROPERTY(BlueprintAssignable, Category = "Events")
-	FGenerationActionCompleted OnCompleted;
-
 public:
-	// @todo should not be public
-	UPROPERTY()
-	TArray<FFaerieItemStack> ProcessStacks;
-
 	// Custom storage for data required during runtime
 	UPROPERTY()
-	FInstancedStruct RequestStorage;
+	TInstancedStruct<FFaerieCraftingActionData> RequestStorage;
 
 	TSharedPtr<FStreamableHandle> RunningStreamHandle;
 
@@ -132,7 +116,6 @@ private:
 
 	UPROPERTY()
 	FTimerHandle TimerHandle;
-
 
 #if WITH_EDITORONLY_DATA
 	// Timestamp to record how long this action takes to run.
@@ -145,7 +128,7 @@ private:
 
 // @todo move elsewhere
 USTRUCT()
-struct FFaerieCraftingActionSlots
+struct FFaerieCraftingActionSlots : public FFaerieCraftingActionData
 {
 	GENERATED_BODY()
 

@@ -6,7 +6,6 @@
 #include "FaerieItemCraftingSubsystem.h"
 #include "Algo/ForEach.h"
 #include "Engine/AssetManager.h"
-#include "DelegateCommon.h"
 #include "FaerieItemGenerationLog.h"
 #include "FaerieItemOwnerInterface.h"
 #include "FaerieItemSlotInterface.h"
@@ -67,19 +66,9 @@ void UFaerieCraftingRunner::Finish(const EGenerationActionResult Result)
 	GetTimerManager().ClearTimer(TimerHandle);
 
 	(void)OnCompletedCallback.ExecuteIfBound(this, Result);
-
-	OnCompleted.Broadcast(Result, ProcessStacks);
 }
 
-void UFaerieCraftingRunner::Run()
-{
-	if (RunningRequest.IsValid())
-	{
-		RunningRequest.Get().Run(this);
-	}
-}
-
-void UFaerieCraftingRunner::Start(TInstancedStruct<FFaerieCraftingRequestBase>& Request)
+void UFaerieCraftingRunner::Start(const TInstancedStruct<FFaerieCraftingRequestBase>& Request)
 {
 #if WITH_EDITORONLY_DATA
 	TimeStarted = FDateTime::UtcNow();
@@ -89,23 +78,10 @@ void UFaerieCraftingRunner::Start(TInstancedStruct<FFaerieCraftingRequestBase>& 
 
 	RunningRequest = Request;
 
-	if (!RunningRequest.Get().Configure(this))
-	{
-		return Fail();
-	}
-
-	OnCompleted.Add(DYNAMIC_TO_SCRIPT(RunningRequest.Get().OnComplete));
-
 	GetTimerManager().SetTimer(TimerHandle,
 		FTimerDelegate::CreateUObject(this, &ThisClass::OnTimeout), GetDefaultTimeoutTime(), false);
 
-
-	if (RunningRequest.Get().LoadAssets(this))
-	{
-		return;
-	}
-
-	Run();
+	RunningRequest.Get().Run(this);
 }
 
 void UFaerieCraftingRunner::Cancel()

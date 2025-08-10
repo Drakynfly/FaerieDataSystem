@@ -15,12 +15,12 @@
 
 #define LOCTEXT_NAMESPACE "FaerieItemGenerationRequest"
 
-bool FFaerieItemGenerationRequest::Configure(UFaerieCraftingRunner* Runner) const
+void FFaerieItemGenerationRequest::Run(UFaerieCraftingRunner* Runner) const
 {
 	if (Drivers.IsEmpty())
 	{
 		UE_LOG(LogItemGeneration, Warning, TEXT("%hs: Drivers are empty!"), __FUNCTION__);
-		return false;
+		return Runner->Fail();
 	}
 
 	for (auto&& Driver : Drivers)
@@ -28,7 +28,7 @@ bool FFaerieItemGenerationRequest::Configure(UFaerieCraftingRunner* Runner) cons
 		if (!Driver)
 		{
 			UE_LOG(LogItemGeneration, Warning, TEXT("%hs: Driver is misconfigured!"), __FUNCTION__);
-			return false;
+			return Runner->Fail();
 		}
 	}
 
@@ -43,13 +43,6 @@ bool FFaerieItemGenerationRequest::Configure(UFaerieCraftingRunner* Runner) cons
 
 	Runner->RequestStorage.InitializeAs<FFaerieItemGenerationRequestStorage>(Storage);
 
-	return true;
-}
-
-bool FFaerieItemGenerationRequest::LoadAssets(UFaerieCraftingRunner* Runner) const
-{
-	const FFaerieItemGenerationRequestStorage& Storage = Runner->RequestStorage.Get<FFaerieItemGenerationRequestStorage>();
-
 	TArray<FSoftObjectPath> ObjectsToLoad;
 
 	for (const Faerie::FPendingItemGeneration& PendingGeneration : Storage.PendingGenerations)
@@ -62,33 +55,32 @@ bool FFaerieItemGenerationRequest::LoadAssets(UFaerieCraftingRunner* Runner) con
 
 	if (ObjectsToLoad.IsEmpty())
 	{
-		// Nothing to wait for, run now!
-		return false;
+		// Nothing to wait for, Generate now!
+		return Generate(Runner);
 	}
 
 	UE_LOG(LogItemGeneration, Log, TEXT("- Objects to load: %i"), ObjectsToLoad.Num());
 
 	// The check for IsGameWorld forces this action to be ran in the editor synchronously
-	if (Runner->GetWorld()->IsGameWorld())
+	if (!Runner->GetWorld()->IsGameWorld())
 	{
-		// Suspend generation to async load drop assets, then continue
-		Runner->RunningStreamHandle = UAssetManager::GetStreamableManager().RequestAsyncLoad(ObjectsToLoad,
-			FStreamableDelegateWithHandle::CreateRaw(this, &FFaerieItemGenerationRequest::LoadCheck, Runner));
-		return true;
+		// Immediately load all objects and continue.
+		for (const FSoftObjectPath& Object : ObjectsToLoad)
+		{
+			Object.TryLoad();
+		}
+
+		return Generate(Runner);
 	}
 
-	// Immediately load all objects and continue.
-	for (const FSoftObjectPath& Object : ObjectsToLoad)
-	{
-		Object.TryLoad();
-	}
-
-	return false;
+	// Suspend generation to async load drop assets, then continue afterwards.
+	Runner->RunningStreamHandle = UAssetManager::GetStreamableManager().RequestAsyncLoad(ObjectsToLoad,
+		FStreamableDelegateWithHandle::CreateRaw(this, &FFaerieItemGenerationRequest::LoadCheck, Runner));
 }
 
-void FFaerieItemGenerationRequest::Run(UFaerieCraftingRunner* Runner) const
+void FFaerieItemGenerationRequest::Generate(UFaerieCraftingRunner* Runner) const
 {
-	const FFaerieItemGenerationRequestStorage& Storage = Runner->RequestStorage.Get<FFaerieItemGenerationRequestStorage>();
+	FFaerieItemGenerationRequestStorage& Storage = Runner->RequestStorage.GetMutable<FFaerieItemGenerationRequestStorage>();
 
 	if (Storage.PendingGenerations.IsEmpty())
 	{
@@ -108,12 +100,12 @@ void FFaerieItemGenerationRequest::Run(UFaerieCraftingRunner* Runner) const
 			continue;
 		}
 
-		ResolveGeneration(Runner, Generation, Context);
+		ResolveGeneration(Storage, Generation, Context);
 	}
 
-	if (!Runner->ProcessStacks.IsEmpty())
+	if (!Storage.ProcessStacks.IsEmpty())
 	{
-		UE_LOG(LogItemGeneration, Log, TEXT("--- Generation success. Created '%i' stack(s)."), Runner->ProcessStacks.Num());
+		UE_LOG(LogItemGeneration, Log, TEXT("--- Generation success. Created '%i' stack(s)."), Storage.ProcessStacks.Num());
 		Runner->Complete();
 	}
 	else
@@ -145,7 +137,7 @@ void FFaerieItemGenerationRequest::LoadCheck(TSharedPtr<FStreamableHandle> Handl
 	if (ObjectsToLoad.IsEmpty())
 	{
 		// Nothing to wait for, run now!
-		return Run(Runner);
+		return Generate(Runner);
 	}
 
 	UE_LOG(LogItemGeneration, Log, TEXT("- Objects to load: %i"), ObjectsToLoad.Num());
@@ -165,10 +157,10 @@ void FFaerieItemGenerationRequest::LoadCheck(TSharedPtr<FStreamableHandle> Handl
 		Object.TryLoad();
 	}
 
-	return Run(Runner);
+	return Generate(Runner);
 }
 
-void FFaerieItemGenerationRequest::ResolveGeneration(UFaerieCraftingRunner* Runner, const Faerie::FPendingItemGeneration& Generation, const FFaerieItemInstancingContext_Crafting& Context) const
+void FFaerieItemGenerationRequest::ResolveGeneration(FFaerieItemGenerationRequestStorage& Storage, const Faerie::FPendingItemGeneration& Generation, const FFaerieItemInstancingContext_Crafting& Context) const
 {
 	const UObject* SourceObject = Generation.Drop->Asset.Object.Get();
 	if (const UFaerieItemPool* Pool = Cast<UFaerieItemPool>(SourceObject);
@@ -179,7 +171,7 @@ void FFaerieItemGenerationRequest::ResolveGeneration(UFaerieCraftingRunner* Runn
 			Faerie::FPendingItemGeneration SubGeneration;
 			SubGeneration.Drop = &WeightedDrop.Drop;
 			SubGeneration.Count = Generation.Count;
-			ResolveGeneration(Runner, SubGeneration, Context);
+			ResolveGeneration(Storage, SubGeneration, Context);
 		}
 		return;
 	}
@@ -192,7 +184,7 @@ void FFaerieItemGenerationRequest::ResolveGeneration(UFaerieCraftingRunner* Runn
 			if (const UFaerieItem* Item = Generation.Drop->Resolve(Context);
 				IsValid(Item))
 			{
-				Runner->ProcessStacks.Emplace(Item, 1);
+				Storage.ProcessStacks.Emplace(Item, 1);
 			}
 			else
 			{
@@ -206,7 +198,7 @@ void FFaerieItemGenerationRequest::ResolveGeneration(UFaerieCraftingRunner* Runn
 		if (const UFaerieItem* Item = Generation.Drop->Resolve(Context);
 			IsValid(Item))
 		{
-			Runner->ProcessStacks.Emplace(Item, Generation.Count);
+			Storage.ProcessStacks.Emplace(Item, Generation.Count);
 		}
 	}
 }

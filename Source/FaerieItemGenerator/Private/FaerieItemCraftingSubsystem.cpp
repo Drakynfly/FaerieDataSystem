@@ -1,8 +1,6 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieItemCraftingSubsystem.h"
-#include "FaerieItemTemplate.h"
-#include "FaerieCraftingRunner.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemCraftingSubsystem)
 
@@ -17,7 +15,8 @@ void UFaerieItemCraftingSubsystem::Deinitialize()
 	Super::Deinitialize();
 }
 
-UFaerieCraftingRunner* UFaerieItemCraftingSubsystem::SubmitCraftingRequest(TInstancedStruct<FFaerieCraftingRequestBase> Request)
+UFaerieCraftingRunner* UFaerieItemCraftingSubsystem::SubmitCraftingRequest(
+	const TInstancedStruct<FFaerieCraftingRequestBase> Request, const FGenerationActionOnCompleteBinding& Callback)
 {
 	if (!Request.IsValid())
 	{
@@ -26,23 +25,34 @@ UFaerieCraftingRunner* UFaerieItemCraftingSubsystem::SubmitCraftingRequest(TInst
 
 	UFaerieCraftingRunner* ActiveAction = NewObject<UFaerieCraftingRunner>(this);
 	ActiveActions.Add(ActiveAction);
-	ActiveAction->GetOnCompletedCallback().BindUObject(this, &ThisClass::OnActionCompleted);
+	ActiveAction->GetOnCompletedCallback().BindUObject(this, &ThisClass::OnActionCompleted,
+		FRequestResult::CreateLambda([Callback](const EGenerationActionResult Success, const TArray<FFaerieItemStack>& Stacks)
+		{
+			Callback.Execute(Success, Stacks);
+		}));
 	ActiveAction->Start(Request);
 	return ActiveAction;
 }
 
-void UFaerieItemCraftingSubsystem::OnActionCompleted(UFaerieCraftingRunner* Runner, EGenerationActionResult /*Result*/)
+UFaerieCraftingRunner* UFaerieItemCraftingSubsystem::SubmitCraftingRequest(
+	const TInstancedStruct<FFaerieCraftingRequestBase>& Request, FRequestResult Callback)
 {
+	if (!Request.IsValid())
+	{
+		return nullptr;
+	}
+
+	UFaerieCraftingRunner* ActiveAction = NewObject<UFaerieCraftingRunner>(this);
+	ActiveActions.Add(ActiveAction);
+	ActiveAction->GetOnCompletedCallback().BindUObject(this, &ThisClass::OnActionCompleted, Callback);
+	ActiveAction->Start(Request);
+	return ActiveAction;
+}
+
+void UFaerieItemCraftingSubsystem::OnActionCompleted(UFaerieCraftingRunner* Runner, const EGenerationActionResult Result,
+	const FRequestResult Callback)
+{
+	const FFaerieCraftingActionData& ActionResults = Runner->RequestStorage.Get();
+	Callback.Execute(Result, ActionResults.ProcessStacks);
 	ActiveActions.Remove(Runner);
-}
-
-void UFaerieItemCraftingSubsystem::SubmitCraftingRequest_Impl(const FFaerieRecipeCraftRequest& Request, const bool Preview)
-{
-	// With all slots validated, execute the upgrade.
-	SubmitCraftingRequest(TInstancedStruct<FFaerieRecipeCraftRequest>::Make(Request));
-}
-
-void UFaerieItemCraftingSubsystem::PreviewCraftingRequest(const FFaerieRecipeCraftRequest& Request)
-{
-	SubmitCraftingRequest_Impl(Request, true);
 }

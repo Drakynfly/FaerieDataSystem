@@ -4,9 +4,10 @@
 
 #include "Subsystems/WorldSubsystem.h"
 #include "FaerieCraftingRunner.h"
-#include "Recipes/FaerieRecipeCraftRequest.h"
 #include "StructUtils/InstancedStruct.h"
 #include "FaerieItemCraftingSubsystem.generated.h"
+
+DECLARE_DYNAMIC_DELEGATE_TwoParams(FGenerationActionOnCompleteBinding, EGenerationActionResult, Result, const TArray<FFaerieItemStack>&, Items);
 
 /**
  *
@@ -20,18 +21,14 @@ public:
 	//virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 
-public:
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Faerie|ItemGeneration")
-	UFaerieCraftingRunner* SubmitCraftingRequest(TInstancedStruct<FFaerieCraftingRequestBase> Request);
+	UFaerieCraftingRunner* SubmitCraftingRequest(TInstancedStruct<FFaerieCraftingRequestBase> Request, const FGenerationActionOnCompleteBinding& Callback);
+
+	using FRequestResult = TDelegate<void(EGenerationActionResult Success, const TArray<FFaerieItemStack>&)>;
+	UFaerieCraftingRunner* SubmitCraftingRequest(const TInstancedStruct<FFaerieCraftingRequestBase>& Request, FRequestResult Callback);
 
 private:
-	void OnActionCompleted(UFaerieCraftingRunner* Runner, EGenerationActionResult Success);
-
-	void SubmitCraftingRequest_Impl(const FFaerieRecipeCraftRequest& Request, bool Preview);
-
-public:
-	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemGeneration")
-	void PreviewCraftingRequest(const FFaerieRecipeCraftRequest& Request);
+	void OnActionCompleted(UFaerieCraftingRunner* Runner, EGenerationActionResult Result, FRequestResult Callback);
 
 private:
 	// The Actions currently running.

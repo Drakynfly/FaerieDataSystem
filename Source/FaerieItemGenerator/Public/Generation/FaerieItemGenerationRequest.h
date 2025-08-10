@@ -9,7 +9,7 @@
 class UFaerieItemGenerationConfig;
 
 USTRUCT()
-struct FFaerieItemGenerationRequestStorage
+struct FFaerieItemGenerationRequestStorage : public FFaerieCraftingActionData
 {
 	GENERATED_BODY()
 
@@ -23,13 +23,12 @@ struct FAERIEITEMGENERATOR_API FFaerieItemGenerationRequest : public FFaerieCraf
 {
 	GENERATED_BODY()
 
-	virtual bool Configure(UFaerieCraftingRunner* Runner) const override;
-	virtual bool LoadAssets(UFaerieCraftingRunner* Runner) const override;
 	virtual void Run(UFaerieCraftingRunner* Runner) const override;
 
 protected:
 	void LoadCheck(TSharedPtr<FStreamableHandle> Handle, UFaerieCraftingRunner* Runner) const;
-	void ResolveGeneration(UFaerieCraftingRunner* Runner, const Faerie::FPendingItemGeneration& Generation, const FFaerieItemInstancingContext_Crafting& Context) const;
+	void ResolveGeneration(FFaerieItemGenerationRequestStorage& Storage, const Faerie::FPendingItemGeneration& Generation, const FFaerieItemInstancingContext_Crafting& Context) const;
+	void Generate(UFaerieCraftingRunner* Runner) const;
 
 	// The client must fill this with drivers that can have network ID mapping. This is automatic for serialized objects.
 	// Runtime generated drivers must be created server-side and replicated for this to work.

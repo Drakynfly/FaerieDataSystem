@@ -12,15 +12,15 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieRecipeCraftRequest)
 
-bool FFaerieRecipeCraftRequest::Configure(UFaerieCraftingRunner* Runner) const
+void FFaerieRecipeCraftRequest::Run(UFaerieCraftingRunner* Runner) const
 {
 	if (!IsValid(Config))
 	{
 		UE_LOG(LogItemGeneration, Warning, TEXT("%hs: Config is invalid!"), __FUNCTION__);
-		return false;
+		return Runner->Fail();
 	}
 
-	FFaerieCraftingActionSlots SlotMemory;
+	FFaerieCraftingActionSlots RequestData;
 
 	if (const FFaerieCraftingSlotsView SlotsView = Faerie::Crafting::GetCraftingSlots(Config);
 		SlotsView.IsValid())
@@ -37,25 +37,25 @@ bool FFaerieRecipeCraftRequest::Configure(UFaerieCraftingRunner* Runner) const
 				{
 					UE_LOG(LogItemGeneration, Warning, TEXT("%hs: Entry is invalid for slot: %s!"),
 						__FUNCTION__, *RequiredSlot.Key.ToString());
-					return false;
+					return Runner->Fail();
 				}
 
 				if (RequiredSlot.Value->TryMatch(SlotPtr->ItemProxy))
 				{
-					SlotMemory.FilledSlots.Add(RequiredSlot.Key, SlotPtr->ItemProxy);
+					RequestData.FilledSlots.Add(RequiredSlot.Key, SlotPtr->ItemProxy);
 				}
 				else
 				{
 					UE_LOG(LogItemGeneration, Warning, TEXT("%hs: Required Slot '%s' failed with key: %s"),
 						__FUNCTION__, *SlotPtr->SlotID.ToString(), *SlotPtr->ItemProxy.GetObject()->GetName());
-					return false;
+					return Runner->Fail();
 				}
 			}
 			else
 			{
 				UE_LOG(LogItemGeneration, Warning, TEXT("%hs: Request does contain required slot: %s!"),
 					__FUNCTION__, *RequiredSlot.Key.ToString());
-				return false;
+				return Runner->Fail();
 			}
 		}
 
@@ -71,34 +71,25 @@ bool FFaerieRecipeCraftRequest::Configure(UFaerieCraftingRunner* Runner) const
 				{
 					UE_LOG(LogItemGeneration, Warning, TEXT("%hs: Entry is invalid for slot: %s!"),
 						__FUNCTION__, *OptionalSlot.Key.ToString());
-					return false;
+					return Runner->Fail();
 				}
 
 				if (OptionalSlot.Value->TryMatch(SlotPtr->ItemProxy))
 				{
-					SlotMemory.FilledSlots.Add(OptionalSlot.Key, SlotPtr->ItemProxy);
+					RequestData.FilledSlots.Add(OptionalSlot.Key, SlotPtr->ItemProxy);
 				}
 				else
 				{
 					UE_LOG(LogItemGeneration, Warning, TEXT("%hs: Optional Slot '%s' failed with key: %s"),
 						__FUNCTION__, *SlotPtr->SlotID.ToString(), *SlotPtr->ItemProxy.GetObject()->GetName());
-					return false;
+					return Runner->Fail();
 				}
 			}
 		}
 	}
 
-	Runner->RequestStorage.InitializeAs<FFaerieCraftingActionSlots>(SlotMemory);
-
-	return true;
-}
-
-void FFaerieRecipeCraftRequest::Run(UFaerieCraftingRunner* Runner) const
-{
-	const FFaerieCraftingActionSlots& SlotMemory = Runner->RequestStorage.Get<FFaerieCraftingActionSlots>();
-
 	// Execute parent Run, as it validates some stuff, and then early out if it fails.
-	for (auto&& Element : SlotMemory.FilledSlots)
+	for (auto&& Element : RequestData.FilledSlots)
 	{
 		if (!Element.Value.IsValid() ||
 			!IsValid(Element.Value->GetItemObject()) ||
@@ -118,7 +109,7 @@ void FFaerieRecipeCraftRequest::Run(UFaerieCraftingRunner* Runner) const
 
 	FFaerieItemInstancingContext_Crafting Context;
 	Context.Squirrel = Squirrel.Get();
-	Context.InputEntryData = SlotMemory.FilledSlots;
+	Context.InputEntryData = RequestData.FilledSlots;
 
 	const UFaerieItem* NewItem = Config->Recipe->GetItemSource()->CreateItemInstance(&Context);
 	if (!IsValid(NewItem))
@@ -127,12 +118,14 @@ void FFaerieRecipeCraftRequest::Run(UFaerieCraftingRunner* Runner) const
 		return Runner->Fail();
 	}
 
-	Runner->ProcessStacks.Add({NewItem, 1});
+	RequestData.ProcessStacks.Add({NewItem, 1});
 
 	if (RunConsumeStep && Config->Recipe->Implements<UFaerieItemSlotInterface>())
 	{
-		Faerie::ConsumeSlotCosts(SlotMemory.FilledSlots, Cast<IFaerieItemSlotInterface>(Config->Recipe));
+		Faerie::ConsumeSlotCosts(RequestData.FilledSlots, Cast<IFaerieItemSlotInterface>(Config->Recipe));
 	}
+
+	Runner->RequestStorage.InitializeAs<FFaerieCraftingActionSlots>(RequestData);
 
 	Runner->Complete();
 }

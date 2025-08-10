@@ -14,10 +14,12 @@ struct FAERIEITEMGENERATOR_API FFaerieItemUpgradeRequest : public FFaerieCraftin
 {
 	GENERATED_BODY()
 
-	virtual bool Configure(UFaerieCraftingRunner* Runner) const override;
-	virtual bool LoadAssets(UFaerieCraftingRunner* Runner) const override;
 	virtual void Run(UFaerieCraftingRunner* Runner) const override;
 
+private:
+	void Execute(UFaerieCraftingRunner* Runner) const;
+
+public:
 	UPROPERTY(BlueprintReadWrite, Category = "Upgrade Request")
 	TScriptInterface<IFaerieItemDataProxy> ItemProxy;
 
