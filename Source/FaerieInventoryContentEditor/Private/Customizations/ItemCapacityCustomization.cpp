@@ -2,8 +2,6 @@
 
 #include "ItemCapacityCustomization.h"
 #include "Tokens/FaerieCapacityToken.h"
-//#include "FaerieEquipmentEditorSettings.h"
-
 #include "Math/UnitConversion.h"
 #include "IDetailChildrenBuilder.h"
 #include "IDetailGroup.h"
@@ -140,18 +138,7 @@ void FItemCapacityCustomization::UpdateInfo()
         const int32 WeightPerCentimeter = WeightValue / CubicSpace;
         const float SuccessiveWeightPerCentimeter = WeightPerCentimeter * EfficiencyValue;
 
-        FString InfoString = FString::Printf(TEXT("Weight/cm3: %i (%.2f)"), WeightPerCentimeter, SuccessiveWeightPerCentimeter);
-
-        // @todo re-implement?
-        /*
-        auto&& CompareStrings = GetDefault<UFaerieEquipmentEditorSettings>()->GetDebugInfoForCCM(static_cast<float>(CubicSpace));
-
-        for (const FString& Str : CompareStrings)
-        {
-            InfoString += LINE_TERMINATOR;
-            InfoString += Str;
-        }
-        */
+        const FString InfoString = FString::Printf(TEXT("Weight/cm3: %i (%.2f)"), WeightPerCentimeter, SuccessiveWeightPerCentimeter);
 
         InfoText->SetText(FText::FromString(InfoString));
     }
