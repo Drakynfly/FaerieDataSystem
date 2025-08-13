@@ -3,6 +3,8 @@
 #include "FaerieSubmitCraftingActionAsync.h"
 #include "FaerieItemCraftingSubsystem.h"
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieSubmitCraftingActionAsync)
+
 UFaerieSubmitCraftingActionAsync* UFaerieSubmitCraftingActionAsync::SubmitCraftingActionAsync(UObject* WorldContextObj,
 	const TInstancedStruct<FFaerieCraftingRequestBase> Request)
 {

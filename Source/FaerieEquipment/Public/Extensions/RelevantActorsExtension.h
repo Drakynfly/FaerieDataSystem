@@ -37,7 +37,6 @@ public:
 	void RemoveActor(AActor* Actor);
 
 protected:
-	UPROPERTY()
 	TSet<TWeakObjectPtr<AActor>> RelevantActors;
 
 	TMap<TWeakObjectPtr<AActor>, int32> OwningActors;

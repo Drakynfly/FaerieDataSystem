@@ -41,6 +41,5 @@ struct FAERIEINVENTORY_API FFaerieClientAction_MoveHandlerBase
 		PURE_VIRTUAL(FFaerieClientAction_MoveHandlerBase::Release, return false; )
 
 	// Only needs to be implemented for Target handlers
-	virtual bool IsSwap() const
-		PURE_VIRTUAL(FFaerieClientAction_MoveHandlerBase::IsSwap, return false; )
+	virtual bool IsSwap() const { return false; }
 };
