@@ -17,7 +17,7 @@ UFaerieChildSlotToken::UFaerieChildSlotToken()
 {
 	ItemContainer = CreateDefaultSubobject<UFaerieEquipmentSlot>(FName{TEXTVIEW("ItemContainer")});
 	Extensions = CreateDefaultSubobject<UItemContainerExtensionGroup>(FName{TEXTVIEW("Extensions")});
-	SET_NEW_IDENTIFIER(Extensions, TEXT("ChildSlotTokenGroup"))
+	SET_NEW_IDENTIFIER(Extensions, TEXTVIEW("ChildSlotTokenGroup"))
 }
 
 void UFaerieChildSlotToken::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const

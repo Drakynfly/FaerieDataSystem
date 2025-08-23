@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "FaerieInventoryConcepts.h"
 #include "UObject/Interface.h"
 #include "FaerieContainerExtensionInterface.generated.h"
 
@@ -36,13 +37,10 @@ public:
 
 	/*
 	// Doesn't compile for some reason
-	template <
-		typename TExtensionClass
-		UE_REQUIRES(TIsDerivedFrom<TExtensionClass, UItemContainerExtensionBase>::Value)
-	>
-	TExtensionClass* GetExtension() const
+	template <CItemContainerExtension T>
+	T* GetExtension() const
 	{
-		return Cast<TExtensionClass>(GetExtension(TExtensionClass::StaticClass()));
+		return Cast<T>(GetExtension(T::StaticClass()));
 	}
 	*/
 
@@ -72,20 +70,14 @@ protected:
 };
 
 // Outside IFaerieContainerExtensionInterface because it won't compile there
-template <
-	typename TExtensionClass
-	UE_REQUIRES(TIsDerivedFrom<TExtensionClass, UItemContainerExtensionBase>::Value)
->
-const TExtensionClass* GetExtension(const IFaerieContainerExtensionInterface* Interface, bool RecursiveSearch)
+template <Faerie::CItemContainerExtension T>
+const T* GetExtension(const IFaerieContainerExtensionInterface* Interface, const bool RecursiveSearch)
 {
-	return Cast<TExtensionClass>(Interface->GetExtension(TExtensionClass::StaticClass(), RecursiveSearch));
+	return Cast<T>(Interface->GetExtension(T::StaticClass(), RecursiveSearch));
 }
 
-template <
-	typename TExtensionClass
-	UE_REQUIRES(TIsDerivedFrom<TExtensionClass, UItemContainerExtensionBase>::Value)
->
-TExtensionClass* GetExtension(IFaerieContainerExtensionInterface* Interface, bool RecursiveSearch)
+template <Faerie::CItemContainerExtension T>
+T* GetExtension(IFaerieContainerExtensionInterface* Interface, const bool RecursiveSearch)
 {
-	return Cast<TExtensionClass>(Interface->GetExtension(TExtensionClass::StaticClass(), RecursiveSearch));
+	return Cast<T>(Interface->GetExtension(T::StaticClass(), RecursiveSearch));
 }

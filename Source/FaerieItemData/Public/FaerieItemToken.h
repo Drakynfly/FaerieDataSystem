@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "FaerieItemDataConcepts.h"
 #include "GameplayTagContainer.h"
 #include "NativeGameplayTags.h"
 #include "NetSupportedObject.h"
@@ -101,24 +102,18 @@ public:
 	// method to gain access to the non-const API of UFaerieItemToken.
 	[[nodiscard]] UFaerieItemToken* MutateCast() const;
 
-	template <
-		typename TFaerieItemToken
-		UE_REQUIRES(TIsDerivedFrom<TFaerieItemToken, UFaerieItemToken>::Value)
-	>
-	TFaerieItemToken* MutateCast() const
+	template <Faerie::CItemToken T>
+	T* MutateCast() const
 	{
-		return Cast<TFaerieItemToken>(MutateCast());
+		return Cast<T>(MutateCast());
 	}
 
 	void EditToken(const TFunctionRef<bool(UFaerieItemToken*)>& EditFunc);
 
-	template <
-		typename TFaerieItemToken
-		UE_REQUIRES(TIsDerivedFrom<TFaerieItemToken, UFaerieItemToken>::Value)
-	>
-	void EditToken(const TFunctionRef<bool(TFaerieItemToken*)>& EditFunc)
+	template <Faerie::CItemToken T>
+	void EditToken(const TFunctionRef<bool(T*)>& EditFunc)
 	{
-		EditToken(*reinterpret_cast<const TFunctionRef<bool(UFaerieItemToken*)>*>(&EditFunc));
+		EditToken(reinterpret_cast<const TFunctionRef<bool(UFaerieItemToken*)>&>(EditFunc));
 	}
 
 protected:

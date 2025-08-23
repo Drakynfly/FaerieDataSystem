@@ -1,10 +1,15 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "EquipmentVisualizer.h"
+#include "FaerieContainerExtensionInterface.h"
+#include "FaerieEquipmentSlot.h"
+#include "Components/FaerieItemMeshComponent.h"
 #include "Components/SceneComponent.h"
 #include "Components/SkinnedMeshComponent.h"
 #include "Engine/World.h"
+#include "Extensions/VisualSlotExtension.h"
 #include "GameFramework/Actor.h"
+#include "GameFramework/Character.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(EquipmentVisualizer)
 
@@ -339,6 +344,118 @@ bool UEquipmentVisualizer::DestroyVisualByKey(const FFaerieVisualKey Key, const 
 	return false;
 }
 
+FEquipmentVisualAttachment UEquipmentVisualizer::FindAttachment(const FFaerieItemProxy Proxy) const
+{
+	const UVisualSlotExtension* SlotExtension;
+	return FindAttachment(Proxy, SlotExtension);
+}
+
+FEquipmentVisualAttachment UEquipmentVisualizer::FindAttachment(const FFaerieItemProxy Proxy, const UVisualSlotExtension*& SlotExtension) const
+{
+	FEquipmentVisualAttachment Attachment;
+
+	const IFaerieContainerExtensionInterface* Container = Cast<IFaerieContainerExtensionInterface>(Proxy->GetItemOwner().GetObject());
+
+	// If there is a VisualSlotExtension on this container, then defer to it.
+	SlotExtension = GetExtension<UVisualSlotExtension>(Container, true);
+
+	AActor* ParentActor = nullptr;
+	USceneComponent* ParentComponent = nullptr;
+
+	// See if we are owned by a slot, and try to determine attachment to it.
+	const UFaerieEquipmentSlot* OwningSlot = Container->_getUObject()->GetTypedOuter<UFaerieEquipmentSlot>();
+	if (IsValid(OwningSlot))
+	{
+		UObject* Visual = GetSpawnedVisualByKey({ OwningSlot->Proxy() });
+
+		if (AActor* Actor = Cast<AActor>(Visual))
+		{
+			ParentActor = Actor;
+		}
+		else if (USceneComponent* Component = Cast<USceneComponent>(Visual))
+		{
+			ParentComponent = Component;
+		}
+
+		if (IsValid(ParentComponent))
+		{
+			Attachment.Parent = ParentComponent;
+		}
+		else if (IsValid(ParentActor))
+		{
+			Attachment.Parent = ParentComponent;
+		}
+	}
+	else
+	{
+		// In the case of no owning slot, use the parent actor.
+		ParentActor = GetOwner();
+	}
+
+	// If we directly found a Component, great, use it!
+	if (IsValid(ParentComponent))
+	{
+		if (UFaerieItemMeshComponent* ItemMeshComponent = Cast<UFaerieItemMeshComponent>(ParentComponent))
+		{
+			// If the Generated Mesh already exists, use it.
+			if (ItemMeshComponent->GetGeneratedMeshComponent())
+			{
+				Attachment.Parent = ItemMeshComponent->GetGeneratedMeshComponent();
+			}
+			// If it doesn't, then just return the ItemMeshComponent, and have CreateVisualImpl move us to Pending.
+			else
+			{
+				Attachment.Parent = ItemMeshComponent;
+			}
+		}
+		else
+		{
+			Attachment.Parent = ParentComponent;
+		}
+	}
+	// If we only found an Actor, determine the component to use.
+	else if (IsValid(ParentActor))
+	{
+		// First choice is the one specified by the Extension (if applicable)
+		if (auto Component = IsValid(SlotExtension)
+				? ParentActor->FindComponentByTag<USceneComponent>(SlotExtension->GetComponentTag()) : nullptr;
+			IsValid(Component))
+		{
+			Attachment.Parent = Component;
+		}
+		else if (const ACharacter* Character = Cast<ACharacter>(ParentActor))
+		{
+			Attachment.Parent = Character->GetMesh();
+		}
+		else
+		{
+			Attachment.Parent = ParentActor->GetDefaultAttachComponent();
+
+			if (UFaerieItemMeshComponent* ItemMeshComponent = Cast<UFaerieItemMeshComponent>(Attachment.Parent.Get()))
+			{
+				// If the Generated Mesh already exists, use it.
+				if (ItemMeshComponent->GetGeneratedMeshComponent())
+				{
+					Attachment.Parent = ItemMeshComponent->GetGeneratedMeshComponent();
+				}
+				// If it doesn't, then just return the ItemMeshComponent, and have CreateVisualImpl move us to Pending.
+				else
+				{
+					Attachment.Parent = ItemMeshComponent;
+				}
+			}
+		}
+	}
+
+	if (IsValid(SlotExtension))
+	{
+		Attachment.ParentSocket = SlotExtension->GetSocket();
+		Attachment.ChildSocket = SlotExtension->GetChildSocket();
+	}
+
+	return Attachment;
+}
+
 void UEquipmentVisualizer::ResetAttachment(const FFaerieVisualKey Key)
 {
 	const FEquipmentVisualMetadata* Metadata = KeyedMetadata.Find(Key);
@@ -346,6 +463,24 @@ void UEquipmentVisualizer::ResetAttachment(const FFaerieVisualKey Key)
 	FEquipmentVisualAttachment TempMetadata = Metadata->Attachment;
 
 	// @todo these are hardcoded for now.
+	TempMetadata.TransformRules.LocationRule = EAttachmentRule::SnapToTarget;
+	TempMetadata.TransformRules.RotationRule = EAttachmentRule::SnapToTarget;
+	TempMetadata.TransformRules.ScaleRule = EAttachmentRule::KeepRelative;
+
+	if (AActor* Visual = GetSpawnedActorByKey(Key))
+	{
+		Faerie::UpdateActorAttachment(Visual, TempMetadata);
+	}
+	else if (USceneComponent* VisualComponent = GetSpawnedComponentByKey(Key))
+	{
+		Faerie::UpdateComponentAttachment(VisualComponent, TempMetadata);
+	}
+}
+
+void UEquipmentVisualizer::MoveAttachment(const FFaerieVisualKey Key, const FEquipmentVisualAttachment& Attachment)
+{
+	// @todo these are hardcoded for now.
+	FEquipmentVisualAttachment TempMetadata = Attachment;
 	TempMetadata.TransformRules.LocationRule = EAttachmentRule::SnapToTarget;
 	TempMetadata.TransformRules.RotationRule = EAttachmentRule::SnapToTarget;
 	TempMetadata.TransformRules.ScaleRule = EAttachmentRule::KeepRelative;

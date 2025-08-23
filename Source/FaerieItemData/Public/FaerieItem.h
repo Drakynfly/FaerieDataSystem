@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "FaerieItemDataConcepts.h"
 #include "FaerieItemDataEnums.h"
 #include "LoopUtils.h"
 #include "GameplayTagContainer.h"
@@ -34,13 +35,10 @@ namespace Faerie
 		  : Tokens(Tokens) {}
 
 	public:
-		template <
-			typename TFaerieItemToken
-			UE_REQUIRES(TIsDerivedFrom<TFaerieItemToken, UFaerieItemToken>::Value)
-		>
+		template<CItemToken T>
 		FTokenFilter& ByClass()
 		{
-			return ByClass(TFaerieItemToken::StaticClass());
+			return ByClass(T::StaticClass());
 		}
 
 		FAERIEITEMDATA_API FTokenFilter& ByClass(const TSubclassOf<UFaerieItemToken>& Class);
@@ -99,26 +97,20 @@ public:
 	void ForEachTokenOfClass(Faerie::TBreakableLoop<const TObjectPtr<const UFaerieItemToken>&> Iter, const TSubclassOf<UFaerieItemToken>& Class) const;
 
 	// Iterates over each contained token. Return true in the delegate to continue iterating.
-	template <
-		typename TFaerieItemToken
-		UE_REQUIRES(TIsDerivedFrom<TFaerieItemToken, UFaerieItemToken>::Value)
-	>
-	void ForEachToken(Faerie::TBreakableLoop<const TObjectPtr<TFaerieItemToken>&> Iter)
+	template <Faerie::CItemToken T>
+	void ForEachToken(Faerie::TBreakableLoop<const TObjectPtr<T>&> Iter)
 	{
 		ForEachTokenOfClass(
-			*reinterpret_cast<const TFunctionRef<Faerie::ELoopControl(const TObjectPtr<UFaerieItemToken>&)>*>(&Iter)
-			, TFaerieItemToken::StaticClass());
+			reinterpret_cast<const TFunctionRef<Faerie::ELoopControl(const TObjectPtr<UFaerieItemToken>&)>&>(Iter)
+			, T::StaticClass());
 	}
 
-	template <
-		typename TFaerieItemToken
-		UE_REQUIRES(TIsDerivedFrom<TFaerieItemToken, UFaerieItemToken>::Value)
-	>
-	void ForEachToken(Faerie::TBreakableLoop<const TObjectPtr<const TFaerieItemToken>&> Iter) const
+	template <Faerie::CItemToken T>
+	void ForEachToken(Faerie::TBreakableLoop<const TObjectPtr<const T>&> Iter) const
 	{
 		ForEachTokenOfClass(
-			*reinterpret_cast<const TFunctionRef<Faerie::ELoopControl(const TObjectPtr<const UFaerieItemToken>&)>*>(&Iter)
-			, TFaerieItemToken::StaticClass());
+			reinterpret_cast<const TFunctionRef<Faerie::ELoopControl(const TObjectPtr<const UFaerieItemToken>&)>&>(Iter)
+			, T::StaticClass());
 	}
 
 	// Creates a new faerie item object with the given tokens. These are instance-mutable by default.
@@ -139,40 +131,28 @@ public:
 	UFaerieItemToken* GetMutableToken(const TSubclassOf<UFaerieItemToken>& Class);
 	TArray<UFaerieItemToken*> GetMutableTokens(const TSubclassOf<UFaerieItemToken>& Class);
 
-	template <
-		typename TFaerieItemToken
-		UE_REQUIRES(TIsDerivedFrom<TFaerieItemToken, UFaerieItemToken>::Value)
-	>
-	const TFaerieItemToken* GetToken() const
+	template <Faerie::CItemToken T>
+	const T* GetToken() const
 	{
-		return Cast<TFaerieItemToken>(GetToken(TFaerieItemToken::StaticClass()));
+		return Cast<T>(GetToken(T::StaticClass()));
 	}
 
-	template <
-		typename TFaerieItemToken
-		UE_REQUIRES(TIsDerivedFrom<TFaerieItemToken, UFaerieItemToken>::Value)
-	>
-	TArray<const TFaerieItemToken*> GetTokens() const
+	template <Faerie::CItemToken T>
+	TArray<const T*> GetTokens() const
 	{
-		return Type::Cast<TArray<const TFaerieItemToken*>>(GetTokens(TFaerieItemToken::StaticClass()));
+		return Type::Cast<TArray<const T*>>(GetTokens(T::StaticClass()));
 	}
 
-	template <
-		typename TFaerieItemToken
-		UE_REQUIRES(TIsDerivedFrom<TFaerieItemToken, UFaerieItemToken>::Value)
-	>
-	TFaerieItemToken* GetEditableToken()
+	template <Faerie::CItemToken T>
+	T* GetEditableToken()
 	{
-		return Cast<TFaerieItemToken>(GetMutableToken(TFaerieItemToken::StaticClass()));
+		return Cast<T>(GetMutableToken(T::StaticClass()));
 	}
 
-	template <
-		typename TFaerieItemToken
-		UE_REQUIRES(TIsDerivedFrom<TFaerieItemToken, UFaerieItemToken>::Value)
-	>
-	TArray<TFaerieItemToken*> GetEditableTokens()
+	template <Faerie::CItemToken T>
+	TArray<T*> GetEditableTokens()
 	{
-		return Type::Cast<TArray<TFaerieItemToken*>>(GetMutableTokens(TFaerieItemToken::StaticClass()));
+		return Type::Cast<TArray<T*>>(GetMutableTokens(T::StaticClass()));
 	}
 
 	Faerie::FTokenFilter FilterTokens() const;

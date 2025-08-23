@@ -54,7 +54,7 @@ void UItemContainerExtensionBase::SetIdentifier(const FGuid* GuidToUse)
 }
 
 #if WITH_EDITOR
-void UItemContainerExtensionBase::SetEditorIdentifier(const FString& StringId)
+void UItemContainerExtensionBase::SetEditorIdentifier(FStringView StringId)
 {
 	EditorIdentifier = StringId;
 }
@@ -317,7 +317,7 @@ UItemContainerExtensionGroup* UItemContainerExtensionGroup::GetExtensionGroup() 
 
 void UItemContainerExtensionGroup::ForEachExtension(TLoop<UItemContainerExtensionBase*> Func)
 {
-	ForEachExtension(*reinterpret_cast<const TFunctionRef<void(const UItemContainerExtensionBase*)>*>(&Func));
+	ForEachExtension(reinterpret_cast<TLoop<const UItemContainerExtensionBase*>>(Func));
 }
 
 void UItemContainerExtensionGroup::ForEachExtension(TLoop<const UItemContainerExtensionBase*> Func) const
@@ -340,7 +340,7 @@ void UItemContainerExtensionGroup::ForEachExtension(TLoop<const UItemContainerEx
 
 void UItemContainerExtensionGroup::ForEachExtensionWithBreak(TBreakableLoop<UItemContainerExtensionBase*> Func)
 {
-	ForEachExtensionWithBreak(*reinterpret_cast<const TFunctionRef<ELoopControl(const UItemContainerExtensionBase*)>*>(&Func));
+	ForEachExtensionWithBreak(reinterpret_cast<TBreakableLoop<const UItemContainerExtensionBase*>>(Func));
 }
 
 void UItemContainerExtensionGroup::ForEachExtensionWithBreak(TBreakableLoop<const UItemContainerExtensionBase*> Func) const

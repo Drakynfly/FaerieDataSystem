@@ -101,8 +101,8 @@ public:
 	FGuid GetIdentifier() const { return Identifier; }
 
 #if WITH_EDITOR
-	void SetEditorIdentifier(const FString& StringId);
-	const FString& GetEditorIdentifier() const { return EditorIdentifier; }
+	void SetEditorIdentifier(FStringView StringId);
+	FStringView GetEditorIdentifier() const { return EditorIdentifier; }
 #endif
 
 protected:

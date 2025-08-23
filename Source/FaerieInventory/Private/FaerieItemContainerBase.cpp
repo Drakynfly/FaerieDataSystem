@@ -12,10 +12,39 @@
 
 using namespace Faerie;
 
+void FItemContainerFilter::ForEachMutable_NoBreak(TLoop<UFaerieItem*> Func) const
+{
+	Container->ForEachItem([&Func](const UFaerieItem* Item)
+	{
+		if (UFaerieItem* Mutable = Item->MutateCast())
+		{
+			Func(Mutable);
+		}
+	});
+}
+
+void FItemContainerFilter::ForEachMutable_WithBreak(TBreakableLoop<UFaerieItem*> Func) const
+{
+	// #@todo make ForEachItem breakable
+	bool TempBreak = false;
+	Container->ForEachItem([&Func, &TempBreak](const UFaerieItem* Item)
+		{
+			if (TempBreak) return;
+
+			if (UFaerieItem* Mutable = Item->MutateCast())
+			{
+				if (Func(Mutable) == Stop)
+				{
+					TempBreak = true;
+				}
+			}
+		});
+}
+
 UFaerieItemContainerBase::UFaerieItemContainerBase()
 {
 	Extensions = CreateDefaultSubobject<UItemContainerExtensionGroup>(FName{TEXTVIEW("Extensions")});
-	SET_NEW_IDENTIFIER(Extensions, TEXT("ItemContainerBaseGroup"))
+	SET_NEW_IDENTIFIER(Extensions, TEXTVIEW("ItemContainerBaseGroup"))
 }
 
 void UFaerieItemContainerBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -129,7 +158,7 @@ void UFaerieItemContainerBase::RavelExtensionData(TMap<FGuid, FInstancedStruct>&
 	ForEachKey(
 		[this, &SubContainers](const FEntryKey Key)
 		{
-			if (const UFaerieItem* Item = View(Key).Item.Get())
+			if (UFaerieItem* Item = View(Key).Item->MutateCast())
 			{
 				SubContainers.Append(UFaerieItemContainerToken::GetAllContainersInItem(Item));
 			}
@@ -156,9 +185,12 @@ void UFaerieItemContainerBase::UnravelExtensionData(UFaerieItemContainerExtensio
 		});
 
 	TSet<UFaerieItemContainerBase*> SubContainers;
-	ForEachItem([&SubContainers](const UFaerieItem* Item)
+	Filter().ForEachMutable([&SubContainers](const UFaerieItem* Item)
 		{
-			SubContainers.Append(UFaerieItemContainerToken::GetAllContainersInItem(Item));
+			if (UFaerieItem* Mutable = Item->MutateCast())
+			{
+				SubContainers.Append(UFaerieItemContainerToken::GetAllContainersInItem(Mutable));
+			}
 		});
 
 	for (UFaerieItemContainerBase* SubContainer : SubContainers)
@@ -183,4 +215,9 @@ void UFaerieItemContainerBase::TryApplyUnclaimedSaveData(UItemContainerExtension
 		Extension->LoadSaveData(this, *SaveData);
 		UnclaimedExtensionData->Data.RemoveByHash(IdentifierHash, Identifier);
 	}
+}
+
+Faerie::FItemContainerFilter UFaerieItemContainerBase::Filter() const
+{
+	return Faerie::FItemContainerFilter(this);
 }

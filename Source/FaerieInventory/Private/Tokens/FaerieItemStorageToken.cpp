@@ -24,11 +24,9 @@ bool UFaerieItemContainerToken::IsMutable() const
 	return true;
 }
 
-TSet<UFaerieItemContainerBase*> UFaerieItemContainerToken::GetAllContainersInItem(const UFaerieItem* Item)
+TSet<UFaerieItemContainerBase*> UFaerieItemContainerToken::GetAllContainersInItem(UFaerieItem* Item)
 {
 	if (!ensure(IsValid(Item))) return {};
-
-	// @note: Technically not respecting const-purity, but all Containers imply mutable anyway, so it doesn't matter.
 
 	TSet<UFaerieItemContainerBase*> Containers;
 
@@ -42,12 +40,10 @@ TSet<UFaerieItemContainerBase*> UFaerieItemContainerToken::GetAllContainersInIte
 	return Containers;
 }
 
-TSet<UFaerieItemContainerBase*> UFaerieItemContainerToken::GetContainersInItemOfClass(const UFaerieItem* Item,
+TSet<UFaerieItemContainerBase*> UFaerieItemContainerToken::GetContainersInItemOfClass(UFaerieItem* Item,
 	TSubclassOf<UFaerieItemContainerBase> Class)
 {
 	if (!ensure(IsValid(Item))) return {};
-
-	// @note: Technically not respecting const-purity, but all Containers imply mutable anyway, so it doesn't matter.
 
 	TSet<UFaerieItemContainerBase*> Containers;
 
@@ -64,11 +60,63 @@ TSet<UFaerieItemContainerBase*> UFaerieItemContainerToken::GetContainersInItemOf
 	return Containers;
 }
 
+ELoopControl UFaerieItemContainerToken::ForEachContainer(UFaerieItem* Item,
+	TBreakableLoop<UFaerieItemContainerBase*> Iter, const bool Recursive)
+{
+	if (!ensure(IsValid(Item))) return Continue;
+
+	const TSet<UFaerieItemContainerBase*> Containers = GetAllContainersInItem(Item);
+	for (UFaerieItemContainerBase* Container : Containers)
+	{
+		if (Iter(Container) == Stop)
+		{
+			return Stop;
+		}
+		if (Recursive)
+		{
+			Container->Filter().ForEachMutable([&Iter](UFaerieItem* SubItem)
+			{
+				return ForEachContainer(SubItem, Iter, true);
+			});
+		}
+	}
+	return Continue;
+}
+
+ELoopControl UFaerieItemContainerToken::ForEachContainerOfClass(UFaerieItem* Item,
+	const TSubclassOf<UFaerieItemContainerBase>& Class, TBreakableLoop<UFaerieItemContainerBase*> Iter,
+	const bool Recursive)
+{
+	if (!ensure(IsValid(Item))) return Continue;
+
+	const TSet<UFaerieItemContainerBase*> Containers = GetContainersInItemOfClass(Item, Class);
+	for (UFaerieItemContainerBase* Container : Containers)
+	{
+		if (Iter(Container) == Stop)
+		{
+			return Stop;
+		}
+		if (Recursive)
+		{
+			bool TempBreak = false;
+			Container->Filter().ForEachMutable([&TempBreak, &Iter](UFaerieItem* SubItem)
+			{
+				if (TempBreak) return;
+				if (ForEachContainer(SubItem, Iter, true) == Stop)
+				{
+					TempBreak = true;
+				}
+			});
+		}
+	}
+	return Continue;
+}
+
 UFaerieItemStorageToken::UFaerieItemStorageToken()
 {
 	ItemContainer = CreateDefaultSubobject<UFaerieItemStorage>(FName{TEXTVIEW("ItemContainer")});
 	Extensions = CreateDefaultSubobject<UItemContainerExtensionGroup>(FName{TEXTVIEW("Extensions")});
-	SET_NEW_IDENTIFIER(Extensions, TEXT("ItemStorageTokenGroup"))
+	SET_NEW_IDENTIFIER(Extensions, TEXTVIEW("ItemStorageTokenGroup"))
 }
 
 void UFaerieItemStorageToken::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

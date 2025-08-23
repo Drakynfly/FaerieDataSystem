@@ -18,7 +18,7 @@ UFaerieInventoryComponent::UFaerieInventoryComponent()
 
 	ItemStorage = CreateDefaultSubobject<UFaerieItemStorage>(FName{TEXTVIEW("ItemStorage")});
 	Extensions = CreateDefaultSubobject<UItemContainerExtensionGroup>(FName{TEXTVIEW("Extensions")});
-	SET_NEW_IDENTIFIER(Extensions, TEXT("InventoryComponentGroup"))
+	SET_NEW_IDENTIFIER(Extensions, TEXTVIEW("InventoryComponentGroup"))
 }
 
 void UFaerieInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

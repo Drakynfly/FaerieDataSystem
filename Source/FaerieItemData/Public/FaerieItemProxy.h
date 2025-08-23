@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "FaerieItemDataConcepts.h"
 #include "UObject/Interface.h"
 #include "UObject/WeakInterfacePtr.h"
 
@@ -62,11 +63,8 @@ struct FAERIEITEMDATA_API FFaerieItemProxy
 	FFaerieItemProxy(const IFaerieItemDataProxy* Interface)
 	  : Proxy(Interface->_getUObject()) {}
 
-	template <
-		typename TDataProxyType
-		UE_REQUIRES(TIsDerivedFrom<TDataProxyType, IFaerieItemDataProxy>::Value)
-	>
-	FFaerieItemProxy(const TObjectPtr<TDataProxyType> Interface)
+	template <Faerie::CItemDataProxy T>
+	FFaerieItemProxy(const TObjectPtr<T> Interface)
 	  : Proxy(Interface) {}
 
 	FFaerieItemProxy(const TScriptInterface<IFaerieItemDataProxy>& Interface)

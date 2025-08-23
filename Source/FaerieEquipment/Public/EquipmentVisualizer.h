@@ -155,9 +155,20 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentVisualizer")
 	bool DestroyVisualByKey(FFaerieVisualKey Key, bool ClearMetadata = false);
 
+	// Determine how a visual should attach
+	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentVisualizer")
+	FEquipmentVisualAttachment FindAttachment(const FFaerieItemProxy Proxy) const;
+
+	FEquipmentVisualAttachment FindAttachment(const FFaerieItemProxy Proxy, const class UVisualSlotExtension*& SlotExtension) const;
+
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentVisualizer")
 	void ResetAttachment(FFaerieVisualKey Key);
 
+	// Moves where a visual is attached, but doesn't make the change permanent. (It can be undone with ResetAttachment)
+	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentVisualizer")
+	void MoveAttachment(FFaerieVisualKey Key, const FEquipmentVisualAttachment& Attachment);
+
+	// Moves where a visual is attached, and makes the change permanent. (It cannot be undone with ResetAttachment)
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentVisualizer")
 	void UpdateAttachment(FFaerieVisualKey Key, const FEquipmentVisualAttachment& Attachment);
 

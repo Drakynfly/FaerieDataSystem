@@ -19,7 +19,7 @@ UFaerieEquipmentManager::UFaerieEquipmentManager()
 	SetIsReplicatedByDefault(true);
 	bReplicateUsingRegisteredSubObjectList = true;
 	ExtensionGroup = CreateDefaultSubobject<UItemContainerExtensionGroup>("ExtensionGroup");
-	SET_NEW_IDENTIFIER(ExtensionGroup, TEXT("EquipmentManagerGroup"))
+	SET_NEW_IDENTIFIER(ExtensionGroup, TEXTVIEW("EquipmentManagerGroup"))
 }
 
 void UFaerieEquipmentManager::PostInitProperties()
@@ -30,7 +30,7 @@ void UFaerieEquipmentManager::PostInitProperties()
 	{
 		if (IsValid(DefaultSlot.ExtensionGroup))
 		{
-			SET_NEW_IDENTIFIER(DefaultSlot.ExtensionGroup, TEXT("EquipmentManagerInstanceDefaultSlot"))
+			SET_NEW_IDENTIFIER(DefaultSlot.ExtensionGroup, TEXTVIEW("EquipmentManagerInstanceDefaultSlot"))
 		}
 	}
 }
@@ -335,7 +335,7 @@ UItemContainerExtensionBase* UFaerieEquipmentManager::AddExtensionToSlot(const F
 	}
 
 	UItemContainerExtensionBase* NewExtension = NewObject<UItemContainerExtensionBase>(Slot, ExtensionClass);
-	SET_NEW_IDENTIFIER(NewExtension, TEXT("NewExt:EquipmentManager"))
+	SET_NEW_IDENTIFIER(NewExtension, TEXTVIEW("NewExt:EquipmentManager"))
 
 	GetOwner()->AddReplicatedSubObject(NewExtension);
 	NewExtension->InitializeNetObject(GetOwner());
@@ -372,6 +372,68 @@ bool UFaerieEquipmentManager::RemoveExtensionFromSlot(const FFaerieSlotTag SlotI
 	return true;
 }
 
+void UFaerieEquipmentManager::ForEachContainer(Faerie::TBreakableLoop<UFaerieItemContainerBase*> Iter, const bool Recursive)
+{
+	if (Recursive)
+	{
+		for (auto&& Slot : Slots)
+		{
+			if (Iter(Slot) == Faerie::Stop)
+			{
+				return;
+			}
+
+			if (!Slot->IsFilled()) continue;
+
+			if (UFaerieItemContainerToken::ForEachContainer(Slot->GetItemObject()->MutateCast(), Iter, true) == Faerie::Stop)
+			{
+				return;
+			}
+		}
+	}
+	else
+	{
+		for (auto&& Element : Slots)
+		{
+			if (Iter(Element) == Faerie::Stop)
+			{
+				return;
+			}
+		}
+	}
+}
+
+void UFaerieEquipmentManager::ForEachSlot(Faerie::TBreakableLoop<UFaerieEquipmentSlot*> Iter, const bool Recursive)
+{
+	if (Recursive)
+	{
+		for (auto&& Slot : Slots)
+		{
+			if (Iter(Slot) == Faerie::Stop)
+			{
+				return;
+			}
+
+			if (!Slot->IsFilled()) continue;
+
+			if (UFaerieItemContainerToken::ForEachContainer(Slot->GetItemObject()->MutateCast(), Iter, true) == Faerie::Stop)
+			{
+				return;
+			}
+		}
+	}
+	else
+	{
+		for (auto&& Element : Slots)
+		{
+			if (Iter(Element) == Faerie::Stop)
+			{
+				return;
+			}
+		}
+	}
+}
+
 TArray<FFaerieStoragePath> UFaerieEquipmentManager::GetAllContainerPaths() const
 {
 	// @todo Track this function's performance, and cache the result somewhere if it's expensive and called a lot.
@@ -385,13 +447,11 @@ TArray<FFaerieStoragePath> UFaerieEquipmentManager::GetAllContainerPaths() const
 		FFaerieStoragePath& NewPath = OutPaths.Add_GetRef(FFaerieStoragePath(BasePath));
 		NewPath.Containers.Add(Container);
 
-		Container->ForEachItem(
-			[Container, &BuildPaths, &NewPath](const UFaerieItem* Item)
+		Container->Filter().ForEachMutable(
+			[Container, &BuildPaths, &NewPath](UFaerieItem* Item)
 			{
-				if (!Item->CanMutate()) return;
-
 				TSet<UFaerieItemContainerBase*> Nested = UFaerieItemContainerToken::GetAllContainersInItem(Item);
-				for (auto SubContainer : Nested)
+				for (UFaerieItemContainerBase* SubContainer : Nested)
 				{
 					BuildPaths(SubContainer, NewPath);
 				}

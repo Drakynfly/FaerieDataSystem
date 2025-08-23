@@ -11,7 +11,6 @@
 
 #include "Actors/ItemRepresentationActor.h"
 #include "Components/FaerieItemMeshComponent.h"
-#include "Components/SkeletalMeshComponent.h"
 #include "Tokens/FaerieMeshToken.h"
 #include "Tokens/FaerieVisualActorClassToken.h"
 #include "Tokens/FaerieVisualEquipment.h"
@@ -95,7 +94,7 @@ void UEquipmentVisualizationUpdater::PostEntryChanged(const UFaerieItemContainer
 		}
 		const FFaerieItemProxy Proxy = Container->Proxy(Event.EntryTouched);
 		RemoveVisualImpl(Visualizer, Proxy);
-		CreateVisualImpl(Container, Visualizer, Proxy);
+		CreateVisualImpl(Visualizer, Proxy);
 	}
 }
 
@@ -137,110 +136,6 @@ UEquipmentVisualizer* UEquipmentVisualizationUpdater::GetVisualizer(const UFaeri
 	return Visualizer;
 }
 
-FEquipmentVisualAttachment UEquipmentVisualizationUpdater::FindAttachmentParent(const UFaerieItemContainerBase* Container, const UVisualSlotExtension*& SlotExtension, const UEquipmentVisualizer* Visualizer)
-{
-	FEquipmentVisualAttachment Attachment;
-
-	// If there is a VisualSlotExtension on this container, then defer to it.
-	SlotExtension = GetExtension<UVisualSlotExtension>(Container, true);
-
-	AActor* ParentActor = nullptr;
-	USceneComponent* ParentComponent = nullptr;
-
-	// See if we are owned by a slot, and try to determine attachment to it.
-	UFaerieEquipmentSlot* OwningSlot = Container->GetTypedOuter<UFaerieEquipmentSlot>();
-	if (IsValid(OwningSlot))
-	{
-		UObject* Visual = Visualizer->GetSpawnedVisualByKey({ OwningSlot->Proxy() });
-
-		if (AActor* Actor = Cast<AActor>(Visual))
-		{
-			ParentActor = Actor;
-		}
-		else if (USceneComponent* Component = Cast<USceneComponent>(Visual))
-		{
-			ParentComponent = Component;
-		}
-
-		if (IsValid(ParentComponent))
-		{
-			Attachment.Parent = ParentComponent;
-		}
-		else if (IsValid(ParentActor))
-		{
-			Attachment.Parent = ParentComponent;
-		}
-	}
-	else
-	{
-		// In the case of no owning slot, use the parent actor.
-		ParentActor = Visualizer->GetOwner();
-	}
-
-	// If we directly found a Component, great, use it!
-	if (IsValid(ParentComponent))
-	{
-		if (UFaerieItemMeshComponent* ItemMeshComponent = Cast<UFaerieItemMeshComponent>(ParentComponent))
-		{
-			// If the Generated Mesh already exists, use it.
-			if (ItemMeshComponent->GetGeneratedMeshComponent())
-			{
-				Attachment.Parent = ItemMeshComponent->GetGeneratedMeshComponent();
-			}
-			// If it doesn't, then just return the ItemMeshComponent, and have CreateVisualImpl move us to Pending.
-			else
-			{
-				Attachment.Parent = ItemMeshComponent;
-			}
-		}
-		else
-		{
-			Attachment.Parent = ParentComponent;
-		}
-	}
-	// If we only found an Actor, determine the component to use.
-	else if (IsValid(ParentActor))
-	{
-		// First choice is the one specified by the Extension (if applicable)
-		if (auto Component = IsValid(SlotExtension)
-				? ParentActor->FindComponentByTag<USceneComponent>(SlotExtension->GetComponentTag()) : nullptr;
-			IsValid(Component))
-		{
-			Attachment.Parent = Component;
-		}
-		else if (const ACharacter* Character = Cast<ACharacter>(ParentActor))
-		{
-			Attachment.Parent = Character->GetMesh();
-		}
-		else
-		{
-			Attachment.Parent = ParentActor->GetDefaultAttachComponent();
-
-			if (UFaerieItemMeshComponent* ItemMeshComponent = Cast<UFaerieItemMeshComponent>(Attachment.Parent.Get()))
-			{
-				// If the Generated Mesh already exists, use it.
-				if (ItemMeshComponent->GetGeneratedMeshComponent())
-				{
-					Attachment.Parent = ItemMeshComponent->GetGeneratedMeshComponent();
-				}
-				// If it doesn't, then just return the ItemMeshComponent, and have CreateVisualImpl move us to Pending.
-				else
-				{
-					Attachment.Parent = ItemMeshComponent;
-				}
-			}
-		}
-	}
-
-	if (IsValid(SlotExtension))
-	{
-		Attachment.ParentSocket = SlotExtension->GetSocket();
-		Attachment.ChildSocket = SlotExtension->GetChildSocket();
-	}
-
-	return Attachment;
-}
-
 void UEquipmentVisualizationUpdater::CreateVisualForEntry(const UFaerieItemContainerBase* Container, const FEntryKey Key)
 {
 	auto&& Visualizer = GetVisualizer(Container);
@@ -255,7 +150,7 @@ void UEquipmentVisualizationUpdater::CreateVisualForEntry(const UFaerieItemConta
 		return;
 	}
 
-	CreateVisualImpl(Container, Visualizer, Container->Proxy(Key));
+	CreateVisualImpl(Visualizer, Container->Proxy(Key));
 	SpawnKeys.Add(Container, Key);
 }
 
@@ -271,8 +166,7 @@ void UEquipmentVisualizationUpdater::RemoveVisualForEntry(const UFaerieItemConta
 	SpawnKeys.RemoveSingle(Container, Key);
 }
 
-void UEquipmentVisualizationUpdater::CreateVisualImpl(const UFaerieItemContainerBase* Container,
-													  UEquipmentVisualizer* Visualizer, const FFaerieItemProxy Proxy)
+void UEquipmentVisualizationUpdater::CreateVisualImpl(UEquipmentVisualizer* Visualizer, const FFaerieItemProxy Proxy)
 {
 	if (!Proxy.IsValid())
 	{
@@ -283,7 +177,7 @@ void UEquipmentVisualizationUpdater::CreateVisualImpl(const UFaerieItemContainer
 
 	const UVisualSlotExtension* SlotExtension = nullptr;
 	bool CanLeaderPoseMesh = false;
-	FEquipmentVisualAttachment Attachment = FindAttachmentParent(Container, SlotExtension, Visualizer);
+	FEquipmentVisualAttachment Attachment = Visualizer->FindAttachment(Proxy, SlotExtension);
 
 	// FindAttachmentParent will return a UFaerieItemMeshComponent when it wants us to defer for a pending attaching.
 	if (Attachment.Parent->IsA<UFaerieItemMeshComponent>())
@@ -341,7 +235,7 @@ void UEquipmentVisualizationUpdater::CreateVisualImpl(const UFaerieItemContainer
 							}
 						}
 
-						// If this wasn't pending, just update its attachment after a rebuilt.
+						// If this wasn't pending, just update its attachment after a rebuild.
 						Visualizer->ResetAttachment({Actor->GetSourceProxy() });
 					});
 				NewVisual->SetSourceProxy(Proxy);
@@ -414,13 +308,16 @@ void UEquipmentVisualizationUpdater::CreateVisualImpl(const UFaerieItemContainer
 	}
 
 	// Step 3: Recurse over children
-	auto SubContainers = UFaerieItemContainerToken::GetContainersInItem<UFaerieEquipmentSlot>(ItemObject);
-	for (auto SubContainer : SubContainers)
+	if (UFaerieItem* Mutable = ItemObject->MutateCast())
 	{
-		auto Key = SubContainer->GetCurrentKey();
-		if (Key.IsValid())
+		auto SubContainers = UFaerieItemContainerToken::GetContainersInItem<UFaerieEquipmentSlot>(Mutable);
+		for (auto SubContainer : SubContainers)
 		{
-			CreateVisualForEntry(SubContainer, Key);
+			auto Key = SubContainer->GetCurrentKey();
+			if (Key.IsValid())
+			{
+				CreateVisualForEntry(SubContainer, Key);
+			}
 		}
 	}
 }
@@ -431,13 +328,16 @@ void UEquipmentVisualizationUpdater::RemoveVisualImpl(UEquipmentVisualizer* Visu
 	Visualizer->DestroyVisualByKey({Proxy});
 
 	// Recurse over children
-	auto SubContainers = UFaerieItemContainerToken::GetContainersInItem<UFaerieEquipmentSlot>(Proxy->GetItemObject());
-	for (auto SubContainer : SubContainers)
+	if (UFaerieItem* Mutable = Proxy->GetItemObject()->MutateCast())
 	{
-		auto Key = SubContainer->GetCurrentKey();
-		if (Key.IsValid())
-		{
-			RemoveVisualForEntry(SubContainer, Key);
-		}
+		auto SubContainers = UFaerieItemContainerToken::GetContainersInItem<UFaerieEquipmentSlot>(Mutable);
+        for (auto SubContainer : SubContainers)
+        {
+        	auto Key = SubContainer->GetCurrentKey();
+        	if (Key.IsValid())
+        	{
+        		RemoveVisualForEntry(SubContainer, Key);
+        	}
+        }
 	}
 }

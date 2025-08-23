@@ -6,6 +6,7 @@
 #include "FaerieEquipmentSlotStructs.h"
 #include "FaerieSlotTag.h"
 #include "FaerieStoragePath.h"
+#include "LoopUtils.h"
 #include "Components/ActorComponent.h"
 #include "StructUtils/InstancedStruct.h"
 
@@ -164,6 +165,9 @@ public:
 	/**------------------------------*/
 	/*		 EXTRA UTILITIES		 */
 	/**------------------------------*/
+
+	void ForEachContainer(Faerie::TBreakableLoop<UFaerieItemContainerBase*> Iter, bool Recursive);
+	void ForEachSlot(Faerie::TBreakableLoop<UFaerieEquipmentSlot*> Iter, bool Recursive);
 
 	// Gets all Slots and Storage objects for this manager and all contained items.
 	// For only top-level containers, use GetSlots instead.

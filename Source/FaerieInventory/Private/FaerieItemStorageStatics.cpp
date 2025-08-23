@@ -13,7 +13,7 @@ namespace Faerie
 {
 	bool ValidateItemData(const UFaerieItem* Item)
 	{
-		if (!IsValid(Item))
+		if (!ensure(IsValid(Item)))
 		{
 			UE_LOG(LogTemp, Error, TEXT("ValidateItemData: Item pointer is invalid."))
 			return false;
@@ -67,7 +67,7 @@ namespace Faerie
 		return !HitError;
 	}
 
-	void ReleaseOwnership(UObject* Owner, const UFaerieItem* Item)
+	void ReleaseOwnership_Impl(UObject* Owner, const UFaerieItem* Item, const bool IsSubItem)
 	{
 		if (!ensure(IsValid(Item))) return;
 
@@ -104,20 +104,24 @@ namespace Faerie
 					{
 						ContainerToken->GetItemContainer()->ForEachItem([Owner](const UFaerieItem* ChildItem)
 						{
-							ReleaseOwnership(Owner, ChildItem);
+							ReleaseOwnership_Impl(Owner, ChildItem, true);
 						});
 					}
 
 					return Continue;
 				});
 
-			// If we renamed the item to ourself when we took ownership of this item, then we need to release that now.
-			if (MutableItem->GetOuter() == Owner)
+			if (!IsSubItem)
 			{
-				MutableItem->Rename(nullptr, GetTransientPackage(), REN_DontCreateRedirectors);
-			}
+				// If we renamed the item to ourself when we took ownership of this item, then we need to release that now.
+				if (MutableItem->GetOuter() == Owner)
+				{
+					MutableItem->Rename(nullptr, GetTransientPackage(), REN_DontCreateRedirectors);
+				}
 
-			MutableItem->GetNotifyOwnerOfSelfMutation().Unbind();
+				// Unbind from the mutation hook.
+				MutableItem->GetNotifyOwnerOfSelfMutation().Unbind();
+			}
 		}
 	}
 
@@ -134,7 +138,7 @@ namespace Faerie
 		}
 	}
 
-	void TakeOwnership_Impl(UObject* Owner, const UFaerieItem* Item, const bool RenameToOwner)
+	void TakeOwnership_Impl(UObject* Owner, const UFaerieItem* Item, const bool IsSubItem)
 	{
 		if (!ensure(IsValid(Item))) return;
 
@@ -148,18 +152,23 @@ namespace Faerie
 				checkfSlow(Item->GetOuter() == GetTransientPackage(), TEXT("ReleaseOwnership was not called correctly on this item, before attempting to give ownership here!"));
 			}
 
-			checkfSlow(!MutableItem->GetNotifyOwnerOfSelfMutation().IsBound(), TEXT("This should always have been unbound by the previous owner!"))
-
 			//UE_LOG(LogTemp, Verbose, TEXT("Assigning Ownership of %s to %s"), *Item->GetFullName(), *Owner->GetName())
 
-			if (GetDefault<UFaerieInventorySettings>()->ContainerMutableBehavior == EFaerieContainerOwnershipBehavior::Rename && RenameToOwner)
+			// Children do not get renamed. They already belong to this outer chain if we are renamed.
+			// We also don't bind to the mutation hook if we are a subitem.
+			if (!IsSubItem)
 			{
-				MutableItem->Rename(nullptr, Owner, REN_DontCreateRedirectors);
-			}
+				if (GetDefault<UFaerieInventorySettings>()->ContainerMutableBehavior == EFaerieContainerOwnershipBehavior::Rename)
+				{
+					MutableItem->Rename(nullptr, Owner, REN_DontCreateRedirectors);
+				}
 
-			if (IFaerieItemOwnerInterface* OwnerInterface = Cast<IFaerieItemOwnerInterface>(Owner))
-			{
-				MutableItem->GetNotifyOwnerOfSelfMutation().BindRaw(OwnerInterface, &IFaerieItemOwnerInterface::OnItemMutated);
+				checkfSlow(!MutableItem->GetNotifyOwnerOfSelfMutation().IsBound(), TEXT("This should always have been unbound by the previous owner!"))
+
+				if (IFaerieItemOwnerInterface* OwnerInterface = Cast<IFaerieItemOwnerInterface>(Owner))
+				{
+					MutableItem->GetNotifyOwnerOfSelfMutation().BindRaw(OwnerInterface, &IFaerieItemOwnerInterface::OnItemMutated);
+				}
 			}
 
 			// @todo this logic could be moved to UFaerieItem::PostRename (if we enforce the RenameBehavior)
@@ -202,8 +211,7 @@ namespace Faerie
 					{
 						ContainerToken->GetItemContainer()->ForEachItem([Owner](const UFaerieItem* ChildItem)
 						{
-							// Children do not get renamed. They already belong to this outer chain if we are renamed.
-							TakeOwnership_Impl(Owner, ChildItem, false);
+							TakeOwnership_Impl(Owner, ChildItem, true);
 						});
 					}
 
@@ -212,8 +220,13 @@ namespace Faerie
 		}
 	}
 
+	void ReleaseOwnership(UObject* Owner, const UFaerieItem* Item)
+	{
+		ReleaseOwnership_Impl(Owner, Item, false);
+	}
+
 	void TakeOwnership(UObject* Owner, const UFaerieItem* Item)
 	{
-		TakeOwnership_Impl(Owner, Item, true);
+		TakeOwnership_Impl(Owner, Item, false);
 	}
 }

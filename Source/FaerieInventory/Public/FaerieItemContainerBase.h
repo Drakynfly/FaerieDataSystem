@@ -21,6 +21,37 @@ public:
 	TMap<FGuid, FInstancedStruct> Data;
 };
 
+namespace Faerie
+{
+	class FAERIEINVENTORY_API FItemContainerFilter : FNoncopyable
+	{
+	public:
+		FItemContainerFilter(const UFaerieItemContainerBase* Container)
+		  : Container(Container) {}
+
+		// Iterate through only the mutable items in this filter
+		template <typename T>
+		void ForEachMutable(T Func) const
+		{
+			if constexpr (TIsBreakable<decltype(Func)>::Value)
+			{
+				ForEachMutable_WithBreak(Func);
+			}
+			else
+			{
+				ForEachMutable_NoBreak(Func);
+			}
+		}
+
+	private:
+		void ForEachMutable_NoBreak(TLoop<UFaerieItem*> Func) const;
+		void ForEachMutable_WithBreak(TBreakableLoop<UFaerieItem*> Func) const;
+
+	private:
+		const UFaerieItemContainerBase* Container;
+	};
+}
+
 /**
  * Base class for objects that store FaerieItems
  */
@@ -126,6 +157,8 @@ public:
 	// Iterate over and perform a task for each item instance.
 	// Similar behavior to ForEachAddress, except it is guaranteed to only run once per instance.
 	virtual void ForEachItem(Faerie::TLoop<const UFaerieItem*> Func) const PURE_VIRTUAL(UFaerieItemContainerBase::ForEachItem, ; )
+
+	Faerie::FItemContainerFilter Filter() const;
 
 protected: // Blueprint versions (temp, until Old Blueprint versions are removed)
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainer", DisplayName = "Contains")
