@@ -20,18 +20,21 @@ class FAERIEITEMGENERATOR_API UFaerieItemConsumableBase : public UFaerieItemToke
 	GENERATED_BODY()
 
 public:
+	UFUNCTION(BlueprintCallable, Category = "Consumable")
+	virtual bool CanConsume(const UFaerieItem* Item, const AActor* Consumer) const;
+
 	// This function is const so that it can be called on const pointers. Mutation-safety is implemented by the function.
 	// The owning item must be passed in, in case this token is immutable (and therefore cannot determine its own item)
 	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Consumable")
 	bool TryConsume(const UFaerieItem* Item, AActor* Consumer) const;
 
 	// Consumable logic for tokens that have no effect on themselves.
-	virtual void OnConsumed(AActor* Consumer) const
+	virtual void OnConsumed(const UFaerieItem* Item, AActor* Consumer) const
 		PURE_VIRTUAL(UFaerieItemConsumableBase::OnConsumed, );
 
 	// Consumable logic for tokens that effect themselves.
-	virtual void OnConsumed_Mutable(AActor* Consumer)
+	virtual void OnConsumed_Mutable(UFaerieItem* Item, AActor* Consumer)
 	{
-		OnConsumed(Consumer);
+		OnConsumed(Item, Consumer);
 	}
 };

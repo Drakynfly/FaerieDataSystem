@@ -8,6 +8,8 @@
 
 bool UFaerieLexicographicNameComparator::Exec(const FFaerieItemProxy A, const FFaerieItemProxy B) const
 {
+	if (!A.IsValid() || !B.IsValid()) return false;
+
 	const UFaerieInfoToken* InfoA = A->GetItemObject()->GetToken<UFaerieInfoToken>();
 	const UFaerieInfoToken* InfoB = B->GetItemObject()->GetToken<UFaerieInfoToken>();
 

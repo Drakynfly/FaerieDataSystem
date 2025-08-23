@@ -7,6 +7,17 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemConsumableBase)
 
+bool UFaerieItemConsumableBase::CanConsume(const UFaerieItem* Item, const AActor* Consumer) const
+{
+	const UFaerieItemUsesToken* Uses = Item->GetToken<UFaerieItemUsesToken>();
+	if (IsValid(Uses))
+	{
+		return Uses->HasUses(1);
+	}
+
+	return true;
+}
+
 bool UFaerieItemConsumableBase::TryConsume(const UFaerieItem* Item, AActor* Consumer) const
 {
 	// Try getting the Consumable logic token, first by Mutable access.
@@ -31,11 +42,11 @@ bool UFaerieItemConsumableBase::TryConsume(const UFaerieItem* Item, AActor* Cons
 
 		if (ThisClass* MutableThis = MutateCast<ThisClass>())
 		{
-			MutableThis->OnConsumed_Mutable(Consumer);
+			MutableThis->OnConsumed_Mutable(Mutable, Consumer);
 		}
 		else
 		{
-			OnConsumed(Consumer);
+			OnConsumed(Mutable, Consumer);
 		}
 
 		if (IsValid(Uses))
@@ -55,6 +66,6 @@ bool UFaerieItemConsumableBase::TryConsume(const UFaerieItem* Item, AActor* Cons
 	}
 
 	// If that fails, attempt by const access.
-	OnConsumed(Consumer);
+	OnConsumed(Item, Consumer);
 	return true;
 }

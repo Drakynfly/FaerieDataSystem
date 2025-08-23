@@ -5,21 +5,27 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventoryUIActionContainer)
 
-bool UInventoryUIActionContainer::AddActionOfClass(const TSubclassOf<UInventoryUIAction> Class)
+bool UInventoryUIActionContainer::AddAction(const TSubclassOf<UInventoryUIAction> Class)
 {
 	if (IsValid(Class))
 	{
-		Actions.Add(NewObject<UInventoryUIAction>(this, Class));
+		ActionClasses.Add(Class);
 		return true;
 	}
 	return false;
+}
+
+bool UInventoryUIActionContainer::AddActions(const TSet<TSubclassOf<UInventoryUIAction>> Classes)
+{
+	ActionClasses.Append(Classes);
+	return true;
 }
 
 bool UInventoryUIActionContainer::AddActionInstance(UInventoryUIAction* Action)
 {
 	if (IsValid(Action))
 	{
-		Actions.Add(Action);
+		ActionInstances.Add(Action);
 		return true;
 	}
 	return false;
@@ -35,20 +41,29 @@ bool UInventoryUIActionContainer::AddSubContainer(UInventoryUIActionContainer* C
 	return false;
 }
 
-bool UInventoryUIActionContainer::RemoveActionsOfClass(TSubclassOf<UInventoryUIAction> Class)
+bool UInventoryUIActionContainer::RemoveAction(const TSubclassOf<UInventoryUIAction> Class)
 {
-	return !!Actions.RemoveAll(
-		[Class](const UInventoryUIAction* Action)
-		{
-			return Action->GetClass() == Class;
-		});
+	if (IsValid(Class))
+	{
+		return !!ActionClasses.Remove(Class);
+	}
+	return false;
+}
+
+bool UInventoryUIActionContainer::RemoveActions(TSet<TSubclassOf<UInventoryUIAction>> Classes)
+{
+	for (auto Class : Classes)
+	{
+		ActionClasses.Remove(Class);
+	}
+	return true;
 }
 
 bool UInventoryUIActionContainer::RemoveActionInstance(UInventoryUIAction* Action)
 {
 	if (IsValid(Action))
 	{
-		return !!Actions.Remove(Action);
+		return !!ActionInstances.Remove(Action);
 	}
 	return false;
 }
@@ -64,11 +79,36 @@ bool UInventoryUIActionContainer::RemoveSubContainer(UInventoryUIActionContainer
 
 TArray<UInventoryUIAction*> UInventoryUIActionContainer::GetAllActions() const
 {
-	// @todo doesn't check for recursion or duplicates!
-	TArray<UInventoryUIAction*> AllActions = Actions;
-	for (auto&& SubContainer : SubContainers)
+	TSet<UInventoryUIAction*> AllInstances { ActionInstances };
+	TSet<TSubclassOf<UInventoryUIAction>> AllClasses { ActionClasses };
+
+	TSet<FObjectKey> HitSubcontainers;
+	HitSubcontainers.Add(this);
+
+	TArray<const UInventoryUIActionContainer*> SubContainersToSearch { SubContainers };
+	while (!SubContainersToSearch.IsEmpty())
 	{
-		AllActions.Append(SubContainer->GetAllActions());
+		const UInventoryUIActionContainer* SubContainer = SubContainersToSearch.Pop();
+		HitSubcontainers.Add(SubContainer);
+
+		AllInstances.Append(SubContainer->ActionInstances);
+		AllClasses.Append(SubContainer->ActionClasses);
+
+		for (auto&& Container : SubContainer->SubContainers)
+		{
+			if (!HitSubcontainers.Contains(Container))
+			{
+				SubContainersToSearch.Add(Container);
+			}
+		}
 	}
+
+	TArray<UInventoryUIAction*> AllActions = AllInstances.Array();
+	AllActions.Reserve(AllActions.Num() + AllClasses.Num());
+	for (auto&& ActionClass : AllClasses)
+	{
+		AllActions.Add(ActionClass->GetDefaultObject<UInventoryUIAction>());
+	}
+
 	return AllActions;
 }

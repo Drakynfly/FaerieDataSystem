@@ -32,20 +32,18 @@ class FAERIEINVENTORYCONTENT_API UInventoryUIAction : public UObject
 {
 	GENERATED_BODY()
 
-public:
-	// @todo disabled while GetFaerieClient exists, because they are incompatible. Refactor or delete this...
-	//UFUNCTION(BlueprintCallable, Category = "Faerie|UI Action", meta = (DeterminesOutput = "Class"))
-	//static UInventoryUIAction2* GetActionInstance(TSubclassOf<UInventoryUIAction2> Class);
-
 protected:
 	UFUNCTION(BlueprintNativeEvent, Category = "Faerie|UI Action")
-	void Run(FFaerieAddressableHandle Handle) const;
+	void Run(UFaerieInventoryClient* Client, FFaerieAddressableHandle Handle) const;
+
+	UFUNCTION(BlueprintNativeEvent, Category = "Faerie|UI Action")
+	EInventoryUIActionState TestCanRun(UFaerieInventoryClient* Client, FFaerieAddressableHandle Handle) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|UI Action")
 	void Finish();
 
-	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Faerie|UI Action", meta = (ExpandBoolAsExecs = "ReturnValue"))
-	bool GetFaerieClient(UFaerieInventoryClient*& Client) const;
+	// Tries to get the local faerie client from the context.
+	static UFaerieInventoryClient* GetFaerieClient(const UObject* ContextObj);
 
 public:
 	/* Gets the contextual display text for running this action on an address */
@@ -61,8 +59,8 @@ public:
 	 * This is not enforced by the action when ran, it is up to the implementing UI to restrict access to the action
 	 * when this returns false.
 	 */
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Faerie|UI Action")
-	EInventoryUIActionState TestCanRun(FFaerieAddressableHandle Handle) const;
+	UFUNCTION(BlueprintCallable, Category = "Faerie|UI Action")
+	EInventoryUIActionState CanStart(FFaerieAddressableHandle Handle) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|UI Action")
 	bool Start(FFaerieAddressableHandle Handle);

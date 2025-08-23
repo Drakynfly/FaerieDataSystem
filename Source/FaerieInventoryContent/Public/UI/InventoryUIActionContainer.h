@@ -17,7 +17,10 @@ class FAERIEINVENTORYCONTENT_API UInventoryUIActionContainer : public UObject
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "UIActionContainer")
-	bool AddActionOfClass(TSubclassOf<UInventoryUIAction> Class);
+	bool AddAction(TSubclassOf<UInventoryUIAction> Class);
+
+	UFUNCTION(BlueprintCallable, Category = "UIActionContainer")
+	bool AddActions(TSet<TSubclassOf<UInventoryUIAction>> Classes);
 
 	UFUNCTION(BlueprintCallable, Category = "UIActionContainer")
 	bool AddActionInstance(UInventoryUIAction* Action);
@@ -26,7 +29,10 @@ public:
 	bool AddSubContainer(UInventoryUIActionContainer* Container);
 
 	UFUNCTION(BlueprintCallable, Category = "UIActionContainer")
-	bool RemoveActionsOfClass(TSubclassOf<UInventoryUIAction> Class);
+	bool RemoveAction(TSubclassOf<UInventoryUIAction> Class);
+
+	UFUNCTION(BlueprintCallable, Category = "UIActionContainer")
+	bool RemoveActions(TSet<TSubclassOf<UInventoryUIAction>> Classes);
 
 	UFUNCTION(BlueprintCallable, Category = "UIActionContainer")
 	bool RemoveActionInstance(UInventoryUIAction* Action);
@@ -38,8 +44,13 @@ public:
 	TArray<UInventoryUIAction*> GetAllActions() const;
 
 protected:
+	// Actions that run on the CDO
 	UPROPERTY()
-	TArray<TObjectPtr<UInventoryUIAction>> Actions;
+	TSet<TSubclassOf<UInventoryUIAction>> ActionClasses;
+
+	// Actions that run on an instance
+	UPROPERTY()
+	TArray<TObjectPtr<UInventoryUIAction>> ActionInstances;
 
 	UPROPERTY()
 	TArray<TObjectPtr<UInventoryUIActionContainer>> SubContainers;
