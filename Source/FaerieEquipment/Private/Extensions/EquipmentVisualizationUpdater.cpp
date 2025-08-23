@@ -5,6 +5,7 @@
 #include "Extensions/VisualSlotExtension.h"
 
 #include "EquipmentVisualizer.h"
+#include "FaerieEquipmentLog.h"
 #include "FaerieEquipmentSlot.h"
 #include "FaerieItemContainerBase.h"
 #include "ItemContainerEvent.h"
@@ -108,7 +109,7 @@ UEquipmentVisualizer* UEquipmentVisualizationUpdater::GetVisualizer(const UFaeri
 	auto&& Relevants = GetExtension<URelevantActorsExtension>(Container, true);
 	if (!IsValid(Relevants))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GetVisualizer failed: Requires a RelevantActorsExtension on the container to find the pawn (%s)!"), *Container->GetName())
+		UE_LOG(LogFaerieEquipment, Warning, TEXT("GetVisualizer failed: Requires a RelevantActorsExtension on the container to find the pawn (%s)!"), *Container->GetName())
 		return nullptr;
 	}
 
@@ -122,14 +123,14 @@ UEquipmentVisualizer* UEquipmentVisualizationUpdater::GetVisualizer(const UFaeri
 
 	if (!IsValid(Pawn))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GetVisualizer failed: Failed to find relevant Pawn (%s)!"), *Container->GetName())
+		UE_LOG(LogFaerieEquipment, Warning, TEXT("GetVisualizer failed: Failed to find relevant Pawn (%s)!"), *Container->GetName())
 		return nullptr;
 	}
 
 	auto&& Visualizer = Pawn->GetComponentByClass<UEquipmentVisualizer>();
 	if (!IsValid(Visualizer))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GetVisualizer failed: Pawn does not have a visualizer component (%s)!"), *Container->GetName())
+		UE_LOG(LogFaerieEquipment, Warning, TEXT("GetVisualizer failed: Pawn does not have a visualizer component (%s)!"), *Container->GetName())
 		return nullptr;
 	}
 
@@ -146,7 +147,7 @@ void UEquipmentVisualizationUpdater::CreateVisualForEntry(const UFaerieItemConta
 
 	if (SpawnKeys.Contains(Container))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Container already has an visual spawned. Existing visuals must be removed before creating new ones!"));
+		UE_LOG(LogFaerieEquipment, Warning, TEXT("Container already has an visual spawned. Existing visuals must be removed before creating new ones!"));
 		return;
 	}
 
@@ -212,7 +213,7 @@ void UEquipmentVisualizationUpdater::CreateVisualImpl(UEquipmentVisualizer* Visu
 			const TSubclassOf<AItemRepresentationActor> VisualClass = ActorClass.LoadSynchronous();
 			if (!IsValid(VisualClass))
 			{
-				UE_LOG(LogTemp, Warning, TEXT("VisualClass failed to load!"))
+				UE_LOG(LogFaerieEquipment, Warning, TEXT("VisualClass failed to load!"))
 				return;
 			}
 

@@ -3,6 +3,7 @@
 #include "FaerieItemContainerBase.h"
 #include "FaerieItemStorage.h"
 #include "AssetLoadFlagFixer.h"
+#include "FaerieInventoryLog.h"
 #include "ItemContainerExtensionBase.h"
 #include "GameFramework/Actor.h"
 #include "Net/UnrealNetwork.h"
@@ -126,7 +127,7 @@ UItemContainerExtensionGroup* UFaerieItemContainerBase::GetExtensionGroup() cons
 
 bool UFaerieItemContainerBase::AddExtension(UItemContainerExtensionBase* Extension)
 {
-	UE_LOG(LogTemp, Log, TEXT("Adding Extension: '%s' to '%s'"), *Extension->GetFullName(), *this->GetFullName())
+	UE_LOG(LogFaerieInventory, Log, TEXT("Adding Extension: '%s' to '%s'"), *Extension->GetFullName(), *this->GetFullName())
 	if (Extensions->AddExtension(Extension))
 	{
 		TryApplyUnclaimedSaveData(Extension);

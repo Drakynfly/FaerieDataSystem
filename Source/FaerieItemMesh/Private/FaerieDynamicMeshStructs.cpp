@@ -1,12 +1,13 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieDynamicMeshStructs.h"
+#include "FaerieItemMeshLog.h"
 
 FFaerieDynamicStaticMesh::FFaerieDynamicStaticMesh(const FFaerieStaticMeshData& MeshData)
 {
 	if (!MeshData.StaticMesh.IsValid())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("FFaerieDynamicStaticMesh constructed from invalid MeshData"))
+		UE_LOG(LogFaerieItemMesh, Warning, TEXT("FFaerieDynamicStaticMesh constructed from invalid MeshData"))
 		return;
 	}
 
@@ -21,7 +22,7 @@ FFaerieDynamicSkeletalMesh::FFaerieDynamicSkeletalMesh(const FFaerieSkeletalMesh
 {
 	if (!MeshData.SkeletonAndAnimation.Mesh.IsValid())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("FFaerieDynamicSkeletalMesh constructed from invalid MeshData"))
+		UE_LOG(LogFaerieItemMesh, Warning, TEXT("FFaerieDynamicSkeletalMesh constructed from invalid MeshData"))
 		return;
 	}
 

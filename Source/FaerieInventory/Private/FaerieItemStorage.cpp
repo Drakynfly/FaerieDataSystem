@@ -18,13 +18,12 @@
 #include "Engine/Engine.h"
 #endif
 
+#include "FaerieInventoryLog.h"
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemStorage)
 
 DECLARE_STATS_GROUP(TEXT("FaerieItemStorage"), STATGROUP_FaerieItemStorage, STATCAT_Advanced);
 DECLARE_CYCLE_STAT(TEXT("Query (First)"), STAT_Storage_QueryFirst, STATGROUP_FaerieItemStorage);
 DECLARE_CYCLE_STAT(TEXT("Query (All)"), STAT_Storage_QueryAll, STATGROUP_FaerieItemStorage);
-
-DEFINE_LOG_CATEGORY(LogFaerieItemStorage);
 
 bool IfOnlyNewStacks(const EFaerieStorageAddStackBehavior Behavior)
 {
@@ -315,7 +314,7 @@ void UFaerieItemStorage::PostContentAdded(const FKeyedInventoryEntry& Entry)
 {
 	if (!Entry.Key.IsValid())
 	{
-		UE_LOG(LogFaerieItemStorage, Warning, TEXT("PostContentAdded: Received Invalid Key"))
+		UE_LOG(LogFaerieInventory, Warning, TEXT("PostContentAdded: Received Invalid Key"))
 		return;
 	}
 
@@ -358,7 +357,7 @@ void UFaerieItemStorage::PostContentChanged(const FKeyedInventoryEntry& Entry, c
 {
 	if (!ensure(Entry.Key.IsValid()))
 	{
-		UE_LOG(LogFaerieItemStorage, Warning, TEXT("PostContentChanged: Received Invalid Key"))
+		UE_LOG(LogFaerieInventory, Warning, TEXT("PostContentChanged: Received Invalid Key"))
 		return;
 	}
 
@@ -445,7 +444,7 @@ void UFaerieItemStorage::PreContentRemoved(const FKeyedInventoryEntry& Entry)
 {
 	if (!Entry.Key.IsValid())
 	{
-		UE_LOG(LogFaerieItemStorage, Warning, TEXT("PreContentRemoved: Received Invalid Key"))
+		UE_LOG(LogFaerieInventory, Warning, TEXT("PreContentRemoved: Received Invalid Key"))
 		return;
 	}
 
@@ -682,7 +681,7 @@ Faerie::Inventory::FEventLog UFaerieItemStorage::RemoveFromEntryImpl(const FEntr
 
 	if (Remove)
 	{
-		UE_LOG(LogFaerieItemStorage, Log, TEXT("Removing entire entry at: '%s'"), *Key.ToString());
+		UE_LOG(LogFaerieInventory, Log, TEXT("Removing entire entry at: '%s'"), *Key.ToString());
 		EntryMap.Remove(Key);
 	}
 
@@ -745,7 +744,7 @@ Faerie::Inventory::FEventLog UFaerieItemStorage::RemoveFromStackImpl(const FInve
 
 	if (Remove)
 	{
-		UE_LOG(LogFaerieItemStorage, Log, TEXT("Removing entire stack at: '%s'"), *Key.ToString());
+		UE_LOG(LogFaerieInventory, Log, TEXT("Removing entire stack at: '%s'"), *Key.ToString());
 		EntryMap.Remove(Key.EntryKey);
 	}
 

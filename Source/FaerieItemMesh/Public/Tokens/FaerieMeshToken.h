@@ -8,8 +8,6 @@
 
 #include "FaerieMeshToken.generated.h"
 
-DECLARE_LOG_CATEGORY_EXTERN(LogMeshToken, Log, All);
-
 /**
  *
  */

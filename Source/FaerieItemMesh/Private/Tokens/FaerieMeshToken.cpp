@@ -6,8 +6,6 @@
 #include "Misc/DataValidation.h"
 #endif
 
-DEFINE_LOG_CATEGORY(LogMeshToken);
-
 void UFaerieMeshTokenBase::GetMeshes(const FGameplayTagContainer& SearchPurposes,
 	TConstStructView<FFaerieStaticMeshData>& Static, TConstStructView<FFaerieSkeletalMeshData>& Skeletal) const
 {

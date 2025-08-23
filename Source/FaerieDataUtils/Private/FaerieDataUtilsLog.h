@@ -4,4 +4,4 @@
 
 #include "Logging/LogMacros.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogItemGeneration, Log, All);
+DEFINE_LOG_CATEGORY_STATIC(LogFaerieDataUtils, Log, All);

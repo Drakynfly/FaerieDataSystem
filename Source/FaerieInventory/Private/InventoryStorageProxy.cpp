@@ -3,7 +3,7 @@
 #include "InventoryStorageProxy.h"
 #include "FaerieItem.h"
 #include "FaerieItemStorage.h"
-#include "Logging.h"
+#include "FaerieInventoryLog.h"
 #include "Tokens/FaerieStackLimiterToken.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventoryStorageProxy)

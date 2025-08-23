@@ -1,12 +1,11 @@
 // Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "UI/InventoryUIAction.h"
+#include "FaerieInventoryContentLog.h"
 #include "Actions/FaerieInventoryClient.h"
 #include "UI/InventoryContentsBase.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventoryUIAction)
-
-DEFINE_LOG_CATEGORY(LogInventoryUIAction)
 
 void UInventoryUIAction::Run_Implementation(UFaerieInventoryClient* Client, const FFaerieAddressableHandle Handle) const {}
 
@@ -19,7 +18,7 @@ void UInventoryUIAction::Finish()
 {
 	if (!InProgress)
 	{
-		UE_LOG(LogInventoryUIAction, Error, TEXT("Action cannot finish. Is not in progress!"))
+		UE_LOG(LogFaerieInventoryContent, Error, TEXT("Action cannot finish. Is not in progress!"))
 		return;
 	}
 
@@ -30,7 +29,7 @@ UFaerieInventoryClient* UInventoryUIAction::GetFaerieClient(const UObject* Conte
 {
 	if (!IsValid(ContextObj))
 	{
-		UE_LOG(LogInventoryUIAction, Error, TEXT("Unable to find Faerie Client. Invalid ContextObj"))
+		UE_LOG(LogFaerieInventoryContent, Error, TEXT("Unable to find Faerie Client. Invalid ContextObj"))
 		return nullptr;
 	}
 
@@ -57,7 +56,7 @@ UFaerieInventoryClient* UInventoryUIAction::GetFaerieClient(const UObject* Conte
 		}
 	}
 
-	UE_LOG(LogInventoryUIAction, Error, TEXT("Unable to find Faerie Client from: \'%s\'"), *ContextObj->GetName())
+	UE_LOG(LogFaerieInventoryContent, Error, TEXT("Unable to find Faerie Client from: \'%s\'"), *ContextObj->GetName())
 	return nullptr;
 }
 
@@ -87,7 +86,7 @@ bool UInventoryUIAction::Start(const FFaerieAddressableHandle Handle)
 {
 	if (InProgress)
 	{
-		UE_LOG(LogInventoryUIAction, Error, TEXT("Action already in progress!"))
+		UE_LOG(LogFaerieInventoryContent, Error, TEXT("Action already in progress!"))
 		return false;
 	}
 

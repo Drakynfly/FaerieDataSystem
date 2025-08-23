@@ -11,6 +11,7 @@
 #include "UObject/UObjectThreadContext.h"
 #endif
 
+#include "FaerieInventoryLog.h"
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventoryReplicatedDataExtensionBase)
 
 void FFaerieReplicatedValue::PreReplicatedRemove(const FFaerieReplicatedSimMap& InArraySerializer)
@@ -378,7 +379,7 @@ TStructView<FFaerieReplicatedSimMap> UInventoryReplicatedDataExtensionBase::Find
 		return (*Found)->DataArray;
 	}
 #if WITH_EDITOR
-	UE_LOG(LogTemp, Warning, TEXT("Failed to find FastArray for container '%s'. Is this container initialized to this extension?"), *Container->GetFullName())
+	UE_LOG(LogFaerieInventory, Warning, TEXT("Failed to find FastArray for container '%s'. Is this container initialized to this extension?"), *Container->GetFullName())
 	PrintPerContainerDataDebug();
 #endif
 	return TStructView<FFaerieReplicatedSimMap>();
@@ -395,7 +396,7 @@ TConstStructView<FFaerieReplicatedSimMap> UInventoryReplicatedDataExtensionBase:
 		return (*Found)->DataArray;
 	}
 #if WITH_EDITOR
-	UE_LOG(LogTemp, Warning, TEXT("Failed to find FastArray for container '%s'. Is this container initialized to this extension?"), *Container->GetFullName())
+	UE_LOG(LogFaerieInventory, Warning, TEXT("Failed to find FastArray for container '%s'. Is this container initialized to this extension?"), *Container->GetFullName())
 	PrintPerContainerDataDebug();
 #endif
 	return TConstStructView<FFaerieReplicatedSimMap>();
@@ -404,10 +405,10 @@ TConstStructView<FFaerieReplicatedSimMap> UInventoryReplicatedDataExtensionBase:
 #if WITH_EDITOR
 void UInventoryReplicatedDataExtensionBase::PrintPerContainerDataDebug() const
 {
-	UE_LOG(LogTemp, Log, TEXT("Printing Containers with FastArrays"))
+	UE_LOG(LogFaerieInventory, Log, TEXT("Printing Containers with FastArrays"))
 	for (auto&& Element : PerContainerData)
 	{
-		UE_LOG(LogTemp, Log, TEXT("    Data: '%s' - Container: '%s'"), *Element->GetFullName(), *Element->Container->GetFullName())
+		UE_LOG(LogFaerieInventory, Log, TEXT("    Data: '%s' - Container: '%s'"), *Element->GetFullName(), *Element->Container->GetFullName())
 	}
 }
 #endif

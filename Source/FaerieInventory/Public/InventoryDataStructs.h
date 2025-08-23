@@ -12,8 +12,6 @@
 
 enum class EEntryEquivalencyFlags : uint8;
 
-DECLARE_LOG_CATEGORY_EXTERN(LogInventoryStructs, Log, All)
-
 LLM_DECLARE_TAG(ItemStorage);
 
 // Typesafe wrapper around an FFaerieItemKeyBase used for keying stacks in a UFaerieItemStorage.

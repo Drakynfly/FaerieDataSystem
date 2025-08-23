@@ -2,6 +2,7 @@
 
 #include "Components/FaerieItemMeshComponent.h"
 #include "FaerieItemMeshLoader.h"
+#include "FaerieItemMeshLog.h"
 #include "FaerieMeshStructs.h"
 #include "FaerieMeshSubsystem.h"
 #include "Components/DynamicMeshComponent.h"
@@ -155,8 +156,7 @@ void UFaerieItemMeshComponent::RebuildMesh()
 	// Warn if we have switched to None illegally.
 	if (NewMeshType == EItemMeshType::None && !AllowNullMeshes)
 	{
-		//@todo log category
-		UE_LOG(LogTemp, Error, TEXT("No valid mesh in Mesh Data. RebuildMesh cancelled."))
+		UE_LOG(LogFaerieItemMesh, Error, TEXT("No valid mesh in Mesh Data. RebuildMesh cancelled."))
 		return;
 	}
 

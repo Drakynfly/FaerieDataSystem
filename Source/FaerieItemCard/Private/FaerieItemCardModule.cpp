@@ -5,8 +5,6 @@
 
 #define LOCTEXT_NAMESPACE "FaerieItemCardModule"
 
-DEFINE_LOG_CATEGORY(LogFaerieItemCard)
-
 void FFaerieItemCardModule::StartupModule()
 {
 }

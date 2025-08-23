@@ -1,6 +1,7 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "Extensions/InventoryCapacityExtension.h"
+#include "FaerieInventoryContentLog.h"
 
 #include "FaerieItem.h"
 #include "FaerieItemStorage.h"
@@ -90,7 +91,7 @@ EEventExtensionResponse UInventoryCapacityExtension::AllowsAddition(const UFaeri
 		if (const FFaerieItemStackView View0 = Views[0];
 			!CanContain(View0))
 		{
-			UE_LOG(LogTemp, Verbose, TEXT("PreAddition: Cannot add Stack (Item: '%s' Copies: %i)"),
+			UE_LOG(LogFaerieInventoryContent, Verbose, TEXT("PreAddition: Cannot add Stack (Item: '%s' Copies: %i)"),
 				View0.Item.IsValid() ? *View0.Item->GetName() : TEXT("null"), View0.Copies);
 			return EEventExtensionResponse::Disallowed;
 		}
@@ -105,7 +106,7 @@ EEventExtensionResponse UInventoryCapacityExtension::AllowsAddition(const UFaeri
 			{
 				if (!CanContain(View))
 				{
-					UE_LOG(LogTemp, Verbose, TEXT("PreAddition: Cannot add Stack (Item: '%s' Copies: %i)"),
+					UE_LOG(LogFaerieInventoryContent, Verbose, TEXT("PreAddition: Cannot add Stack (Item: '%s' Copies: %i)"),
 						View.Item.IsValid() ? *View.Item->GetName() : TEXT("null"), View.Copies);
 					return EEventExtensionResponse::Disallowed;
 				}
@@ -117,7 +118,7 @@ EEventExtensionResponse UInventoryCapacityExtension::AllowsAddition(const UFaeri
 		{
 			if (!CanContain_Multi(Views))
 			{
-				UE_LOG(LogTemp, Verbose, TEXT("PreAddition: Cannot add Stacks in GroupTest"));
+				UE_LOG(LogFaerieInventoryContent, Verbose, TEXT("PreAddition: Cannot add Stacks in GroupTest"));
 				return EEventExtensionResponse::Disallowed;
 			}
 		}

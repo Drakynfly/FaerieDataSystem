@@ -3,6 +3,7 @@
 #include "SpatialTypes.h"
 
 #include "BitMatrix.h"
+#include "FaerieInventoryContentLog.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(SpatialTypes)
 
@@ -259,7 +260,7 @@ FFaerieGridShape FFaerieGridShape::Rotate(const ESpatialItemRotation Rotation, c
 		((NewSize.X - OriginalSize.X) / 2) * Multiplier
 	};
 
-	UE_LOG(LogTemp, Warning, TEXT("Current Diff: X: %d Y: %d"), OriginOffset.X, OriginOffset.Y);
+	UE_LOG(LogFaerieInventoryContent, Warning, TEXT("Current Diff: X: %d Y: %d"), OriginOffset.X, OriginOffset.Y);
 	FFaerieGridShape OutShape;
 	OutShape.Points = MatrixToPoints(Matrix, OriginOffset);
 	return OutShape;

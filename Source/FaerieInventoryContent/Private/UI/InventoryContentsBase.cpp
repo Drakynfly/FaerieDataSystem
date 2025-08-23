@@ -1,6 +1,7 @@
 // Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "UI/InventoryContentsBase.h"
+#include "FaerieInventoryContentLog.h"
 #include "UI/InventoryFillMeterBase.h"
 #include "UI/InventoryUIAction.h"
 
@@ -14,8 +15,6 @@
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventoryContentsBase)
 
 #define LOCTEXT_NAMESPACE "InventoryContentsBase"
-
-DEFINE_LOG_CATEGORY(LogInventoryContents)
 
 UInventoryContentsBase::UInventoryContentsBase(const FObjectInitializer& ObjectInitializer)
   : Super(ObjectInitializer)
@@ -191,12 +190,12 @@ void UInventoryContentsBase::AddToSortOrder(const FFaerieAddress Address, const 
 	{
 		if (!ActiveSortRule)
 		{
-			UE_LOG(LogInventoryContents, Verbose, TEXT("ActiveSortRule is invalid. Content will not be sorted!"));
+			UE_LOG(LogFaerieInventoryContent, Verbose, TEXT("ActiveSortRule is invalid. Content will not be sorted!"));
 			if (SortedAndFilteredAddresses.Find(Address) != INDEX_NONE)
 			{
 				if (WarnIfAlreadyExists)
 				{
-					UE_LOG(LogInventoryContents, Warning, TEXT("Cannot add sort key that already exists in the array"));
+					UE_LOG(LogFaerieInventoryContent, Warning, TEXT("Cannot add sort key that already exists in the array"));
 				}
 			}
 			else
@@ -216,7 +215,7 @@ void UInventoryContentsBase::AddToSortOrder(const FFaerieAddress Address, const 
 		{
 			if (WarnIfAlreadyExists)
 			{
-				UE_LOG(LogInventoryContents, Warning, TEXT("Cannot add sort key that already exists in the array"));
+				UE_LOG(LogFaerieInventoryContent, Warning, TEXT("Cannot add sort key that already exists in the array"));
 			}
 			return;
 		}
@@ -251,7 +250,7 @@ void UInventoryContentsBase::SetFilterByDelegate(const FBlueprintStorageFilter& 
 
 void UInventoryContentsBase::ResetFilter(const bool bResort)
 {
-	UE_LOG(LogInventoryContents, Log, TEXT("Resetting to the default filter rule"));
+	UE_LOG(LogFaerieInventoryContent, Log, TEXT("Resetting to the default filter rule"));
 	Query.Filter.BindUObject(this, &ThisClass::ExecFilter);
 	ActiveFilterRule = DefaultFilterRule;
 	if (bResort)
@@ -286,7 +285,7 @@ void UInventoryContentsBase::SetSortReverse(const bool Reverse, const bool bReso
 
 void UInventoryContentsBase::ResetSort(const bool bResort)
 {
-	UE_LOG(LogInventoryContents, Log, TEXT("Resetting to the default sort rule"));
+	UE_LOG(LogFaerieInventoryContent, Log, TEXT("Resetting to the default sort rule"));
 	Query.Sort.BindUObject(this, &ThisClass::ExecSort);
 	ActiveSortRule = DefaultSortRule;
 	if (bResort)

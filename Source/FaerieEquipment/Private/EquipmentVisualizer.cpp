@@ -2,6 +2,7 @@
 
 #include "EquipmentVisualizer.h"
 #include "FaerieContainerExtensionInterface.h"
+#include "FaerieEquipmentLog.h"
 #include "FaerieEquipmentSlot.h"
 #include "Components/FaerieItemMeshComponent.h"
 #include "Components/SceneComponent.h"
@@ -188,7 +189,7 @@ AActor* UEquipmentVisualizer::SpawnVisualActor(const FFaerieVisualKey Key, const
 
 	if (SpawnedActors.Contains(Key))
 	{
-		UE_LOG(LogTemp, Error, TEXT("Attempted to spawn a VisualActor using a key already in use!"))
+		UE_LOG(LogFaerieEquipment, Error, TEXT("Attempted to spawn a VisualActor using a key already in use!"))
 		return nullptr;
 	}
 
@@ -237,7 +238,7 @@ USceneComponent* UEquipmentVisualizer::SpawnVisualComponent(const FFaerieVisualK
 
 	if (SpawnedComponents.Contains(Key))
 	{
-		UE_LOG(LogTemp, Error, TEXT("Attempted to spawn a VisualComponent using a key already in use!"))
+		UE_LOG(LogFaerieEquipment, Error, TEXT("Attempted to spawn a VisualComponent using a key already in use!"))
 		return nullptr;
 	}
 

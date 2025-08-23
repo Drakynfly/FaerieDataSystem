@@ -1,6 +1,7 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "Extensions/InventoryItemLimitExtension.h"
+#include "FaerieInventoryContentLog.h"
 
 #include "FaerieItemStorage.h"
 
@@ -60,7 +61,7 @@ EEventExtensionResponse UInventoryItemLimitExtension::AllowsAddition(const UFaer
 
 	if (!CanContain(TestCount))
 	{
-		UE_LOG(LogTemp, VeryVerbose,
+		UE_LOG(LogFaerieInventoryContent, VeryVerbose,
 			TEXT("AllowsAddition: Cannot add Stack(s) (Total Count: %i)"),
 			TestCount);
 

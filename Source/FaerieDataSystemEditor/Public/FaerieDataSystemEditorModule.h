@@ -6,8 +6,6 @@
 #include "Modules/ModuleInterface.h"
 #include "Styling/SlateStyle.h"
 
-DECLARE_LOG_CATEGORY_EXTERN(LogFaerieDataSystemEditorModule, Display, All);
-
 class FAERIEDATASYSTEMEDITOR_API IFaerieDataSystemEditorModuleBase : public IModuleInterface
 {
 public:

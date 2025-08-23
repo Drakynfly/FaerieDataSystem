@@ -5,8 +5,6 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventoryStructsLibrary)
 
-DEFINE_LOG_CATEGORY(LogInventoryLibrary);
-
 bool UInventoryStructsLibrary::Equal_EntryEntry(const FInventoryEntry& A, const FInventoryEntry& B, const int32 Checks)
 {
 	return FInventoryEntry::IsEqualTo(A, B, static_cast<EEntryEquivalencyFlags>(Checks));

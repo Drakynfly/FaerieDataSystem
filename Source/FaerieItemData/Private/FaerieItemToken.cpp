@@ -2,6 +2,7 @@
 
 #include "FaerieItemToken.h"
 #include "FaerieItem.h"
+#include "FaerieItemDataLog.h"
 #include "UObject/CoreNet.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemToken)
@@ -29,7 +30,7 @@ void UFaerieItemToken::PostCDOCompiled(const FPostCDOCompiledContext& Context)
 			// @todo it would be nice to build out better tooling, so we can be less restrictive here.
 			if (!Fn->HasAllFunctionFlags(FUNC_BlueprintPure | FUNC_Const))
 			{
-				UE_LOG(LogTemp, Error, TEXT(
+				UE_LOG(LogFaerieItemData, Error, TEXT(
 					"Blueprint Token '%s' contains non-pure/const function '%s'"
 					LINE_TERMINATOR
 					"All token editing should be done in c++ by UFaerieItemToken::EditToken, or by calling \"Edit Token\" from Blueprint (BP_EditToken)."),

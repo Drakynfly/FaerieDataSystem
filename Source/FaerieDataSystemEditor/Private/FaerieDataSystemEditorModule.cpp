@@ -9,8 +9,6 @@
 #include "Styling/SlateStyleRegistry.h"
 #include "Customizations/SGameplayTagGraphPin_FIXED.h"
 
-DEFINE_LOG_CATEGORY(LogFaerieDataSystemEditorModule);
-
 #define LOCTEXT_NAMESPACE "FaerieDataSystemEditorModule"
 
 void IFaerieDataSystemEditorModuleBase::StartupModule()

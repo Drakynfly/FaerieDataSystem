@@ -13,8 +13,6 @@ struct FFaerieAssetInfo;
 class UFaerieEquipmentSlot;
 class UFaerieItem;
 
-DECLARE_LOG_CATEGORY_EXTERN(LogFaerieEquipmentSlot, Log, All)
-
 namespace Faerie::Equipment::Tags
 {
 	FAERIEEQUIPMENT_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, SlotSet)

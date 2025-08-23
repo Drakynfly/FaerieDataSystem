@@ -2,7 +2,7 @@
 
 #include "Actions/FaerieInventoryClient.h"
 #include "FaerieItemStorage.h"
-#include "Logging.h"
+#include "FaerieInventoryLog.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieInventoryClient)
 

@@ -3,14 +3,13 @@
 #include "FaerieItem.h"
 #include "FaerieItemToken.h"
 #include "AssetLoadFlagFixer.h"
+#include "FaerieItemDataLog.h"
 #include "Algo/Copy.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "UObject/ObjectSaveContext.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItem)
-
-DEFINE_LOG_CATEGORY(LogFaerieItem)
 
 namespace Faerie::Tags
 {
@@ -569,7 +568,7 @@ bool UFaerieItem::AddToken(UFaerieItemToken* Token)
 
 	if (!ensure(WriteLock == 0))
 	{
-		UE_LOG(LogFaerieItem, Error, TEXT("Cannot AddToken while iterating in ForEachToken. Please correct code."))
+		UE_LOG(LogFaerieItemData, Error, TEXT("Cannot AddToken while iterating in ForEachToken. Please correct code."))
 		return false;
 	}
 
@@ -609,7 +608,7 @@ bool UFaerieItem::RemoveToken(UFaerieItemToken* Token)
 
 	if (!ensure(WriteLock == 0))
 	{
-		UE_LOG(LogFaerieItem, Error, TEXT("Cannot AddToken while iterating in ForEachToken. Please correct code."))
+		UE_LOG(LogFaerieItemData, Error, TEXT("Cannot AddToken while iterating in ForEachToken. Please correct code."))
 		return false;
 	}
 
@@ -647,7 +646,7 @@ int32 UFaerieItem::RemoveTokensByClass(const TSubclassOf<UFaerieItemToken> Class
 
 	if (!ensure(WriteLock == 0))
 	{
-		UE_LOG(LogFaerieItem, Error, TEXT("Cannot AddToken while iterating in ForEachToken. Please correct code."))
+		UE_LOG(LogFaerieItemData, Error, TEXT("Cannot AddToken while iterating in ForEachToken. Please correct code."))
 		return false;
 	}
 

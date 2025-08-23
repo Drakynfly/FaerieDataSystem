@@ -13,8 +13,6 @@ class UItemContainerExtensionGroup;
 class UItemContainerExtensionBase;
 class UFaerieItemStorage;
 
-DECLARE_LOG_CATEGORY_EXTERN(LogFaerieInventoryComponent, Log, All);
-
 /**
  *	This is the core of the inventory system. The actual component added to actors to allow them to contain item data.
  *	It supports extension objects which customize and add to its functionality, eg: adding capacity limits, or crafting features.

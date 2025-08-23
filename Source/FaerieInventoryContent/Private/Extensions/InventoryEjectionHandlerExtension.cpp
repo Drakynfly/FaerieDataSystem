@@ -1,6 +1,7 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "Extensions/InventoryEjectionHandlerExtension.h"
+#include "FaerieInventoryContentLog.h"
 #include "FaerieItemDataStackLiteral.h"
 #include "FaerieItemStorage.h"
 #include "ItemContainerEvent.h"
@@ -83,7 +84,7 @@ void UInventoryEjectionHandlerExtension::HandleNextInQueue()
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("InventoryEjectionHandlerExtension encountered invalid ClassToSpawn, cannot eject Item!"))
+		UE_LOG(LogFaerieInventoryContent, Error, TEXT("InventoryEjectionHandlerExtension encountered invalid ClassToSpawn, cannot eject Item!"))
 	}
 }
 
@@ -114,7 +115,7 @@ void UInventoryEjectionHandlerExtension::SpawnVisualizer(const TSubclassOf<AItem
 
 	if (!IsValid(OwningActor))
 	{
-		UE_LOG(LogTemp, Error, TEXT("InventoryEjectionHandlerExtension cannot find outer AActor. Ejection cancelled!"))
+		UE_LOG(LogFaerieInventoryContent, Error, TEXT("InventoryEjectionHandlerExtension cannot find outer AActor. Ejection cancelled!"))
 		return;
 	}
 

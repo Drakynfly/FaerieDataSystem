@@ -1,6 +1,7 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieEquipmentManager.h"
+#include "FaerieEquipmentLog.h"
 #include "FaerieEquipmentSlot.h"
 #include "FaerieItemStorage.h"
 #include "ItemContainerExtensionBase.h"
@@ -10,8 +11,6 @@
 #include "Tokens/FaerieItemStorageToken.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieEquipmentManager)
-
-DEFINE_LOG_CATEGORY(LogEquipmentManager)
 
 UFaerieEquipmentManager::UFaerieEquipmentManager()
 {
@@ -117,7 +116,7 @@ void UFaerieEquipmentManager::AddSubobjectsForReplication()
 
 	if (!Owner->IsUsingRegisteredSubObjectList())
 	{
-		UE_LOG(LogTemp, Warning,
+		UE_LOG(LogFaerieEquipment, Warning,
 			TEXT("Owner of Equipment Manager '%s' does not replicate SubObjectList. Component will not be replicated correctly!"), *Owner->GetName())
 	}
 	else
@@ -474,12 +473,12 @@ void UFaerieEquipmentManager::PrintSlotDebugInfo() const
 	{
 		if (Slot->GetExtensionGroup())
 		{
-			UE_LOG(LogTemp, Log, TEXT("*** Printing Debug Data for: '%s'"), *Slot->Config.SlotID.ToString())
+			UE_LOG(LogFaerieEquipment, Log, TEXT("*** Printing Debug Data for: '%s'"), *Slot->Config.SlotID.ToString())
 			Slot->GetExtensionGroup()->PrintDebugData();
 		}
 		else
 		{
-			UE_LOG(LogTemp, Log, TEXT("Slot '%s' has no extension group."), *Slot->Config.SlotID.ToString())
+			UE_LOG(LogFaerieEquipment, Log, TEXT("Slot '%s' has no extension group."), *Slot->Config.SlotID.ToString())
 		}
 	}
 #endif

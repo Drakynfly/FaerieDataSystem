@@ -19,8 +19,6 @@ class UFaerieItemContainerBase;
 class UItemContainerExtensionBase;
 class UItemContainerExtensionGroup;
 
-DECLARE_LOG_CATEGORY_EXTERN(LogEquipmentManager, Log, All)
-
 USTRUCT()
 struct FFaerieEquipmentDefaultSlot
 {

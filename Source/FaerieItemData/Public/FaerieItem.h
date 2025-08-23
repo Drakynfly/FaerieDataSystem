@@ -13,8 +13,6 @@
 
 #include "FaerieItem.generated.h"
 
-DECLARE_LOG_CATEGORY_EXTERN(LogFaerieItem, Log, All);
-
 class UFaerieItem;
 class UFaerieItemToken;
 

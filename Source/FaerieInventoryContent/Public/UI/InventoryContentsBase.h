@@ -11,8 +11,6 @@ class UFaerieInventoryClient;
 class UFaerieItemDataComparator;
 class UFaerieItemDataFilter;
 
-DECLARE_LOG_CATEGORY_EXTERN(LogInventoryContents, Log, All)
-
 /**
  *
  */

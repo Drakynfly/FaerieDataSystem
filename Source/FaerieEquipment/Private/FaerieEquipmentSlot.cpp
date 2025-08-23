@@ -4,6 +4,7 @@
 
 #include "FaerieEquipmentSlotDescription.h"
 #include "FaerieAssetInfo.h"
+#include "FaerieEquipmentLog.h"
 #include "FaerieItem.h"
 #include "FaerieItemStorageStatics.h"
 #include "FaerieItemTemplate.h"
@@ -17,8 +18,6 @@
 #include "Providers/FlakesBinarySerializer.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieEquipmentSlot)
-
-DEFINE_LOG_CATEGORY(LogFaerieEquipmentSlot)
 
 namespace Faerie::Equipment::Tags
 {
@@ -236,7 +235,7 @@ void UFaerieEquipmentSlot::LoadSlotData(const FFaerieEquipmentSlotSaveData& Slot
 		else
 		{
 			// Reset key if stack is invalid.
-			UE_LOG(LogFaerieEquipmentSlot, Error, TEXT("Loading content for slot '%s' failed. Slot has been emptied!"), *Config.SlotID.ToString())
+			UE_LOG(LogFaerieEquipment, Error, TEXT("Loading content for slot '%s' failed. Slot has been emptied!"), *Config.SlotID.ToString())
 			MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, StoredKey, this);
 			StoredKey = FEntryKey();
 		}
@@ -422,7 +421,7 @@ bool UFaerieEquipmentSlot::SetItemInSlot(const FFaerieItemStack Stack)
 {
 	if (!CanSetInSlot(Stack))
 	{
-		UE_LOG(LogFaerieEquipmentSlot, Warning,
+		UE_LOG(LogFaerieEquipment, Warning,
 			TEXT("Invalid request to set into slot '%s'!"), *GetSlotInfo().ObjectName.ToString())
 		return false;
 	}
@@ -436,14 +435,14 @@ FFaerieItemStack UFaerieEquipmentSlot::TakeItemFromSlot(int32 Copies)
 {
 	if (!CanTakeFromSlot(Copies))
 	{
-		UE_LOG(LogFaerieEquipmentSlot, Warning,
+		UE_LOG(LogFaerieEquipment, Warning,
 			TEXT("Invalid request to take item from slot '%s'!"), *GetSlotInfo().ObjectName.ToString())
 		return FFaerieItemStack();
 	}
 
 	if (Copies > ItemStack.Copies)
 	{
-		UE_LOG(LogFaerieEquipmentSlot, Error,
+		UE_LOG(LogFaerieEquipment, Error,
 			TEXT("Cannot remove more copies from a slot than what it contains. Slot: '%s', Requested Copies: '%i', Contained: '%i' !"),
 			*GetSlotInfo().ObjectName.ToString(), Copies, ItemStack.Copies)
 		return FFaerieItemStack();

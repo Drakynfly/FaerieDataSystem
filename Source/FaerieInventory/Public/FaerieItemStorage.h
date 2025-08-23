@@ -11,7 +11,6 @@
 #include "FaerieItemStorage.generated.h"
 
 struct FFaerieExtensionAllowsAdditionArgs;
-DECLARE_LOG_CATEGORY_EXTERN(LogFaerieItemStorage, Log, All);
 
 UENUM(BlueprintType)
 enum class EFaerieAddressEventType : uint8

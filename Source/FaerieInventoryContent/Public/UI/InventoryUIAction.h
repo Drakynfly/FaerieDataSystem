@@ -5,8 +5,6 @@
 #include "InventoryDataStructs.h"
 #include "InventoryUIAction.generated.h"
 
-DECLARE_LOG_CATEGORY_EXTERN(LogInventoryUIAction, Log, All);
-
 class UTexture2D;
 class UFaerieInventoryClient;
 

@@ -1,6 +1,7 @@
 // Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "Extensions/InventorySpatialGridExtension.h"
+#include "FaerieInventoryContentLog.h"
 
 #include "FaerieItemContainerBase.h"
 #include "FaerieItemStorage.h"
@@ -109,7 +110,7 @@ namespace Faerie
 		// Early exit if shape is obviously too large
 		if (Bounds.Max.X > GridSize.X || Bounds.Max.Y > GridSize.Y)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Item Too Big"));
+			UE_LOG(LogFaerieInventoryContent, Warning, TEXT("Item Too Big"));
 			return false;
 		}
 
@@ -120,14 +121,14 @@ namespace Faerie
 			if (Point.X < 0 || Point.X >= GridSize.X ||
 				Point.Y < 0 || Point.Y >= GridSize.Y)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("Item Falls Outside Grid"));
+				UE_LOG(LogFaerieInventoryContent, Warning, TEXT("Item Falls Outside Grid"));
 				return false;
 			}
 
 			// If this index is not in the excluded list, check if it's occupied
 			if (!ExclusionSet.Contains(Point) && Grid.GetCell(Point))
 			{
-				UE_LOG(LogTemp, Warning, TEXT("Cell Is Occupied"));
+				UE_LOG(LogFaerieInventoryContent, Warning, TEXT("Cell Is Occupied"));
 				return false;
 			}
 		}

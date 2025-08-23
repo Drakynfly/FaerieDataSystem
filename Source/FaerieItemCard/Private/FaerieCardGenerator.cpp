@@ -3,7 +3,7 @@
 #include "FaerieCardGenerator.h"
 #include "CardTokens/FaerieItemCardToken.h"
 #include "FaerieItem.h"
-#include "FaerieItemCardModule.h"
+#include "FaerieItemCardLog.h"
 #include "Engine/AssetManager.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieCardGenerator)

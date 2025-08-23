@@ -1,6 +1,7 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieItemStorageStatics.h"
+#include "FaerieInventoryLog.h"
 #include "FaerieInventorySettings.h"
 #include "FaerieItem.h"
 #include "FaerieItemContainerBase.h"
@@ -15,7 +16,7 @@ namespace Faerie
 	{
 		if (!ensure(IsValid(Item)))
 		{
-			UE_LOG(LogTemp, Error, TEXT("ValidateItemData: Item pointer is invalid."))
+			UE_LOG(LogFaerieInventory, Error, TEXT("ValidateItemData: Item pointer is invalid."))
 			return false;
 		}
 
@@ -33,7 +34,7 @@ namespace Faerie
 
 			if (!IsValid(Token))
 			{
-				UE_LOG(LogTemp, Error, TEXT("ValidateItemData: Token[%i] is invalid."), i)
+				UE_LOG(LogFaerieInventory, Error, TEXT("ValidateItemData: Token[%i] is invalid."), i)
 				HitError |= true;
 			}
 
@@ -50,7 +51,7 @@ namespace Faerie
 #if WITH_EDITOR
 						if (RecursiveValidationTracker.Contains(SubItem))
 						{
-							UE_LOG(LogTemp, Error, TEXT("ValidateItemData: Item '%s' is somehow contained in itself :/"), *SubItem->GetName())
+							UE_LOG(LogFaerieInventory, Error, TEXT("ValidateItemData: Item '%s' is somehow contained in itself :/"), *SubItem->GetName())
 							HitError |= true;
 							return;
 						}
@@ -152,7 +153,7 @@ namespace Faerie
 				checkfSlow(Item->GetOuter() == GetTransientPackage(), TEXT("ReleaseOwnership was not called correctly on this item, before attempting to give ownership here!"));
 			}
 
-			//UE_LOG(LogTemp, Verbose, TEXT("Assigning Ownership of %s to %s"), *Item->GetFullName(), *Owner->GetName())
+			//UE_LOG(LogFaerieInventory, Verbose, TEXT("Assigning Ownership of %s to %s"), *Item->GetFullName(), *Owner->GetName())
 
 			// Children do not get renamed. They already belong to this outer chain if we are renamed.
 			// We also don't bind to the mutation hook if we are a subitem.

@@ -1,14 +1,13 @@
 // Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieInventoryComponent.h"
+#include "FaerieInventoryLog.h"
 #include "FaerieItemStorage.h"
 #include "ItemContainerExtensionBase.h"
 #include "GameFramework/Actor.h"
 #include "Net/UnrealNetwork.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieInventoryComponent)
-
-DEFINE_LOG_CATEGORY(LogFaerieInventoryComponent);
 
 UFaerieInventoryComponent::UFaerieInventoryComponent()
 {
@@ -55,7 +54,7 @@ void UFaerieInventoryComponent::ReadyForReplication()
 
 	if (!Owner->IsUsingRegisteredSubObjectList())
 	{
-		UE_LOG(LogFaerieInventoryComponent, Warning,
+		UE_LOG(LogFaerieInventory, Warning,
 			TEXT("Owner of Inventory Component '%s' does not replicate SubObjectList. Inventory will not be replicated correctly!"), *Owner->GetName())
 	}
 	else
@@ -107,31 +106,31 @@ void UFaerieInventoryComponent::HandleAddressEvent(UFaerieItemStorage* Storage, 
 	case EFaerieAddressEventType::PostAdd:
 		if (GetNetMode() == NM_Client)
 		{
-			UE_LOG(LogFaerieInventoryComponent, Log, TEXT("Client Received PostContentAdded"))
+			UE_LOG(LogFaerieInventory, Log, TEXT("Client Received PostContentAdded"))
 		}
 		else
 		{
-			UE_LOG(LogFaerieInventoryComponent, Log, TEXT("Server Received PostContentAdded"))
+			UE_LOG(LogFaerieInventory, Log, TEXT("Server Received PostContentAdded"))
 		}
 		break;
 	case EFaerieAddressEventType::PreRemove:
 		if (GetNetMode() == NM_Client)
 		{
-			UE_LOG(LogFaerieInventoryComponent, Log, TEXT("Client Received PreContentRemoved"))
+			UE_LOG(LogFaerieInventory, Log, TEXT("Client Received PreContentRemoved"))
 		}
 		else
 		{
-			UE_LOG(LogFaerieInventoryComponent, Log, TEXT("Server Received PreContentRemoved"))
+			UE_LOG(LogFaerieInventory, Log, TEXT("Server Received PreContentRemoved"))
 		}
 		break;
 	case EFaerieAddressEventType::Edit:
 		if (GetNetMode() == NM_Client)
 		{
-			UE_LOG(LogFaerieInventoryComponent, Log, TEXT("Client Received PostContentChanged"))
+			UE_LOG(LogFaerieInventory, Log, TEXT("Client Received PostContentChanged"))
 		}
 		else
 		{
-			UE_LOG(LogFaerieInventoryComponent, Log, TEXT("Server Received PostContentChanged"))
+			UE_LOG(LogFaerieInventory, Log, TEXT("Server Received PostContentChanged"))
 		}
 		break;
 	}

@@ -6,8 +6,6 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "InventoryStructsLibrary.generated.h"
 
-DECLARE_LOG_CATEGORY_EXTERN(LogInventoryLibrary, Log, All);
-
 /**
  * Library for exposing struct and inventory functions to blueprint.
  */
