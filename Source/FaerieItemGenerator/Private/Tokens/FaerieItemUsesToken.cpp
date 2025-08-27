@@ -1,10 +1,47 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "Tokens/FaerieItemUsesToken.h"
+#include "FaerieItem.h"
+#include "FaerieItemGenerationLog.h"
+#include "FaerieItemOwnerInterface.h"
+#include "FaerieItemSource.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemUsesToken)
+
+class IFaerieItemOwnerInterface;
+
+void FFaerieItemLastUseLogic_Destroy::OnLastUse(UFaerieItem* Item) const
+{
+	if (IFaerieItemOwnerInterface* Container = Item->GetImplementingOuter<IFaerieItemOwnerInterface>())
+	{
+		// Release and cast into the aether.
+		(void)Container->Release({Item, 1});
+	}
+}
+
+void FFaerieItemLastUseLogic_Replace::OnLastUse(UFaerieItem* Item) const
+{
+	if (!IsValid(BaseItemSource.GetObject())) return;
+
+	if (IFaerieItemOwnerInterface* Container = Item->GetImplementingOuter<IFaerieItemOwnerInterface>())
+	{
+		FFaerieItemInstancingContext Context;
+		if (const UFaerieItem* NewItem = BaseItemSource->CreateItemInstance(&Context))
+		{
+			// Release and cast into the aether.
+			(void)Container->Release({Item, 1});
+
+			// Possess new item
+			(void)Container->Possess({ NewItem, 1 });
+		}
+		else
+		{
+			UE_LOG(LogItemGeneration, Error, TEXT("Failed to create item instance for FFaerieItemLastUseLogic_Replace on '%s'"), *Item->GetName())
+		}
+	}
+}
 
 void UFaerieItemUsesToken::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
@@ -15,7 +52,7 @@ void UFaerieItemUsesToken::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, UsesRemaining, SharedParams);
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, MaxUses, SharedParams);
 
-	DOREPLIFETIME_CONDITION(ThisClass, DestroyItemOnLastUse, COND_InitialOnly);
+	DOREPLIFETIME_CONDITION(ThisClass, LastUseLogic, COND_InitialOnly);
 }
 
 bool UFaerieItemUsesToken::HasUses(const int32 TestUses) const
@@ -52,6 +89,11 @@ bool UFaerieItemUsesToken::RemoveUses(const int32 Amount)
 		UsesRemaining = FMath::Max(UsesRemaining - Amount, 0);
 		NotifyOuterOfChange();
 		OnUsesChanged.Broadcast();
+
+		if (UsesRemaining == 0 && LastUseLogic.IsValid())
+		{
+			LastUseLogic.Get().OnLastUse(GetOuterItem()->MutateCast());
+		}
 
 		return true;
 	}

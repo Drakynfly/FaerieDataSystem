@@ -28,18 +28,14 @@ bool UFaerieItemConsumableBase::TryConsume(const UFaerieItem* Item, AActor* Cons
 		UFaerieItemUsesToken* Uses = Mutable->GetEditableToken<UFaerieItemUsesToken>();
 		if (IsValid(Uses))
 		{
-			// If we have a usage left, remove 1.
-			if (Uses->HasUses(1))
-			{
-				Uses->RemoveUses(1);
-			}
-			// If we don't, we cannot run the consume logic
-			else
+			// If we don't have any uses, we cannot run the consume logic
+			if (!Uses->HasUses(1))
 			{
 				return false;
 			}
 		}
 
+		// Run consumable logic
 		if (ThisClass* MutableThis = MutateCast<ThisClass>())
 		{
 			MutableThis->OnConsumed_Mutable(Mutable, Consumer);
@@ -51,15 +47,8 @@ bool UFaerieItemConsumableBase::TryConsume(const UFaerieItem* Item, AActor* Cons
 
 		if (IsValid(Uses))
 		{
-			// Destroy the item if we ran out of uses.
-			if (Uses->GetUsesRemaining() == 0 && Uses->GetDestroyItemOnLastUse())
-			{
-				IFaerieItemOwnerInterface* Container = GetImplementingOuter<IFaerieItemOwnerInterface>();
-				if (Container)
-				{
-					(void)Container->Release({Item, 1});
-				}
-			}
+			// Remove a usage.
+			Uses->RemoveUses(1);
 		}
 
 		return true;

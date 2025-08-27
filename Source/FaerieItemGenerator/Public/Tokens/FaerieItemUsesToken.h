@@ -3,9 +3,43 @@
 #pragma once
 
 #include "FaerieItemToken.h"
+#include "StructUtils/InstancedStruct.h"
 #include "FaerieItemUsesToken.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FFaerieRemainedUsesChanged);
+
+USTRUCT()
+struct FFaerieItemLastUseLogicBase
+{
+	GENERATED_BODY()
+
+	virtual ~FFaerieItemLastUseLogicBase() = default;
+  	virtual void OnLastUse(UFaerieItem* Item) const PURE_VIRTUAL(FFaerieItemLastUseLogicBase::OnLastUse, );
+};
+
+// Destroys the item when uses run out.
+USTRUCT()
+struct FFaerieItemLastUseLogic_Destroy : public FFaerieItemLastUseLogicBase
+{
+	GENERATED_BODY()
+
+	virtual void OnLastUse(UFaerieItem* Item) const override;
+};
+
+class IFaerieItemSource;
+
+// Swaps an item for a new instance on last use.
+USTRUCT()
+struct FFaerieItemLastUseLogic_Replace : public FFaerieItemLastUseLogicBase
+{
+	GENERATED_BODY()
+
+	virtual void OnLastUse(UFaerieItem* Item) const override;
+
+protected:
+	UPROPERTY(EditAnywhere, Category = "ItemPattern")
+	TScriptInterface<IFaerieItemSource> BaseItemSource;
+};
 
 /**
  *
@@ -22,7 +56,6 @@ public:
 
 	int32 GetMaxUses() const { return MaxUses; }
 	int32 GetUsesRemaining() const { return UsesRemaining; }
-	bool GetDestroyItemOnLastUse() const { return DestroyItemOnLastUse; }
 
 	UFUNCTION(BlueprintCallable, Category = "FaerieToken|Uses")
 	bool HasUses(int32 TestUses) const;
@@ -66,9 +99,9 @@ protected:
 	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, ReplicatedUsing = OnRep_UsesRemaining, Category = "ItemUses", meta = (ExposeOnSpawn))
 	int32 UsesRemaining;
 
-	// Should this item be destroyed when its uses run out? Replicates once on token creation.
-	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Replicated, Category = "ItemUses", meta = (ExposeOnSpawn))
-	bool DestroyItemOnLastUse = true;
+	// Logic struct to run when the last use is removed. Replicates once on token creation.
+	UPROPERTY(EditInstanceOnly, Replicated, Category = "ItemUses", meta = (ExcludeBaseStruct))
+	TInstancedStruct<FFaerieItemLastUseLogicBase> LastUseLogic;
 
 	UPROPERTY(BlueprintAssignable, Category = "Event")
 	FFaerieRemainedUsesChanged OnUsesChanged;
