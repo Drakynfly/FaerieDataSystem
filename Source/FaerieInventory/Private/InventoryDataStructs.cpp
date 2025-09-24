@@ -15,26 +15,20 @@ LLM_DEFINE_TAG(ItemStorage, NAME_None, NAME_None, GET_STATFNAME(STAT_StorageLLM)
 
 FEntryKey FEntryKey::InvalidKey;
 
-FInventoryKey::FInventoryKey(const FFaerieAddress& Address)
+FInventoryEntry::FInventoryEntry(const UFaerieItem* InItem)
+	: ItemObject(const_cast<UFaerieItem*>(InItem))
 {
-	constexpr int64 Mask = 0x00000000FFFFFFFF;
-	StackKey = FStackKey(Address.Address & Mask);
-	EntryKey = FEntryKey(Address.Address >> 32);
+	UpdateCachedStackLimit();
 }
 
-FFaerieAddress FInventoryKey::ToAddress() const
+int32 FInventoryEntry::GetStackIndex(const FStackKey InKey) const
 {
-	return FFaerieAddress((static_cast<int64>(EntryKey.Value()) << 32) | static_cast<int64>(StackKey.Value()));
+	return Algo::BinarySearchBy(Stacks, InKey, &FKeyedStack::Key);
 }
 
-int32 FInventoryEntry::GetStackIndex(const FStackKey Key) const
+FKeyedStack* FInventoryEntry::GetStackPtr(const FStackKey InKey)
 {
-	return Algo::BinarySearchBy(Stacks, Key, &FKeyedStack::Key);
-}
-
-FKeyedStack* FInventoryEntry::GetStackPtr(const FStackKey Key)
-{
-	if (const int32 StackIndex = GetStackIndex(Key);
+	if (const int32 StackIndex = GetStackIndex(InKey);
 		StackIndex != INDEX_NONE)
 	{
 		return &Stacks[StackIndex];
@@ -42,9 +36,9 @@ FKeyedStack* FInventoryEntry::GetStackPtr(const FStackKey Key)
 	return nullptr;
 }
 
-const FKeyedStack* FInventoryEntry::GetStackPtr(const FStackKey Key) const
+const FKeyedStack* FInventoryEntry::GetStackPtr(const FStackKey InKey) const
 {
-	if (const int32 StackIndex = GetStackIndex(Key);
+	if (const int32 StackIndex = GetStackIndex(InKey);
 		StackIndex != INDEX_NONE)
 	{
 		return &Stacks[StackIndex];
@@ -52,24 +46,41 @@ const FKeyedStack* FInventoryEntry::GetStackPtr(const FStackKey Key) const
 	return nullptr;
 }
 
-bool FInventoryEntry::Contains(const FStackKey Key) const
+void FInventoryEntry::UpdateCachedStackLimit()
 {
-	return GetStackIndex(Key) != INDEX_NONE;
+	Limit = ItemObject ? UFaerieStackLimiterToken::GetItemStackLimit(ItemObject) : 0;
 }
 
-int32 FInventoryEntry::GetStack(const FStackKey Key) const
+bool FInventoryEntry::Contains(const FStackKey InKey) const
 {
-	if (auto&& KeyedStack = GetStackPtr(Key))
+	return GetStackIndex(InKey) != INDEX_NONE;
+}
+
+int32 FInventoryEntry::GetStack(const FStackKey InKey) const
+{
+	if (auto&& KeyedStack = GetStackPtr(InKey))
 	{
 		return KeyedStack->Stack;
 	}
 	return 0;
 }
 
+FStackKey FInventoryEntry::GetStackAt(const int32 Index) const
+{
+	return Stacks[Index].Key;
+}
+
 TArray<FStackKey> FInventoryEntry::CopyKeys() const
 {
 	TArray<FStackKey> Out;
 	Algo::Transform(Stacks, Out, &FKeyedStack::Key);
+	return Out;
+}
+
+TArray<int32> FInventoryEntry::CopyStacks() const
+{
+	TArray<int32> Out;
+	Algo::Transform(Stacks, Out, &FKeyedStack::Stack);
 	return Out;
 }
 
@@ -85,11 +96,11 @@ int32 FInventoryEntry::StackSum() const
 	return Out;
 }
 
-void FInventoryEntry::SetStack(const FStackKey Key, const int32 Stack)
+void FInventoryEntry::SetStack(const FStackKey InKey, const int32 Stack)
 {
 	if (Stack <= 0)
 	{
-		if (const int32 StackIndex = GetStackIndex(Key);
+		if (const int32 StackIndex = GetStackIndex(InKey);
 			StackIndex != INDEX_NONE)
 		{
 			Stacks.RemoveAt(StackIndex);
@@ -97,13 +108,13 @@ void FInventoryEntry::SetStack(const FStackKey Key, const int32 Stack)
 		return;
 	}
 
-	if (auto&& KeyedStack = GetStackPtr(Key))
+	if (auto&& KeyedStack = GetStackPtr(InKey))
 	{
 		KeyedStack->Stack = Stack;
 	}
 	else
 	{
-		Stacks.Add({Key, Stack});
+		Stacks.Add({InKey, Stack});
 	}
 }
 
@@ -226,9 +237,9 @@ int32 FInventoryEntry::MoveStack(const FStackKey From, const FStackKey To, const
 	return FromStack.Stack;
 }
 
-FStackKey FInventoryEntry::SplitStack(const FStackKey Key, const int32 Amount)
+FStackKey FInventoryEntry::SplitStack(const FStackKey InKey, const int32 Amount)
 {
-	GetStackPtr(Key)->Stack -= Amount;
+	GetStackPtr(InKey)->Stack -= Amount;
 	const FStackKey NewKey = KeyGen.NextKey();
 	Stacks.Emplace(FKeyedStack(NewKey, Amount));
 	return NewKey;
@@ -277,6 +288,26 @@ void FInventoryEntry::PostSerialize(const FArchive& Ar)
 	}
 }
 
+void FInventoryEntry::PostScriptConstruct()
+{
+	UpdateCachedStackLimit();
+}
+
+void FInventoryEntry::PreReplicatedRemove(const FInventoryContent& InArraySerializer)
+{
+	InArraySerializer.PreEntryReplicatedRemove(*this);
+}
+
+void FInventoryEntry::PostReplicatedAdd(const FInventoryContent& InArraySerializer)
+{
+	InArraySerializer.PostEntryReplicatedAdd(*this);
+}
+
+void FInventoryEntry::PostReplicatedChange(const FInventoryContent& InArraySerializer)
+{
+	InArraySerializer.PostEntryReplicatedChange(*this, FInventoryContent::Client_SomethingReplicated);
+}
+
 bool FInventoryEntry::IsEqualTo(const FInventoryEntry& A, const FInventoryEntry& B, const EEntryEquivalencyFlags CheckFlags)
 {
 #define TEST_FLAG(Flag, Test)\
@@ -291,24 +322,10 @@ bool FInventoryEntry::IsEqualTo(const FInventoryEntry& A, const FInventoryEntry&
 	return true;
 }
 
-void FKeyedInventoryEntry::PreReplicatedRemove(const FInventoryContent& InArraySerializer)
-{
-	InArraySerializer.PreEntryReplicatedRemove(*this);
-}
 
-void FKeyedInventoryEntry::PostReplicatedAdd(const FInventoryContent& InArraySerializer)
+void FInventoryContent::Append(const FInventoryEntry& Entry)
 {
-	InArraySerializer.PostEntryReplicatedAdd(*this);
-}
-
-void FKeyedInventoryEntry::PostReplicatedChange(const FInventoryContent& InArraySerializer)
-{
-	InArraySerializer.PostEntryReplicatedChange(*this);
-}
-
-FKeyedInventoryEntry& FInventoryContent::Append(const FEntryKey Key, const FInventoryEntry& Entry)
-{
-	check(Key.IsValid());
+	check(Entry.Key.IsValid());
 	check(WriteLock == 0);
 
 	LLM_SCOPE_BYTAG(ItemStorage);
@@ -316,37 +333,35 @@ FKeyedInventoryEntry& FInventoryContent::Append(const FEntryKey Key, const FInve
 	// Quick validation that Key *should* be stuck at the end of the array.
 	if (!Entries.IsEmpty())
 	{
-		checkf(Entries.Last().Key < Key,
+		checkf(Entries.Last().Key < Entry.Key,
 			TEXT("If this is hit, then Key is not sequential and Append was not safe to use. Either use a validated Key, or use FInventoryContent::Insert"));
 	}
 
-	FKeyedInventoryEntry& NewItemRef = Entries.Emplace_GetRef(Key, Entry);
+	FInventoryEntry& NewItemRef = Entries.Emplace_GetRef(Entry);
 	MarkItemDirty(NewItemRef);
 	PostEntryReplicatedAdd(NewItemRef);
-	return NewItemRef;
 }
 
-FKeyedInventoryEntry& FInventoryContent::AppendUnsafe(FEntryKey Key, const FInventoryEntry& Entry)
+void FInventoryContent::AppendUnsafe(const FInventoryEntry& Entry)
 {
-	check(Key.IsValid());
+	check(Entry.Key.IsValid());
 	check(WriteLock == 0);
 
 	LLM_SCOPE_BYTAG(ItemStorage);
 
-	FKeyedInventoryEntry& NewItemRef = Entries.Emplace_GetRef(Key, Entry);
+	FInventoryEntry& NewItemRef = Entries.Emplace_GetRef(Entry);
 	MarkItemDirty(NewItemRef);
 	PostEntryReplicatedAdd(NewItemRef);
-	return NewItemRef;
 }
 
-void FInventoryContent::Insert(const FEntryKey Key, const FInventoryEntry& Entry)
+void FInventoryContent::Insert(const FInventoryEntry& Entry)
 {
-	check(Key.IsValid());
+	check(Entry.Key.IsValid());
 	check(WriteLock == 0);
 
 	LLM_SCOPE_BYTAG(ItemStorage);
 
-	FKeyedInventoryEntry& NewEntry = BSOA::Insert({Key, Entry});
+	FInventoryEntry& NewEntry = BSOA::Insert(Entry);
 
 	PostEntryReplicatedAdd(NewEntry);
 	MarkItemDirty(NewEntry);
@@ -354,10 +369,11 @@ void FInventoryContent::Insert(const FEntryKey Key, const FInventoryEntry& Entry
 
 void FInventoryContent::Remove(const FEntryKey Key)
 {
+	check(Key.IsValid());
 	check(WriteLock == 0);
 
 	if (BSOA::Remove(Key,
-		[this](const FKeyedInventoryEntry& Entry)
+		[this](const FInventoryEntry& Entry)
 		{
 			// Notify owning server of this removal.
 			PreEntryReplicatedRemove(Entry);
@@ -366,6 +382,16 @@ void FInventoryContent::Remove(const FEntryKey Key)
 		// Notify clients of this removal.
 		MarkArrayDirty();
 	}
+}
+
+void FInventoryContent::LockWriteAccess() const
+{
+	WriteLock++;
+}
+
+void FInventoryContent::UnlockWriteAccess() const
+{
+	WriteLock--;
 }
 
 FInventoryContent::FScopedItemHandle::FScopedItemHandle(const FEntryKey Key, FInventoryContent& Source)
@@ -383,10 +409,10 @@ FInventoryContent::FScopedItemHandle::~FScopedItemHandle()
 	Source.MarkItemDirty(Handle);
 
 	// Broadcast change on server
-	Source.PostEntryReplicatedChange(Handle);
+	Source.PostEntryReplicatedChange(Handle, Server_ItemHandleClosed);
 }
 
-void FInventoryContent::PreEntryReplicatedRemove(const FKeyedInventoryEntry& Entry) const
+void FInventoryContent::PreEntryReplicatedRemove(const FInventoryEntry& Entry) const
 {
 	if (IsValid(ChangeListener))
 	{
@@ -394,7 +420,7 @@ void FInventoryContent::PreEntryReplicatedRemove(const FKeyedInventoryEntry& Ent
 	}
 }
 
-void FInventoryContent::PostEntryReplicatedAdd(const FKeyedInventoryEntry& Entry) const
+void FInventoryContent::PostEntryReplicatedAdd(const FInventoryEntry& Entry) const
 {
 	if (IsValid(ChangeListener))
 	{
@@ -402,10 +428,22 @@ void FInventoryContent::PostEntryReplicatedAdd(const FKeyedInventoryEntry& Entry
 	}
 }
 
-void FInventoryContent::PostEntryReplicatedChange(const FKeyedInventoryEntry& Entry) const
+void FInventoryContent::PostEntryReplicatedChange(const FInventoryEntry& Entry, const EChangeType ChangeType) const
 {
 	if (IsValid(ChangeListener))
 	{
-		ChangeListener->PostContentChanged(Entry, UFaerieItemStorage::StackChange);
+		ChangeListener->PostContentChanged(Entry, ChangeType);
 	}
+}
+
+FInventoryContent::TRangedForConstIterator FInventoryContent::begin() const
+{
+	WriteLock++;
+	return TRangedForConstIterator(Entries.begin());
+}
+
+FInventoryContent::TRangedForConstIterator FInventoryContent::end() const
+{
+	WriteLock--;
+	return TRangedForConstIterator(Entries.end());
 }

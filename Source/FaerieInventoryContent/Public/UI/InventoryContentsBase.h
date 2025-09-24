@@ -2,12 +2,12 @@
 
 #pragma once
 
+#include "FaerieContainerFilterTypes.h"
 #include "Blueprint/UserWidget.h"
 #include "FaerieItemStorage.h"
 #include "InventoryContentsBase.generated.h"
 
 class UInventoryUIActionContainer;
-class UFaerieInventoryClient;
 class UFaerieItemDataComparator;
 class UFaerieItemDataFilter;
 
@@ -19,8 +19,6 @@ class FAERIEINVENTORYCONTENT_API UInventoryContentsBase : public UUserWidget
 {
 	GENERATED_BODY()
 
-	friend class UInventoryUIAction;
-
 public:
 	UInventoryContentsBase(const FObjectInitializer& ObjectInitializer);
 
@@ -31,8 +29,8 @@ public:
 private:
 	void Reset();
 
-	bool ExecFilter(const FFaerieItemProxy& Entry);
-	bool ExecSort(const FFaerieItemProxy& A, const FFaerieItemProxy& B);
+	bool ExecFilter(const FFaerieItemSnapshot& Entry);
+	bool ExecSort(const FFaerieItemSnapshot& A, const FFaerieItemSnapshot& B);
 
 protected:
 	virtual void HandleAddressEvent(UFaerieItemStorage* Storage, const EFaerieAddressEventType Type, FFaerieAddress Address);
@@ -51,9 +49,6 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Inventory Contents|Config")
 	void InitWithInventory(UFaerieItemStorage* Storage);
-
-	UFUNCTION(BlueprintCallable, Category = "Inventory Contents|Config")
-	void SetInventoryClient(UFaerieInventoryClient* Client);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory Contents|Display")
 	void AddToSortOrder(FFaerieAddress Address, bool WarnIfAlreadyExists);
@@ -104,7 +99,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Instanced, Category = "Config")
 	TObjectPtr<UInventoryUIActionContainer> ActionContainer;
 
-	// By default all newly added items are sorted into the display order. Disable this when customizing order or filter
+	// By default, all newly added items are sorted into the display order. Disable this when customizing order or filter
 	// with OnEntryAdded.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Config")
 	bool bAlwaysAddNewToSortOrder = true;
@@ -120,10 +115,6 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Runtime")
 	TObjectPtr<UFaerieItemDataComparator> ActiveSortRule;
-
-	/** The inventory client for this widget to interact with the server.  */
-	UPROPERTY(BlueprintReadOnly, Category = "Runtime")
-	TWeakObjectPtr<UFaerieInventoryClient> InventoryClient;
 
 	/** The storage this widget is representing.  */
 	UPROPERTY(BlueprintReadOnly, Category = "Runtime")

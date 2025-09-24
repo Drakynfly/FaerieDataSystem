@@ -3,6 +3,8 @@
 #include "FaerieItemContainerBase.h"
 #include "FaerieItemStorage.h"
 #include "AssetLoadFlagFixer.h"
+#include "FaerieContainerFilter.h"
+#include "FaerieContainerFilterTypes.h"
 #include "FaerieInventoryLog.h"
 #include "ItemContainerExtensionBase.h"
 #include "GameFramework/Actor.h"
@@ -12,35 +14,6 @@
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemContainerBase)
 
 using namespace Faerie;
-
-void FItemContainerFilter::ForEachMutable_NoBreak(TLoop<UFaerieItem*> Func) const
-{
-	Container->ForEachItem([&Func](const UFaerieItem* Item)
-	{
-		if (UFaerieItem* Mutable = Item->MutateCast())
-		{
-			Func(Mutable);
-		}
-	});
-}
-
-void FItemContainerFilter::ForEachMutable_WithBreak(TBreakableLoop<UFaerieItem*> Func) const
-{
-	// #@todo make ForEachItem breakable
-	bool TempBreak = false;
-	Container->ForEachItem([&Func, &TempBreak](const UFaerieItem* Item)
-		{
-			if (TempBreak) return;
-
-			if (UFaerieItem* Mutable = Item->MutateCast())
-			{
-				if (Func(Mutable) == Stop)
-				{
-					TempBreak = true;
-				}
-			}
-		});
-}
 
 UFaerieItemContainerBase::UFaerieItemContainerBase()
 {
@@ -78,14 +51,14 @@ void UFaerieItemContainerBase::DeinitializeNetObject(AActor* Actor)
 FFaerieItemStack UFaerieItemContainerBase::Release(const FFaerieItemStackView Stack)
 {
 	// This function should be implemented by children.
-	unimplemented();
+	checkNoEntry();
 	return FFaerieItemStack();
 }
 
 bool UFaerieItemContainerBase::Possess(FFaerieItemStack Stack)
 {
 	// This function should be implemented by children.
-	unimplemented();
+	checkNoEntry();
 	return false;
 }
 
@@ -138,32 +111,27 @@ bool UFaerieItemContainerBase::AddExtension(UItemContainerExtensionBase* Extensi
 
 void UFaerieItemContainerBase::RavelExtensionData(TMap<FGuid, FInstancedStruct>& ExtensionData) const
 {
-	Extensions->ForEachExtension(
-		[this, &ExtensionData](const UItemContainerExtensionBase* Extension)
+	for (auto Extension : FRecursiveConstExtensionIterator(Extensions))
+	{
+		const FGuid Identifier = Extension->GetIdentifier();
+		if (!ensure(Identifier.IsValid())) return;
+
+		// Skip if we have already included this extension.
+		const uint32 IdentifierHash = GetTypeHash(Identifier);
+		if (ExtensionData.ContainsByHash(IdentifierHash, Identifier)) return;
+
+		if (const FInstancedStruct SaveData = Extension->MakeSaveData(this);
+			SaveData.IsValid())
 		{
-			const FGuid Identifier = Extension->GetIdentifier();
-			if (!ensure(Identifier.IsValid())) return;
-
-			// Skip if we have already included this extension.
-			const uint32 IdentifierHash = GetTypeHash(Identifier);
-			if (ExtensionData.ContainsByHash(IdentifierHash, Identifier)) return;
-
-			if (const FInstancedStruct SaveData = Extension->MakeSaveData(this);
-				SaveData.IsValid())
-			{
-				ExtensionData.AddByHash(IdentifierHash, Identifier, SaveData);
-			}
-		});
+			ExtensionData.AddByHash(IdentifierHash, Identifier, SaveData);
+		}
+	}
 
 	TSet<UFaerieItemContainerBase*> SubContainers;
-	ForEachKey(
-		[this, &SubContainers](const FEntryKey Key)
-		{
-			if (UFaerieItem* Item = View(Key).Item->MutateCast())
-			{
-				SubContainers.Append(UFaerieItemContainerToken::GetAllContainersInItem(Item));
-			}
-		});
+	for (UFaerieItem* Item : KeyFilter(this).Run<FMutableFilter>().Items())
+	{
+		SubContainers.Append(UFaerieItemContainerToken::GetAllContainersInItem(Item));
+	}
 
 	for (const UFaerieItemContainerBase* SubContainer : SubContainers)
 	{
@@ -179,20 +147,16 @@ void UFaerieItemContainerBase::UnravelExtensionData(UFaerieItemContainerExtensio
 		return;
 	}
 
-	Extensions->ForEachExtension(
-		[this](UItemContainerExtensionBase* Extension)
-		{
-			TryApplyUnclaimedSaveData(Extension);
-		});
+	for (auto&& Extension : FRecursiveExtensionIterator(Extensions))
+	{
+		TryApplyUnclaimedSaveData(Extension);
+	}
 
 	TSet<UFaerieItemContainerBase*> SubContainers;
-	Filter().ForEachMutable([&SubContainers](const UFaerieItem* Item)
-		{
-			if (UFaerieItem* Mutable = Item->MutateCast())
-			{
-				SubContainers.Append(UFaerieItemContainerToken::GetAllContainersInItem(Mutable));
-			}
-		});
+	for (UFaerieItem* Item : KeyFilter(this).Run<FMutableFilter>().Items())
+	{
+		SubContainers.Append(UFaerieItemContainerToken::GetAllContainersInItem(Item));
+	}
 
 	for (UFaerieItemContainerBase* SubContainer : SubContainers)
 	{
@@ -218,7 +182,9 @@ void UFaerieItemContainerBase::TryApplyUnclaimedSaveData(UItemContainerExtension
 	}
 }
 
-Faerie::FItemContainerFilter UFaerieItemContainerBase::Filter() const
-{
-	return Faerie::FItemContainerFilter(this);
-}
+// Note: Implementations for these PURE_VIRTUALS need to be here because TUniquePtr complains about their dtors if they are forward declared.
+TUniquePtr<IContainerIterator> UFaerieItemContainerBase::CreateIterator() const
+PURE_VIRTUAL(UFaerieItemContainerBase::CreateIterator, return TUniquePtr<Faerie::IContainerIterator>(); )
+
+TUniquePtr<IContainerFilter> UFaerieItemContainerBase::CreateFilter(bool FilterByAddresses) const
+PURE_VIRTUAL(UFaerieItemContainerBase::CreateFilter, return TUniquePtr<Faerie::IContainerFilter>(); )

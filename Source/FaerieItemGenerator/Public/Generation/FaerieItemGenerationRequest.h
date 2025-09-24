@@ -27,8 +27,8 @@ struct FAERIEITEMGENERATOR_API FFaerieItemGenerationRequest : public FFaerieCraf
 
 protected:
 	void LoadCheck(TSharedPtr<FStreamableHandle> Handle, UFaerieCraftingRunner* Runner) const;
-	void ResolveGeneration(FFaerieItemGenerationRequestStorage& Storage, const Faerie::FPendingItemGeneration& Generation, const FFaerieItemInstancingContext_Crafting& Context) const;
 	void Generate(UFaerieCraftingRunner* Runner) const;
+	void ResolveGeneration(FFaerieItemGenerationRequestStorage& Storage, const Faerie::FPendingItemGeneration& Generation, const FFaerieItemInstancingContext_Crafting& Context) const;
 
 	// The client must fill this with drivers that can have network ID mapping. This is automatic for serialized objects.
 	// Runtime generated drivers must be created server-side and replicated for this to work.

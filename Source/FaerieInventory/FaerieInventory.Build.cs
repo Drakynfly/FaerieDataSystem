@@ -27,8 +27,7 @@ public class FaerieInventory : ModuleRules
             new []
             {
                 "FaerieDataUtils",
-                "FaerieItemData",
-                "Flakes"
+                "FaerieItemData"
             });
 
         SetupIrisSupport(Target);

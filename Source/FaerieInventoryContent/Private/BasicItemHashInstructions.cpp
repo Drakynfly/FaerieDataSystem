@@ -5,6 +5,7 @@
 #include "FaerieItem.h"
 #include "FaerieItemDataFilter.h"
 #include "FaerieItemToken.h"
+#include "FaerieItemTokenFilter.h"
 #include "Squirrel.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(BasicItemHashInstructions)
@@ -98,15 +99,15 @@ uint32 UFISHI_Tokens::Hash(const FFaerieItemStackView StackView) const
 
 	for (auto&& TokenClass : TokenClasses)
 	{
-		const TArray<const UFaerieItemToken*> Tokens = StackView.Item->GetTokens(TokenClass);
+		auto&& Filter = Faerie::Token::FTokenFilter(StackView.Item.Get()).ByClass(TokenClass);
 
-		if (Tokens.IsEmpty())
+		if (Filter.IsEmpty())
 		{
 			Hash = Squirrel::HashCombine(Hash, TOKEN_HASH_EMPTY);
 		}
 		else
 		{
-			for (auto&& Token : Tokens)
+			for (auto&& Token : Filter)
 			{
 				Hash = Squirrel::HashCombine(Hash, Token->GetTokenHash());
 			}

@@ -2,11 +2,11 @@
 
 #pragma once
 
+#include "FaerieInventoryTag.h"
 #include "GameplayTagContainer.h"
-#include "ItemContainerExtensionBase.h"
 #include "InventoryReplicatedDataExtensionBase.h"
 #include "TypedGameplayTags.h"
-#include "Actions/FaerieInventoryClient.h"
+#include "Actions/FaerieClientActionBase.h"
 #include "InventoryUserdataExtension.generated.h"
 
 /**

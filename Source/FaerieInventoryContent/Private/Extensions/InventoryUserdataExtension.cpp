@@ -3,6 +3,7 @@
 #include "Extensions/InventoryUserdataExtension.h"
 
 #include "FaerieItemStorage.h"
+#include "Actions/FaerieInventoryClient.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventoryUserdataExtension)
 

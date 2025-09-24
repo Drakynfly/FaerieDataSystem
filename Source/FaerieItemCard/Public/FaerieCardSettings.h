@@ -26,10 +26,6 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Generator")
 	bool CreateCardGeneratorPlayerSubsystems = true;
 
-	UE_DEPRECATED(5.5, "Use FallbackClasses instead")
-	UPROPERTY(Config, EditAnywhere, Category = "Classes")
-	TMap<TSubclassOf<class UFaerieItemCardToken>, TSoftClassPtr<UFaerieCardBase>> DefaultClasses;
-
 	// Item Card classes to use when an item doesn't specify one.
 	UPROPERTY(Config, EditAnywhere, Category = "Classes", meta = (ForceInlineRow))
 	TMap<FFaerieItemCardType, TSoftClassPtr<UFaerieCardBase>> FallbackClasses;

@@ -3,8 +3,8 @@
 #include "Extensions/InventoryGridExtensionBase.h"
 #include "FaerieItemContainerBase.h"
 #include "FaerieItemStorage.h"
+#include "FaerieItemStorageIterators.h"
 #include "Net/UnrealNetwork.h"
-#include "StructUtils/StructView.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventoryGridExtensionBase)
 
@@ -143,22 +143,15 @@ void UInventoryGridExtensionBase::InitializeExtension(const UFaerieItemContainer
 	OccupiedCells.Reset(GridSize);
 	if (const UFaerieItemStorage* ItemStorage = Cast<UFaerieItemStorage>(Container))
 	{
-		ItemStorage->ForEachKey(
-			[this, ItemStorage](const FEntryKey Key)
+		for (Faerie::FStorageIterator_AllAddresses It(ItemStorage); It; ++It)
+		{
+			const UFaerieItem* Item = It.GetItem();
+			const FFaerieAddress Address = It.GetAddress();
+			if (!AddItemToGrid(Address, Item))
 			{
-				PRAGMA_DISABLE_DEPRECATION_WARNINGS
-				for (const auto EntryView = ItemStorage->GetEntryView(Key);
-					auto&& Entry : EntryView.Get().Stacks)
-				{
-					if (const FInventoryKey InvKey(Key, Entry.Key);
-						!AddItemToGrid(InvKey, EntryView.Get().ItemObject))
-					{
-						// Cannot add this item, skip the rest of stacks, and continue to next key
-						break;
-					}
-				}
-				PRAGMA_ENABLE_DEPRECATION_WARNINGS
-			});
+				// @todo Cannot add this item, ignore and try next for now...
+			}
+		}
 	}
 }
 
@@ -177,10 +170,10 @@ bool UInventoryGridExtensionBase::IsCellOccupied(const FIntPoint& Point) const
 	return OccupiedCells.GetCell(Point);
 }
 
-void UInventoryGridExtensionBase::BroadcastEvent(const FInventoryKey& Key, const EFaerieGridEventType EventType)
+void UInventoryGridExtensionBase::BroadcastEvent(const FFaerieAddress Address, const EFaerieGridEventType EventType)
 {
-	SpatialStackChangedNative.Broadcast(Key, EventType);
-	SpatialStackChangedDelegate.Broadcast(Key, EventType);
+	SpatialStackChangedNative.Broadcast(Address, EventType);
+	SpatialStackChangedDelegate.Broadcast(Address, EventType);
 }
 
 void UInventoryGridExtensionBase::OnRep_GridSize()
@@ -191,19 +184,19 @@ void UInventoryGridExtensionBase::OnRep_GridSize()
 
 FFaerieItemStackView UInventoryGridExtensionBase::ViewAt(const FIntPoint& Position) const
 {
-	if (const FInventoryKey Key = GetKeyAt(Position);
-		Key.IsValid())
+	if (const FFaerieAddress Address = GetKeyAt(Position);
+		Address.IsValid())
 	{
-		return Cast<UFaerieItemStorage>(InitializedContainer)->GetStackView(Key);
+		return Cast<UFaerieItemStorage>(InitializedContainer)->ViewStack(Address);
 	}
 	return FFaerieItemStackView();
 }
 
-FFaerieGridPlacement UInventoryGridExtensionBase::GetStackPlacementData(const FInventoryKey& Key) const
+FFaerieGridPlacement UInventoryGridExtensionBase::GetStackPlacementData(const FFaerieAddress Address) const
 {
-	if (auto&& Placement = GridContent.Find(Key))
+	if (const FFaerieGridKeyedStack* KeyedStack = GridContent.Find(Address))
 	{
-		return *Placement;
+		return KeyedStack->Value;
 	}
 
 	return FFaerieGridPlacement();

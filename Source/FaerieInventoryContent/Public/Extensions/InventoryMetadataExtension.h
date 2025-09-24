@@ -2,8 +2,8 @@
 
 #pragma once
 
+#include "FaerieInventoryTag.h"
 #include "GameplayTagContainer.h"
-#include "ItemContainerExtensionBase.h"
 #include "InventoryReplicatedDataExtensionBase.h"
 #include "TypedGameplayTags.h"
 #include "InventoryMetadataExtension.generated.h"
@@ -47,7 +47,7 @@ class FAERIEINVENTORYCONTENT_API UInventoryMetadataExtension : public UInventory
 
 protected:
 	//~ UItemContainerExtensionBase
-	virtual EEventExtensionResponse AllowsRemoval(const UFaerieItemContainerBase* Container, FEntryKey Key, FFaerieInventoryTag Reason) const override;
+	virtual EEventExtensionResponse AllowsRemoval(const UFaerieItemContainerBase* Container, FFaerieAddress Address, FFaerieInventoryTag Reason) const override;
 	//~ UItemContainerExtensionBase
 
 	//~ UInventoryReplicatedDataExtensionBase

@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "InventoryDataStructs.h"
+#include "FaerieItemContainerStructs.h"
 #include "InventoryUIAction.generated.h"
 
 class UTexture2D;
@@ -25,7 +25,7 @@ enum class EInventoryUIActionState : uint8
  * An Inventory UI Action is an asynchronous function class that can wrap player "actions" on items stored in inventories,
  * such as Dropping, Equipping, Consuming, Buying/Setting, etc.
  */
-UCLASS(Abstract, Const, Blueprintable, BlueprintType, meta = (ShowWorldContextPin))
+UCLASS(Abstract, Const, Blueprintable, BlueprintType, EditInlineNew, meta = (ShowWorldContextPin))
 class FAERIEINVENTORYCONTENT_API UInventoryUIAction : public UObject
 {
 	GENERATED_BODY()

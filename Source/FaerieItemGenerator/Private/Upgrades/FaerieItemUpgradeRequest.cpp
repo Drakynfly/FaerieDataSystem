@@ -10,6 +10,7 @@
 #include "Squirrel.h"
 #include "Engine/AssetManager.h"
 #include "Engine/StreamableManager.h"
+#include "Engine/World.h"
 #include "Upgrades/FaerieItemUpgradeConfig.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemUpgradeRequest)

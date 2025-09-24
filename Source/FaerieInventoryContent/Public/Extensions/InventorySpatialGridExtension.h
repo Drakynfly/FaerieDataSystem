@@ -46,50 +46,52 @@ protected:
 	virtual void PostStackAdd(const FFaerieGridKeyedStack& Stack) override;
 	virtual void PostStackChange(const FFaerieGridKeyedStack& Stack) override;
 
-	virtual FInventoryKey GetKeyAt(const FIntPoint& Position) const override;
+	virtual FFaerieAddress GetKeyAt(const FIntPoint& Position) const override;
 	virtual bool CanAddAtLocation(FFaerieItemStackView Stack, FIntPoint IntPoint) const override;
-	virtual bool AddItemToGrid(const FInventoryKey& Key, const UFaerieItem* Item) override;
-	virtual bool MoveItem(const FInventoryKey& Key, const FIntPoint& TargetPoint) override;
-	virtual bool RotateItem(const FInventoryKey& Key) override;
+	virtual bool AddItemToGrid(FFaerieAddress Address, const UFaerieItem* Item) override;
+	virtual bool MoveItem(FFaerieAddress Address, const FIntPoint& TargetPoint) override;
+	virtual bool RotateItem(FFaerieAddress Address) override;
 	//~ UInventoryGridExtensionBase
 
 private:
-	void RemoveItem(const FInventoryKey& Key, const UFaerieItem* Item);
-	void RemoveItemBatch(const TConstArrayView<FInventoryKey>& Keys, const UFaerieItem* Item);
+	void RemoveItem(FFaerieAddress Address, const UFaerieItem* Item);
+	void RemoveItemBatch(const TConstArrayView<FFaerieAddress>& Addresses, const UFaerieItem* Item);
 
 	// The client has to manually rebuild its cell after a removal, as the item's shape is likely lost.
 	void RebuildOccupiedCells();
 
 	// Gets a shape from a shape token on the item, or returns a single cell at 0,0 for items with no token.
-	FFaerieGridShape GetItemShape_Impl(const UFaerieItem* Item) const;
+	FFaerieGridShapeConstView GetItemShape_Impl(const UFaerieItem* Item) const;
+	FFaerieGridShapeConstView GetItemShape_Impl(FFaerieAddress Address) const;
 
 public:
 	bool CanAddItemToGrid(const FFaerieGridShapeConstView& Shape) const;
 	bool CanAddItemsToGrid(const TArray<FFaerieGridShapeConstView>& Shapes) const;
 
-	// Gets the normalized shape for an item.
+	// Gets the normalized shape for an item. This copies the shape!
 	UFUNCTION(BlueprintCallable, Category = "Faerie|SpatialGrid")
-	FFaerieGridShape GetItemShape(FEntryKey Key) const;
+	FFaerieGridShape GetItemShape(FFaerieAddress Address) const;
 
 	// Gets the shape of an item transposed on the grid according to its placement.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|SpatialGrid")
-	FFaerieGridShape GetItemShapeOnGrid(const FInventoryKey& Key) const;
+	FFaerieGridShape GetItemShapeOnGrid(FFaerieAddress Address) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|SpatialGrid")
-	FIntPoint GetStackBounds(const FInventoryKey& Key) const;
+	FIntPoint GetStackBounds(FFaerieAddress Address) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|SpatialGrid")
 	bool CanAddAtLocation(const FFaerieGridShape& Shape, FIntPoint Position) const;
+	bool CanAddAtLocation(const FFaerieGridShapeConstView& Shape, FIntPoint Position) const;
 
 protected:
-	Faerie::FExclusionSet MakeExclusionSet(FInventoryKey ExcludedKey) const;
-	Faerie::FExclusionSet MakeExclusionSet(const TConstArrayView<FInventoryKey> ExcludedKeys) const;
+	Faerie::FExclusionSet MakeExclusionSet(FFaerieAddress ExcludedAddress) const;
+	Faerie::FExclusionSet MakeExclusionSet(const TConstArrayView<FFaerieAddress> ExcludedAddresses) const;
 
 	bool FitsInGridAnyRotation(const FFaerieGridShapeConstView& Shape, FIntPoint Origin, const Faerie::FExclusionSet& ExclusionSet) const;
 
-	FInventoryKey FindOverlappingItem(const FFaerieGridShapeConstView& TranslatedShape, const FInventoryKey& ExcludeKey) const;
+	FFaerieAddress FindOverlappingItem(const FFaerieGridShapeConstView& TranslatedShape, FFaerieAddress ExcludeAddress) const;
 
-	bool TrySwapItems(FInventoryKey KeyA, FFaerieGridPlacement& PlacementA, FInventoryKey KeyB, FFaerieGridPlacement& PlacementB);
+	bool TrySwapItems(FFaerieAddress AddressA, FFaerieGridPlacement& PlacementA, FFaerieAddress AddressB, FFaerieGridPlacement& PlacementB);
 
-	bool MoveSingleItem(const FInventoryKey Key, FFaerieGridPlacement& Placement, const FIntPoint& NewPosition);
+	bool MoveSingleItem(const FFaerieAddress Address, FFaerieGridPlacement& Placement, const FIntPoint& NewPosition);
 };

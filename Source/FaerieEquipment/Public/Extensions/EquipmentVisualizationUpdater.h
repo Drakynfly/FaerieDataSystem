@@ -6,7 +6,7 @@
 #include "ItemContainerExtensionBase.h"
 #include "EquipmentVisualizationUpdater.generated.h"
 
-class UVisualSlotExtension;
+class UFaerieEquipmentSlot;
 
 /**
  *
@@ -25,15 +25,13 @@ protected:
 	virtual void PostEntryChanged(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event) override;
 
 private:
-	static UEquipmentVisualizer* GetVisualizer(const UFaerieItemContainerBase* Container);
+	static UEquipmentVisualizer* GetVisualizer(const UFaerieEquipmentSlot* Slot);
 
-	void CreateVisualForEntry(const UFaerieItemContainerBase* Container, FEntryKey Key);
-	void RemoveVisualForEntry(const UFaerieItemContainerBase* Container, FEntryKey Key);
+	void CreateVisualForEntry(const UFaerieEquipmentSlot* Slot, FEntryKey Key);
+	void RemoveVisualForEntry(const UFaerieEquipmentSlot* Slot, FEntryKey Key);
 
 	void CreateVisualImpl(UEquipmentVisualizer* Visualizer, FFaerieItemProxy Proxy);
 	void RemoveVisualImpl(UEquipmentVisualizer* Visualizer, FFaerieItemProxy Proxy);
-
-	TMultiMap<TWeakObjectPtr<const UFaerieItemContainerBase>, FEntryKey> SpawnKeys;
 
 	struct FPendingAttachment
 	{

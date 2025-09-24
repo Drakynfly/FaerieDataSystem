@@ -5,7 +5,7 @@
 #include "FaerieContainerExtensionInterface.h"
 #include "FaerieEquipmentSlotStructs.h"
 #include "FaerieSlotTag.h"
-#include "FaerieStoragePath.h"
+#include "FaerieItemContainerPath.h"
 #include "LoopUtils.h"
 #include "Components/ActorComponent.h"
 #include "StructUtils/InstancedStruct.h"
@@ -170,7 +170,7 @@ public:
 	// Gets all Slots and Storage objects for this manager and all contained items.
 	// For only top-level containers, use GetSlots instead.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentManager")
-	TArray<FFaerieStoragePath> GetAllContainerPaths() const;
+	TArray<FFaerieItemContainerPath> GetAllContainerPaths() const;
 
 	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Faerie|EquipmentManager", meta = (DevelopmentOnly))
 	void PrintSlotDebugInfo() const;
@@ -188,10 +188,6 @@ private:
 	Faerie::FEquipmentSlotEvent OnEquipmentSlotEventNative;
 
 protected:
-	UE_DEPRECATED(5.5, "Use InstanceDefaultSlots instead")
-	UPROPERTY(VisibleAnywhere, Category = "Equipment")
-	TMap<FFaerieSlotTag, TObjectPtr<UFaerieEquipmentSlotDescription>> DefaultSlots;
-
 	// Slots and their extensions to add to this equipment manager by default.
 	UPROPERTY(EditAnywhere, Category = "Equipment")
 	TArray<FFaerieEquipmentDefaultSlot> InstanceDefaultSlots;

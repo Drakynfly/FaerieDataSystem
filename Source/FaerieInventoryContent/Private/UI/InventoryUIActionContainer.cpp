@@ -1,7 +1,9 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "UI/InventoryUIActionContainer.h"
+#include "Templates/SubclassOf.h"
 #include "UI/InventoryUIAction.h"
+#include "UObject/ObjectKey.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventoryUIActionContainer)
 

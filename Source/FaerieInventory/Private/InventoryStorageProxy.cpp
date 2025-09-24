@@ -8,24 +8,7 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventoryStorageProxy)
 
-TArray<FKeyedStack> UInventoryEntryProxyBase::GetAllStacks() const
-{
-	PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	if (const TConstStructView<FInventoryEntry>& Entry = GetInventoryEntry();
-		ensure(Entry.IsValid()))
-	{
-		return Entry.Get().Stacks;
-	}
-	PRAGMA_ENABLE_DEPRECATION_WARNINGS
-	return {};
-}
-
-int32 UInventoryEntryProxyBase::GetStackLimit() const
-{
-	return UFaerieStackLimiterToken::GetItemStackLimit(GetItemObject());
-}
-
-const UFaerieItem* UInventoryEntryStorageProxy::GetItemObject() const
+const UFaerieItem* UInventoryStackProxy::GetItemObject() const
 {
 	if (!VerifyStatus())
 	{
@@ -36,35 +19,37 @@ const UFaerieItem* UInventoryEntryStorageProxy::GetItemObject() const
 	return EntryView.Item.Get();
 }
 
-int32 UInventoryEntryStorageProxy::GetCopies() const
+int32 UInventoryStackProxy::GetCopies() const
 {
 	if (!VerifyStatus())
 	{
 		return 0;
 	}
 
-	const FFaerieItemStackView EntryView = GetStorage()->View(GetKey());
-	return EntryView.Copies;
+	return ItemStorage->ViewStack(Address).Copies;
 }
 
-TScriptInterface<IFaerieItemOwnerInterface> UInventoryEntryStorageProxy::GetItemOwner() const
+TScriptInterface<IFaerieItemOwnerInterface> UInventoryStackProxy::GetItemOwner() const
 {
 	return GetStorage();
 }
 
-TConstStructView<FInventoryEntry> UInventoryEntryStorageProxy::GetInventoryEntry() const
+FEntryKey UInventoryStackProxy::GetKey() const
 {
-	if (!VerifyStatus())
-	{
-		return TConstStructView<FInventoryEntry>();
-	}
-
-	PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	return GetStorage()->GetEntryView(GetKey());
-	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+	return UFaerieItemStorage::FStorageKey::GetEntryKey(Address);
 }
 
-void UInventoryEntryStorageProxy::NotifyCreation()
+FFaerieAddressableHandle UInventoryStackProxy::GetAddressable() const
+{
+	return { ItemStorage, Address };
+}
+
+int32 UInventoryStackProxy::GetStackLimit() const
+{
+	return UFaerieStackLimiterToken::GetItemStackLimit(GetItemObject());
+}
+
+void UInventoryStackProxy::NotifyCreation()
 {
 	// If we are created on the server, or on a client for a pre-existing item, set Version to 0.
 	// For clients that do not have the item replicated yet, -1 denotes awaiting initial replication.
@@ -81,21 +66,21 @@ void UInventoryEntryStorageProxy::NotifyCreation()
 	OnCacheUpdated.Broadcast(this);
 }
 
-void UInventoryEntryStorageProxy::NotifyUpdate()
+void UInventoryStackProxy::NotifyUpdate()
 {
 	LocalItemVersion++;
 	OnCacheUpdatedNative.Broadcast(this);
 	OnCacheUpdated.Broadcast(this);
 }
 
-void UInventoryEntryStorageProxy::NotifyRemoval()
+void UInventoryStackProxy::NotifyRemoval()
 {
 	LocalItemVersion = -1;
 	OnCacheRemovedNative.Broadcast(this);
 	OnCacheRemoved.Broadcast(this);
 }
 
-bool UInventoryEntryStorageProxy::VerifyStatus() const
+bool UInventoryStackProxy::VerifyStatus() const
 {
 	auto&& Storage = GetStorage();
 	auto&& Key = GetKey();
@@ -111,34 +96,4 @@ bool UInventoryEntryStorageProxy::VerifyStatus() const
 	}
 
 	return true;
-}
-
-FEntryKey UInventoryEntryProxy::GetKey() const
-{
-	return Key;
-}
-
-int32 UInventoryStackProxy::GetCopies() const
-{
-	if (!VerifyStatus())
-	{
-		return 0;
-	}
-
-	return ItemStorage->ViewStack(Key.ToAddress()).Copies;
-}
-
-FEntryKey UInventoryStackProxy::GetKey() const
-{
-	return Key.EntryKey;
-}
-
-FInventoryKeyHandle UInventoryStackProxy::GetHandle() const
-{
-	return { ItemStorage, Key };
-}
-
-FFaerieAddressableHandle UInventoryStackProxy::GetAddressable() const
-{
-	return { ItemStorage, Key.ToAddress() };
 }

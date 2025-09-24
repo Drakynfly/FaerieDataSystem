@@ -2,6 +2,7 @@
 
 #include "Actions/ItemUseConsumableRequest.h"
 #include "FaerieItemContainerBase.h"
+#include "Actions/FaerieInventoryClient.h"
 #include "Tokens/FaerieItemConsumableBase.h"
 #include "Tokens/FaerieItemUsesToken.h"
 

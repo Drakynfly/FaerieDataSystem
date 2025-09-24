@@ -2,13 +2,15 @@
 
 #include "FaerieHashStatics.h"
 #include "FaerieItemStackHashInstruction.h"
+#include "FaerieItemTokenFilter.h"
 #include "Squirrel.h"
 #include "Tokens/FaerieInfoToken.h"
 #include "UObject/TextProperty.h"
 #include "UObject/PropertyOptional.h"
 
-// WARNING: Changing this will invalidate all existing hashes generated with CombineHashes.
+// WARNING: Changing these could invalidate existing hashes generated with CombineHashes.
 #define COMBINING_HASHING_SEED 561333781
+#define UNSET_OPTIONAL_SEED 21294577
 
 namespace Faerie::Hash
 {
@@ -83,30 +85,50 @@ namespace Faerie::Hash
 		}
 		if (const FArrayProperty* AsArray = CastField<FArrayProperty>(Property))
 		{
-			unimplemented();
-			return 0;
+			uint32 OutHash = 0;
+			const FProperty* InnerProperty = AsArray->Inner;
+			FScriptArrayHelper ArrayHelper(AsArray, Ptr);
+			for (int32 i = 0; i < ArrayHelper.Num(); ++i)
+			{
+				OutHash = Combine(OutHash, HashFProperty(ArrayHelper.GetElementPtr(i), InnerProperty));
+			}
+			return OutHash;
 		}
 		if (const FSetProperty* AsSet = CastField<FSetProperty>(Property))
 		{
-			unimplemented();
-			return 0;
+			uint32 OutHash = 0;
+			const FProperty* InnerProperty = AsSet->GetElementProperty();
+			FScriptSetHelper SetHelper(AsSet, Ptr);
+			for (FScriptSetHelper::FIterator It(SetHelper); It; ++It)
+			{
+				OutHash = Combine(OutHash, HashFProperty(SetHelper.GetElementPtr(It), InnerProperty));
+			}
+			return OutHash;
 		}
 		if (const FMapProperty* AsMap = CastField<FMapProperty>(Property))
 		{
-			unimplemented();
-			return 0;
+			uint32 OutHash = 0;
+			const FProperty* KeyProperty = AsMap->KeyProp;
+			const FProperty* ValueProperty = AsMap->ValueProp;
+			FScriptMapHelper MapHelper(AsMap, Ptr);
+			for (FScriptMapHelper::FIterator It(MapHelper); It; ++It)
+			{
+				OutHash = Combine(OutHash, HashFProperty(MapHelper.GetKeyPtr(It), KeyProperty));
+				OutHash = Combine(OutHash, HashFProperty(MapHelper.GetValuePtr(It), ValueProperty));
+			}
+			return OutHash;
 		}
 		if (const FOptionalProperty* AsOptional = CastField<FOptionalProperty>(Property))
 		{
 			if (!AsOptional->IsSet(AsOptional->ContainerPtrToValuePtr<void>(Ptr)))
 			{
-				return 21294577;
+				return UNSET_OPTIONAL_SEED;
 			}
 
 			return HashFProperty(Ptr, AsOptional->GetValueProperty());
 		}
 
-		unimplemented(); // What can hit this?
+		checkNoEntry();
 		return 0;
 	}
 
@@ -164,14 +186,13 @@ namespace Faerie::Hash
 		return 0;
 	}
 
-	uint32 HashItemByTokens(FTokenFilter& Filter)
+	uint32 HashItemByTokens(const Token::ITokenFilter& Filter)
 	{
 		uint32 Hash = 0;
-		Filter.ForEach([&Hash](const TObjectPtr<UFaerieItemToken>& Token)
+		for (const UFaerieItemToken* Token : Filter)
 		{
 			Hash = Combine(Hash, Token->GetTokenHash());
-			return Continue;
-		});
+		}
 		return Hash;
 	}
 }

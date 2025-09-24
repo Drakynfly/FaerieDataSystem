@@ -17,8 +17,9 @@ class FAERIEITEMDATA_API UFaerieItemDataComparator : public UObject
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataComparator")
-	virtual bool Exec(FFaerieItemProxy A, FFaerieItemProxy B) const PURE_VIRTUAL(UFaerieItemDataComparator::Exec, return false; )
+	virtual bool Exec(const FFaerieItemSnapshot& A, const FFaerieItemSnapshot& B) const PURE_VIRTUAL(UFaerieItemDataComparator::Exec, return false; )
 };
+
 
 /*
  * Base class for making blueprint comparators.
@@ -29,12 +30,12 @@ class UFaerieItemDataComparator_BlueprintBase final : public UFaerieItemDataComp
 	GENERATED_BODY()
 
 public:
-	virtual bool Exec(const FFaerieItemProxy A, const FFaerieItemProxy B) const override
+	virtual bool Exec(const FFaerieItemSnapshot& A, const FFaerieItemSnapshot& B) const override
 	{
 		return Execute(A, B);
 	}
 
 protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Faerie|ItemDataComparator")
-	bool Execute(FFaerieItemProxy A, const FFaerieItemProxy B) const;
+	bool Execute(const FFaerieItemSnapshot& A, const FFaerieItemSnapshot& B) const;
 };

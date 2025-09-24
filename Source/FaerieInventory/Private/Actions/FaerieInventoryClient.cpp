@@ -3,6 +3,8 @@
 #include "Actions/FaerieInventoryClient.h"
 #include "FaerieItemStorage.h"
 #include "FaerieInventoryLog.h"
+#include "Actions/FaerieClientActionBase.h"
+#include "GameFramework/Actor.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieInventoryClient)
 
@@ -26,38 +28,91 @@ bool UFaerieInventoryClient::CanAccessContainer(const UFaerieItemContainerBase* 
 	return true;
 }
 
+void UFaerieInventoryClient::RequestExecuteAction(const FFaerieClientActionBase& Args)
+{
+	if (GetOwner()->HasAuthority())
+	{
+		// If called on a server, run immediately.
+		Server_RequestExecuteAction(Args);
+	}
+	else
+	{
+		// Otherwise, use the RPC version.
+		TInstancedStruct<FFaerieClientActionBase> ArgsWrapper;
+		ArgsWrapper.InitializeAs(Args);
+		RequestExecuteAction(ArgsWrapper);
+	}
+}
+
+void UFaerieInventoryClient::RequestExecuteAction_Batch(const TArray<const FFaerieClientActionBase*>& Args, const EFaerieClientRequestBatchType Type)
+{
+	if (GetOwner()->HasAuthority())
+	{
+		// If called on a server, run immediately.
+		Server_RequestExecuteAction_Batch(Args, Type);
+	}
+	else
+	{
+		// Otherwise, use the RPC version.
+		TArray<TInstancedStruct<FFaerieClientActionBase>> ArrayWrapper;
+		ArrayWrapper.Reserve(Args.Num());
+		for (const FFaerieClientActionBase* Element : Args)
+		{
+			TInstancedStruct<FFaerieClientActionBase>& ElementWrapper = ArrayWrapper.AddDefaulted_GetRef();
+			ElementWrapper.InitializeAs(*Element);
+		}
+		RequestExecuteAction_Batch(ArrayWrapper, Type);
+	}
+}
+
+void UFaerieInventoryClient::RequestMoveAction(const FFaerieClientAction_MoveHandlerBase& MoveFrom,
+											   const FFaerieClientAction_MoveHandlerBase& MoveTo)
+{
+	if (GetOwner()->HasAuthority())
+	{
+		// If called on a server, run immediately.
+		Server_RequestMoveAction(MoveFrom, MoveTo);
+	}
+	else
+	{
+		// Otherwise, use the RPC version.
+		TInstancedStruct<FFaerieClientAction_MoveHandlerBase> MoveFromWrapper;
+		TInstancedStruct<FFaerieClientAction_MoveHandlerBase> MoveToWrapper;
+		MoveFromWrapper.InitializeAs(MoveFrom);
+		MoveToWrapper.InitializeAs(MoveTo);
+		RequestMoveAction(MoveFromWrapper, MoveToWrapper);
+	}
+}
+
 void UFaerieInventoryClient::RequestExecuteAction_Implementation(const TInstancedStruct<FFaerieClientActionBase>& Args)
 {
 	if (Args.IsValid())
 	{
-		(void)Args.Get().Server_Execute(this);
+		Server_RequestExecuteAction(Args.Get());
 	}
 }
 
 void UFaerieInventoryClient::RequestExecuteAction_Batch_Implementation(
 	const TArray<TInstancedStruct<FFaerieClientActionBase>>& Args, const EFaerieClientRequestBatchType Type)
 {
+	TArray<const FFaerieClientActionBase*> ExecuteArray;
 	for (auto&& Element : Args)
 	{
-		bool Ran = false;
-		if (Element.IsValid())
+		if (!Element.IsValid())
 		{
-			Ran = Element.Get().Server_Execute(this);
-		}
-
-		if (!Ran && Type == EFaerieClientRequestBatchType::Sequence)
-		{
-			// Sequence failed, exit.
 			return;
 		}
+		ExecuteArray.Add(Element.GetPtr());
 	}
+
+	Server_RequestExecuteAction_Batch(ExecuteArray, Type);
 }
 
 void UFaerieInventoryClient::RequestMoveAction_Implementation(
 	const TInstancedStruct<FFaerieClientAction_MoveHandlerBase>& MoveFrom,
 	const TInstancedStruct<FFaerieClientAction_MoveHandlerBase>& MoveTo)
 {
-	// Ensure client provided two valid structs.
+	// Ensure the client provided two valid structs.
 	if (!MoveFrom.IsValid() ||
 		!MoveTo.IsValid())
 	{
@@ -65,15 +120,69 @@ void UFaerieInventoryClient::RequestMoveAction_Implementation(
 		return;
 	}
 
-	// Dereference and validate the struct properties.
-	const FFaerieClientAction_MoveHandlerBase& MoveFromAction = MoveFrom.Get();
-	const FFaerieClientAction_MoveHandlerBase& MoveToAction = MoveTo.Get();
-
-	return RequestMoveAction(MoveFromAction, MoveToAction);
+	return Server_RequestMoveAction(MoveFrom.Get(), MoveTo.Get());
 }
 
-void UFaerieInventoryClient::RequestMoveAction(const FFaerieClientAction_MoveHandlerBase& MoveFrom,
-											   const FFaerieClientAction_MoveHandlerBase& MoveTo)
+bool UFaerieInventoryClient::PromptStackChoice(const FFaerieClientStackPromptArgs& Args, const FFaerieClientStackPromptCallback& Callback)
+{
+	if (StackPromptHandler.IsBound())
+	{
+		ActivePromptCallback = Callback;
+		StackPromptHandler.Execute(Args);
+		return true;
+	}
+	return false;
+}
+
+void UFaerieInventoryClient::RespondToStackPrompt(const FFaerieAddressableHandle Handle, const int32 Amount)
+{
+	if (ActivePromptCallback.IsBound())
+	{
+		FFaerieClientStackPromptResult Result;
+		Result.Client = this;
+		Result.Handle = Handle;
+		Result.Amount = Amount;
+		ActivePromptCallback.Execute(Result);
+		ActivePromptCallback.Clear();
+	}
+}
+
+void UFaerieInventoryClient::SetStackChoicePromptHandler(const FFaerieClientStackPromptHandler& Handler)
+{
+	StackPromptHandler = Handler;
+}
+
+void UFaerieInventoryClient::Server_RequestExecuteAction(const FFaerieClientActionBase& Args)
+{
+	(void)Args.Server_Execute(this);
+}
+
+void UFaerieInventoryClient::Server_RequestExecuteAction_Batch(const TArray<const FFaerieClientActionBase*>& Args,
+	const EFaerieClientRequestBatchType Type)
+{
+	switch (Type)
+	{
+	case EFaerieClientRequestBatchType::Individuals:
+		for (auto&& Element : Args)
+		{
+			(void)Element->Server_Execute(this);
+		}
+		break;
+	case EFaerieClientRequestBatchType::Sequence:
+		for (auto&& Element : Args)
+		{
+			if (!Element->Server_Execute(this))
+			{
+				// Sequence failed, exit.
+				return;
+			}
+		}
+		break;
+	}
+}
+
+void UFaerieInventoryClient::Server_RequestMoveAction(const FFaerieClientAction_MoveHandlerBase& MoveFrom,
+													  const FFaerieClientAction_MoveHandlerBase& MoveTo)
 {
 	if (!MoveFrom.IsValid(this) ||
 		!MoveTo.IsValid(this))

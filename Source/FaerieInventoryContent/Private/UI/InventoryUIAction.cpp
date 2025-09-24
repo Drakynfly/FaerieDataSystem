@@ -3,6 +3,7 @@
 #include "UI/InventoryUIAction.h"
 #include "FaerieInventoryContentLog.h"
 #include "Actions/FaerieInventoryClient.h"
+#include "Engine/GameInstance.h"
 #include "UI/InventoryContentsBase.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventoryUIAction)
@@ -33,11 +34,15 @@ UFaerieInventoryClient* UInventoryUIAction::GetFaerieClient(const UObject* Conte
 		return nullptr;
 	}
 
-	const AController* Controller = ContextObj->GetTypedOuter<AController>();
+	const AController* Controller = Cast<AController>(ContextObj);
+	if (!IsValid(Controller))
+	{
+		Controller = ContextObj->GetTypedOuter<AController>();
+	}
 
 	if (!IsValid(Controller))
 	{
-		if (const UUserWidget* OwningWidget = ContextObj->GetTypedOuter<UUserWidget>())
+		if (const UUserWidget* OwningWidget = Cast<UUserWidget>(ContextObj))
 		{
 			Controller = OwningWidget->GetOwningPlayer();
 		}

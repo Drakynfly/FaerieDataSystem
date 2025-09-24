@@ -101,6 +101,8 @@ public:
 	// For attachments that want to follow the leader pose, get their leader component.
 	USkinnedMeshComponent* GetLeaderComponent() const;
 
+	bool HasVisualForKey(FFaerieVisualKey Key) const;
+
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentVisualizer", meta = (DeterminesOutputType = "Class"))
 	UObject* GetSpawnedVisualByClass(TSubclassOf<UObject> Class, FFaerieVisualKey& Key) const;
 

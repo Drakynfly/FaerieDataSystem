@@ -30,25 +30,6 @@ void UFaerieCardTokenBase::NativeDestruct()
 
 void UFaerieCardTokenBase::OnCardRefreshed()
 {
-	PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	ItemToken = nullptr;
-
-	if (IsValid(GetTokenClass()))
-	{
-		if (auto&& OuterCard = GetTypedOuter<UFaerieCardBase>())
-		{
-			if (auto&& ItemData = OuterCard->GetItemData();
-				ItemData.IsValid())
-			{
-				if (auto&& Object = ItemData->GetItemObject())
-				{
-					ItemToken = Object->GetToken(GetTokenClass());
-				}
-			}
-		}
-	}
-	PRAGMA_ENABLE_DEPRECATION_WARNINGS
-
 	BP_Refresh();
 }
 

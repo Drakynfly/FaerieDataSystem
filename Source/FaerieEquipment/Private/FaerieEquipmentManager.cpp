@@ -12,6 +12,9 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieEquipmentManager)
 
+DECLARE_STATS_GROUP(TEXT("FaerieEquipmentManager"), STATGROUP_FaerieEquipmentManager, STATCAT_Advanced);
+DECLARE_CYCLE_STAT(TEXT("BuildPaths"), STAT_Equipment_BuildPaths, STATGROUP_FaerieEquipmentManager);
+
 UFaerieEquipmentManager::UFaerieEquipmentManager()
 {
 	PrimaryComponentTick.bCanEverTick = false;
@@ -433,34 +436,15 @@ void UFaerieEquipmentManager::ForEachSlot(Faerie::TBreakableLoop<UFaerieEquipmen
 	}
 }
 
-TArray<FFaerieStoragePath> UFaerieEquipmentManager::GetAllContainerPaths() const
+TArray<FFaerieItemContainerPath> UFaerieEquipmentManager::GetAllContainerPaths() const
 {
-	// @todo Track this function's performance, and cache the result somewhere if it's expensive and called a lot.
+	SCOPE_CYCLE_COUNTER(STAT_Equipment_BuildPaths);
 
-	TArray<FFaerieStoragePath> OutPaths;
+	TArray<FFaerieItemContainerPath> OutPaths;
 	OutPaths.Reserve(Slots.Num());
-
-	TFunction<void(UFaerieItemContainerBase*, const FFaerieStoragePath&)> BuildPaths;
-	BuildPaths = [&OutPaths, &BuildPaths](UFaerieItemContainerBase* Container, const FFaerieStoragePath& BasePath)
-	{
-		FFaerieStoragePath& NewPath = OutPaths.Add_GetRef(FFaerieStoragePath(BasePath));
-		NewPath.Containers.Add(Container);
-
-		Container->Filter().ForEachMutable(
-			[Container, &BuildPaths, &NewPath](UFaerieItem* Item)
-			{
-				TSet<UFaerieItemContainerBase*> Nested = UFaerieItemContainerToken::GetAllContainersInItem(Item);
-				for (UFaerieItemContainerBase* SubContainer : Nested)
-				{
-					BuildPaths(SubContainer, NewPath);
-				}
-			});
-	};
-
-	FFaerieStoragePath EmptyRoot;
 	for (auto&& Slot : Slots)
 	{
-		BuildPaths(Slot, EmptyRoot);
+		FFaerieItemContainerPath::BuildChildrenPaths(Slot, OutPaths);
 	}
 
 	return OutPaths;

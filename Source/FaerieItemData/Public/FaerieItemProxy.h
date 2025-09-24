@@ -47,6 +47,20 @@ public:
 #endif
 };
 
+USTRUCT(BlueprintType)
+struct FAERIEITEMDATA_API FFaerieItemSnapshot
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Faerie|ItemSnapshot")
+	const UFaerieItem* ItemObject;
+
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Faerie|ItemSnapshot")
+	int32 Copies;
+
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Faerie|ItemSnapshot")
+	TScriptInterface<const IFaerieItemOwnerInterface> Owner;
+};
 
 // This struct contains a weak pointer to a proxy of a FaerieItem somewhere. This struct should never be
 // serialized, and will not keep the proxy it points to alive.
@@ -61,7 +75,7 @@ struct FAERIEITEMDATA_API FFaerieItemProxy
 	FFaerieItemProxy(TYPE_OF_NULLPTR) {}
 
 	FFaerieItemProxy(const IFaerieItemDataProxy* Interface)
-	  : Proxy(Interface->_getUObject()) {}
+	  : Proxy(Cast<UObject>(Interface)) {}
 
 	template <Faerie::CItemDataProxy T>
 	FFaerieItemProxy(const TObjectPtr<T> Interface)

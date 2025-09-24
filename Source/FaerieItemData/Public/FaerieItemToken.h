@@ -29,9 +29,6 @@ namespace Faerie::Tags
 	FAERIEITEMDATA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(PrimaryIdentifierToken);
 }
 
-// @todo move this delegate to UFaerieItemDataLibrary after removing BP_EditToken
-DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(bool, FBlueprintTokenEdit, UFaerieItemToken*, Token);
-
 /**
  * A fragment of an inventory item, encapsulating a single feature of the item.
  */
@@ -126,10 +123,6 @@ protected:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "FaerieItemToken", meta = (DisplayName = "Get Faerie Item"))
 	const UFaerieItem* BP_GetFaerieItem() const;
-
-	/** Attempt to modify this token. Pass in a predicate that must perform the edit. */
-	UFUNCTION(BlueprintCallable, Category = "FaerieItemToken", meta = (DisplayName = "Edit Token"), meta = (DeprecatedFunction, DeprecationMessage = "Use UFaerieItemDataLibrary::EditToken"))
-	void BP_EditToken(const FBlueprintTokenEdit& Edit);
 
 	friend class UK2Node_CreateFaerieItemToken;
 	UFUNCTION(BlueprintCallable, Category = "InternalUseOnly", meta = (BlueprintInternalUseOnly = "true"))

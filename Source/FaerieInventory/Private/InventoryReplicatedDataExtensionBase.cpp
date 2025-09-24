@@ -1,6 +1,7 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "InventoryReplicatedDataExtensionBase.h"
+#include "FaerieInventoryLog.h"
 #include "FaerieItemContainerBase.h"
 #include "ItemContainerEvent.h"
 #include "GameFramework/Actor.h"
@@ -11,7 +12,9 @@
 #include "UObject/UObjectThreadContext.h"
 #endif
 
-#include "FaerieInventoryLog.h"
+#include "FaerieContainerFilter.h"
+#include "FaerieContainerFilterTypes.h"
+
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventoryReplicatedDataExtensionBase)
 
 void FFaerieReplicatedValue::PreReplicatedRemove(const FFaerieReplicatedSimMap& InArraySerializer)
@@ -31,6 +34,9 @@ void FFaerieReplicatedValue::PostReplicatedChange(const FFaerieReplicatedSimMap&
 
 void FFaerieReplicatedSimMap::RemoveValue(const FFaerieAddress Address)
 {
+	check(Address.IsValid());
+	check(WriteLock == 0);
+
 	if (Remove(Address,
 		[this](const FFaerieReplicatedValue& Entry)
 		{
@@ -45,6 +51,9 @@ void FFaerieReplicatedSimMap::RemoveValue(const FFaerieAddress Address)
 
 FInstancedStruct& FFaerieReplicatedSimMap::GetOrCreateValue(const FFaerieAddress Address)
 {
+	check(Address.IsValid());
+	check(WriteLock == 0);
+
 	// Find and return entry, if one exists
 	if (const int32 Index = IndexOf(Address);
 		Index != INDEX_NONE)
@@ -69,6 +78,9 @@ FInstancedStruct& FFaerieReplicatedSimMap::GetOrCreateValue(const FFaerieAddress
 
 void FFaerieReplicatedSimMap::SetValue(const FFaerieAddress Address, const FInstancedStruct& Data)
 {
+	check(Address.IsValid());
+	check(WriteLock == 0);
+
 	if (const int32 Index = IndexOf(Address);
 		Index != INDEX_NONE)
 	{
@@ -93,10 +105,13 @@ FFaerieReplicatedSimMap::FValueWriteScope::FValueWriteScope(const FFaerieAddress
   : Handle(Source.Entries[Source.IndexOf(Address)]),
 	Source(Source)
 {
+	Source.WriteLock++;
 }
 
 FFaerieReplicatedSimMap::FValueWriteScope::~FValueWriteScope()
 {
+	Source.WriteLock--;
+
 	// Propagate change to client
 	Source.MarkItemDirty(Handle);
 
@@ -126,6 +141,18 @@ void FFaerieReplicatedSimMap::PostDataReplicatedChange(const FFaerieReplicatedVa
 	{
 		OwningWrapper->Client_PostContentChanged(Data);
 	}
+}
+
+FFaerieReplicatedSimMap::TRangedForConstIterator FFaerieReplicatedSimMap::begin() const
+{
+	WriteLock++;
+	return TRangedForConstIterator(Entries.begin());
+}
+
+FFaerieReplicatedSimMap::TRangedForConstIterator FFaerieReplicatedSimMap::end() const
+{
+	WriteLock--;
+	return TRangedForConstIterator(Entries.end());
 }
 
 void URepDataArrayWrapper::PostInitProperties()
@@ -309,9 +336,9 @@ void UInventoryReplicatedDataExtensionBase::PostRemoval(const UFaerieItemContain
 	{
 		FFaerieReplicatedSimMap& Ref = ContainerData.Get<FFaerieReplicatedSimMap>();
 
-		auto Addresses = Container->Switchover_GetAddresses(Event.EntryTouched);
-
-		for (const FFaerieAddress Address : Addresses)
+		for (const FFaerieAddress Address : Faerie::KeyFilter(Container)
+				.Run(Faerie::FSingleKey(Event.EntryTouched))
+				.AddressRange())
 		{
 			// If the whole stack was removed, delete any data we have for the entry
 			if (!Container->Contains(Address))
@@ -329,15 +356,16 @@ FConstStructView UInventoryReplicatedDataExtensionBase::GetDataForHandle(const F
 	{
 		const FFaerieReplicatedSimMap& Ref = ContainerData.Get();
 
-		if (const FInstancedStruct* Value = Ref.Find(Handle.Address))
+		if (const FFaerieReplicatedValue* Element = Ref.Find(Handle.Address))
 		{
-			return *Value;
+			return Element->Value;
 		}
 	}
 	return FConstStructView();
 }
 
-bool UInventoryReplicatedDataExtensionBase::EditDataForHandle(const FFaerieAddressableHandle Handle, Faerie::TLoop<FStructView> Edit)
+bool UInventoryReplicatedDataExtensionBase::EditDataForHandle(const FFaerieAddressableHandle Handle,
+															  const TFunctionRef<void(FStructView)>& Edit)
 {
 	const TStructView<FFaerieReplicatedSimMap> ContainerData = FindFastArrayForContainer(Handle.Container.Get());
 	if (!ContainerData.IsValid())

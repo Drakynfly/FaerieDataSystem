@@ -2,9 +2,11 @@
 
 #pragma once
 
-#include "Actions/FaerieInventoryClient.h"
-#include "InventoryDataStructs.h"
+#include "FaerieItemContainerStructs.h"
+#include "Actions/FaerieClientActionBase.h"
 #include "GridExtensionClientActions.generated.h"
+
+class UFaerieItemStorage;
 
 USTRUCT(BlueprintType)
 struct FFaerieClientAction_MoveToGrid final : public FFaerieClientAction_MoveHandlerBase
@@ -36,7 +38,10 @@ struct FFaerieClientAction_MoveItemOnGrid final : public FFaerieClientActionBase
 	virtual bool Server_Execute(const UFaerieInventoryClient* Client) const override;
 
 	UPROPERTY(BlueprintReadWrite, Category = "MoveItemOnGrid")
-	FInventoryKeyHandle Handle;
+	TObjectPtr<UFaerieItemStorage> Storage = nullptr;
+
+	UPROPERTY(BlueprintReadWrite, Category = "MoveItemOnGrid")
+	FFaerieAddress Address;
 
 	UPROPERTY(BlueprintReadWrite, Category = "MoveItemOnGrid")
 	FIntPoint DragEnd = FIntPoint::ZeroValue;
@@ -50,7 +55,10 @@ struct FFaerieClientAction_RotateGridEntry final : public FFaerieClientActionBas
 	virtual bool Server_Execute(const UFaerieInventoryClient* Client) const override;
 
 	UPROPERTY(BlueprintReadWrite, Category = "RotateGridEntry")
-	FInventoryKeyHandle Handle;
+	TObjectPtr<UFaerieItemStorage> Storage = nullptr;
+
+	UPROPERTY(BlueprintReadWrite, Category = "RotateGridEntry")
+	FFaerieAddress Address;
 
 	// @todo should also pass a 90 degree / 180 degree parameter...
 };

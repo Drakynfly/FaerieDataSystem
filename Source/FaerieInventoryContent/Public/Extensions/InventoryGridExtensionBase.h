@@ -10,8 +10,8 @@
 using FFaerieGridSizeChangedNative = TMulticastDelegate<void(FIntPoint)>;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FFaerieGridSizeChanged, FIntPoint, NewGridSize);
 
-using FFaerieGridStackChangedNative = TMulticastDelegate<void(const FInventoryKey&, EFaerieGridEventType)>;
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FSpatialStackChanged, FInventoryKey, Key, EFaerieGridEventType, EventType);
+using FFaerieGridStackChangedNative = TMulticastDelegate<void(FFaerieAddress, EFaerieGridEventType)>;
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FSpatialStackChanged, FFaerieAddress, Address, EFaerieGridEventType, EventType);
 
 namespace Faerie
 {
@@ -76,14 +76,14 @@ protected:
 
 public:
 	// Publicly accessible actions. Only call on server.
-	virtual FInventoryKey GetKeyAt(const FIntPoint& Position) const PURE_VIRTUAL(UInventoryGridExtensionBase::GetKeyAt, return FInventoryKey(); )
+	virtual FFaerieAddress GetKeyAt(const FIntPoint& Position) const PURE_VIRTUAL(UInventoryGridExtensionBase::GetKeyAt, return FFaerieAddress(); )
 	virtual bool CanAddAtLocation(FFaerieItemStackView Stack, FIntPoint IntPoint) const PURE_VIRTUAL(UInventoryGridExtensionBase::CanAddAtLocation, return false; )
-	virtual bool AddItemToGrid(const FInventoryKey& Key, const UFaerieItem* Item) PURE_VIRTUAL(UInventoryGridExtensionBase::AddItemToGrid, return false; )
-	virtual bool MoveItem(const FInventoryKey& Key, const FIntPoint& TargetPoint) PURE_VIRTUAL(UInventoryGridExtensionBase::MoveItem, return false; )
-	virtual bool RotateItem(const FInventoryKey& Key) PURE_VIRTUAL(UInventoryGridExtensionBase::RotateItem, return false; )
+	virtual bool AddItemToGrid(FFaerieAddress Address, const UFaerieItem* Item) PURE_VIRTUAL(UInventoryGridExtensionBase::AddItemToGrid, return false; )
+	virtual bool MoveItem(FFaerieAddress Address, const FIntPoint& TargetPoint) PURE_VIRTUAL(UInventoryGridExtensionBase::MoveItem, return false; )
+	virtual bool RotateItem(FFaerieAddress Address) PURE_VIRTUAL(UInventoryGridExtensionBase::RotateItem, return false; )
 
 protected:
-	void BroadcastEvent(const FInventoryKey& Key, EFaerieGridEventType EventType);
+	void BroadcastEvent(FFaerieAddress Address, EFaerieGridEventType EventType);
 
 	UFUNCTION(/* Replication */)
 	virtual void OnRep_GridSize();
@@ -97,7 +97,7 @@ public:
 	bool IsCellOccupied(const FIntPoint& Point) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|Grid")
-	FFaerieGridPlacement GetStackPlacementData(const FInventoryKey& Key) const;
+	FFaerieGridPlacement GetStackPlacementData(FFaerieAddress Address) const;
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Faerie|Grid")
 	void SetGridSize(const FIntPoint& NewGridSize);

@@ -5,22 +5,25 @@
 #include "Algo/BinarySearch.h"
 #include "Algo/IsSorted.h"
 #include "Algo/Sort.h"
+#include "Stats/Stats.h"
+
+DECLARE_STATS_GROUP(TEXT("FaerieDataUtils"), STATGROUP_FaerieDataUtils, STATCAT_Advanced);
+DECLARE_CYCLE_STAT(TEXT("BSOA Index Of"), STAT_BSOA_IndexOf, STATGROUP_FaerieDataUtils);
 
 /**
- * This is a template base for types that wrap a struct array where the struct contains a Key and Value pair.
+ * This is a template base for types that wrap a struct array where the struct contains a Key.
  * The goal of this template is to accelerate lookups/addition/removal with binary search.
  * This is to somewhat alleviate performance concerns when using TArrays for things that should be TMaps in networked
  * situations that forbid the latter.
  * See FInventoryContent for an example of this implemented.
- * TArrayType must implement a function with the signature `TArray<TElementType>& GetArray()`, and TElementType must have two
- * members Key, and Value. The Key type must have operator< implemented.
+ * TArrayType must implement a function with the signature `TArray<TElementType>& GetArray()`, and TElementType must have a
+ * member named Key. The Key type must have operator< implemented.
  */
 template <typename TArrayType, typename TElementType>
 struct TBinarySearchOptimizedArray
 {
 	using BSOA = TBinarySearchOptimizedArray;
 	using KeyType = decltype(TElementType::Key);
-	using ValueType = decltype(TElementType::Value);
 
 private:
 	FORCEINLINE const TArray<TElementType>& GetArray_Internal() const { return const_cast<TArrayType*>(static_cast<const TArrayType*>(this))->GetArray(); }
@@ -30,49 +33,50 @@ public:
 	int32 IndexOf(const KeyType Key) const
 	{
 		checkf(IsSorted(), TEXT("Array got out of order. BinarySearch will not function. Determine why Array is not sorted!"));
+		SCOPE_CYCLE_COUNTER(STAT_BSOA_IndexOf);
 		// Search for Key in the Items. Since those do not share Type, we project by the element key.
 		return Algo::BinarySearchBy(GetArray_Internal(), Key, &TElementType::Key);
 	}
 
-	bool Contains(KeyType Key) const
+	FORCEINLINE bool Contains(KeyType Key) const
 	{
 		return IndexOf(Key) != INDEX_NONE;
 	}
 
-	const ValueType* Find(KeyType Key) const
+	const TElementType* Find(KeyType Key) const
 	{
 		const int32 Index = IndexOf(Key);
 
 		if (Index != INDEX_NONE)
 		{
-			return &GetArray_Internal()[Index].Value;
+			return &GetArray_Internal()[Index];
 		}
 		return nullptr;
 	}
 
-	const TElementType& GetElement(const KeyType Key) const
+	FORCEINLINE const TElementType& GetElement(const KeyType Key) const
 	{
 		return GetArray_Internal()[IndexOf(Key)];
 	}
 
-	ValueType& operator[](const KeyType Key)
+	FORCEINLINE TElementType& operator[](const KeyType Key)
 	{
-		return GetArray_Internal()[IndexOf(Key)].Value;
+		return GetArray_Internal()[IndexOf(Key)];
 	}
 
-	const ValueType& operator[](const KeyType Key) const
+	FORCEINLINE const TElementType& operator[](const KeyType Key) const
 	{
-		return GetArray_Internal()[IndexOf(Key)].Value;
+		return GetArray_Internal()[IndexOf(Key)];
 	}
 
-	KeyType GetKeyAt(int32 Index) const
+	FORCEINLINE KeyType GetKeyAt(int32 Index) const
 	{
-		if (!GetArray_Internal().IsValidIndex(Index))
-		{
-			return KeyType();
-		}
-
 		return GetArray_Internal()[Index].Key;
+	}
+
+	FORCEINLINE const TElementType& GetElementAt(int32 Index) const
+	{
+		return GetArray_Internal()[Index];
 	}
 
 	/**
@@ -96,13 +100,13 @@ public:
 		// Find the index of either ahead of where Key currently is, or where it should be inserted if it isn't present.
 		const int32 NextIndex = Algo::UpperBoundBy(GetArray_Internal(), Element.Key, &TElementType::Key);
 
-		if (NextIndex < GetArray_Internal().Num())
+		if (GetArray_Internal().IsValidIndex(NextIndex-1))
 		{
 			// Check if the index-1 is our key, and overwrite the data there if so.
 			if (TElementType& CurrentEntry = GetArray_Internal()[NextIndex-1];
 				CurrentEntry.Key == Element.Key)
 			{
-				CurrentEntry.Value = Element.Value;
+				CurrentEntry = Element;
 				return CurrentEntry;
 			}
 		}

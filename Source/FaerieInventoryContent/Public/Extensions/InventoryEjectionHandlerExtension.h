@@ -4,18 +4,19 @@
 
 #include "ItemContainerExtensionBase.h"
 #include "FaerieItemStack.h"
-#include "InventoryDataStructs.h"
 #include "TypedGameplayTags.h"
-#include "Actions/FaerieInventoryClient.h"
+#include "Actions/FaerieClientActionBase.h"
 
 #include "InventoryEjectionHandlerExtension.generated.h"
+
+class UFaerieItemStorage;
 
 namespace Faerie::Inventory::Tags
 {
 	FAERIEINVENTORYCONTENT_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, RemovalEject)
 }
 
-class AItemRepresentationActor;
+class AFaerieItemOwningActorBase;
 
 /**
  * An inventory extension that allows items to be removed from the inventory with the "Ejection" reason, and spawns
@@ -30,7 +31,7 @@ class FAERIEINVENTORYCONTENT_API UInventoryEjectionHandlerExtension : public UIt
 
 public:
 	//~ UItemContainerExtensionBase
-	virtual EEventExtensionResponse AllowsRemoval(const UFaerieItemContainerBase* Container, FEntryKey Key, FFaerieInventoryTag Reason) const override;
+	virtual EEventExtensionResponse AllowsRemoval(const UFaerieItemContainerBase* Container, FFaerieAddress Address, FFaerieInventoryTag Reason) const override;
 	virtual void PostRemoval(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event) override;
 	//~ UItemContainerExtensionBase
 
@@ -40,12 +41,12 @@ private:
 	void HandleNextInQueue();
 
 	void PostLoadClassToSpawn(TSharedPtr<struct FStreamableHandle> Handle);
-	void SpawnVisualizer(const TSubclassOf<AItemRepresentationActor>& Class);
+	void SpawnVisualizer(const TSubclassOf<AFaerieItemOwningActorBase>& Class);
 
 protected:
 	// Default visual actor when the item has no custom class.
 	UPROPERTY(EditAnywhere, Category = "Config")
-	TSoftClassPtr<AItemRepresentationActor> ExtensionDefaultClass;
+	TSoftClassPtr<AFaerieItemOwningActorBase> ExtensionDefaultClass;
 
 	// Component to get a transform to spawn the actor with.
 	UPROPERTY(BlueprintReadWrite, VisibleInstanceOnly, Category = "Config")

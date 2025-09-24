@@ -23,7 +23,6 @@ public class FaerieItemData : ModuleRules
             {
                 "CoreUObject",
                 "Engine",
-                "NetCore",
                 "Squirrel",
                 "Flakes",
                 "FlakesJson" // Used by FaerieItemDataLibrary

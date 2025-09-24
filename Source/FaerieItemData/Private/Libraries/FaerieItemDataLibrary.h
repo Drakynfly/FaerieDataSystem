@@ -3,10 +3,10 @@
 #pragma once
 
 #include "FaerieItemDataEnums.h"
+#include "GameplayTagContainer.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "FaerieItemDataLibrary.generated.h"
 
-class FBlueprintTokenEdit;
 struct FFaerieItemEditHandle;
 struct FFaerieItemStack;
 struct FFaerieItemStackView;
@@ -59,10 +59,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EditHandle")
 	static int32 RemoveTokensByClass(const FFaerieItemEditHandle& Handle, TSubclassOf<UFaerieItemToken> Class);
 
-	/** Attempt to modify this token. Pass in a predicate that performs the edit. */
-	// @todo remove this as well, this is to hard to enforce safe usage. Just add UFUNC setters/getters on tokens that can mutate
-	UFUNCTION(BlueprintCallable, Category = "Faerie|EditHandle")
-	static bool EditToken(const FFaerieItemEditHandle& Handle, UFaerieItemToken* Token, const FBlueprintTokenEdit& Edit);
+	// Gets all tokens of the given class
+	UFUNCTION(BlueprintCallable, Category = "Faerie|Tokens", meta = (DeterminesOutputType = Class, DynamicOutputParam = FoundTokens))
+	static void FindTokensByClass(const UFaerieItem* Item, TSubclassOf<UFaerieItemToken> Class, TArray<UFaerieItemToken*>& FoundTokens);
+
+	UFUNCTION(BlueprintCallable, Category = "Faerie|Tokens")
+	static TArray<UFaerieItemToken*> FindTokensByTag(const UFaerieItem* Item, const FGameplayTag& Tag, const bool Exact = false);
+
+	UFUNCTION(BlueprintCallable, Category = "Faerie|Tokens")
+	static TArray<UFaerieItemToken*> FindTokensByTags(const UFaerieItem* Item, const FGameplayTagContainer& Tags, const bool All = false, const bool Exact = false);
+
+	UFUNCTION(BlueprintCallable, Category = "Faerie|Tokens")
+	static TArray<UFaerieItemToken*> FindTokensByTagQuery(const UFaerieItem* Item, const FGameplayTagQuery& Query);
 
 	UFUNCTION(BlueprintPure, Category = "Faerie|ItemStack", meta = (BlueprintAutocast, CompactNodeTitle = "->"))
 	static FFaerieItemStackView StackToView(const FFaerieItemStack& Stack);

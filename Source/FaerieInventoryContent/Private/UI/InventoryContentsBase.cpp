@@ -7,7 +7,6 @@
 
 #include "FaerieItemDataComparator.h"
 #include "FaerieItemDataFilter.h"
-#include "Actions/FaerieInventoryClient.h"
 
 #include "Components/PanelWidget.h"
 #include "UI/InventoryUIActionContainer.h"
@@ -85,18 +84,21 @@ void UInventoryContentsBase::Reset()
 
 // ReSharper disable once CppMemberFunctionMayBeConst
 // Cannot be const to bind
-bool UInventoryContentsBase::ExecFilter(const FFaerieItemProxy& Entry)
+bool UInventoryContentsBase::ExecFilter(const FFaerieItemSnapshot& Entry)
 {
 	if (IsValid(ActiveFilterRule))
 	{
-		return ActiveFilterRule->Exec(Entry);
+		FFaerieItemStackView View;
+		View.Item = Entry.ItemObject;
+		View.Copies = Entry.Copies;
+		return ActiveFilterRule->Exec(View);
 	}
-	return Entry.IsValid();
+	return true;
 }
 
 // ReSharper disable once CppMemberFunctionMayBeConst
 // Cannot be const to bind
-bool UInventoryContentsBase::ExecSort(const FFaerieItemProxy& A, const FFaerieItemProxy& B)
+bool UInventoryContentsBase::ExecSort(const FFaerieItemSnapshot& A, const FFaerieItemSnapshot& B)
 {
 	if (!IsValid(ActiveSortRule)) return false;
 	return ActiveSortRule->Exec(A, B);
@@ -159,25 +161,31 @@ void UInventoryContentsBase::InitWithInventory(UFaerieItemStorage* Storage)
 	}
 }
 
-void UInventoryContentsBase::SetInventoryClient(UFaerieInventoryClient* Client)
-{
-	InventoryClient = Client;
-}
-
 void UInventoryContentsBase::AddToSortOrder(const FFaerieAddress Address, const bool WarnIfAlreadyExists)
 {
 	struct FInsertKeyPredicate
 	{
-		FInsertKeyPredicate(const Faerie::FStorageQuery& Query, const UFaerieItemStorage* Storage)
-		  : Query(Query),
-			Storage(Storage) {}
+		FInsertKeyPredicate(const Faerie::FStorageQuery& Query, UFaerieItemStorage* Storage)
+		  : Query(Query), Storage(Storage)
+		{
+			SnapA.Owner = Storage;
+			SnapB.Owner = Storage;
+		}
 
 		const Faerie::FStorageQuery& Query;
 		const UFaerieItemStorage* Storage;
+		mutable FFaerieItemSnapshot SnapA, SnapB;
 
 		bool operator()(const FFaerieAddress A, const FFaerieAddress B) const
 		{
-			const bool Result = Query.Sort.Execute(Storage->Proxy(A), Storage->Proxy(B));
+			const FFaerieItemStackView StorageA = Storage->ViewStack(A);
+			const FFaerieItemStackView StorageB = Storage->ViewStack(B);
+			SnapA.ItemObject = StorageA.Item.Get();
+			SnapA.Copies = StorageA.Copies;
+			SnapB.ItemObject = StorageB.Item.Get();
+			SnapB.Copies = StorageB.Copies;
+
+			const bool Result = Query.Sort.Execute(SnapA, SnapB);
 			return Query.InvertSort ? !Result : Result;
 		}
 	};
@@ -236,9 +244,9 @@ void UInventoryContentsBase::SetFilterByDelegate(const FBlueprintStorageFilter& 
 	Query.Filter.Unbind();
 	if (Filter.IsBound())
 	{
-		Query.Filter.BindLambda([Filter](const FFaerieItemProxy& Proxy)
+		Query.Filter.BindLambda([Filter](const FFaerieItemSnapshot& Snapshot)
 			{
-				return Filter.Execute(Proxy);
+				return Filter.Execute(Snapshot);
 			});
 	}
 

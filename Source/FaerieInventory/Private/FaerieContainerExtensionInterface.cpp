@@ -47,7 +47,7 @@ UItemContainerExtensionBase* IFaerieContainerExtensionInterface::AddExtensionByC
 		return nullptr;
 	}
 
-	UItemContainerExtensionBase* NewExtension = NewObject<UItemContainerExtensionBase>(GetExtensionGroup()->_getUObject(), ExtensionClass);
+	UItemContainerExtensionBase* NewExtension = NewObject<UItemContainerExtensionBase>(GetExtensionGroup(), ExtensionClass);
 	SET_NEW_IDENTIFIER(NewExtension, TEXTVIEW("NewExt:ContainerExtensionInterface"))
 	AddExtension(NewExtension);
 

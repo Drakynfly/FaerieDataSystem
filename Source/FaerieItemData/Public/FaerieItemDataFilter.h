@@ -3,7 +3,7 @@
 #pragma once
 
 #include "UObject/Object.h"
-#include "FaerieItemFilterTypes.h"
+#include "FaerieItemFilterEnums.h"
 #include "FaerieItemStackView.h"
 #include "FaerieItemDataFilter.generated.h"
 

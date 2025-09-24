@@ -2,11 +2,11 @@
 
 #include "Extensions/InventoryEjectionHandlerExtension.h"
 #include "FaerieInventoryContentLog.h"
-#include "FaerieItemDataStackLiteral.h"
 #include "FaerieItemStorage.h"
 #include "ItemContainerEvent.h"
+#include "Actions/FaerieInventoryClient.h"
+#include "ActorClasses/FaerieItemOwningActorBase.h"
 #include "Tokens/FaerieVisualActorClassToken.h"
-#include "Actors/ItemRepresentationActor.h"
 #include "Engine/AssetManager.h"
 #include "Engine/World.h"
 
@@ -18,7 +18,7 @@ namespace Faerie::Inventory::Tags
 		"Fae.Inventory.Removal.Ejection", "Remove an item and eject it from the inventory as a pickup/visual")
 }
 
-EEventExtensionResponse UInventoryEjectionHandlerExtension::AllowsRemoval(const UFaerieItemContainerBase* Container, const FEntryKey Key,
+EEventExtensionResponse UInventoryEjectionHandlerExtension::AllowsRemoval(const UFaerieItemContainerBase* Container, const FFaerieAddress Address,
                                                                           const FFaerieInventoryTag Reason) const
 {
 	if (Reason == Faerie::Inventory::Tags::RemovalEject)
@@ -39,7 +39,6 @@ void UInventoryEjectionHandlerExtension::PostRemoval(const UFaerieItemContainerB
 
 	if (Event.Item->CanMutate())
 	{
-		// @todo figure out handling ejection of stacks
 		check(Event.Amount == 1);
 	}
 
@@ -92,7 +91,7 @@ void UInventoryEjectionHandlerExtension::PostLoadClassToSpawn(TSharedPtr<struct 
 {
 	IsStreaming = false;
 
-	const TSubclassOf<AItemRepresentationActor> ActorClass = Handle->GetLoadedAsset<UClass>();
+	const TSubclassOf<AFaerieItemOwningActorBase> ActorClass = Handle->GetLoadedAsset<UClass>();
 
 	if (!IsValid(ActorClass))
 	{
@@ -109,7 +108,7 @@ void UInventoryEjectionHandlerExtension::PostLoadClassToSpawn(TSharedPtr<struct 
 	SpawnVisualizer(ActorClass);
 }
 
-void UInventoryEjectionHandlerExtension::SpawnVisualizer(const TSubclassOf<AItemRepresentationActor>& Class)
+void UInventoryEjectionHandlerExtension::SpawnVisualizer(const TSubclassOf<AFaerieItemOwningActorBase>& Class)
 {
 	const AActor* OwningActor = GetTypedOuter<AActor>();
 
@@ -123,14 +122,11 @@ void UInventoryEjectionHandlerExtension::SpawnVisualizer(const TSubclassOf<AItem
 	SpawnTransform = SpawnTransform.GetRelativeTransform(RelativeSpawningTransform);
 	FActorSpawnParameters Args;
 	Args.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-	AItemRepresentationActor* NewPickup = OwningActor->GetWorld()->SpawnActor<AItemRepresentationActor>(Class, SpawnTransform, Args);
 
-	// @todo REPLICATION: Literals do not replicate! Enforce usage of a Representation actor that can TakeOwnership of the stack!
-	if (IsValid(NewPickup))
+	if (AFaerieItemOwningActorBase* NewPickup = OwningActor->GetWorld()->SpawnActor<AFaerieItemOwningActorBase>(Class, SpawnTransform, Args);
+		IsValid(NewPickup))
 	{
-		UFaerieItemDataStackLiteral* FaerieItemStack = NewObject<UFaerieItemDataStackLiteral>(NewPickup);
-		FaerieItemStack->SetValue(PendingEjectionQueue[0]);
-		NewPickup->SetSourceProxy(FaerieItemStack);
+		NewPickup->Possess(PendingEjectionQueue[0]);
 	}
 
 	PendingEjectionQueue.RemoveAt(0);
@@ -143,7 +139,7 @@ bool FFaerieClientAction_EjectEntry::Server_Execute(const UFaerieInventoryClient
 	if (!ItemStorage.IsValid()) return false;
 	if (!Client->CanAccessContainer(ItemStorage.Get(), StaticStruct())) return false;
 
-	return ItemStorage->RemoveStack(FInventoryKey(Address), Faerie::Inventory::Tags::RemovalEject, Amount);
+	return ItemStorage->RemoveStack(Address, Faerie::Inventory::Tags::RemovalEject, Amount);
 }
 
 bool FFaerieClientAction_EjectViaRelease::Server_Execute(const UFaerieInventoryClient* Client) const

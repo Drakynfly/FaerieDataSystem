@@ -63,6 +63,9 @@ private:
 	// ReSharper disable once CppUE4ProbableMemoryIssuesWithUObject
 	TObjectPtr<URepDataArrayWrapper> OwningWrapper;
 
+	// Is writing to Entries locked? Enabled while ItemHandles are active.
+	mutable uint32 WriteLock = 0;
+
 public:
 	TConstArrayView<FFaerieReplicatedValue> GetView() const { return Entries; }
 
@@ -108,8 +111,8 @@ public:
 
 	// Only const iteration is allowed.
 	using TRangedForConstIterator = TArray<FFaerieReplicatedValue>::RangedForConstIteratorType;
-	FORCEINLINE TRangedForConstIterator begin() const { return TRangedForConstIterator(Entries.begin()); }
-	FORCEINLINE TRangedForConstIterator end() const   { return TRangedForConstIterator(Entries.end());   }
+	TRangedForConstIterator begin() const;
+	TRangedForConstIterator end() const;
 };
 
 template<>
@@ -188,7 +191,7 @@ private:
 protected:
 	FConstStructView GetDataForHandle(FFaerieAddressableHandle Handle) const;
 
-	bool EditDataForHandle(FFaerieAddressableHandle Handle, Faerie::TLoop<FStructView> Edit);
+	bool EditDataForHandle(FFaerieAddressableHandle Handle, const TFunctionRef<void(FStructView)>& Edit);
 
 private:
 	TStructView<FFaerieReplicatedSimMap> FindFastArrayForContainer(const UFaerieItemContainerBase* Container);

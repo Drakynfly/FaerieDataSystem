@@ -6,13 +6,21 @@
 #include "FaerieContainerExtensionInterface.h"
 #include "FaerieItemContainerStructs.h"
 #include "FaerieItemOwnerInterface.h"
+#include "ItemContainerEvent.h"
 #include "StructUtils/StructView.h"
 #include "FaerieItemContainerBase.generated.h"
 
+namespace Faerie
+{
+	class IContainerIterator;
+	class IContainerFilter;
+}
+
+class UFaerieItemContainerBase;
 class UItemContainerExtensionBase;
 
 UCLASS()
-class UFaerieItemContainerExtensionData : public UObject
+class FAERIEINVENTORY_API UFaerieItemContainerExtensionData : public UObject
 {
 	GENERATED_BODY()
 
@@ -20,37 +28,6 @@ public:
 	UPROPERTY()
 	TMap<FGuid, FInstancedStruct> Data;
 };
-
-namespace Faerie
-{
-	class FAERIEINVENTORY_API FItemContainerFilter : FNoncopyable
-	{
-	public:
-		FItemContainerFilter(const UFaerieItemContainerBase* Container)
-		  : Container(Container) {}
-
-		// Iterate through only the mutable items in this filter
-		template <typename T>
-		void ForEachMutable(T Func) const
-		{
-			if constexpr (TIsBreakable<decltype(Func)>::Value)
-			{
-				ForEachMutable_WithBreak(Func);
-			}
-			else
-			{
-				ForEachMutable_NoBreak(Func);
-			}
-		}
-
-	private:
-		void ForEachMutable_NoBreak(TLoop<UFaerieItem*> Func) const;
-		void ForEachMutable_WithBreak(TBreakableLoop<UFaerieItem*> Func) const;
-
-	private:
-		const UFaerieItemContainerBase* Container;
-	};
-}
 
 /**
  * Base class for objects that store FaerieItems
@@ -78,7 +55,7 @@ protected:
 	virtual void OnItemMutated(const UFaerieItem* Item, const UFaerieItemToken* Token, FGameplayTag EditTag) override;
 	//~ IFaerieItemOwnerInterface
 
-	public:
+public:
 	//~ IFaerieContainerExtensionInterface
 	virtual UItemContainerExtensionGroup* GetExtensionGroup() const override final;
 	virtual bool AddExtension(UItemContainerExtensionBase* Extension) override;
@@ -110,22 +87,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainer", DisplayName = "View (deprecated)")
 	virtual FFaerieItemStackView View(FEntryKey Key) const PURE_VIRTUAL(UFaerieItemContainerBase::View, return FFaerieItemStackView(); )
 
-	// Creates or retrieves a proxy for an entry
-	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainer", DisplayName = "Proxy (deprecated)")
-	virtual FFaerieItemProxy Proxy(FEntryKey Key) const PURE_VIRTUAL(UFaerieItemContainerBase::Proxy, return nullptr; )
-
 	// A more efficient overload of Release if we already know the Key.
 	virtual FFaerieItemStack Release(FEntryKey Key, int32 Copies) PURE_VIRTUAL(UFaerieItemContainerBase::Release, return FFaerieItemStack(); )
-
-	// Iterate over and perform a task for each key.
-	virtual void ForEachKey(Faerie::TLoop<FEntryKey> Func) const PURE_VIRTUAL(UFaerieItemContainerBase::ForEachKey, ; )
 
 	// Get the stack for a key.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainer", DisplayName = "Get Stack (deprecated)")
 	virtual int32 GetStack(FEntryKey Key) const PURE_VIRTUAL(UFaerieItemContainerBase::GetStack, return 0; )
-
-	// Temporary function while switching over to new API. Converts am entry key to addresses.
-	virtual TArray<FFaerieAddress> Switchover_GetAddresses(FEntryKey Key) const PURE_VIRTUAL(UFaerieItemContainerBase::Switchover_GetAddresses, return {}; )
 
 
 	/**------------------------------*/
@@ -135,7 +102,7 @@ public:
 	// Note: This is the new api. FFaerieAddress will eventually replace public usage of FEntryKey.
 
 public:
-	// Is this a valid address in this container.
+	// Is this a valid address in this container?
 	virtual bool Contains(FFaerieAddress Address) const PURE_VIRTUAL(UFaerieItemContainerBase::Contains, return false; )
 
 	// Get the total number of copies keyed to an address.
@@ -148,19 +115,15 @@ public:
 	// Creates or retrieves a proxy for an entry
 	virtual FFaerieItemProxy Proxy(FFaerieAddress Address) const PURE_VIRTUAL(UFaerieItemContainerBase::Proxy, return FFaerieItemProxy(); )
 
-	// A more efficient overload of Release if we already know the Key.
+	// A more efficient overload of Release if we already know the address.
 	virtual FFaerieItemStack Release(FFaerieAddress Address, int32 Copies) PURE_VIRTUAL(UFaerieItemContainerBase::Release, return FFaerieItemStack(); )
 
-	// Iterate over and perform a task for each address.
-	virtual void ForEachAddress(Faerie::TLoop<FFaerieAddress> Func) const PURE_VIRTUAL(UFaerieItemContainerBase::ForEachAddress, ; )
+	// Create an iterator for the specific implementation of this container.
+	virtual TUniquePtr<Faerie::IContainerIterator> CreateIterator() const;
+	virtual TUniquePtr<Faerie::IContainerFilter> CreateFilter(bool FilterByAddresses) const;
 
-	// Iterate over and perform a task for each item instance.
-	// Similar behavior to ForEachAddress, except it is guaranteed to only run once per instance.
-	virtual void ForEachItem(Faerie::TLoop<const UFaerieItem*> Func) const PURE_VIRTUAL(UFaerieItemContainerBase::ForEachItem, ; )
-
-	Faerie::FItemContainerFilter Filter() const;
-
-protected: // Blueprint versions (temp, until Old Blueprint versions are removed)
+protected:
+	// Blueprint versions (temp, until Old Blueprint versions are removed)
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainer", DisplayName = "Contains")
 	bool Contains_Address(const FFaerieAddress Address) const { return Contains(Address); }
 

@@ -25,7 +25,7 @@ bool UFaerieItemConsumableBase::TryConsume(const UFaerieItem* Item, AActor* Cons
 		IsValid(Mutable))
 	{
 		// While we have confirmed the Item is mutable, check for Uses, and try to take one.
-		UFaerieItemUsesToken* Uses = Mutable->GetEditableToken<UFaerieItemUsesToken>();
+		UFaerieItemUsesToken* Uses = Mutable->GetMutableToken<UFaerieItemUsesToken>();
 		if (IsValid(Uses))
 		{
 			// If we don't have any uses, we cannot run the consume logic

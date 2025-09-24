@@ -15,7 +15,9 @@
 #include "Providers/FlakesBinarySerializer.h"
 #include "UObject/ReferencerFinder.h"
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FaerieItemSerializationTests, "DefaultNamespace.FaerieItemSerializationTests", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FaerieItemSerializationTests,
+								 "FDS.FaerieItemSerializationTests",
+								 EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FaerieItemSerializationTests::RunTest(const FString& Parameters)
 {

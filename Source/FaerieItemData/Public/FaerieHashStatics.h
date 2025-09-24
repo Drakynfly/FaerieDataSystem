@@ -4,12 +4,12 @@
 
 #include "FaerieHash.h"
 
-class UFaerieItem;
-
-namespace Faerie
+namespace Faerie::Token
 {
-	class FTokenFilter;
+	class ITokenFilter;
 }
+
+class UFaerieItem;
 
 namespace Faerie::Hash
 {
@@ -32,6 +32,6 @@ namespace Faerie::Hash
 	// A simple HashFunction that hashes the name of an item by its InfoToken
 	FAERIEITEMDATA_API [[nodiscard]] uint32 HashItemByName(const UFaerieItem* Item);
 
-	// A simple HashFunction that hashes the name of an item by its InfoToken
-	FAERIEITEMDATA_API [[nodiscard]] uint32 HashItemByTokens(FTokenFilter& Filter);
+	// A HashFunction that hashes the name of an item a set of tokens
+	FAERIEITEMDATA_API [[nodiscard]] uint32 HashItemByTokens(const Token::ITokenFilter& Filter);
 }

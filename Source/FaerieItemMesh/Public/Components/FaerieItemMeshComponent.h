@@ -14,10 +14,10 @@ namespace Faerie::Ed
 	struct FItemPreviewSceneData;
 }
 
-class UMeshComponent;
-class UFaerieMeshTokenBase;
-
 class UFaerieItemMeshComponent;
+class UFaerieMeshTokenBase;
+class UMeshComponent;
+
 namespace Faerie
 {
 	using FOnMeshRebuiltEvent = TMulticastDelegate<void(UFaerieItemMeshComponent*)>;

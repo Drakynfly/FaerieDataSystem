@@ -51,9 +51,4 @@ protected:
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemCardToken")
 	UFaerieCardBase* GetOwningCard() const;
-
-protected:
-	UE_DEPRECATED(5.4, "Use GetItemToken/GetItemTokenChecked instead.")
-	UPROPERTY(BlueprintReadOnly, Category = "ItemCardToken")
-	TObjectPtr<const UFaerieItemToken> ItemToken;
 };

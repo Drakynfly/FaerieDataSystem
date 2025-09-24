@@ -2,6 +2,7 @@
 
 #include "Actions/GridExtensionClientActions.h"
 #include "FaerieItemStorage.h"
+#include "Actions/FaerieInventoryClient.h"
 #include "Extensions/InventoryGridExtensionBase.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(GridExtensionClientActions)
@@ -31,16 +32,17 @@ bool FFaerieClientAction_MoveToGrid::Possess(const FFaerieItemStack& Stack) cons
 	check(GridExtension);
 
 	// Must be a new stack, since we intend to manually place it in the grid.
-	const FLoggedInventoryEvent Event = Storage->AddItemStackWithLog(Stack, EFaerieStorageAddStackBehavior::OnlyNewStacks);
-	if (!Event.Event.Success)
+	Faerie::Inventory::FEventLog Log;
+	Storage->AddItemStack(Stack, EFaerieStorageAddStackBehavior::OnlyNewStacks, Log);
+	if (!Log.Success)
 	{
 		return false;
 	}
 
-	const FInventoryKey TargetKey(Event.Event.EntryTouched, Event.Event.StackKeys.Last());
+	const FFaerieAddress TargetAddress = UFaerieItemStorage::FStorageKey(Log.EntryTouched, Log.StackKeys.Last()).ToAddress();
 
 	// Finally, move item to the cell client requested.
-	return GridExtension->MoveItem(TargetKey, Position);
+	return GridExtension->MoveItem(TargetAddress, Position);
 }
 
 bool FFaerieClientAction_MoveToGrid::View(FFaerieItemStackView& View) const
@@ -61,8 +63,8 @@ bool FFaerieClientAction_MoveToGrid::Release(FFaerieItemStack& Stack) const
 	auto&& GridExtension = GetExtension<UInventoryGridExtensionBase>(Storage, true);
 	check(GridExtension);
 
-	const FInventoryKey Key = GridExtension->GetKeyAt(Position);
-	return Storage->TakeStack(Key, Stack, Faerie::Inventory::Tags::RemovalMoving, Faerie::ItemData::UnlimitedStack);
+	const FFaerieAddress Address = GridExtension->GetKeyAt(Position);
+	return Storage->TakeStack(Address, Stack, Faerie::Inventory::Tags::RemovalMoving, Faerie::ItemData::UnlimitedStack);
 }
 
 bool FFaerieClientAction_MoveToGrid::IsSwap() const
@@ -76,12 +78,12 @@ bool FFaerieClientAction_MoveToGrid::IsSwap() const
 
 bool FFaerieClientAction_MoveItemOnGrid::Server_Execute(const UFaerieInventoryClient* Client) const
 {
-	if (!Handle.ItemStorage.IsValid()) return false;
-	if (!Client->CanAccessContainer(Handle.ItemStorage.Get(), StaticStruct())) return false;
+	if (!IsValid(Storage)) return false;
+	if (!Client->CanAccessContainer(Storage, StaticStruct())) return false;
 
-	if (auto&& GridExtension = GetExtension<UInventoryGridExtensionBase>(Handle.ItemStorage.Get(), true))
+	if (auto&& GridExtension = GetExtension<UInventoryGridExtensionBase>(Storage, true))
 	{
-		return GridExtension->MoveItem(Handle.Key, DragEnd);
+		return GridExtension->MoveItem(Address, DragEnd);
 	}
 
 	return false;
@@ -89,12 +91,12 @@ bool FFaerieClientAction_MoveItemOnGrid::Server_Execute(const UFaerieInventoryCl
 
 bool FFaerieClientAction_RotateGridEntry::Server_Execute(const UFaerieInventoryClient* Client) const
 {
-	if (!Handle.ItemStorage.IsValid()) return false;
-	if (!Client->CanAccessContainer(Handle.ItemStorage.Get(), StaticStruct())) return false;
+	if (!IsValid(Storage)) return false;
+	if (!Client->CanAccessContainer(Storage, StaticStruct())) return false;
 
-	if (auto&& GridExtension = GetExtension<UInventoryGridExtensionBase>(Handle.ItemStorage.Get(), true))
+	if (auto&& GridExtension = GetExtension<UInventoryGridExtensionBase>(Storage, true))
 	{
-		return GridExtension->RotateItem(Handle.Key);
+		return GridExtension->RotateItem(Address);
 	}
 
 	return false;

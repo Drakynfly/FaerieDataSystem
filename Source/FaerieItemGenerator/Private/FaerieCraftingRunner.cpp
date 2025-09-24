@@ -137,7 +137,7 @@ namespace Faerie
 				// If the item can be used as a resource multiple times.
 				if (Item->IsInstanceMutable())
 				{
-					if (auto&& Uses = Item->GetEditableToken<UFaerieItemUsesToken>())
+					if (auto&& Uses = Item->GetMutableToken<UFaerieItemUsesToken>())
 					{
 						RemovedUse = Uses->RemoveUses(1);
 					}

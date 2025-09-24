@@ -11,24 +11,22 @@ void UInventoryItemLimitExtension::InitializeExtension(const UFaerieItemContaine
 {
 	if (!ensure(IsValid(Container))) return;
 
-	Container->ForEachKey(
-		[this, Container](const FEntryKey Key)
-		{
-			UpdateCacheForEntry(Container, Key);
-		});
+	for (const FEntryKey Key : Faerie::KeyRange(Container))
+	{
+		UpdateCacheForEntry(Container, Key);
+	}
 }
 
 void UInventoryItemLimitExtension::DeinitializeExtension(const UFaerieItemContainerBase* Container)
 {
 	if (!ensure(IsValid(Container))) return;
 
-	Container->ForEachKey(
-		[this](const FEntryKey Key)
-		{
-			int32 Value = 0;
-			EntryAmountCache.RemoveAndCopyValue(Key, Value);
-			CurrentTotalItemCopies -= Value;
-		});
+	for (const FEntryKey Key : Faerie::KeyRange(Container))
+	{
+		int32 Value = 0;
+		EntryAmountCache.RemoveAndCopyValue(Key, Value);
+		CurrentTotalItemCopies -= Value;
+	}
 }
 
 EEventExtensionResponse UInventoryItemLimitExtension::AllowsAddition(const UFaerieItemContainerBase*,

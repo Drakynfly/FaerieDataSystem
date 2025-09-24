@@ -2,15 +2,15 @@
 
 #pragma once
 
+#include "InventoryUIAction.h"
+#include "Templates/SubclassOf.h"
 #include "UObject/Object.h"
 #include "InventoryUIActionContainer.generated.h"
-
-class UInventoryUIAction;
 
 /**
  * Contains an Array of UI actions.
  */
-UCLASS(BlueprintType)
+UCLASS(BlueprintType, EditInlineNew)
 class FAERIEINVENTORYCONTENT_API UInventoryUIActionContainer : public UObject
 {
 	GENERATED_BODY()
@@ -45,11 +45,11 @@ public:
 
 protected:
 	// Actions that run on the CDO
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category = "UIActionContainer")
 	TSet<TSubclassOf<UInventoryUIAction>> ActionClasses;
 
 	// Actions that run on an instance
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Instanced, Category = "UIActionContainer")
 	TArray<TObjectPtr<UInventoryUIAction>> ActionInstances;
 
 	UPROPERTY()

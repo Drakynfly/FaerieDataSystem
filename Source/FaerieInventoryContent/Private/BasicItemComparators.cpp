@@ -6,12 +6,10 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(BasicItemComparators)
 
-bool UFaerieLexicographicNameComparator::Exec(const FFaerieItemProxy A, const FFaerieItemProxy B) const
+bool UFaerieLexicographicNameComparator::Exec(const FFaerieItemSnapshot& A, const FFaerieItemSnapshot& B) const
 {
-	if (!A.IsValid() || !B.IsValid()) return false;
-
-	const UFaerieInfoToken* InfoA = A->GetItemObject()->GetToken<UFaerieInfoToken>();
-	const UFaerieInfoToken* InfoB = B->GetItemObject()->GetToken<UFaerieInfoToken>();
+	const UFaerieInfoToken* InfoA = A.ItemObject->GetToken<UFaerieInfoToken>();
+	const UFaerieInfoToken* InfoB = B.ItemObject->GetToken<UFaerieInfoToken>();
 
 	if (IsValid(InfoA) && IsValid(InfoB))
 	{
@@ -21,7 +19,7 @@ bool UFaerieLexicographicNameComparator::Exec(const FFaerieItemProxy A, const FF
 	return false;
 }
 
-bool UFaerieDateModifiedComparator::Exec(const FFaerieItemProxy A, const FFaerieItemProxy B) const
+bool UFaerieDateModifiedComparator::Exec(const FFaerieItemSnapshot& A, const FFaerieItemSnapshot& B) const
 {
-	return A->GetItemObject()->GetLastModified() < B->GetItemObject()->GetLastModified();
+	return A.ItemObject->GetLastModified() < B.ItemObject->GetLastModified();
 }

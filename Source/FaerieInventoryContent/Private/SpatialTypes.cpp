@@ -7,6 +7,8 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(SpatialTypes)
 
+FFaerieGridShape FFaerieGridShape::Square1(TArray<FIntPoint>{0, 0});
+
 FFaerieGridShape FFaerieGridShape::MakeSquare(const int32 Size)
 {
 	return MakeRect(Size, Size);
@@ -24,6 +26,11 @@ FFaerieGridShape FFaerieGridShape::MakeRect(const int32 Height, const int32 Widt
 		}
 	}
 	return OutShape;
+}
+
+bool FFaerieGridShape::IsValid() const
+{
+	return !Points.IsEmpty();
 }
 
 FIntPoint FFaerieGridShape::GetSize() const
@@ -431,6 +438,11 @@ bool operator==(const FFaerieGridShape& Lhs, const FFaerieGridShape& Rhs)
 
 // @todo refactor these into templates!
 
+bool FFaerieGridShapeView::IsValid() const
+{
+	return !Points.IsEmpty();
+}
+
 FIntPoint FFaerieGridShapeView::GetSize() const
 {
 	if (Points.IsEmpty())
@@ -708,6 +720,11 @@ bool operator==(const FFaerieGridShapeView& Lhs, const FFaerieGridShapeView& Rhs
 	}
 
 	return true;
+}
+
+bool FFaerieGridShapeConstView::IsValid() const
+{
+	return !Points.IsEmpty();
 }
 
 FIntPoint FFaerieGridShapeConstView::GetSize() const

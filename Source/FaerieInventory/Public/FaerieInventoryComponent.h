@@ -3,12 +3,12 @@
 #pragma once
 
 #include "FaerieContainerExtensionInterface.h"
-#include "InventoryDataStructs.h"
 #include "Components/ActorComponent.h"
 
 #include "FaerieInventoryComponent.generated.h"
 
 enum class EFaerieAddressEventType : uint8;
+struct FFaerieAddress;
 class UItemContainerExtensionGroup;
 class UItemContainerExtensionBase;
 class UFaerieItemStorage;

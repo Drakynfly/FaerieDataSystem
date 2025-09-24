@@ -21,7 +21,7 @@ namespace Faerie::Inventory::Tags
 }
 
 EEventExtensionResponse UInventoryMetadataExtension::AllowsRemoval(const UFaerieItemContainerBase* Container,
-	const FEntryKey Key, const FFaerieInventoryTag Reason) const
+	const FFaerieAddress Address, const FFaerieInventoryTag Reason) const
 {
 	// Tags that always deny removal.
 	static FGameplayTagContainer RemovalDenyingTags = FGameplayTagContainer::CreateFromArray(
@@ -44,14 +44,9 @@ EEventExtensionResponse UInventoryMetadataExtension::AllowsRemoval(const UFaerie
 		ThisEventTags.AddTag(*DenialTag);
 	}
 
-	// @todo Address switchover: Fix this
-
-	auto Addresses = Container->Switchover_GetAddresses(Key);
-	if (Addresses.IsEmpty()) return EEventExtensionResponse::Disallowed;
-
 	FFaerieAddressableHandle Handle;
 	Handle.Container = ConstCast(ObjectPtrWrap(Container));
-	Handle.Address = Addresses[0];
+	Handle.Address = Address;
 
 	if (const FConstStructView DataView = GetDataForHandle(Handle);
 		DataView.IsValid())

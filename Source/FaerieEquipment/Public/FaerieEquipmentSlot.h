@@ -41,11 +41,9 @@ public:
 	virtual FInstancedStruct MakeSaveData(TMap<FGuid, FInstancedStruct>& ExtensionData) const override;
 	virtual void LoadSaveData(FConstStructView ItemData, UFaerieItemContainerExtensionData* ExtensionData) override;
 	virtual bool Contains(FEntryKey Key) const override;
-	virtual void ForEachKey(Faerie::TLoop<FEntryKey> Func) const override;
 
 private:
 	virtual FFaerieItemStackView View(FEntryKey Key) const override;
-	virtual FFaerieItemProxy Proxy(FEntryKey Key) const override;
 	virtual FFaerieItemStack Release(FEntryKey Key, int32 Copies) override;
 	virtual int32 GetStack(FEntryKey Key) const override;
 
@@ -58,10 +56,10 @@ private:
 	virtual FFaerieItemStackView ViewStack(FFaerieAddress Address) const override;
 	virtual FFaerieItemProxy Proxy(FFaerieAddress Address) const override;
 	virtual FFaerieItemStack Release(FFaerieAddress Address, int32 Copies) override;
-	virtual TArray<FFaerieAddress> Switchover_GetAddresses(FEntryKey Key) const override;
 
-	virtual void ForEachAddress(Faerie::TLoop<FFaerieAddress> Func) const override;
-	virtual void ForEachItem(Faerie::TLoop<const UFaerieItem*> Func) const override;
+public:
+	virtual TUniquePtr<Faerie::IContainerIterator> CreateIterator() const override;
+	virtual TUniquePtr<Faerie::IContainerFilter> CreateFilter(bool FilterByAddresses) const override;
 
 public:
 	FFaerieItemStackView View() const;

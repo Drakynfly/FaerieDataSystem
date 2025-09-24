@@ -4,11 +4,9 @@
 
 #include "FaerieItemDataConcepts.h"
 #include "FaerieItemDataEnums.h"
-#include "LoopUtils.h"
 #include "GameplayTagContainer.h"
 #include "NativeGameplayTags.h"
 #include "NetSupportedObject.h"
-#include "TypeCastingUtils.h"
 #include "Templates/SubclassOf.h"
 
 #include "FaerieItem.generated.h"
@@ -18,51 +16,17 @@ class UFaerieItemToken;
 
 namespace Faerie
 {
+	namespace Token::Private
+	{
+		class FIteratorAccess;
+	}
+
 	namespace Tags
 	{
 		FAERIEITEMDATA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TokenAdd)
 		FAERIEITEMDATA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TokenRemove)
 		FAERIEITEMDATA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TokenGenericPropertyEdit)
 	}
-
-	class FTokenFilter : FNoncopyable
-	{
-		friend UFaerieItem;
-
-		FTokenFilter(const TArray<TObjectPtr<UFaerieItemToken>>& Tokens)
-		  : Tokens(Tokens) {}
-
-	public:
-		template<CItemToken T>
-		FTokenFilter& ByClass()
-		{
-			return ByClass(T::StaticClass());
-		}
-
-		FAERIEITEMDATA_API FTokenFilter& ByClass(const TSubclassOf<UFaerieItemToken>& Class);
-
-		FAERIEITEMDATA_API FTokenFilter& ByTag(const FGameplayTag& Tag, const bool Exact = false);
-
-		FAERIEITEMDATA_API FTokenFilter& ByTags(const FGameplayTagContainer& Tags, const bool All = false, const bool Exact = false);
-
-		FAERIEITEMDATA_API FTokenFilter& ByTagQuery(const FGameplayTagQuery& Query);
-
-		// Iterates over the filtered tokens. Return true in the delegate to continue iterating.
-		FAERIEITEMDATA_API FTokenFilter& ForEach(TBreakableLoop<const TObjectPtr<UFaerieItemToken>&> Iter);
-
-		FAERIEITEMDATA_API int32 Num() const { return Tokens.Num(); }
-
-		// Resolve into the final token array, but cast into an array of const pointers to prevent mutable pointers leaking out of a const API
-		FAERIEITEMDATA_API const TArray<const TObjectPtr<UFaerieItemToken>>& operator*() const
-		{
-			return *reinterpret_cast<const TArray<const TObjectPtr<UFaerieItemToken>>*>(&Tokens);
-		}
-
-	private:
-		const TArray<TObjectPtr<UFaerieItemToken>>& BlueprintOnlyAccess() { return Tokens; }
-
-		TArray<TObjectPtr<UFaerieItemToken>> Tokens;
-	};
 
 	using FNotifyOwnerOfSelfMutation = TDelegate<void(const UFaerieItem*, const UFaerieItemToken*, FGameplayTag)>;
 }
@@ -77,39 +41,16 @@ class FAERIEITEMDATA_API UFaerieItem : public UNetSupportedObject
 
 	friend UFaerieItemToken;
 	friend class UFaerieItemAsset;
+	friend Faerie::Token::Private::FIteratorAccess;
 
 public:
 	//~ Begin UObject interface
+	virtual void PostInitProperties() override;
 	virtual void PreSave(FObjectPreSaveContext SaveContext) override;
 	virtual void PostLoad() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void GetReplicatedCustomConditionState(FCustomPropertyConditionState& OutActiveState) const override;
 	//~ Emd UObject interface
-
-	// Iterates over each contained token. Return true in the delegate to continue iterating.
-	void ForEachToken(Faerie::TBreakableLoop<const TObjectPtr<	  UFaerieItemToken>&> Iter);
-	void ForEachToken(Faerie::TBreakableLoop<const TObjectPtr<const UFaerieItemToken>&> Iter) const;
-
-	// Iterates over each contained token. Return true in the delegate to continue iterating.
-	void ForEachTokenOfClass(Faerie::TBreakableLoop<const TObjectPtr<	   UFaerieItemToken>&> Iter, const TSubclassOf<UFaerieItemToken>& Class);
-	void ForEachTokenOfClass(Faerie::TBreakableLoop<const TObjectPtr<const UFaerieItemToken>&> Iter, const TSubclassOf<UFaerieItemToken>& Class) const;
-
-	// Iterates over each contained token. Return true in the delegate to continue iterating.
-	template <Faerie::CItemToken T>
-	void ForEachToken(Faerie::TBreakableLoop<const TObjectPtr<T>&> Iter)
-	{
-		ForEachTokenOfClass(
-			reinterpret_cast<const TFunctionRef<Faerie::ELoopControl(const TObjectPtr<UFaerieItemToken>&)>&>(Iter)
-			, T::StaticClass());
-	}
-
-	template <Faerie::CItemToken T>
-	void ForEachToken(Faerie::TBreakableLoop<const TObjectPtr<const T>&> Iter) const
-	{
-		ForEachTokenOfClass(
-			reinterpret_cast<const TFunctionRef<Faerie::ELoopControl(const TObjectPtr<const UFaerieItemToken>&)>&>(Iter)
-			, T::StaticClass());
-	}
 
 	// Creates a new faerie item object with the given tokens. These are instance-mutable by default.
 	static UFaerieItem* CreateNewInstance(TConstArrayView<UFaerieItemToken*> Tokens, EFaerieItemInstancingMutability Mutability = EFaerieItemInstancingMutability::Automatic);
@@ -120,40 +61,31 @@ public:
 	// Creates a new faerie item object using this instance as a template. Duplicates are instance-mutable by default.
 	UFaerieItem* CreateDuplicate(EFaerieItemInstancingMutability Mutability = EFaerieItemInstancingMutability::Automatic) const;
 
+	// Gets a view of all tokens in this item.
 	TConstArrayView<TObjectPtr<UFaerieItemToken>> GetTokens() const { return Tokens; }
 
+	// Gets the token at a specified index. Low-level access for when you know what you are doing.
+	const UFaerieItemToken* GetTokenAtIndex(int32 Index) const;
+
+	// Gets the first token of the specified class.
 	const UFaerieItemToken* GetToken(const TSubclassOf<UFaerieItemToken>& Class) const;
-	TArray<const UFaerieItemToken*> GetTokens(const TSubclassOf<UFaerieItemToken>& Class) const;
 
-	// @todo Bad Name: this doesn't filter tokens by their mutability. If just returns all tokens if we are mutable.
-	UFaerieItemToken* GetMutableToken(const TSubclassOf<UFaerieItemToken>& Class);
-	TArray<UFaerieItemToken*> GetMutableTokens(const TSubclassOf<UFaerieItemToken>& Class);
-
+	// Gets the first token of the specified class.
 	template <Faerie::CItemToken T>
 	const T* GetToken() const
 	{
 		return Cast<T>(GetToken(T::StaticClass()));
 	}
 
-	template <Faerie::CItemToken T>
-	TArray<const T*> GetTokens() const
-	{
-		return Type::Cast<TArray<const T*>>(GetTokens(T::StaticClass()));
-	}
+	// Gets mutable access to a token, if this item allows mutation.
+	UFaerieItemToken* GetMutableToken(const TSubclassOf<UFaerieItemToken>& Class);
 
+	// Gets mutable access to a token, if this item allows mutation.
 	template <Faerie::CItemToken T>
-	T* GetEditableToken()
+	T* GetMutableToken()
 	{
 		return Cast<T>(GetMutableToken(T::StaticClass()));
 	}
-
-	template <Faerie::CItemToken T>
-	TArray<T*> GetEditableTokens()
-	{
-		return Type::Cast<TArray<T*>>(GetMutableTokens(T::StaticClass()));
-	}
-
-	Faerie::FTokenFilter FilterTokens() const;
 
 	/*
 	 * Compares two Items to determine if they are "the same". There are some limitations here imposed by the design of
@@ -182,38 +114,9 @@ protected:
 	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "FaerieItem", meta = (DeterminesOutputType = Class, DynamicOutputParam = FoundToken, ExpandBoolAsExecs = ReturnValue))
 	bool FindToken(TSubclassOf<UFaerieItemToken> Class, UFaerieItemToken*& FoundToken) const;
 
-	// Gets all tokens of the given class
-	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "FaerieItem", meta = (DeterminesOutputType = Class, DynamicOutputParam = FoundTokens))
-	void FindTokens(TSubclassOf<UFaerieItemToken> Class, TArray<UFaerieItemToken*>& FoundTokens) const;
-
-	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "FaerieItem")
-	TArray<UFaerieItemToken*> FindTokensByTag(const FGameplayTag& Tag, const bool Exact = false) const;
-
-	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "FaerieItem")
-	TArray<UFaerieItemToken*> FindTokensByTags(const FGameplayTagContainer& Tags, const bool All = false, const bool Exact = false) const;
-
-	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "FaerieItem")
-	TArray<UFaerieItemToken*> FindTokensByTagQuery(const FGameplayTagQuery& Query) const;
-
-	// Deprecated Blueprint functions that have been moved to UFaerieItemDataLibrary.
-
-	UFUNCTION(BlueprintCallable, Category = "FaerieItem", meta = (DeprecatedFunction, DeprecationMessage = "Use UFaerieItemDataLibrary::AddToken"))
-	void AddToken(UFaerieItemToken* Token, bool DeprecatedFunctionOverload) { AddToken(Token); }
-
-	UFUNCTION(BlueprintCallable, Category = "FaerieItem", meta = (DeprecatedFunction, DeprecationMessage = "Use UFaerieItemDataLibrary::RemoveToken"))
-	bool RemoveToken(UFaerieItemToken* Token, bool DeprecatedFunctionOverload) { return RemoveToken(Token); }
-
-	UFUNCTION(BlueprintCallable, Category = "FaerieItem", meta = (DeprecatedFunction, DeprecationMessage = "Use UFaerieItemDataLibrary::RemoveTokensByClass"))
-	int32 RemoveTokensByClass(TSubclassOf<UFaerieItemToken> Class, bool DeprecatedFunctionOverload) { return RemoveTokensByClass(Class); }
-
 public:
 	UFUNCTION(BlueprintCallable, Category = "FaerieItem")
 	FDateTime GetLastModified() const { return LastModified; }
-
-	/*
-	UFUNCTION(BlueprintCallable, Category = "FaerieItem")
-	EFaerieItemSourceType GetSourceType() const;
-	*/
 
 	// Can this item object be changed whatsoever at runtime? This is not available for asset-referenced or precached items.
 	UFUNCTION(BlueprintCallable, Category = "FaerieItem")
@@ -243,7 +146,7 @@ protected:
 
 	// Keeps track of the last time this item was modified. Allows, for example, sorting items by recently touched.
 	// Only intended to be useful for mutable and dynamically-generated items. Asset-derived instances will be set
-	// to the time that they were cooked (at runtime) or last edited (at dev-time).
+	// to the time that they were cooked (for shipping) or last edited (at dev-time).
 	UPROPERTY(Replicated, VisibleInstanceOnly, Category = "FaerieItem")
 	FDateTime LastModified = FDateTime();
 
@@ -259,4 +162,10 @@ private:
 
 	// Is writing to Tokens locked?
 	mutable uint32 WriteLock = 0;
+
+protected:
+	// @deprecated
+	UE_DEPRECATED(5.6, TEXT("Replaced by UFaerieItemDataLibrary::FindTokensByClass"))
+	UFUNCTION(BlueprintCallable, BlueprintPure = false, meta = (DeterminesOutputType = Class, DynamicOutputParam = FoundTokens, deprecated, DeprecationMessage = "Replaced by UFaerieItemDataLibrary::FindTokensByClass"))
+	void FindTokens(TSubclassOf<UFaerieItemToken> Class, TArray<UFaerieItemToken*>& FoundTokens) const;
 };

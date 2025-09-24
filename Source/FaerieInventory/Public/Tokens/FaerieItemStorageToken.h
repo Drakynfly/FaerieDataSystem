@@ -58,7 +58,7 @@ public:
 	const UFaerieItemContainerBase* GetItemContainer() const { return ItemContainer; }
 
 protected:
-	UPROPERTY(Replicated)
+	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Instanced, Replicated, NoClear, Category = "ItemStorage")
 	TObjectPtr<UFaerieItemContainerBase> ItemContainer;
 };
 

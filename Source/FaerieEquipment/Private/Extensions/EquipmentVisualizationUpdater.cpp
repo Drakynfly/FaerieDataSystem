@@ -12,12 +12,14 @@
 
 #include "Actors/ItemRepresentationActor.h"
 #include "Components/FaerieItemMeshComponent.h"
+#include "Components/MeshComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Tokens/FaerieMeshToken.h"
 #include "Tokens/FaerieVisualActorClassToken.h"
 #include "Tokens/FaerieVisualEquipment.h"
+#include "Tokens/FaerieItemStorageToken.h"
 
 #include "GameFramework/Character.h"
-#include "Tokens/FaerieItemStorageToken.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(EquipmentVisualizationUpdater)
 
@@ -33,27 +35,15 @@ void UEquipmentVisualizationUpdater::InitializeExtension(const UFaerieItemContai
 
 void UEquipmentVisualizationUpdater::DeinitializeExtension(const UFaerieItemContainerBase* Container)
 {
-	if (!Container->IsA<UFaerieEquipmentSlot>())
+	if (const UFaerieEquipmentSlot* Slot = Cast<UFaerieEquipmentSlot>(Container))
 	{
-		return;
-	}
-
-	TArray<FEntryKey> Keys;
-	SpawnKeys.MultiFind(Container, Keys);
-	SpawnKeys.Remove(Container);
-
-	if (!Keys.IsEmpty())
-	{
-		auto&& Visualizer = GetVisualizer(Container);
+		auto&& Visualizer = GetVisualizer(Slot);
 		if (!IsValid(Visualizer))
 		{
 			return;
 		}
 
-		for (auto&& Key : Keys)
-		{
-			RemoveVisualImpl(Visualizer, Container->Proxy(Key));
-		}
+		RemoveVisualImpl(Visualizer, Slot);
 	}
 }
 
@@ -63,7 +53,7 @@ void UEquipmentVisualizationUpdater::PostAddition(const UFaerieItemContainerBase
 	if (auto Slot = Cast<UFaerieEquipmentSlot>(Container))
 	{
 		// A previously empty slot now has been filled with an item.
-		CreateVisualForEntry(Container, Event.EntryTouched);
+		CreateVisualForEntry(Slot, Event.EntryTouched);
 	}
 }
 
@@ -73,9 +63,10 @@ void UEquipmentVisualizationUpdater::PreRemoval(const UFaerieItemContainerBase* 
 	if (auto Slot = Cast<UFaerieEquipmentSlot>(Container))
 	{
 		// If the whole stack is being removed, remove the visual for it
-		if (Container->GetStack(Key) == Removal || Removal == Faerie::ItemData::UnlimitedStack)
+		if (Removal == Faerie::ItemData::UnlimitedStack ||
+			Container->GetStack(Key) == Removal)
 		{
-			RemoveVisualForEntry(Container, Key);
+			RemoveVisualForEntry(Slot, Key);
 		}
 	}
 }
@@ -85,31 +76,33 @@ void UEquipmentVisualizationUpdater::PostEntryChanged(const UFaerieItemContainer
 {
 	if (auto Slot = Cast<UFaerieEquipmentSlot>(Container))
 	{
+		checkNoEntry() // Right now, EquipmentSlots don't use PostEntryChanged.
+
 		// The item in a container has changed. Recreate the visual.
 		// @todo maybe don't always do this?!?! determine if we need to. use the event tag type
 
-		auto&& Visualizer = GetVisualizer(Container);
+		auto&& Visualizer = GetVisualizer(Slot);
 		if (!IsValid(Visualizer))
 		{
 			return;
 		}
-		const FFaerieItemProxy Proxy = Container->Proxy(Event.EntryTouched);
+		const FFaerieItemProxy Proxy = Slot;
 		RemoveVisualImpl(Visualizer, Proxy);
 		CreateVisualImpl(Visualizer, Proxy);
 	}
 }
 
-UEquipmentVisualizer* UEquipmentVisualizationUpdater::GetVisualizer(const UFaerieItemContainerBase* Container)
+UEquipmentVisualizer* UEquipmentVisualizationUpdater::GetVisualizer(const UFaerieEquipmentSlot* Slot)
 {
-	if (!IsValid(Container))
+	if (!IsValid(Slot))
 	{
 		return nullptr;
 	}
 
-	auto&& Relevants = GetExtension<URelevantActorsExtension>(Container, true);
+	auto&& Relevants = GetExtension<URelevantActorsExtension>(Slot, true);
 	if (!IsValid(Relevants))
 	{
-		UE_LOG(LogFaerieEquipment, Warning, TEXT("GetVisualizer failed: Requires a RelevantActorsExtension on the container to find the pawn (%s)!"), *Container->GetName())
+		UE_LOG(LogFaerieEquipment, Warning, TEXT("GetVisualizer failed: Requires a RelevantActorsExtension on the container to find the pawn (%s)!"), *Slot->GetName())
 		return nullptr;
 	}
 
@@ -123,48 +116,46 @@ UEquipmentVisualizer* UEquipmentVisualizationUpdater::GetVisualizer(const UFaeri
 
 	if (!IsValid(Pawn))
 	{
-		UE_LOG(LogFaerieEquipment, Warning, TEXT("GetVisualizer failed: Failed to find relevant Pawn (%s)!"), *Container->GetName())
+		UE_LOG(LogFaerieEquipment, Warning, TEXT("GetVisualizer failed: Failed to find relevant Pawn (%s)!"), *Slot->GetName())
 		return nullptr;
 	}
 
 	auto&& Visualizer = Pawn->GetComponentByClass<UEquipmentVisualizer>();
 	if (!IsValid(Visualizer))
 	{
-		UE_LOG(LogFaerieEquipment, Warning, TEXT("GetVisualizer failed: Pawn does not have a visualizer component (%s)!"), *Container->GetName())
+		UE_LOG(LogFaerieEquipment, Warning, TEXT("GetVisualizer failed: Pawn does not have a visualizer component (%s)!"), *Slot->GetName())
 		return nullptr;
 	}
 
 	return Visualizer;
 }
 
-void UEquipmentVisualizationUpdater::CreateVisualForEntry(const UFaerieItemContainerBase* Container, const FEntryKey Key)
+void UEquipmentVisualizationUpdater::CreateVisualForEntry(const UFaerieEquipmentSlot* Slot, const FEntryKey Key)
 {
-	auto&& Visualizer = GetVisualizer(Container);
+	auto&& Visualizer = GetVisualizer(Slot);
 	if (!IsValid(Visualizer))
 	{
 		return;
 	}
 
-	if (SpawnKeys.Contains(Container))
+	if (Visualizer->HasVisualForKey({Slot}))
 	{
 		UE_LOG(LogFaerieEquipment, Warning, TEXT("Container already has an visual spawned. Existing visuals must be removed before creating new ones!"));
 		return;
 	}
 
-	CreateVisualImpl(Visualizer, Container->Proxy(Key));
-	SpawnKeys.Add(Container, Key);
+	CreateVisualImpl(Visualizer, Slot);
 }
 
-void UEquipmentVisualizationUpdater::RemoveVisualForEntry(const UFaerieItemContainerBase* Container, const FEntryKey Key)
+void UEquipmentVisualizationUpdater::RemoveVisualForEntry(const UFaerieEquipmentSlot* Slot, const FEntryKey Key)
 {
-	auto&& Visualizer = GetVisualizer(Container);
+	auto&& Visualizer = GetVisualizer(Slot);
 	if (!IsValid(Visualizer))
 	{
 		return;
 	}
 
-	RemoveVisualImpl(Visualizer, Container->Proxy(Key));
-	SpawnKeys.RemoveSingle(Container, Key);
+	RemoveVisualImpl(Visualizer, Slot);
 }
 
 void UEquipmentVisualizationUpdater::CreateVisualImpl(UEquipmentVisualizer* Visualizer, const FFaerieItemProxy Proxy)
@@ -301,7 +292,7 @@ void UEquipmentVisualizationUpdater::CreateVisualImpl(UEquipmentVisualizer* Visu
 						}
 					}
 
-					// If this wasn't pending, just update its attachment after a rebuilt.
+					// If this wasn't pending, just update its attachment after a rebuild.
 					Visualizer->ResetAttachment({ Proxy });
 				});
 			NewVisual->SetItemMeshFromToken(ItemObject->GetToken<UFaerieMeshTokenBase>());

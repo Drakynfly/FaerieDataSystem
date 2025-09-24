@@ -1,7 +1,10 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "Tokens/FaerieItemStorageToken.h"
+#include "FaerieContainerFilter.h"
+#include "FaerieContainerFilterTypes.h"
 #include "FaerieItemStorage.h"
+#include "FaerieItemTokenFilter.h"
 #include "ItemContainerExtensionBase.h"
 #include "GameFramework/Actor.h"
 #include "Net/UnrealNetwork.h"
@@ -19,7 +22,7 @@ void UFaerieItemContainerToken::GetLifetimeReplicatedProps(TArray<FLifetimePrope
 
 bool UFaerieItemContainerToken::IsMutable() const
 {
-	// Container tokens always make their owner mutable, as should be obvious. If an item can contain arbitrary content
+	// Container tokens always make their owner mutable, as should be obvious. If an item can contain arbitrary content,
 	// then we have no way to determine its mutability state.
 	return true;
 }
@@ -28,34 +31,36 @@ TSet<UFaerieItemContainerBase*> UFaerieItemContainerToken::GetAllContainersInIte
 {
 	if (!ensure(IsValid(Item))) return {};
 
-	TSet<UFaerieItemContainerBase*> Containers;
+	auto&& Filter = Token::FTokenFilter(Item).ByClass<UFaerieItemContainerToken>();
 
-	Item->ForEachToken<UFaerieItemContainerToken>(
-		[&Containers](const TObjectPtr<const UFaerieItemContainerToken>& Token)
-		{
-			Containers.Add(Token->ItemContainer);
-			return Continue;
-		});
+	TSet<UFaerieItemContainerBase*> Containers;
+	Containers.Reserve(Filter.Num());
+
+	for (const UFaerieItemContainerToken* Token : Filter)
+	{
+		Containers.Add(Token->ItemContainer);
+	}
 
 	return Containers;
 }
 
 TSet<UFaerieItemContainerBase*> UFaerieItemContainerToken::GetContainersInItemOfClass(UFaerieItem* Item,
-	TSubclassOf<UFaerieItemContainerBase> Class)
+	const TSubclassOf<UFaerieItemContainerBase> Class)
 {
 	if (!ensure(IsValid(Item))) return {};
 
-	TSet<UFaerieItemContainerBase*> Containers;
+	auto Filter = Token::FTokenFilter(Item).ByClass<UFaerieItemContainerToken>();
 
-	Item->ForEachToken<UFaerieItemContainerToken>(
-		[&Containers, Class](const TObjectPtr<const UFaerieItemContainerToken>& Token)
+	TSet<UFaerieItemContainerBase*> Containers;
+	Containers.Reserve(Filter.Num()); // Reverse the most memory we would need.
+
+	for (const UFaerieItemContainerToken* Token : Filter)
+	{
+		if (Token->ItemContainer->IsA(Class))
 		{
-			if (Token->ItemContainer->IsA(Class))
-			{
-				Containers.Add(Token->ItemContainer);
-			}
-			return Continue;
-		});
+			Containers.Add(Token->ItemContainer);
+		}
+	}
 
 	return Containers;
 }
@@ -74,10 +79,13 @@ ELoopControl UFaerieItemContainerToken::ForEachContainer(UFaerieItem* Item,
 		}
 		if (Recursive)
 		{
-			Container->Filter().ForEachMutable([&Iter](UFaerieItem* SubItem)
+			for (UFaerieItem* SubItem : Faerie::KeyFilter(Container).Run<FMutableFilter>().Items())
 			{
-				return ForEachContainer(SubItem, Iter, true);
-			});
+				if (ForEachContainer(SubItem, Iter, true) == Stop)
+				{
+					return Stop;
+				}
+			}
 		}
 	}
 	return Continue;
@@ -98,15 +106,13 @@ ELoopControl UFaerieItemContainerToken::ForEachContainerOfClass(UFaerieItem* Ite
 		}
 		if (Recursive)
 		{
-			bool TempBreak = false;
-			Container->Filter().ForEachMutable([&TempBreak, &Iter](UFaerieItem* SubItem)
+			for (UFaerieItem* SubItem : Faerie::KeyFilter(Container).Run<FMutableFilter>().Items())
 			{
-				if (TempBreak) return;
-				if (ForEachContainer(SubItem, Iter, true) == Stop)
+				if (ForEachContainerOfClass(SubItem, Class, Iter, true) == Stop)
 				{
-					TempBreak = true;
+					return Stop;
 				}
-			});
+			}
 		}
 	}
 	return Continue;

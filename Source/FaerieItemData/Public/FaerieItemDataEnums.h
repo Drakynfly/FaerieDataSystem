@@ -70,10 +70,10 @@ enum class EFaerieItemComparisonFlags : uint8
 	// When enabled, items must match mutability and tokens in comparison.
 	Mutability_Compare = 1 << 2,
 
-	// When enabled, only compare Primary Identifier tokens
+	// When enabled, only compare Primary Identifier tokens via CompareWith override
 	Tokens_ComparePrimaryIdentifiers = 1 << 3,
 
-	// When enabled, only compare Primary Identifier tokens
+	// When enabled, compare all tokens by their hash
 	Tokens_CompareAll = 1 << 4,
 
 
@@ -81,17 +81,3 @@ enum class EFaerieItemComparisonFlags : uint8
 	CheckTokensOnly = Mutability_Ignore | Tokens_CompareAll,
 };
 ENUM_CLASS_FLAGS(EFaerieItemComparisonFlags)
-
-/*
-UENUM(BlueprintType)
-enum class EFaerieItemSourceType : uint8
-{
-	// This item instance is a reference to an asset that lives on disk. Replication is by name/netguid only, thus mutation is disallowed.
-	// To add/remove/edit tokens, a duplicate of this item must be made. (UFaerieItem::CreateDuplicate)
-	Asset,
-
-	// This item instance was dynamically created at runtime, and lives only in memory. The entire object is replicated,
-	// and token editing is enabled if TokenMutability is set on the MutabilityFlags (determined by source asset if ever allowable).
-	Dynamic
-};
-*/

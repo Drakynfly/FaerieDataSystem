@@ -2,11 +2,11 @@
 
 #pragma once
 
+#include "BinarySearchOptimizedArray.h"
 #include "FaerieGridEnums.h"
-#include "InventoryDataStructs.h"
-
 #include "FaerieDefinitions.h"
 #include "FaerieFastArraySerializerHack.h"
+#include "FaerieItemContainerStructs.h"
 
 #include "FaerieGridStructs.generated.h"
 
@@ -51,11 +51,11 @@ struct FFaerieGridKeyedStack : public FFastArraySerializerItem
 
 	FFaerieGridKeyedStack() = default;
 
-	FFaerieGridKeyedStack(const FInventoryKey Key, const FFaerieGridPlacement& Value)
+	FFaerieGridKeyedStack(const FFaerieAddress Key, const FFaerieGridPlacement& Value)
 	  : Key(Key), Value(Value) {}
 
 	UPROPERTY(VisibleInstanceOnly, Category = "GridKeyedStack")
-	FInventoryKey Key;
+	FFaerieAddress Key;
 
 	UPROPERTY(VisibleInstanceOnly, Category = "GridKeyedStack")
 	FFaerieGridPlacement Value;
@@ -88,7 +88,7 @@ private:
 	TObjectPtr<UInventoryGridExtensionBase> ChangeListener;
 
 	// Is writing to Items locked? Enabled while StackHandles are active.
-	uint32 WriteLock = 0;
+	mutable uint32 WriteLock = 0;
 
 public:
 	template <typename Predicate>
@@ -99,7 +99,7 @@ public:
 
 	struct FScopedStackHandle : FNoncopyable
 	{
-		FScopedStackHandle(const FInventoryKey Key, FFaerieGridContent& Source);
+		FScopedStackHandle(const FFaerieAddress Key, FFaerieGridContent& Source);
 		~FScopedStackHandle();
 
 	protected:
@@ -113,13 +113,13 @@ public:
 		FFaerieGridPlacement& Get() const { return Handle.Value; }
 	};
 
-	FScopedStackHandle GetHandle(const FInventoryKey Key)
+	FScopedStackHandle GetHandle(const FFaerieAddress Key)
 	{
 		return FScopedStackHandle(Key, *this);
 	}
 
 	void PreStackReplicatedRemove(const FFaerieGridKeyedStack& Stack) const;
-	void PostStackReplicatedAdd(const FFaerieGridKeyedStack& Stack);
+	void PostStackReplicatedAdd(const FFaerieGridKeyedStack& Stack) const;
 	void PostStackReplicatedChange(const FFaerieGridKeyedStack& Stack) const;
 
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
@@ -127,14 +127,14 @@ public:
 		return Faerie::Hacks::FastArrayDeltaSerialize<FFaerieGridKeyedStack, FFaerieGridContent>(Items, DeltaParms, *this);
 	}
 
-	void Insert(FInventoryKey Key, const FFaerieGridPlacement& Value);
+	void Insert(FFaerieAddress Key, const FFaerieGridPlacement& Value);
 
-	void Remove(FInventoryKey Key);
+	void Remove(FFaerieAddress Key);
 
 	// Only const iteration is allowed.
 	using TRangedForConstIterator = TArray<FFaerieGridKeyedStack>::RangedForConstIteratorType;
-	FORCEINLINE TRangedForConstIterator begin() const { return TRangedForConstIterator(Items.begin()); }
-	FORCEINLINE TRangedForConstIterator end() const { return TRangedForConstIterator(Items.end()); }
+	TRangedForConstIterator begin() const;
+	TRangedForConstIterator end() const;
 };
 
 template <>

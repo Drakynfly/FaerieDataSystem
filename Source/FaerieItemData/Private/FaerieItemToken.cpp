@@ -21,9 +21,9 @@ void UFaerieItemToken::PostCDOCompiled(const FPostCDOCompiledContext& Context)
 	if (IsInBlueprint())
 	{
 		for (TFieldIterator<UFunction> FuncIt(GetClass(),
-					EFieldIteratorFlags::ExcludeSuper,
-					EFieldIteratorFlags::IncludeDeprecated,
-					EFieldIteratorFlags::IncludeInterfaces); FuncIt; ++FuncIt)
+				EFieldIteratorFlags::ExcludeSuper,
+				EFieldIteratorFlags::IncludeDeprecated,
+				EFieldIteratorFlags::IncludeInterfaces); FuncIt; ++FuncIt)
 		{
 			const UFunction* Fn = *FuncIt;
 
@@ -124,20 +124,6 @@ void UFaerieItemToken::EditToken(const TFunctionRef<bool(UFaerieItemToken*)>& Ed
 const UFaerieItem* UFaerieItemToken::BP_GetFaerieItem() const
 {
 	return GetOuterItem();
-}
-
-void UFaerieItemToken::BP_EditToken(const FBlueprintTokenEdit& Edit)
-{
-	if (!ensure(Edit.IsBound()))
-	{
-		return;
-	}
-
-	EditToken(
-		[Edit](UFaerieItemToken* Token)
-		{
-			return Edit.Execute(Token);
-		});
 }
 
 UFaerieItemToken* UFaerieItemToken::CreateFaerieItemToken(const TSubclassOf<UFaerieItemToken> TokenClass)

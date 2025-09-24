@@ -23,7 +23,8 @@ public class FaerieDataSystemTests : ModuleRules
             {
                 "CoreUObject",
                 "Engine",
-                "Flakes"
+                "Flakes",
+                "GameplayTags"
             }
         );
     }

@@ -10,6 +10,7 @@
 #include "ItemInstancingContext_Crafting.h"
 #include "Engine/AssetManager.h"
 #include "Engine/StreamableManager.h"
+#include "Engine/World.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemGenerationRequest)
 
@@ -17,6 +18,8 @@
 
 void FFaerieItemGenerationRequest::Run(UFaerieCraftingRunner* Runner) const
 {
+	// Step 0: Validate parameters
+
 	if (Drivers.IsEmpty())
 	{
 		UE_LOG(LogItemGeneration, Warning, TEXT("%hs: Drivers are empty!"), __FUNCTION__);
@@ -32,6 +35,8 @@ void FFaerieItemGenerationRequest::Run(UFaerieCraftingRunner* Runner) const
 		}
 	}
 
+	// Step 1: Collect generations from Drivers, and collate into storage.
+
 	FFaerieItemGenerationRequestStorage Storage;
 
 	for (auto&& Driver : Drivers)
@@ -41,102 +46,67 @@ void FFaerieItemGenerationRequest::Run(UFaerieCraftingRunner* Runner) const
 		Driver->Resolve(Storage.PendingGenerations, Squirrel.Get());
 	}
 
-	Runner->RequestStorage.InitializeAs<FFaerieItemGenerationRequestStorage>(Storage);
-
-	TArray<FSoftObjectPath> ObjectsToLoad;
-
-	for (const Faerie::FPendingItemGeneration& PendingGeneration : Storage.PendingGenerations)
-	{
-		if (PendingGeneration.Drop->Asset.Object.IsPending())
-		{
-			ObjectsToLoad.Add(PendingGeneration.Drop->Asset.Object.ToSoftObjectPath());
-		}
-	}
-
-	if (ObjectsToLoad.IsEmpty())
-	{
-		// Nothing to wait for, Generate now!
-		return Generate(Runner);
-	}
-
-	UE_LOG(LogItemGeneration, Log, TEXT("- Objects to load: %i"), ObjectsToLoad.Num());
-
-	// The check for IsGameWorld forces this action to be ran in the editor synchronously
-	if (!Runner->GetWorld()->IsGameWorld())
-	{
-		// Immediately load all objects and continue.
-		for (const FSoftObjectPath& Object : ObjectsToLoad)
-		{
-			Object.TryLoad();
-		}
-
-		return Generate(Runner);
-	}
-
-	// Suspend generation to async load drop assets, then continue afterwards.
-	Runner->RunningStreamHandle = UAssetManager::GetStreamableManager().RequestAsyncLoad(ObjectsToLoad,
-		FStreamableDelegateWithHandle::CreateRaw(this, &FFaerieItemGenerationRequest::LoadCheck, Runner));
-}
-
-void FFaerieItemGenerationRequest::Generate(UFaerieCraftingRunner* Runner) const
-{
-	FFaerieItemGenerationRequestStorage& Storage = Runner->RequestStorage.GetMutable<FFaerieItemGenerationRequestStorage>();
-
 	if (Storage.PendingGenerations.IsEmpty())
 	{
 		return Runner->Fail();
 	}
 
-	FFaerieItemInstancingContext_Crafting Context;
+	Runner->RequestStorage.InitializeAs<FFaerieItemGenerationRequestStorage>(Storage);
 
-	// Set the squirrel used
-	Context.Squirrel = Squirrel.Get();
-
-	for (auto&& Generation : Storage.PendingGenerations)
-	{
-		if (!Generation.IsValid())
-		{
-			UE_LOG(LogItemGeneration, Warning, TEXT("--- Invalid generation!"));
-			continue;
-		}
-
-		ResolveGeneration(Storage, Generation, Context);
-	}
-
-	if (!Storage.ProcessStacks.IsEmpty())
-	{
-		UE_LOG(LogItemGeneration, Log, TEXT("--- Generation success. Created '%i' stack(s)."), Storage.ProcessStacks.Num());
-		Runner->Complete();
-	}
-	else
-	{
-		UE_LOG(LogItemGeneration, Error, TEXT("--- Generation failed to create any entries. Nothing will be returned."));
-		return Runner->Fail();
-	}
+	// Step 2: Load assets needed for Pending Generations
+	LoadCheck(nullptr, Runner);
 }
 
 void FFaerieItemGenerationRequest::LoadCheck(TSharedPtr<FStreamableHandle> Handle, UFaerieCraftingRunner* Runner) const
 {
-	TArray<UObject*> LoadedObjects;
-	Handle->GetLoadedAssets(LoadedObjects);
-
 	TArray<FSoftObjectPath> ObjectsToLoad;
 
-	for (UObject* LoadedObject : LoadedObjects)
+	if (Handle.IsValid())
 	{
-		if (const UFaerieItemPool* Pool = Cast<UFaerieItemPool>(LoadedObject);
-			IsValid(Pool) && RecursivelyResolveTables)
+		TArray<UObject*> LoadedObjects;
+
+		Handle->GetLoadedAssets(LoadedObjects);
+
+		for (UObject* LoadedObject : LoadedObjects)
 		{
-			for (auto&& Drop : Pool->ViewDropPool())
+			if (const UFaerieItemPool* Pool = Cast<UFaerieItemPool>(LoadedObject);
+				IsValid(Pool) && RecursivelyResolveTables)
 			{
-				ObjectsToLoad.Add(Drop.Drop.Asset.Object.ToSoftObjectPath());
+				for (auto&& Drop : Pool->ViewDropPool())
+				{
+					ObjectsToLoad.Add(Drop.Drop.Asset.Object.ToSoftObjectPath());
+				}
+			}
+		}
+	}
+	else
+	{
+		FFaerieItemGenerationRequestStorage& Storage = Runner->RequestStorage.GetMutable<FFaerieItemGenerationRequestStorage>();
+
+		for (const Faerie::FPendingItemGeneration& PendingGeneration : Storage.PendingGenerations)
+		{
+			const TSoftObjectPtr<UObject>& Obj = PendingGeneration.Drop->Asset.Object;
+			if (Obj.IsPending())
+			{
+				ObjectsToLoad.Add(Obj.ToSoftObjectPath());
+			}
+			else if (Obj.IsValid())
+			{
+				if (const UFaerieItemPool* Pool = Cast<UFaerieItemPool>(Obj.Get());
+					IsValid(Pool) && RecursivelyResolveTables)
+				{
+					for (auto&& Drop : Pool->ViewDropPool())
+					{
+						ObjectsToLoad.Add(Drop.Drop.Asset.Object.ToSoftObjectPath());
+					}
+				}
 			}
 		}
 	}
 
 	if (ObjectsToLoad.IsEmpty())
 	{
-		// Nothing to wait for, run now!
+		// Nothing needs to load, go to Step 3.
 		return Generate(Runner);
 	}
 
@@ -157,7 +127,44 @@ void FFaerieItemGenerationRequest::LoadCheck(TSharedPtr<FStreamableHandle> Handl
 		Object.TryLoad();
 	}
 
+	// Done loading, go to Step 3.
 	return Generate(Runner);
+}
+
+void FFaerieItemGenerationRequest::Generate(UFaerieCraftingRunner* Runner) const
+{
+	FFaerieItemGenerationRequestStorage& Storage = Runner->RequestStorage.GetMutable<FFaerieItemGenerationRequestStorage>();
+
+	// Step 3: Build a context, to use for each pending generation, and resolve them.
+
+	FFaerieItemInstancingContext_Crafting Context;
+
+	// Set the squirrel used
+	Context.Squirrel = Squirrel.Get();
+
+	for (auto&& Generation : Storage.PendingGenerations)
+	{
+		if (!Generation.IsValid())
+		{
+			UE_LOG(LogItemGeneration, Warning, TEXT("--- Invalid generation!"));
+			continue;
+		}
+
+		ResolveGeneration(Storage, Generation, Context);
+	}
+
+	// Step 4: Report result.
+
+	if (!Storage.ProcessStacks.IsEmpty())
+	{
+		UE_LOG(LogItemGeneration, Log, TEXT("--- Generation success. Created '%i' stack(s)."), Storage.ProcessStacks.Num());
+		Runner->Complete();
+	}
+	else
+	{
+		UE_LOG(LogItemGeneration, Error, TEXT("--- Generation failed to create any entries. Nothing will be returned."));
+		return Runner->Fail();
+	}
 }
 
 void FFaerieItemGenerationRequest::ResolveGeneration(FFaerieItemGenerationRequestStorage& Storage, const Faerie::FPendingItemGeneration& Generation, const FFaerieItemInstancingContext_Crafting& Context) const

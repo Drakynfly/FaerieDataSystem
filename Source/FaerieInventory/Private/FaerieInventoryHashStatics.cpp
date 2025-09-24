@@ -1,6 +1,7 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieInventoryHashStatics.h"
+#include "FaerieContainerIterator.h"
 #include "FaerieItemContainerBase.h"
 
 namespace Faerie::Hash
@@ -14,11 +15,10 @@ namespace Faerie::Hash
 
 		TArray<uint32> Hashes;
 
-		Container->ForEachItem(
-			[&Hashes, &Function](const UFaerieItem* Item)
-			{
-				Hashes.Add(Function(Item));
-			});
+		for (const UFaerieItem* Item : ItemRange(Container))
+		{
+			Hashes.Add(Function(Item));
+		}
 
 		return CombineHashes(Hashes);
 	}
@@ -34,11 +34,10 @@ namespace Faerie::Hash
 
 		for (auto&& Container : Containers)
 		{
-			Container->ForEachItem(
-				[&Hashes, &Function](const UFaerieItem* Item)
-				{
-					Hashes.Add(Function(Item));
-				});
+			for (const UFaerieItem* Item : ItemRange(Container))
+			{
+				Hashes.Add(Function(Item));
+			};
 		}
 
 		return CombineHashes(Hashes);

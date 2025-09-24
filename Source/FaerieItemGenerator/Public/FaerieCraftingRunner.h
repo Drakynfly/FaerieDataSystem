@@ -4,6 +4,7 @@
 
 #include "FaerieItemProxy.h"
 #include "ItemSlotHandle.h"
+#include "Engine/TimerHandle.h"
 #include "StructUtils/InstancedStruct.h"
 
 #include "FaerieCraftingRunner.generated.h"
@@ -11,7 +12,7 @@
 struct FInstancedStruct;
 struct FFaerieItemStack;
 struct FStreamableHandle;
-class IFaerieItemDataProxy;
+class FTimerManager;
 class UFaerieCraftingRunner;
 class USquirrel;
 

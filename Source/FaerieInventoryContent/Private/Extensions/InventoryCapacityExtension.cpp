@@ -6,7 +6,6 @@
 #include "FaerieItem.h"
 #include "FaerieItemStorage.h"
 #include "Net/UnrealNetwork.h"
-#include "StructUtils/StructView.h"
 #include "Tokens/FaerieCapacityToken.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventoryCapacityExtension)
@@ -52,11 +51,10 @@ void UInventoryCapacityExtension::InitializeExtension(const UFaerieItemContainer
 {
 	if (!ensure(IsValid(Container))) return;
 
-	Container->ForEachKey(
-		[this, Container](const FEntryKey Key)
-		{
-			UpdateCacheForEntry(Container, Key);
-		});
+	for (const FEntryKey Key : Faerie::KeyRange(Container))
+	{
+		UpdateCacheForEntry(Container, Key);
+	}
 
 	HandleStateChanged();
 }
@@ -167,21 +165,12 @@ FWeightAndVolume UInventoryCapacityExtension::GetEntryWeightAndVolume(const UFae
 
 	if (auto&& AsStorage = Cast<UFaerieItemStorage>(Container))
 	{
-		// @todo a nicer way to do this would be ideal. but since UFaerieItemStorage has custom stacking logic, we
-		// have to sum it separately to handle efficiency per stack correctly
+		// UFaerieItemStorage has custom stacking logic, so we  have to sum the stacks separately to handle efficiency per stack correctly
 		// @todo this will be fixed by addresses
-		PRAGMA_DISABLE_DEPRECATION_WARNINGS
-		const TConstStructView<FInventoryEntry> EntryView = AsStorage->GetEntryView(Key);
-		PRAGMA_ENABLE_DEPRECATION_WARNINGS
-		if (!ensure(EntryView.IsValid()))
+		const TArray<int32> Stacks = AsStorage->GetStacksInEntry(Key);
+		for (const int32 Stack : Stacks)
 		{
-			return Out;
-		}
-
-		for (const FInventoryEntry& Entry = EntryView.Get();
-			auto&& KeyedStack : Entry.Stacks)
-		{
-			Out.Volume += Token->GetVolumeOfStack(KeyedStack.Stack);
+			Out.Volume += Token->GetVolumeOfStack(Stack);
 		}
 	}
 	else

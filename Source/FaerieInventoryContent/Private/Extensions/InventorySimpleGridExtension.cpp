@@ -24,13 +24,13 @@ void UInventorySimpleGridExtension::PostAddition(const UFaerieItemContainerBase*
 {
 	// @todo don't add items for existing keys
 
-	FInventoryKey NewKey;
+	UFaerieItemStorage::FStorageKey NewKey;
 	NewKey.EntryKey = Event.EntryTouched;
 
 	for (const FStackKey StackKey : Event.StackKeys)
 	{
 		NewKey.StackKey = StackKey;
-		AddItemToGrid(NewKey, Event.Item.Get());
+		AddItemToGrid(NewKey.ToAddress(), Event.Item.Get());
 	}
 }
 
@@ -40,21 +40,21 @@ void UInventorySimpleGridExtension::PostRemoval(const UFaerieItemContainerBase* 
 	if (const UFaerieItemStorage* ItemStorage = Cast<UFaerieItemStorage>(Container))
 	{
 		// Create a temporary array to store keys that need to be removed
-		TArray<FInventoryKey> KeysToRemove;
+		TArray<FFaerieAddress> AddressesToRemove;
 
-		for (auto&& StackKey : Event.StackKeys)
+		for (const FStackKey StackKey : Event.StackKeys)
 		{
-			if (FInventoryKey CurrentKey{Event.EntryTouched, StackKey};
-				ItemStorage->IsValidKey(CurrentKey))
+			if (FFaerieAddress CurrentAddress = UFaerieItemStorage::FStorageKey{Event.EntryTouched, StackKey}.ToAddress();
+				ItemStorage->Contains(CurrentAddress))
 			{
-				PostStackChange({ CurrentKey, GetStackPlacementData(CurrentKey) });
+				PostStackChange({ CurrentAddress, GetStackPlacementData(CurrentAddress) });
 			}
 			else
 			{
-				KeysToRemove.Add(CurrentKey);
+				AddressesToRemove.Add(CurrentAddress);
 			}
 		}
-		RemoveItemBatch(KeysToRemove, Event.Item.Get());
+		RemoveItemBatch(AddressesToRemove, Event.Item.Get());
 	}
 }
 
@@ -76,14 +76,14 @@ EEventExtensionResponse UInventorySimpleGridExtension::AllowsEdit(const UFaerieI
 void UInventorySimpleGridExtension::PostEntryChanged(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event)
 {
 	// Create a temporary array to store keys that need to be removed
-	TArray<FInventoryKey> KeysToRemove;
+	TArray<FFaerieAddress> KeysToRemove;
 
 	// @todo update logic to use Event
 	// get keys to remove
 	for (const auto& SpatialEntry : GridContent)
 	{
 		if (const UFaerieItemStorage* Storage = Cast<UFaerieItemStorage>(InitializedContainer);
-			!Storage->IsValidKey(SpatialEntry.Key))
+			!Storage->Contains(SpatialEntry.Key))
 		{
 			KeysToRemove.Add(SpatialEntry.Key);
 		}
@@ -94,10 +94,10 @@ void UInventorySimpleGridExtension::PostEntryChanged(const UFaerieItemContainerB
 	}
 
 	// remove the stored keys
-	for (const FInventoryKey& KeyToRemove : KeysToRemove)
+	for (const FFaerieAddress& AddressToRemove : KeysToRemove)
 	{
-		RemoveItem(KeyToRemove, Container->View(KeyToRemove.EntryKey).Item.Get());
-		BroadcastEvent(KeyToRemove, EFaerieGridEventType::ItemRemoved);
+		RemoveItem(AddressToRemove, Container->ViewItem(AddressToRemove));
+		BroadcastEvent(AddressToRemove, EFaerieGridEventType::ItemRemoved);
 	}
 	GridContent.MarkArrayDirty();
 }
@@ -124,13 +124,13 @@ void UInventorySimpleGridExtension::PostStackAdd(const FFaerieGridKeyedStack& St
 
 void UInventorySimpleGridExtension::PostStackChange(const FFaerieGridKeyedStack& Stack)
 {
-	if (const UFaerieItemStorage* Storage = Cast<UFaerieItemStorage>(InitializedContainer); Storage->IsValidKey(Stack.Key))
+	if (const UFaerieItemStorage* Storage = Cast<UFaerieItemStorage>(InitializedContainer); Storage->Contains(Stack.Key))
 	{
 		BroadcastEvent(Stack.Key, EFaerieGridEventType::ItemChanged);
 	}
 }
 
-FInventoryKey UInventorySimpleGridExtension::GetKeyAt(const FIntPoint& Position) const
+FFaerieAddress UInventorySimpleGridExtension::GetKeyAt(const FIntPoint& Position) const
 {
 	for (auto&& Element : GridContent)
 	{
@@ -139,7 +139,7 @@ FInventoryKey UInventorySimpleGridExtension::GetKeyAt(const FIntPoint& Position)
 			return Element.Key;
 		}
 	}
-	return FInventoryKey();
+	return FFaerieAddress();
 }
 
 bool UInventorySimpleGridExtension::CanAddAtLocation(const FFaerieItemStackView Stack, const FIntPoint IntPoint) const
@@ -147,15 +147,16 @@ bool UInventorySimpleGridExtension::CanAddAtLocation(const FFaerieItemStackView 
 	return !IsCellOccupied(IntPoint);
 }
 
-bool UInventorySimpleGridExtension::AddItemToGrid(const FInventoryKey& Key, const UFaerieItem* Item)
+bool UInventorySimpleGridExtension::AddItemToGrid(const FFaerieAddress Address, const UFaerieItem* Item)
 {
-	if (!Key.IsValid())
+	if (!Address.IsValid())
 	{
 		return false;
 	}
 
-	if (GridContent.Find(Key) != nullptr)
+	if (GridContent.Contains(Address))
 	{
+		// Already in the grid...
 		return true;
 	}
 
@@ -166,16 +167,19 @@ bool UInventorySimpleGridExtension::AddItemToGrid(const FInventoryKey& Key, cons
 		return false;
 	}
 
-	GridContent.Insert(Key, DesiredItemPlacement);
+	GridContent.Insert(Address, DesiredItemPlacement);
 	OccupiedCells.MarkCell(DesiredItemPlacement.Origin);
 	return true;
 }
 
-bool UInventorySimpleGridExtension::MoveItem(const FInventoryKey& Key, const FIntPoint& TargetPoint)
+bool UInventorySimpleGridExtension::MoveItem(const FFaerieAddress Address, const FIntPoint& TargetPoint)
 {
-	if (const FInventoryKey OverlappingKey = FindOverlappingItem(Key);
-		OverlappingKey.IsValid())
+	if (const FFaerieAddress OverlappingAddress = FindOverlappingItem(Address);
+		OverlappingAddress.IsValid())
 	{
+		const UFaerieItemStorage::FStorageKey Key{Address};
+		const UFaerieItemStorage::FStorageKey OverlappingKey{OverlappingAddress};
+
 		// If the Entry keys are identical, it gives us some other things to test before Swapping.
 		if (Key.EntryKey == OverlappingKey.EntryKey)
 		{
@@ -193,36 +197,36 @@ bool UInventorySimpleGridExtension::MoveItem(const FInventoryKey& Key, const FIn
 			}
 		}
 
-		const FFaerieGridContent::FScopedStackHandle HandleA = GridContent.GetHandle(Key);
-		const FFaerieGridContent::FScopedStackHandle HandleB = GridContent.GetHandle(OverlappingKey);
+		const FFaerieGridContent::FScopedStackHandle HandleA = GridContent.GetHandle(Address);
+		const FFaerieGridContent::FScopedStackHandle HandleB = GridContent.GetHandle(OverlappingAddress);
 		SwapItems(HandleA.Get(), HandleB.Get());
 		return true;
 	}
 
-	const FFaerieGridContent::FScopedStackHandle Handle = GridContent.GetHandle(Key);
+	const FFaerieGridContent::FScopedStackHandle Handle = GridContent.GetHandle(Address);
 	MoveSingleItem(Handle.Get(), TargetPoint);
 	return true;
 }
 
-bool UInventorySimpleGridExtension::RotateItem(const FInventoryKey& Key)
+bool UInventorySimpleGridExtension::RotateItem(const FFaerieAddress Address)
 {
-	const FFaerieGridContent::FScopedStackHandle Handle = GridContent.GetHandle(Key);
+	const FFaerieGridContent::FScopedStackHandle Handle = GridContent.GetHandle(Address);
 	Handle->Rotation = GetNextRotation(Handle->Rotation);
 	return true;
 }
 
-void UInventorySimpleGridExtension::RemoveItem(const FInventoryKey& Key, const UFaerieItem* Item)
+void UInventorySimpleGridExtension::RemoveItem(const FFaerieAddress Address, const UFaerieItem* Item)
 {
-	GridContent.BSOA::Remove(Key,
+	GridContent.BSOA::Remove(Address,
 		[Item, this](const FFaerieGridKeyedStack& Stack)
 		{
 			PreStackRemove_Server(Stack, Item);
 		});
 }
 
-void UInventorySimpleGridExtension::RemoveItemBatch(const TConstArrayView<FInventoryKey>& Keys, const UFaerieItem* Item)
+void UInventorySimpleGridExtension::RemoveItemBatch(const TConstArrayView<FFaerieAddress>& Keys, const UFaerieItem* Item)
 {
-	for (const FInventoryKey& KeyToRemove : Keys)
+	for (const FFaerieAddress& KeyToRemove : Keys)
 	{
 		RemoveItem(KeyToRemove, Item);
 		BroadcastEvent(KeyToRemove, EFaerieGridEventType::ItemRemoved);
@@ -257,13 +261,13 @@ FFaerieGridPlacement UInventorySimpleGridExtension::FindFirstEmptyLocation() con
 	return FFaerieGridPlacement{FIntPoint::NoneValue};
 }
 
-FInventoryKey UInventorySimpleGridExtension::FindOverlappingItem(const FInventoryKey& ExcludeKey) const
+FFaerieAddress UInventorySimpleGridExtension::FindOverlappingItem(const FFaerieAddress ExcludeAddress) const
 {
-	if (GridContent.Contains(ExcludeKey))
+	if (GridContent.Contains(ExcludeAddress))
 	{
-		return GridContent.GetElement(ExcludeKey).Key;
+		return GridContent.GetElement(ExcludeAddress).Key;
 	}
-	return FInventoryKey();
+	return FFaerieAddress();
 }
 
 void UInventorySimpleGridExtension::SwapItems(FFaerieGridPlacement& PlacementA, FFaerieGridPlacement& PlacementB)

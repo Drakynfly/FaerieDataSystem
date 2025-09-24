@@ -3,7 +3,7 @@
 #pragma once
 
 #include "FaerieItemContainerStructs.h"
-#include "Actions/FaerieInventoryClient.h"
+#include "Actions/FaerieClientActionBase.h"
 #include "ItemUseConsumableRequest.generated.h"
 
 /**

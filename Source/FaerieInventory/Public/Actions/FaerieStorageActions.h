@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "FaerieInventoryClient.h"
+#include "FaerieClientActionBase.h"
 #include "InventoryDataEnums.h"
 #include "InventoryDataStructs.h"
 #include "FaerieStorageActions.generated.h"
@@ -24,7 +24,7 @@ struct FFaerieClientAction_MoveFromStorage final : public FFaerieClientAction_Mo
 	TObjectPtr<UFaerieItemStorage> Storage = nullptr;
 
 	UPROPERTY(BlueprintReadWrite, Category = "MoveFromStorage")
-	FInventoryKey Key;
+	FFaerieAddress Address;
 
 	UPROPERTY(BlueprintReadWrite, Category = "MoveFromStorage")
 	int32 Amount = -1;
@@ -58,7 +58,10 @@ struct FFaerieClientAction_DeleteEntry final : public FFaerieClientActionBase
 	virtual bool Server_Execute(const UFaerieInventoryClient* Client) const override;
 
 	UPROPERTY(BlueprintReadWrite, Category = "DeleteEntry")
-	FInventoryKeyHandle Handle;
+	TObjectPtr<UFaerieItemStorage> Storage = nullptr;
+
+	UPROPERTY(BlueprintReadWrite, Category = "DeleteEntry")
+	FFaerieAddress Address;
 
 	UPROPERTY(BlueprintReadWrite, Category = "DeleteEntry")
 	int32 Amount = -1;
@@ -72,7 +75,10 @@ struct FFaerieClientAction_RequestMoveEntry final : public FFaerieClientActionBa
 	virtual bool Server_Execute(const UFaerieInventoryClient* Client) const override;
 
 	UPROPERTY(BlueprintReadWrite, Category = "MoveEntry")
-	FInventoryKeyHandle Handle;
+	TObjectPtr<UFaerieItemStorage> Storage = nullptr;
+
+	UPROPERTY(BlueprintReadWrite, Category = "MoveEntry")
+	FFaerieAddress Address;
 
 	UPROPERTY(BlueprintReadWrite, Category = "MoveEntry")
 	int32 Amount = -1;
@@ -116,7 +122,7 @@ struct FFaerieClientAction_SplitStack final : public FFaerieClientActionBase
 	TObjectPtr<UFaerieItemStorage> Storage = nullptr;
 
 	UPROPERTY(BlueprintReadWrite, Category = "SplitStack")
-	FInventoryKey Key;
+	FFaerieAddress Address;
 
 	UPROPERTY(BlueprintReadWrite, Category = "SplitStack")
 	int32 Amount = 1;

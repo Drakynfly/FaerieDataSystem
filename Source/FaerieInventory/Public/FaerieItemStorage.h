@@ -5,12 +5,14 @@
 #include "FaerieItemContainerBase.h"
 #include "ItemContainerEvent.h"
 #include "FaerieItemStack.h"
+#include "FaerieItemStorageFilter.h"
 #include "InventoryDataEnums.h"
 #include "InventoryDataStructs.h"
 
 #include "FaerieItemStorage.generated.h"
 
 struct FFaerieExtensionAllowsAdditionArgs;
+class UFaerieItemDataComparator;
 
 UENUM(BlueprintType)
 enum class EFaerieAddressEventType : uint8
@@ -27,24 +29,20 @@ enum class EFaerieAddressEventType : uint8
 
 namespace Faerie
 {
-	using FEntryKeyEvent = TMulticastDelegate<void(UFaerieItemStorage*, FEntryKey)>;
-
 	using FAddressEvent = TMulticastDelegate<void(UFaerieItemStorage*, EFaerieAddressEventType, FFaerieAddress)>;
-	using FStorageFilterFunc = TFunctionRef<bool(const FFaerieItemProxy&)>;
-	using FStorageFilter = TDelegate<bool(const FFaerieItemProxy&)>;
-	using FStorageComparator = TDelegate<bool(const FFaerieItemProxy&, const FFaerieItemProxy&)>;
+	using FStorageFilterFunc = TFunctionRef<bool(const FFaerieItemSnapshot&)>;
 
 	struct FStorageQuery
 	{
-		FStorageFilter Filter;
+		FSnapshotFilter Filter;
 		bool InvertFilter = false;
-		FStorageComparator Sort;
+		FItemComparator Sort;
 		bool InvertSort = false;
 	};
 }
 
-DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(bool, FBlueprintStorageFilter, const FFaerieItemProxy&, Proxy);
-DECLARE_DYNAMIC_DELEGATE_RetVal_TwoParams(bool, FBlueprintStorageComparator, const FFaerieItemProxy&, A, const FFaerieItemProxy&, B);
+DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(bool, FBlueprintStorageFilter, const FFaerieItemSnapshot&, Proxy);
+DECLARE_DYNAMIC_DELEGATE_RetVal_TwoParams(bool, FBlueprintStorageComparator, const FFaerieItemSnapshot&, A, const FFaerieItemSnapshot&, B);
 
 USTRUCT(BlueprintType)
 struct FFaerieItemStorageBlueprintQuery
@@ -55,16 +53,15 @@ struct FFaerieItemStorageBlueprintQuery
 	FBlueprintStorageFilter Filter;
 
 	UPROPERTY(BlueprintReadWrite, Category = "ItemStorageQuery")
-	bool InvertFilter = false;
-
-	UPROPERTY(BlueprintReadWrite, Category = "ItemStorageQuery")
 	FBlueprintStorageComparator Sort;
 
 	UPROPERTY(BlueprintReadWrite, Category = "ItemStorageQuery")
-	bool Reverse = false;
+	bool InvertFilter = false;
+
+	UPROPERTY(BlueprintReadWrite, Category = "ItemStorageQuery")
+	bool ReverseSort = false;
 };
 
-class UInventoryEntryProxy;
 class UInventoryStackProxy;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FEntryKeyEvent, UFaerieItemStorage*, Storage, FEntryKey, Key);
@@ -81,6 +78,9 @@ class FAERIEINVENTORY_API UFaerieItemStorage : public UFaerieItemContainerBase
 
 	// Allow the struct that contains our item data to call our content change notification functions.
 	friend FInventoryContent;
+
+	// Allow iterators and filters to read our data.
+	friend Faerie::FStorageDataAccess;
 
 public:
 	//~ UObject
@@ -99,11 +99,8 @@ public:
 	virtual void LoadSaveData(FConstStructView ItemData, UFaerieItemContainerExtensionData* ExtensionData) override;
 	virtual bool Contains(FEntryKey Key) const override;
 	virtual FFaerieItemStackView View(FEntryKey Key) const override;
-	virtual FFaerieItemProxy Proxy(FEntryKey Key) const override;
 	virtual FFaerieItemStack Release(FEntryKey Key, int32 Copies) override;
-	virtual void ForEachKey(Faerie::TLoop<FEntryKey> Func) const override;
 	virtual int32 GetStack(FEntryKey Key) const override;
-	virtual TArray<FFaerieAddress> Switchover_GetAddresses(FEntryKey Key) const override;
 
 	virtual bool Contains(FFaerieAddress Address) const override;
 	virtual int32 GetStack(FFaerieAddress Address) const override;
@@ -111,8 +108,8 @@ public:
 	virtual FFaerieItemStackView ViewStack(FFaerieAddress Address) const override;
 	virtual FFaerieItemProxy Proxy(FFaerieAddress Address) const override;
 	virtual FFaerieItemStack Release(FFaerieAddress Address, int32 Copies) override;
-	virtual void ForEachAddress(Faerie::TLoop<FFaerieAddress> Func) const override;
-	virtual void ForEachItem(Faerie::TLoop<const UFaerieItem*> Func) const override;
+	virtual TUniquePtr<Faerie::IContainerIterator> CreateIterator() const override;
+	virtual TUniquePtr<Faerie::IContainerFilter> CreateFilter(bool FilterByAddresses) const override;
 	//~ UFaerieItemContainerBase
 
 	//~ IFaerieItemOwnerInterface
@@ -128,34 +125,23 @@ protected:
 	/*	  INTERNAL IMPLEMENTATIONS	 */
 	/**------------------------------*/
 private:
-	static FFaerieAddress Encode(FEntryKey Entry, FStackKey Stack);
-	static void Decode(FFaerieAddress Address, FEntryKey& Entry, FStackKey& Stack);
+	// Gets all entries in this storage. They will be sorted.
+	TArray<FEntryKey> GetAllEntries() const;
 
-	TConstStructView<FInventoryEntry> GetEntryViewImpl(FEntryKey Key) const;
+	const FInventoryEntry* GetEntrySafe(FEntryKey Key) const;
 
-	UInventoryEntryProxy* GetEntryProxyImpl(FEntryKey Key) const;
-	UInventoryStackProxy* GetStackProxyImpl(FInventoryKey Key) const;
-
-	// @todo this copies the entry. Kinda wonky, should be used minimally, if at all.
-    void GetEntryImpl(FEntryKey Key, FInventoryEntry& Entry) const;
+	UInventoryStackProxy* GetStackProxyImpl(FFaerieAddress Address) const;
 
 	// Internal implementation for adding items.
 	Faerie::Inventory::FEventLog AddStackImpl(const FFaerieItemStack& InStack, bool ForceNewStack);
 
 	// Internal implementations for removing items, specifying an amount.
 	Faerie::Inventory::FEventLog RemoveFromEntryImpl(FEntryKey Key, int32 Amount, FFaerieInventoryTag Reason);
-	Faerie::Inventory::FEventLog RemoveFromStackImpl(FInventoryKey Key, int32 Amount, FFaerieInventoryTag Reason);
+	Faerie::Inventory::FEventLog RemoveFromStackImpl(FFaerieAddress Address, int32 Amount, FFaerieInventoryTag Reason);
 
-	// FastArray API; used to replicate array changes clientside
-	enum EContentChangeType
-	{
-		StackChange,
-		ItemMutation
-	};
-
-	void PostContentAdded(const FKeyedInventoryEntry& Entry);
-	void PostContentChanged(const FKeyedInventoryEntry& Entry, EContentChangeType ChangeType);
-	void PreContentRemoved(const FKeyedInventoryEntry& Entry);
+	void PostContentAdded(const FInventoryEntry& Entry);
+	void PreContentRemoved(const FInventoryEntry& Entry);
+	void PostContentChanged(const FInventoryEntry& Entry, FInventoryContent::EChangeType ChangeType);
 
 	void BroadcastAddressEvent(EFaerieAddressEventType Type, FFaerieAddress Address);
 
@@ -164,25 +150,74 @@ private:
 	/*	  STORAGE API - ALL USERS    */
 	/**------------------------------*/
 public:
-	PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	UE_DEPRECATED(5.6, "Use Address version")
-	Faerie::FEntryKeyEvent::RegistrationType& GetOnKeyAdded() { return OnKeyAddedCallback; }
-	UE_DEPRECATED(5.6, "Use Address version")
-	Faerie::FEntryKeyEvent::RegistrationType& GetOnKeyUpdated() { return OnKeyUpdatedCallback; }
-	UE_DEPRECATED(5.6, "Use Address version")
-	Faerie::FEntryKeyEvent::RegistrationType& GetOnKeyRemoved() { return OnKeyRemovedCallback; }
-	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+	// Allows conversion to and from a FaerieAddress for external API that use them separately.
+	struct FAERIEINVENTORY_API FStorageKey
+	{
+		FStorageKey() = default;
+		FStorageKey(const FEntryKey Entry, const FStackKey Stack)
+		  : EntryKey(Entry), StackKey(Stack) {}
+
+		explicit FStorageKey(const FFaerieAddress& Address);
+
+		FEntryKey EntryKey;
+		FStackKey StackKey;
+
+		FFaerieAddress ToAddress() const;
+
+		bool IsValid() const { return EntryKey.IsValid() && StackKey.IsValid(); }
+
+		FString ToString() const
+		{
+			return EntryKey.ToString() + TEXT(":") + StackKey.ToString();
+		}
+
+		FORCEINLINE friend uint32 GetTypeHash(const FStorageKey Key)
+		{
+			return HashCombineFast(GetTypeHash(Key.EntryKey), GetTypeHash(Key.StackKey));
+		}
+
+		friend bool operator==(const FStorageKey Lhs, const FStorageKey Rhs)
+		{
+			return Lhs.EntryKey == Rhs.EntryKey
+				&& Lhs.StackKey == Rhs.StackKey;
+		}
+
+		friend bool operator!=(const FStorageKey Lhs, const FStorageKey Rhs)
+		{
+			return !(Lhs == Rhs);
+		}
+
+		friend bool operator<(const FStorageKey Lhs, const FStorageKey Rhs)
+		{
+			if (Lhs.EntryKey == Rhs.EntryKey)
+			{
+				return Lhs.StackKey < Rhs.StackKey;
+			}
+
+			return Lhs.EntryKey < Rhs.EntryKey;
+		}
+
+		static FEntryKey GetEntryKey(FFaerieAddress FaerieAddress);
+		static FStackKey GetStackKey(FFaerieAddress FaerieAddress);
+	};
 
 	Faerie::FAddressEvent::RegistrationType& GetOnAddressEvent() { return OnAddressEventCallback; }
 
-	UE_DEPRECATED(5.6, "Direct access to FInventoryEntry is being phased out")
-	TConstStructView<FInventoryEntry> GetEntryView(FEntryKey Key) const;
-
-	FFaerieItemStackView GetStackView(FInventoryKey Key) const;
-
-	// Convert an entry key into an array of Inventory Keys.
 	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Storage|Key")
-	TArray<FInventoryKey> GetInvKeysForEntry(FEntryKey Key) const;
+	void BreakAddressIntoKeys(FFaerieAddress Address, FEntryKey& Entry, FStackKey& Stack) const;
+
+	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Storage|Key")
+	TArray<FStackKey> BreakEntryIntoKeys(FEntryKey Key) const;
+
+	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Storage|Key")
+	TArray<int32> GetStacksInEntry(FEntryKey Key) const;
+
+	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Storage|Key")
+	void GetAllAddresses(TArray<FFaerieAddress>& Addresses) const;
+
+	// Gets all the addresses stored to an Entry Key.
+	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Storage|Key")
+	TArray<FFaerieAddress> GetAddressesForEntry(FEntryKey Key) const;
 
 	// Gets all entry keys contained in this storage.
 	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Storage|Key")
@@ -190,15 +225,16 @@ public:
 
 	// Retrieve the number of entries in storage.
 	UFUNCTION(BlueprintCallable, Category = "Storage|Key")
+	int32 GetEntryCount() const;
+
+	// Retrieve the number of stacks in storage.
+	UFUNCTION(BlueprintCallable, Category = "Storage|Key")
     int32 GetStackCount() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Storage|Key")
 	bool ContainsKey(FEntryKey Key) const;
 
-	UFUNCTION(BlueprintCallable, Category = "Storage|Key")
-	bool IsValidKey(FInventoryKey Key) const;
-
-	UFUNCTION(BlueprintCallable, Category = "Storage|Key")
+	UFUNCTION(BlueprintCallable, Category = "Storage")
 	bool ContainsItem(const UFaerieItem* Item, EFaerieItemEqualsCheck Method) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Storage|Key")
@@ -206,77 +242,44 @@ public:
 
 	// Utility function mainly used with inventories that are expected to only contain a single entry, e.g., pickups.
 	UFUNCTION(BlueprintCallable, Category = "Storage|Key")
-	FInventoryKey GetFirstKey() const;
+	FFaerieAddress GetFirstAddress() const;
 
-	/**
-	 * Full version
-	 * @return Whether an entry was found.
-	 */
-	UE_DEPRECATED(5.6, "Direct access to FInventoryEntry is being phased out.")
-	UFUNCTION(BlueprintCallable, BlueprintPure = false, meta = (DeprecatedFunction, DeprecationMessage = "Direct access to FInventoryEntry is being phased out."))
-	bool GetEntry(FEntryKey Key, FInventoryEntry& Entry) const;
-
-	/**
-	 * Get the Inventory Entry Proxy representing an entry in this storage.
-	 * The proxy will be cached for quick repeat access.
-	 * Proxies will be created even if the Key is not valid. This allows the client to prospectively create proxies for
-	 * entries that have not replicated yet.
-	 */
-	UFUNCTION(BlueprintCallable, Category = "Storage|Cache")
-	UInventoryEntryProxy* GetEntryProxy(FEntryKey Key) const;
-
-	/**
-	 * Get the Inventory Stack Proxy representing a stack in this storage.
-	 * The proxy will be cached for quick repeat access.
-	 * Proxies will be created even if the Key is not valid. This allows the client to prospectively create proxies for
-	 * stacks that have not replicated yet.
-	 */
-	// @todo deprecate in favor of calling Proxy with an Address
-	UFUNCTION(BlueprintCallable, Category = "Storage|Cache", DisplayName = "Get Stack Proxy")
-	UInventoryStackProxy* GetStackProxy_New(FInventoryKey Key) const;
-
-	UE_DEPRECATED(5.5, "Use Get Stack Proxy instead, and convert to a weak proxy when needed")
-	UFUNCTION(BlueprintCallable, Category = "Storage|Cache", meta = (ExpandBoolAsExecs = "ReturnValue"), DisplayName = "Get Stack Proxy (weak)")
-	bool GetStackProxy(FInventoryKey Key, FFaerieItemProxy& Proxy);
-
-	/** Get entries en masse */
-	UE_DEPRECATED(5.6, "Direct access to FInventoryEntry is being phased out.")
-	UFUNCTION(BlueprintCallable, BlueprintPure = false, meta = (DeprecatedFunction, DeprecationMessage = "Direct access to FInventoryEntry is being phased out."))
-	void GetEntryArray(const TArray<FEntryKey>& Keys, TArray<FInventoryEntry>& Entries) const;
+	// Gets the item stored at an entry.
+	UFUNCTION(BlueprintCallable, Category = "Storage|Key")
+	const UFaerieItem* GetEntryItem(FEntryKey Key) const;
 
 	// Query function to filter for the first matching entry.
-	FKeyedInventoryEntry QueryFirst(const Faerie::FStorageFilterFunc& Filter) const;
+	FFaerieAddress QueryFirst(const Faerie::FStorageFilterFunc& Filter) const;
 
 	// Query function to filter and sort for a subsection of contained entries.
-	void QueryAll(const Faerie::FStorageQuery& Query, TArray<FKeyedInventoryEntry>& OutKeys) const;
 	void QueryAll(const Faerie::FStorageQuery& Query, TArray<FFaerieAddress>& OutAddresses) const;
 
 	// Query function to filter for the first matching entry.
 	UFUNCTION(BlueprintCallable, Category = "Storage|Query")
-	FEntryKey QueryFirst(const FBlueprintStorageFilter& Filter) const;
+	FFaerieAddress QueryFirst(const FBlueprintStorageFilter& Filter) const;
 
 	// Query function to filter and sort for a subsection of contained entries.
 	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Storage|Query")
-	void QueryAll(const FFaerieItemStorageBlueprintQuery& Query, TArray<FEntryKey>& OutKeys) const;
+	void QueryAll(const FFaerieItemStorageBlueprintQuery& Query, TArray<FFaerieAddress>& OutKeys) const;
 
-	UFUNCTION(BlueprintCallable, Category = "Storage")
+	UFUNCTION(BlueprintCallable, Category = "Storage|Permissions")
 	bool CanAddStack(FFaerieItemStackView Stack, EFaerieStorageAddStackBehavior AddStackBehavior) const;
 
-	UFUNCTION(BlueprintCallable, Category = "Storage")
+	UFUNCTION(BlueprintCallable, Category = "Storage|Permissions")
 	bool CanAddStacks(const TArray<FFaerieItemStackView>& Stacks, FFaerieExtensionAllowsAdditionArgs Args) const;
 
-	UFUNCTION(BlueprintCallable, Category = "Storage")
+	UFUNCTION(BlueprintCallable, Category = "Storage|Permissions")
 	bool CanEditEntry(FEntryKey Key, FFaerieInventoryTag EditTag) const;
 
-	UFUNCTION(BlueprintCallable, Category = "Storage")
-	bool CanEditStack(FInventoryKey StackKey, FFaerieInventoryTag EditTag) const;
+	UFUNCTION(BlueprintCallable, Category = "Storage|Permissions")
+	bool CanEditStack(FFaerieAddress Address, FFaerieInventoryTag EditTag) const;
 
-	UFUNCTION(BlueprintCallable, Category = "Storage")
+	UFUNCTION(BlueprintCallable, Category = "Storage|Permissions")
 	bool CanRemoveEntry(FEntryKey Key,
 		UPARAM(meta = (Categories = "Fae.Inventory.Removal")) FFaerieInventoryTag Reason) const;
 
-	UFUNCTION(BlueprintCallable, Category = "Storage")
-	bool CanRemoveStack(FInventoryKey Key,
+	UFUNCTION(BlueprintCallable, Category = "Storage|Permissions")
+	bool CanRemoveStack(FFaerieAddress Address,
 		UPARAM(meta = (Categories = "Fae.Inventory.Removal")) FFaerieInventoryTag Reason) const;
 
 
@@ -284,18 +287,23 @@ public:
 	/*	 STORAGE API - AUTHORITY ONLY   */
 	/**---------------------------------*/
 
-	// Add a single raw item.
+	// Add a single raw item into storage.
 	UFUNCTION(BlueprintCallable, Category = "Storage", BlueprintAuthorityOnly)
-	bool AddEntryFromItemObject(UFaerieItem* ItemObject, EFaerieStorageAddStackBehavior AddStackBehavior);
+	bool AddEntryFromItemObject(const UFaerieItem* ItemObject, EFaerieStorageAddStackBehavior AddStackBehavior);
 
-	// Add a single raw item.
+	// Add an item stack into storage.
 	UFUNCTION(BlueprintCallable, Category = "Storage", BlueprintAuthorityOnly)
 	bool AddItemStack(const FFaerieItemStack& ItemStack, EFaerieStorageAddStackBehavior AddStackBehavior);
 
-	// Add a single raw item, and return the full data about the change.
+	// Add an item stack into storage, and return the full data about the change.
+	void AddItemStack(const FFaerieItemStack& ItemStack, EFaerieStorageAddStackBehavior AddStackBehavior, Faerie::Inventory::FEventLog& OutLog);
+
+protected:
+	// Add an item stack into storage, and return the full data about the change. Blueprint callable version that returns a wrapped event log.
 	UFUNCTION(BlueprintCallable, Category = "Storage", BlueprintAuthorityOnly, DisplayName = "Add Item Stack (with Log)")
 	FLoggedInventoryEvent AddItemStackWithLog(const FFaerieItemStack& ItemStack, EFaerieStorageAddStackBehavior AddStackBehavior);
 
+public:
 	/**
 	 * Removes the entry with this key if it exists.
 	 * An amount of -1 will remove the entire stack.
@@ -309,7 +317,7 @@ public:
 	 * An amount of -1 will remove the entire stack.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Storage", BlueprintAuthorityOnly)
-	bool RemoveStack(FInventoryKey Key,
+	bool RemoveStack(FFaerieAddress Address,
 		UPARAM(meta = (Categories = "Fae.Inventory.Removal")) FFaerieInventoryTag RemovalTag, int32 Amount = -1);
 
 	/**
@@ -325,7 +333,7 @@ public:
 	 * An amount of -1 will remove the entire stack.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Storage", BlueprintAuthorityOnly)
-	bool TakeStack(FInventoryKey Key, FFaerieItemStack& OutStack,
+	bool TakeStack(FFaerieAddress Address, FFaerieItemStack& OutStack,
 		UPARAM(meta = (Categories = "Fae.Inventory.Removal")) FFaerieInventoryTag RemovalTag, int32 Amount = -1);
 
 	/**
@@ -339,7 +347,7 @@ public:
 	 * @return The key used by the ToStorage to store the entry.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Storage", BlueprintAuthorityOnly)
-	FEntryKey MoveStack(UFaerieItemStorage* ToStorage, FInventoryKey Key, int32 Amount = -1,
+	FEntryKey MoveStack(UFaerieItemStorage* ToStorage, FFaerieAddress Address, int32 Amount = -1,
 		EFaerieStorageAddStackBehavior AddStackBehavior = EFaerieStorageAddStackBehavior::AddToAnyStack);
 
 	UFUNCTION(BlueprintCallable, Category = "Storage", BlueprintAuthorityOnly)
@@ -349,7 +357,7 @@ public:
 	bool MergeStacks(FEntryKey Entry, FStackKey FromStack, FStackKey ToStack, int32 Amount = -1);
 
 	UFUNCTION(BlueprintCallable, Category = "Storage", BlueprintAuthorityOnly)
-	bool SplitStack(FEntryKey Entry, FStackKey Stack, int32 Amount);
+	bool SplitStack(FFaerieAddress Address, int32 Amount);
 
 	/** Call MoveEntry on all entries in this storage. */
 	UFUNCTION(BlueprintCallable, Category = "Storage", BlueprintAuthorityOnly)
@@ -361,13 +369,6 @@ public:
 	/**-------------*/
 protected:
 	Faerie::FAddressEvent OnAddressEventCallback;
-
-	UE_DEPRECATED(5.6, "Use Address version")
-	Faerie::FEntryKeyEvent OnKeyAddedCallback;
-	UE_DEPRECATED(5.6, "Use Address version")
-	Faerie::FEntryKeyEvent OnKeyUpdatedCallback;
-	UE_DEPRECATED(5.6, "Use Address version")
-	Faerie::FEntryKeyEvent OnKeyRemovedCallback;
 
 	// Broadcast whenever an entry is added, or a stack amount is increased.
 	UPROPERTY(BlueprintAssignable, Transient, Category = "Events")
@@ -400,11 +401,7 @@ private:
 	// Effectively mutable, as these are written to by the const proxy accessors.
 	// @todo how will these maps get cleaned up, to they don't accrue hundreds of stale ptrs?
 
-	// Locally stored proxies per entry.
-	UPROPERTY(Transient)
-	TMap<FEntryKey, TWeakObjectPtr<UInventoryEntryProxy>> LocalEntryProxies;
-
 	// Locally stored proxies per individual stack.
 	UPROPERTY(Transient)
-	TMap<FInventoryKey, TWeakObjectPtr<UInventoryStackProxy>> LocalStackProxies;
+	TMap<FFaerieAddress, TWeakObjectPtr<UInventoryStackProxy>> LocalStackProxies;
 };

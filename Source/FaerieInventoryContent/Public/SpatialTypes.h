@@ -25,6 +25,7 @@ struct FAERIEINVENTORYCONTENT_API FFaerieGridShape
 	static FFaerieGridShape MakeSquare(int32 Size);
 	static FFaerieGridShape MakeRect(int32 Height, int32 Width);
 
+	bool IsValid() const;
 	FIntPoint GetSize() const;
 	FIntRect GetBounds() const;
 	FIntPoint GetShapeCenter() const;
@@ -62,6 +63,9 @@ struct FAERIEINVENTORYCONTENT_API FFaerieGridShape
 	friend bool operator==(const FFaerieGridShape& Lhs, const FFaerieGridShape& Rhs);
 	friend bool operator!=(const FFaerieGridShape& Lhs, const FFaerieGridShape& Rhs) { return !(Lhs == Rhs); }
 
+	// A single cell.
+	static FFaerieGridShape Square1;
+
 private:
 	// Internal rotation util
 	[[nodiscard]] FFaerieGridShape RotateAngle(float AngleDegrees) const;
@@ -77,6 +81,7 @@ struct FAERIEINVENTORYCONTENT_API FFaerieGridShapeView
 	FFaerieGridShapeView(FFaerieGridShape& Shape)
 	  : Points(Shape.Points) {}
 
+	bool IsValid() const;
 	FIntPoint GetSize() const;
 	FIntRect GetBounds() const;
 	FIntPoint GetShapeCenter() const;
@@ -120,6 +125,7 @@ struct FAERIEINVENTORYCONTENT_API FFaerieGridShapeConstView
 	FFaerieGridShapeConstView(const FFaerieGridShape& Shape)
 	  : Points(Shape.Points) {}
 
+	bool IsValid() const;
 	FIntPoint GetSize() const;
 	FIntRect GetBounds() const;
 	FIntPoint GetShapeCenter() const;

@@ -9,3 +9,8 @@ bool FFaerieAddressableHandle::IsValid() const
 {
 	return Container.IsValid() && Container->Contains(Address);
 }
+
+FFaerieItemProxy FFaerieAddressableHandle::ToProxy() const
+{
+	return FFaerieItemProxy(Container->Proxy(Address));
+}

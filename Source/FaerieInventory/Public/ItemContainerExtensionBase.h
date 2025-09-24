@@ -80,8 +80,8 @@ protected:
 	/* Allows us to use the key from the last addition */
 	virtual void PostAddition(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event) {}
 
-	/* Does this extension allow removal from/of an entry in the container? */
-	virtual EEventExtensionResponse AllowsRemoval(const UFaerieItemContainerBase* Container, FEntryKey Key, FFaerieInventoryTag Reason) const { return EEventExtensionResponse::NoExplicitResponse; }
+	/* Does this extension allow removal of an address in the container? */
+	virtual EEventExtensionResponse AllowsRemoval(const UFaerieItemContainerBase* Container, FFaerieAddress Address, FFaerieInventoryTag Reason) const { return EEventExtensionResponse::NoExplicitResponse; }
 
 	/* Allows us to react before an item is removed */
 	virtual void PreRemoval(const UFaerieItemContainerBase* Container, FEntryKey Key, int32 Removal) {}
@@ -124,6 +124,115 @@ protected:
 	Ext->SetIdentifier();
 #endif
 
+namespace Faerie
+{
+	// A flat iterator that looks through each extension directly referenced by a group.
+	template <bool Const>
+	class TExtensionIterator
+	{
+		using InterfaceType = std::conditional_t<Const, const IFaerieContainerExtensionInterface, IFaerieContainerExtensionInterface>;
+		using GroupType = std::conditional_t<Const, const UItemContainerExtensionGroup, UItemContainerExtensionGroup>;
+		using ElementType = std::conditional_t<Const, const UItemContainerExtensionBase, UItemContainerExtensionBase>;
+
+	public:
+		TExtensionIterator(InterfaceType* Interface)
+		  : Group(Interface->GetExtensionGroup())
+		{
+			operator++();
+		}
+
+		TExtensionIterator(GroupType* Group)
+		  : Group(Group)
+		{
+			operator++();
+		}
+
+		FORCEINLINE ElementType* operator*() const { return Current; }
+
+		FORCEINLINE TExtensionIterator& operator++();
+
+		FORCEINLINE explicit operator bool() const
+		{
+			return Group && Current;
+		}
+
+		[[nodiscard]] FORCEINLINE bool operator!=(const TExtensionIterator& Rhs) const
+		{
+			return Current != Rhs.Current;
+		}
+
+		[[nodiscard]] FORCEINLINE bool operator!=(EIteratorType) const
+		{
+			// As long we are valid, then we have not ended.
+			return static_cast<bool>(*this);
+		}
+
+		FORCEINLINE TExtensionIterator begin() { return *this; }
+		FORCEINLINE EIteratorType end () { return End; }
+
+	private:
+		GroupType* Group;
+		ElementType* Current;
+		int32 Index;
+		enum
+		{
+			Init,
+			ParentGroup,
+			Extensions,
+			DynamicExtensions
+		} State = Init;
+	};
+
+	// A recursive iterator that looks through every extension, unraveling groups. Groups themselves are skipped by iteration.
+	template <bool Const>
+	class TRecursiveExtensionIterator
+	{
+		using InterfaceType = std::conditional_t<Const, const IFaerieContainerExtensionInterface, IFaerieContainerExtensionInterface>;
+		using GroupType = std::conditional_t<Const, const UItemContainerExtensionGroup, UItemContainerExtensionGroup>;
+		using ElementType = std::conditional_t<Const, const UItemContainerExtensionBase, UItemContainerExtensionBase>;
+		using IteratorType = std::conditional_t<Const, typename TArray<ElementType*>::TConstIterator, typename TArray<ElementType*>::TIterator>;
+
+	public:
+		TRecursiveExtensionIterator(InterfaceType* Interface);
+		TRecursiveExtensionIterator(GroupType* Group);
+
+		static auto GetAllExtensions(GroupType* Group) -> TArray<ElementType*>;
+
+		FORCEINLINE ElementType* operator*() const { return *Iterator; }
+
+		FORCEINLINE TRecursiveExtensionIterator& operator++();
+
+		FORCEINLINE explicit operator bool() const
+		{
+			return static_cast<bool>(Iterator);
+		}
+
+		[[nodiscard]] FORCEINLINE bool operator!=(const TRecursiveExtensionIterator& Rhs) const
+		{
+			return Iterator != Rhs.Iterator;
+		}
+
+		[[nodiscard]] FORCEINLINE bool operator!=(EIteratorType) const
+		{
+			// As long we are valid, then we have not ended.
+			return static_cast<bool>(*this);
+		}
+
+		FORCEINLINE TRecursiveExtensionIterator begin() const { return *this; }
+		FORCEINLINE EIteratorType end () const { return End; }
+
+	private:
+		TArray<ElementType*> Extensions;
+		IteratorType Iterator;
+	};
+
+	using FExtensionIterator = TExtensionIterator<false>;
+	using FConstExtensionIterator = TExtensionIterator<true>;
+
+	using FRecursiveExtensionIterator = TRecursiveExtensionIterator<false>;
+	using FRecursiveConstExtensionIterator = TRecursiveExtensionIterator<true>;
+}
+
 /*
  * A collection of extensions that implements the interface of the base class to defer to others.
  */
@@ -131,6 +240,9 @@ UCLASS()
 class FAERIEINVENTORY_API UItemContainerExtensionGroup final : public UItemContainerExtensionBase, public IFaerieContainerExtensionInterface
 {
 	GENERATED_BODY()
+
+	template <bool Const> friend class Faerie::TExtensionIterator;
+	template <bool Const> friend class Faerie::TRecursiveExtensionIterator;
 
 public:
 	//~ UObject
@@ -153,7 +265,7 @@ public:
 	virtual EEventExtensionResponse AllowsAddition(const UFaerieItemContainerBase* Container, TConstArrayView<FFaerieItemStackView> Views, FFaerieExtensionAllowsAdditionArgs Args) const override;
 	virtual void PreAddition(const UFaerieItemContainerBase* Container, FFaerieItemStackView Stack) override;
 	virtual void PostAddition(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event) override;
-	virtual EEventExtensionResponse AllowsRemoval(const UFaerieItemContainerBase* Container, FEntryKey Key, FFaerieInventoryTag Reason) const override;
+	virtual EEventExtensionResponse AllowsRemoval(const UFaerieItemContainerBase* Container, FFaerieAddress Address, FFaerieInventoryTag Reason) const override;
 	virtual void PreRemoval(const UFaerieItemContainerBase* Container, FEntryKey Key, int32 Removal) override;
 	virtual void PostRemoval(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event) override;
 	virtual EEventExtensionResponse AllowsEdit(const UFaerieItemContainerBase* Container, FEntryKey Key, FFaerieInventoryTag EditTag) const override;
@@ -179,11 +291,7 @@ public:
 	// Explanation: Cleanup the extensions array after a load to remove stale pointers.
 	void ValidateGroup();
 
-	void ForEachExtension(Faerie::TLoop<UItemContainerExtensionBase*> Func);
 	void ForEachExtension(Faerie::TLoop<const UItemContainerExtensionBase*> Func) const;
-
-	void ForEachExtensionWithBreak(Faerie::TBreakableLoop<UItemContainerExtensionBase*> Func);
-	void ForEachExtensionWithBreak(Faerie::TBreakableLoop<const UItemContainerExtensionBase*> Func) const;
 
 #if !UE_BUILD_SHIPPING
 	void PrintDebugData() const;

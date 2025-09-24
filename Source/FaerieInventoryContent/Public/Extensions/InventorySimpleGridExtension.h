@@ -29,22 +29,22 @@ protected:
 	virtual void PostStackAdd(const FFaerieGridKeyedStack& Stack) override;
 	virtual void PostStackChange(const FFaerieGridKeyedStack& Stack) override;
 
-	virtual FInventoryKey GetKeyAt(const FIntPoint& Position) const override;
+	virtual FFaerieAddress GetKeyAt(const FIntPoint& Position) const override;
 	virtual bool CanAddAtLocation(FFaerieItemStackView Stack, FIntPoint IntPoint) const override;
-	virtual bool AddItemToGrid(const FInventoryKey& Key, const UFaerieItem* Item) override;
-	virtual bool MoveItem(const FInventoryKey& Key, const FIntPoint& TargetPoint) override;
-	virtual bool RotateItem(const FInventoryKey& Key) override;
+	virtual bool AddItemToGrid(FFaerieAddress Address, const UFaerieItem* Item) override;
+	virtual bool MoveItem(FFaerieAddress Address, const FIntPoint& TargetPoint) override;
+	virtual bool RotateItem(FFaerieAddress Address) override;
 	//~ UInventoryGridExtensionBase
 
 private:
-	void RemoveItem(const FInventoryKey& Key, const UFaerieItem* Item);
-	void RemoveItemBatch(const TConstArrayView<FInventoryKey>& Keys, const UFaerieItem* Item);
+	void RemoveItem(FFaerieAddress Address, const UFaerieItem* Item);
+	void RemoveItemBatch(const TConstArrayView<FFaerieAddress>& Keys, const UFaerieItem* Item);
 
 public:
 	FFaerieGridPlacement FindFirstEmptyLocation() const;
 
 protected:
-	FInventoryKey FindOverlappingItem(const FInventoryKey& ExcludeKey) const;
+	FFaerieAddress FindOverlappingItem(FFaerieAddress ExcludeAddress) const;
 
 	void SwapItems(FFaerieGridPlacement& PlacementA, FFaerieGridPlacement& PlacementB);
 	void MoveSingleItem(FFaerieGridPlacement& Placement, const FIntPoint& NewPosition);

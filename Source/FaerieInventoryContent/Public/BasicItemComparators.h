@@ -14,7 +14,7 @@ class FAERIEINVENTORYCONTENT_API UFaerieLexicographicNameComparator : public UFa
 	GENERATED_BODY()
 
 public:
-	virtual bool Exec(FFaerieItemProxy A, FFaerieItemProxy B) const override;
+	virtual bool Exec(const FFaerieItemSnapshot& A, const FFaerieItemSnapshot& B) const override;
 };
 
 /**
@@ -26,5 +26,5 @@ class FAERIEINVENTORYCONTENT_API UFaerieDateModifiedComparator : public UFaerieI
 	GENERATED_BODY()
 
 public:
-	virtual bool Exec(FFaerieItemProxy A, FFaerieItemProxy B) const override;
+	virtual bool Exec(const FFaerieItemSnapshot& A, const FFaerieItemSnapshot& B) const override;
 };

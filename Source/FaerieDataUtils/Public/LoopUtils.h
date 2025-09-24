@@ -13,6 +13,12 @@ namespace Faerie
 		Stop
 	};
 
+	// Type enum, used to represent the special End iterator
+	enum EIteratorType
+	{
+		End
+	};
+
 	// A simple typedef over a TFunctionRef to make iterator functions more legible.
 	template <typename... ParamTypes>
 	using TLoop = const TFunctionRef<void(ParamTypes...)>&;

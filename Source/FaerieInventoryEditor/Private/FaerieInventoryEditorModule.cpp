@@ -2,6 +2,7 @@
 
 #include "FaerieInventoryEditorModule.h"
 #include "FaerieInventoryTag.h"
+#include "FaerieItemContainerStructs.h"
 #include "GameplayTagsEditorModule.h"
 #include "InventoryDataStructs.h"
 #include "Customizations/SimpleInlineHeaderStructCustomization.h"

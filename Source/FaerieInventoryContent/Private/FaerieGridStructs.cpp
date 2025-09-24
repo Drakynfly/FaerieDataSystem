@@ -20,7 +20,7 @@ void FFaerieGridKeyedStack::PostReplicatedChange(const FFaerieGridContent& InArr
 	InArraySerializer.PostStackReplicatedChange(*this);
 }
 
-FFaerieGridContent::FScopedStackHandle::FScopedStackHandle(const FInventoryKey Key, FFaerieGridContent& Source)
+FFaerieGridContent::FScopedStackHandle::FScopedStackHandle(const FFaerieAddress Key, FFaerieGridContent& Source)
   : Handle(Source.Items[Source.IndexOf(Key)]),
 	Source(Source)
 {
@@ -46,7 +46,7 @@ void FFaerieGridContent::PreStackReplicatedRemove(const FFaerieGridKeyedStack& S
 	}
 }
 
-void FFaerieGridContent::PostStackReplicatedAdd(const FFaerieGridKeyedStack& Stack)
+void FFaerieGridContent::PostStackReplicatedAdd(const FFaerieGridKeyedStack& Stack) const
 {
 	if (IsValid(ChangeListener))
 	{
@@ -62,7 +62,7 @@ void FFaerieGridContent::PostStackReplicatedChange(const FFaerieGridKeyedStack& 
 	}
 }
 
-void FFaerieGridContent::Insert(FInventoryKey Key, const FFaerieGridPlacement& Value)
+void FFaerieGridContent::Insert(FFaerieAddress Key, const FFaerieGridPlacement& Value)
 {
 	check(Key.IsValid())
 	check(WriteLock == 0);
@@ -73,8 +73,9 @@ void FFaerieGridContent::Insert(FInventoryKey Key, const FFaerieGridPlacement& V
 	MarkItemDirty(NewStack);
 }
 
-void FFaerieGridContent::Remove(const FInventoryKey Key)
+void FFaerieGridContent::Remove(const FFaerieAddress Key)
 {
+	check(Key.IsValid())
 	check(WriteLock == 0);
 
 	if (BSOA::Remove(Key))
@@ -82,4 +83,16 @@ void FFaerieGridContent::Remove(const FInventoryKey Key)
 		// Notify clients of this removal.
 		MarkArrayDirty();
 	}
+}
+
+FFaerieGridContent::TRangedForConstIterator FFaerieGridContent::begin() const
+{
+	WriteLock++;
+	return TRangedForConstIterator(Items.begin());
+}
+
+FFaerieGridContent::TRangedForConstIterator FFaerieGridContent::end() const
+{
+	WriteLock--;
+	return TRangedForConstIterator(Items.end());
 }

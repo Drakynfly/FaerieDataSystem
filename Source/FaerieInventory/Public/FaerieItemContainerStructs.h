@@ -51,6 +51,8 @@ struct FAERIEINVENTORY_API FFaerieAddress
 	}
 };
 
+struct FFaerieItemProxy;
+
 /**
  * An item container and an address for some content.
  */
@@ -66,4 +68,6 @@ struct FAERIEINVENTORY_API FFaerieAddressableHandle
 	FFaerieAddress Address;
 
 	bool IsValid() const;
+
+	FFaerieItemProxy ToProxy() const;
 };

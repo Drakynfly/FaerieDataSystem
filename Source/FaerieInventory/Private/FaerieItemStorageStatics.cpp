@@ -1,11 +1,13 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieItemStorageStatics.h"
+#include "FaerieContainerIterator.h"
 #include "FaerieInventoryLog.h"
 #include "FaerieInventorySettings.h"
 #include "FaerieItem.h"
 #include "FaerieItemContainerBase.h"
 #include "FaerieItemToken.h"
+#include "FaerieItemTokenFilter.h"
 #include "ItemContainerExtensionBase.h"
 #include "GameFramework/Actor.h"
 #include "Tokens/FaerieItemStorageToken.h"
@@ -45,19 +47,18 @@ namespace Faerie
 
 			if (UFaerieItemContainerToken* SubStorage = Cast<UFaerieItemContainerToken>(Token))
 			{
-				SubStorage->GetItemContainer()->ForEachItem(
-					[&HitError](const UFaerieItem* SubItem)
-					{
+				for (const UFaerieItem* SubItem : ItemRange(SubStorage->GetItemContainer()))
+				{
 #if WITH_EDITOR
-						if (RecursiveValidationTracker.Contains(SubItem))
-						{
-							UE_LOG(LogFaerieInventory, Error, TEXT("ValidateItemData: Item '%s' is somehow contained in itself :/"), *SubItem->GetName())
-							HitError |= true;
-							return;
-						}
+					if (RecursiveValidationTracker.Contains(SubItem))
+					{
+						UE_LOG(LogFaerieInventory, Error, TEXT("ValidateItemData: Item '%s' is somehow contained in itself :/"), *SubItem->GetName())
+						HitError |= true;
+						break;
+					}
 #endif
-						HitError |= !ValidateItemData(SubItem);
-					});
+					HitError |= !ValidateItemData(SubItem);
+				}
 			}
 		}
 
@@ -68,7 +69,8 @@ namespace Faerie
 		return !HitError;
 	}
 
-	void ReleaseOwnership_Impl(UObject* Owner, const UFaerieItem* Item, const bool IsSubItem)
+	template <bool IsSubItem>
+	void ReleaseOwnership_Impl(UObject* Owner, const UFaerieItem* Item)
 	{
 		if (!ensure(IsValid(Item))) return;
 
@@ -83,36 +85,32 @@ namespace Faerie
 				MutableItem->DeinitializeNetObject(Actor);
 				Actor->RemoveReplicatedSubObject(MutableItem);
 			}
-			MutableItem->ForEachToken(
-				[&](const TObjectPtr<UFaerieItemToken>& Token)
+
+			for (UFaerieItemToken* Token : Token::FTokenFilter(MutableItem).By<Token::FMutableFilter>())
+			{
+				if (RegisteredWithActor)
 				{
-					if (!Token->IsMutable()) return Continue;
+					Token->DeinitializeNetObject(Actor);
+					Actor->RemoveReplicatedSubObject(Token);
+				}
 
-					if (RegisteredWithActor)
+				// If the token has an extension group, clear its parent.
+				if (IFaerieContainerExtensionInterface* TokenWithExtension = Cast<IFaerieContainerExtensionInterface>(Token))
+				{
+					TokenWithExtension->GetExtensionGroup()->SetParentGroup(nullptr);
+				}
+
+				// If the token contains nested items, release ownership recursively.
+				if (UFaerieItemContainerToken* ContainerToken = Cast<UFaerieItemContainerToken>(Token))
+				{
+					for (const UFaerieItem* ChildItem : ItemRange(ContainerToken->GetItemContainer()))
 					{
-						Token->DeinitializeNetObject(Actor);
-						Actor->RemoveReplicatedSubObject(Token);
+						ReleaseOwnership_Impl<true>(Owner, ChildItem);
 					}
+				}
+			}
 
-					// If the token has an extension group, clear its parent.
-					if (IFaerieContainerExtensionInterface* TokenWithExtension = Cast<IFaerieContainerExtensionInterface>(Token))
-					{
-						TokenWithExtension->GetExtensionGroup()->SetParentGroup(nullptr);
-					}
-
-					// If the token contains nested items, release ownership recursively.
-					if (UFaerieItemContainerToken* ContainerToken = Cast<UFaerieItemContainerToken>(Token))
-					{
-						ContainerToken->GetItemContainer()->ForEachItem([Owner](const UFaerieItem* ChildItem)
-						{
-							ReleaseOwnership_Impl(Owner, ChildItem, true);
-						});
-					}
-
-					return Continue;
-				});
-
-			if (!IsSubItem)
+			if constexpr (!IsSubItem)
 			{
 				// If we renamed the item to ourself when we took ownership of this item, then we need to release that now.
 				if (MutableItem->GetOuter() == Owner)
@@ -139,7 +137,8 @@ namespace Faerie
 		}
 	}
 
-	void TakeOwnership_Impl(UObject* Owner, const UFaerieItem* Item, const bool IsSubItem)
+	template <bool IsSubItem>
+	void TakeOwnership_Impl(UObject* Owner, const UFaerieItem* Item)
 	{
 		if (!ensure(IsValid(Item))) return;
 
@@ -157,7 +156,7 @@ namespace Faerie
 
 			// Children do not get renamed. They already belong to this outer chain if we are renamed.
 			// We also don't bind to the mutation hook if we are a subitem.
-			if (!IsSubItem)
+			if constexpr (!IsSubItem)
 			{
 				if (GetDefault<UFaerieInventorySettings>()->ContainerMutableBehavior == EFaerieContainerOwnershipBehavior::Rename)
 				{
@@ -187,47 +186,42 @@ namespace Faerie
 				OuterExtensions = OuterWithExtension->GetExtensionGroup();
 			}
 
-			MutableItem->ForEachToken(
-				[&](const TObjectPtr<UFaerieItemToken>& Token)
+			for (UFaerieItemToken* Token : Token::FTokenFilter(MutableItem).By<Token::FMutableFilter>())
+			{
+				if (RegisterWithActor)
 				{
-					if (!Token->IsMutable()) return Continue;
+					Actor->AddReplicatedSubObject(Token);
+					Token->InitializeNetObject(Actor);
+				}
 
-					if (RegisterWithActor)
+				// If the token has an extension group, set its parent to ours.
+				if (IsValid(OuterExtensions))
+				{
+					if (IFaerieContainerExtensionInterface* TokenWithExtension = Cast<IFaerieContainerExtensionInterface>(Token))
 					{
-						Actor->AddReplicatedSubObject(Token);
-						Token->InitializeNetObject(Actor);
+						TokenWithExtension->GetExtensionGroup()->SetParentGroup(OuterExtensions);
 					}
+				}
 
-					// If the token has an extension group, set its parent to ours.
-					if (IsValid(OuterExtensions))
+				// If the token contains nested items, take ownership recursively.
+				if (UFaerieItemContainerToken* ContainerToken = Cast<UFaerieItemContainerToken>(Token))
+				{
+					for (const UFaerieItem* ChildItem : ItemRange(ContainerToken->GetItemContainer()))
 					{
-						if (IFaerieContainerExtensionInterface* TokenWithExtension = Cast<IFaerieContainerExtensionInterface>(Token))
-						{
-							TokenWithExtension->GetExtensionGroup()->SetParentGroup(OuterExtensions);
-						}
+						TakeOwnership_Impl<true>(Owner, ChildItem);
 					}
-
-					// If the token contains nested items, take ownership recursively.
-					if (UFaerieItemContainerToken* ContainerToken = Cast<UFaerieItemContainerToken>(Token))
-					{
-						ContainerToken->GetItemContainer()->ForEachItem([Owner](const UFaerieItem* ChildItem)
-						{
-							TakeOwnership_Impl(Owner, ChildItem, true);
-						});
-					}
-
-					return Continue;
-				});
+				}
+			}
 		}
 	}
 
 	void ReleaseOwnership(UObject* Owner, const UFaerieItem* Item)
 	{
-		ReleaseOwnership_Impl(Owner, Item, false);
+		ReleaseOwnership_Impl<false>(Owner, Item);
 	}
 
 	void TakeOwnership(UObject* Owner, const UFaerieItem* Item)
 	{
-		TakeOwnership_Impl(Owner, Item, false);
+		TakeOwnership_Impl<false>(Owner, Item);
 	}
 }

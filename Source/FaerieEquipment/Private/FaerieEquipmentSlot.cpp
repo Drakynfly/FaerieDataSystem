@@ -4,6 +4,8 @@
 
 #include "FaerieEquipmentSlotDescription.h"
 #include "FaerieAssetInfo.h"
+#include "FaerieContainerFilter.h"
+#include "FaerieContainerIterator.h"
 #include "FaerieEquipmentLog.h"
 #include "FaerieItem.h"
 #include "FaerieItemStorageStatics.h"
@@ -15,7 +17,6 @@
 
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
-#include "Providers/FlakesBinarySerializer.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieEquipmentSlot)
 
@@ -23,6 +24,124 @@ namespace Faerie::Equipment::Tags
 {
 	UE_DEFINE_GAMEPLAY_TAG_TYPED_COMMENT(FFaerieInventoryTag, SlotSet, "Fae.Inventory.Set", "Event tag when item data is added to a slot")
 	UE_DEFINE_GAMEPLAY_TAG_TYPED_COMMENT(FFaerieInventoryTag, SlotTake, "Fae.Inventory.Take", "Event tag when item data is removed from a slot")
+}
+
+namespace Faerie
+{
+	/**
+	 * Not really an iterator, this just exists to implement the IContainerIterator, so we can transparently interop
+	 * with generic Container API that consumes iterators.
+	 */
+	class FSlotIteratorStub final : public IContainerIterator
+	{
+	public:
+		explicit FSlotIteratorStub(const UFaerieEquipmentSlot* Slot)
+		  : Slot(Slot) {}
+
+		//~ IContainerIterator
+		virtual FDefaultIteratorStorage Copy() const override
+		{
+			return FDefaultIteratorStorage(MakeUnique<FSlotIteratorStub>(Slot));
+		}
+		FORCEINLINE virtual void Advance() override { Slot = nullptr; }
+		FORCEINLINE virtual FEntryKey ResolveKey() const override { return Slot->GetCurrentKey(); }
+		FORCEINLINE virtual FFaerieAddress ResolveAddress() const override { return Slot->GetCurrentAddress(); }
+		FORCEINLINE virtual const UFaerieItem* ResolveItem() const override { return Slot->GetItemObject(); }
+		FORCEINLINE virtual bool IsValid() const override { return ::IsValid(Slot) && Slot->IsFilled(); }
+		FORCEINLINE virtual bool Equals(const TUniquePtr<IContainerIterator>& Other) const override
+		{
+			return Slot == reinterpret_cast<FSlotIteratorStub*>(Other.Get())->Slot;
+		}
+		//~ IContainerIterator
+
+	private:
+		const UFaerieEquipmentSlot* Slot;
+	};
+
+	class FSlotFilterStub final : public IContainerFilter
+	{
+	public:
+		explicit FSlotFilterStub(const UFaerieEquipmentSlot* Slot)
+		  : Slot(Slot)
+		{
+			Alive = Slot->IsFilled();
+		}
+
+	protected:
+		virtual void Run_Impl(IItemDataFilter&& Filter) override
+		{
+			if (Alive && !Filter.Passes(Slot->GetItemObject()))
+			{
+				Alive = false;
+			}
+		}
+		virtual void Run_Impl(IEntryKeyFilter&& Filter) override
+		{
+			if (Alive && !Filter.Passes(Slot->GetCurrentKey()))
+			{
+				Alive = false;
+			}
+		}
+		virtual void Run_Impl(ISnapshotFilter&& Filter) override
+		{
+			if (Alive)
+			{
+				FFaerieItemSnapshot Snapshot;
+				Snapshot.Owner = Slot;
+				Snapshot.ItemObject = Slot->GetItemObject();
+				Snapshot.Copies = Slot->GetCopies();
+
+				if (!Filter.Passes(Snapshot))
+				{
+					Alive = false;
+				}
+			}
+		}
+		virtual void Invert_Impl() override
+		{
+			Alive = !Alive;
+		}
+
+		virtual void Reset() override { Alive = true; }
+		virtual int32 Num() const override { return Slot->GetStack(); }
+
+		virtual FDefaultKeyIterator KeyRange() const override
+		{
+			if (Alive)
+			{
+				return FDefaultKeyIterator(FDefaultIteratorStorage(MakeUnique<FSlotIteratorStub>(Slot)));
+			}
+			return FDefaultKeyIterator{FDefaultIteratorStorage(nullptr)};
+		}
+		virtual FDefaultAddressIterator AddressRange() const override
+		{
+			if (Alive)
+			{
+				return FDefaultAddressIterator(FDefaultIteratorStorage(MakeUnique<FSlotIteratorStub>(Slot)));
+			}
+			return FDefaultAddressIterator{FDefaultIteratorStorage(nullptr)};
+		}
+		virtual FDefaultItemIterator ItemRange() const override
+		{
+			if (Alive)
+			{
+				return FDefaultItemIterator(FDefaultIteratorStorage(MakeUnique<FSlotIteratorStub>(Slot)));
+			}
+			return FDefaultItemIterator{FDefaultIteratorStorage(nullptr)};
+		}
+		virtual FDefaultConstItemIterator ConstItemRange() const override
+		{
+			if (Alive)
+			{
+				return FDefaultConstItemIterator(FDefaultIteratorStorage(MakeUnique<FSlotIteratorStub>(Slot)));
+			}
+			return FDefaultConstItemIterator(FDefaultIteratorStorage(nullptr));
+		}
+
+	private:
+		const UFaerieEquipmentSlot* Slot;
+		bool Alive;
+	};
 }
 
 void UFaerieEquipmentSlot::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -61,14 +180,6 @@ bool UFaerieEquipmentSlot::Contains(const FEntryKey Key) const
 	return StoredKey == Key;
 }
 
-void UFaerieEquipmentSlot::ForEachKey(Faerie::TLoop<FEntryKey> Func) const
-{
-	if (StoredKey.IsValid())
-	{
-		Func(StoredKey);
-	}
-}
-
 FFaerieItemStackView UFaerieEquipmentSlot::View(const FEntryKey Key) const
 {
 	if (Contains(Key))
@@ -81,15 +192,6 @@ FFaerieItemStackView UFaerieEquipmentSlot::View(const FEntryKey Key) const
 FFaerieItemStackView UFaerieEquipmentSlot::View() const
 {
 	return ItemStack;
-}
-
-FFaerieItemProxy UFaerieEquipmentSlot::Proxy(const FEntryKey Key) const
-{
-	if (Contains(Key))
-	{
-		return this;
-	}
-	return nullptr;
 }
 
 FFaerieItemStack UFaerieEquipmentSlot::Release(const FEntryKey Key, const int32 Copies)
@@ -165,29 +267,17 @@ FFaerieItemStack UFaerieEquipmentSlot::Release(const FFaerieAddress Address, con
 	return FFaerieItemStack();
 }
 
-TArray<FFaerieAddress> UFaerieEquipmentSlot::Switchover_GetAddresses(const FEntryKey Key) const
+TUniquePtr<Faerie::IContainerIterator> UFaerieEquipmentSlot::CreateIterator() const
 {
-	if (Contains(Key))
-	{
-		return { GetCurrentAddress() };
-	}
-	return {};
+	// Don't provide an iterator if we are empty...
+	if (!IsFilled()) return nullptr;
+
+	return MakeUnique<Faerie::FSlotIteratorStub>(this);
 }
 
-void UFaerieEquipmentSlot::ForEachAddress(Faerie::TLoop<FFaerieAddress> Func) const
+TUniquePtr<Faerie::IContainerFilter> UFaerieEquipmentSlot::CreateFilter(bool) const
 {
-	if (StoredKey.IsValid())
-	{
-		Func(GetCurrentAddress());
-	}
-}
-
-void UFaerieEquipmentSlot::ForEachItem(Faerie::TLoop<const UFaerieItem*> Func) const
-{
-	if (StoredKey.IsValid())
-	{
-		Func(ItemStack.Item);
-	}
+	return MakeUnique<Faerie::FSlotFilterStub>(this);
 }
 
 FFaerieEquipmentSlotSaveData UFaerieEquipmentSlot::MakeSlotData(TMap<FGuid, FInstancedStruct>& ExtensionData) const
@@ -224,7 +314,7 @@ void UFaerieEquipmentSlot::LoadSlotData(const FFaerieEquipmentSlotSaveData& Slot
 	{
 		KeyGen.SetPosition(SlotData.StoredKey);
 
-		const FFaerieItemStack LoadedItemStack = SlotData.ItemStack;
+		const FFaerieItemStack& LoadedItemStack = SlotData.ItemStack;
 		if (Faerie::ValidateItemData(LoadedItemStack.Item) &&
 			LoadedItemStack.Copies > 0)
 		{
@@ -327,15 +417,15 @@ void UFaerieEquipmentSlot::SetItemInSlot_Impl(const FFaerieItemStack& Stack)
 		Faerie::TakeOwnership(this, ItemStack.Item);
 
 		Event.EntryTouched = StoredKey;
-		Extensions->PostAddition(this, Event);
 	}
 	else
 	{
 		ItemStack.Copies += Stack.Copies;
 
 		Event.EntryTouched = StoredKey;
-		Extensions->PostEntryChanged(this, Event);
 	}
+
+	Extensions->PostAddition(this, Event);
 
 	BroadcastChange();
 }
@@ -409,7 +499,7 @@ bool UFaerieEquipmentSlot::CanTakeFromSlot(const int32 Copies) const
 		return false;
 	}
 
-	if (Extensions->AllowsRemoval(this, StoredKey, Faerie::Equipment::Tags::SlotTake) == EEventExtensionResponse::Disallowed)
+	if (Extensions->AllowsRemoval(this, GetCurrentAddress(), Faerie::Equipment::Tags::SlotTake) == EEventExtensionResponse::Disallowed)
 	{
 		return false;
 	}
@@ -475,14 +565,13 @@ FFaerieItemStack UFaerieEquipmentSlot::TakeItemFromSlot(int32 Copies)
 
 		// Release ownership of this item.
 		Faerie::ReleaseOwnership(this, OutStack.Item);
-
-		Extensions->PostRemoval(this, Event);
 	}
 	else
 	{
 		ItemStack.Copies -= Copies;
-		Extensions->PostEntryChanged(this, Event);
 	}
+
+	Extensions->PostRemoval(this, Event);
 
 	BroadcastChange();
 

@@ -3,7 +3,7 @@
 #pragma once
 
 #include "FaerieItemStack.h"
-#include "Actions/FaerieInventoryClient.h"
+#include "Actions/FaerieClientActionBase.h"
 #include "FaerieEquipmentClientActions.generated.h"
 
 class UFaerieEquipmentSlot;

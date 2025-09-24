@@ -6,6 +6,7 @@
 #include "FaerieItemEditHandle.h"
 #include "FaerieItemStackView.h"
 #include "FaerieItemToken.h"
+#include "FaerieItemTokenFilter.h"
 #include "FlakesJsonSerializer.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemDataLibrary)
@@ -77,30 +78,35 @@ int32 UFaerieItemDataLibrary::RemoveTokensByClass(const FFaerieItemEditHandle& H
 	return false;
 }
 
-bool UFaerieItemDataLibrary::EditToken(const FFaerieItemEditHandle& Handle, UFaerieItemToken* Token,
-	const FBlueprintTokenEdit& Edit)
+void UFaerieItemDataLibrary::FindTokensByClass(const UFaerieItem* Item, const TSubclassOf<UFaerieItemToken> Class,
+											   TArray<UFaerieItemToken*>& FoundTokens)
 {
-	if (!Handle.IsValid())
-	{
-		return false;
-	}
+	using namespace Faerie::Token;
+	if (!IsValid(Item)) return;
+	FoundTokens = FTokenFilter(Item).ByClass(Class).BlueprintOnlyAccess();
+}
 
-	if (!ensure(Edit.IsBound()))
-	{
-		return false;
-	}
+TArray<UFaerieItemToken*> UFaerieItemDataLibrary::FindTokensByTag(const UFaerieItem* Item, const FGameplayTag& Tag,
+																  const bool Exact)
+{
+	using namespace Faerie::Token;
+	if (!IsValid(Item)) return {};
+	return FTokenFilter(Item).By<FTagFilter>(Tag, Exact).BlueprintOnlyAccess();
+}
 
-	if (!ensure(Token->GetOuterItem() == Handle.GetItem()))
-	{
-		return false;
-	}
+TArray<UFaerieItemToken*> UFaerieItemDataLibrary::FindTokensByTags(const UFaerieItem* Item, const FGameplayTagContainer& Tags,
+	const bool All, const bool Exact)
+{
+	using namespace Faerie::Token;
+	if (!IsValid(Item)) return {};
+	return FTokenFilter(Item).By<FTagsFilter>(Tags, All, Exact).BlueprintOnlyAccess();
+}
 
-	Token->EditToken(
-		[Edit](UFaerieItemToken* PassThrough)
-		{
-			return Edit.Execute(PassThrough);
-		});
-	return true;
+TArray<UFaerieItemToken*> UFaerieItemDataLibrary::FindTokensByTagQuery(const UFaerieItem* Item, const FGameplayTagQuery& Query)
+{
+	using namespace Faerie::Token;
+	if (!IsValid(Item)) return {};
+	return FTokenFilter(Item).By<FTagQueryFilter>(Query).BlueprintOnlyAccess();
 }
 
 FFaerieItemStackView UFaerieItemDataLibrary::StackToView(const FFaerieItemStack& Stack)

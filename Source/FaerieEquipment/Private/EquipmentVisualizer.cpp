@@ -6,6 +6,7 @@
 #include "FaerieEquipmentSlot.h"
 #include "Components/FaerieItemMeshComponent.h"
 #include "Components/SceneComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Components/SkinnedMeshComponent.h"
 #include "Engine/World.h"
 #include "Extensions/VisualSlotExtension.h"
@@ -86,6 +87,12 @@ void UEquipmentVisualizer::OnComponentDestroyed(const bool bDestroyingHierarchy)
 USkinnedMeshComponent* UEquipmentVisualizer::GetLeaderComponent() const
 {
 	return Cast<USkinnedMeshComponent>(LeaderPoseComponent.GetComponent(GetOwner()));
+}
+
+bool UEquipmentVisualizer::HasVisualForKey(const FFaerieVisualKey Key) const
+{
+	if (!Key.IsValid()) return false;
+	return SpawnedActors.Contains(Key) || SpawnedComponents.Contains(Key);
 }
 
 UObject* UEquipmentVisualizer::GetSpawnedVisualByClass(const TSubclassOf<UObject> Class, FFaerieVisualKey& Key) const
@@ -364,7 +371,7 @@ FEquipmentVisualAttachment UEquipmentVisualizer::FindAttachment(const FFaerieIte
 	USceneComponent* ParentComponent = nullptr;
 
 	// See if we are owned by a slot, and try to determine attachment to it.
-	const UFaerieEquipmentSlot* OwningSlot = Container->_getUObject()->GetTypedOuter<UFaerieEquipmentSlot>();
+	const UFaerieEquipmentSlot* OwningSlot = Cast<UObject>(Container)->GetTypedOuter<UFaerieEquipmentSlot>();
 	if (IsValid(OwningSlot))
 	{
 		UObject* Visual = GetSpawnedVisualByKey({ OwningSlot->Proxy() });
