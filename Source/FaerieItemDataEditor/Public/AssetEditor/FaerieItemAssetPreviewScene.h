@@ -6,8 +6,8 @@
 #include "FaerieItemAssetEditorCustomSettings.h"
 #include "GameplayTagContainer.h"
 
+class AFaerieProxyActorBase;
 class IFaerieItemDataProxy;
-class AItemRepresentationActor;
 class UBoxComponent;
 class UFaerieItemMeshLoader;
 class UFaerieItemMeshComponent;
@@ -24,12 +24,14 @@ namespace Faerie::Ed
 		void SetProxy(const IFaerieItemDataProxy* Proxy);
 
 		void SetShowBounds(bool InShowBounds);
+		void SetMeshPurposeTag(FGameplayTag Tag);
+
 		void RefreshItemData();
 
 		FBoxSphereBounds GetBounds() const;
 
 	//private:
-		void OnDisplayFinished(bool Success, AItemRepresentationActor* Actor);
+		void OnDisplayFinished(bool Success);
 
 		bool ShowBounds = false;
 
@@ -42,7 +44,7 @@ namespace Faerie::Ed
 		TObjectPtr<UBoxComponent> BoundsBox;
 
 		// The visual representation of the item, if a token specifies using an actor.
-		TObjectPtr<AItemRepresentationActor> ItemActor;
+		TObjectPtr<AFaerieProxyActorBase> ItemActor;
 
 		// Component used to when we don't create an ItemActor. Always valid, but will have no data when using ItemActor.
 		TObjectPtr<UFaerieItemMeshComponent> ItemMeshComponent;

@@ -4,7 +4,7 @@
 #include "Editor.h"
 #include "FaerieItem.h"
 
-#include "FaerieItemMeshLoader.h"
+#include "Actors/FaerieProxyActorBase.h"
 #include "Components/BoxComponent.h"
 #include "Components/FaerieItemMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -20,7 +20,6 @@ namespace Faerie::Ed
 	FItemPreviewSceneData::FItemPreviewSceneData(FPreviewScene* Scene)
 		: Scene(Scene)
 	{
-		// @todo expose MeshPurpose to AssetEditor
 		MeshPurposeTag = ItemMesh::Tags::MeshPurpose_Default;
 	}
 
@@ -72,6 +71,8 @@ namespace Faerie::Ed
 		{
 			ItemMeshComponent = NewObject<UFaerieItemMeshComponent>(GetTransientPackage());
 			ItemMeshComponent->CenterMeshByBounds = CenterMeshByBounds;
+			ItemMeshComponent->CacheSkeletalBoundsInPose = true;
+			ItemMeshComponent->PreferredTag = MeshPurposeTag;
 			//ItemMeshComponent->bSelectable = true;
 
 			Scene->AddComponent(ItemMeshComponent, FTransform::Identity);
@@ -90,6 +91,15 @@ namespace Faerie::Ed
 		if (IsValid(BoundsBox))
 		{
 			BoundsBox->SetVisibility(ShowBounds);
+		}
+	}
+
+	void FItemPreviewSceneData::SetMeshPurposeTag(const FGameplayTag Tag)
+	{
+		MeshPurposeTag = Tag;
+		if (IsValid(ItemMeshComponent))
+		{
+			ItemMeshComponent->SetPreferredTag(MeshPurposeTag);
 		}
 	}
 
@@ -143,14 +153,14 @@ namespace Faerie::Ed
 			// Path 1: Spawn Actor
 			if (IsValid(ActorClassToken))
 			{
-				if (auto&& ActorClass = ActorClassToken->LoadActorClassSynchronous())
+				if (auto&& ActorClass = ActorClassToken->LoadProxyActorClassSynchronous())
 				{
-					ItemActor = Scene->GetWorld()->SpawnActor<AItemRepresentationActor>(ActorClass, FActorSpawnParameters());
+					ItemActor = Scene->GetWorld()->SpawnActor<AFaerieProxyActorBase>(ActorClass, FActorSpawnParameters());
 					if (IsValid(ItemActor))
 					{
 						ItemActor->GetOnDisplayFinished().AddRaw(this, &FItemPreviewSceneData::OnDisplayFinished);
 
-						FEditorScriptExecutionGuard EditorScriptGuard;
+						FEditorScriptExecutionGuard ScriptGuard;
 						ItemActor->SetSourceProxy(ItemProxy);
 						return;
 					}
@@ -160,12 +170,8 @@ namespace Faerie::Ed
 			// Path 2: Spawn Component
 			if (IsValid(MeshToken))
 			{
-				if (FFaerieItemMesh ItemMesh;
-					LoadMeshFromTokenSynchronous(MeshToken, MeshPurposeTag, ItemMesh))
-				{
-					ItemMeshComponent->SetItemMesh(ItemMesh);
-					return;
-				}
+				ItemMeshComponent->SetItemMeshFromToken(MeshToken);
+				return;
 			}
 
 			// If the code above doesn't evaluate to a mesh, show the debug cube.
@@ -178,7 +184,7 @@ namespace Faerie::Ed
 		return BoundsBox->GetLocalBounds();
 	}
 
-	void FItemPreviewSceneData::OnDisplayFinished(const bool Success, AItemRepresentationActor* Actor)
+	void FItemPreviewSceneData::OnDisplayFinished(const bool Success)
 	{
 		if (!Success)
 		{
@@ -222,6 +228,7 @@ namespace Faerie::Ed
 	void FItemDataProxyPreviewScene::SyncSettings()
 	{
 		SceneData.SetShowBounds(EditorSettings->ShowCapacityBounds);
+		SceneData.SetMeshPurposeTag(EditorSettings->MeshPreviewTag);
 	}
 
 	FBoxSphereBounds FItemDataProxyPreviewScene::GetBounds() const

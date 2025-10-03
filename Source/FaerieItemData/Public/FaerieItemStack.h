@@ -10,7 +10,7 @@ namespace Faerie::ItemData
 {
 	inline constexpr int32 UnlimitedStack = -1;
 
-	static bool IsValidStack(const int32 Value)
+	static bool IsValidStackAmount(const int32 Value)
 	{
 		return Value > 0 || Value == UnlimitedStack;
 	}
@@ -28,17 +28,21 @@ struct FAERIEITEMDATA_API FFaerieItemStack
 	FFaerieItemStack() = default;
 
 	FFaerieItemStack(const UFaerieItem* ItemData, const int32 Copies)
-	  : Item(const_cast<UFaerieItem*>(ItemData)), // @todo const_cast for now, until Item is const.
+	  : Item(ItemData),
 		Copies(Copies) {}
 
 	// The item being counted
-	// @todo This *really* should be a const pointer, but that makes a lot of APIs annoying...
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FaerieItemStack")
-	TObjectPtr<UFaerieItem> Item;
+	TObjectPtr<const UFaerieItem> Item;
 
 	// Copies in this stack
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FaerieItemStack")
 	int32 Copies = 0;
+
+	bool IsValid() const
+	{
+		return (!!Item) && Faerie::ItemData::IsValidStackAmount(Copies);
+	}
 
 	friend bool operator==(const FFaerieItemStack& Lhs, const FFaerieItemStack& Rhs)
 	{

@@ -31,6 +31,8 @@ namespace Faerie
 
 		TMap<FName, UStaticMeshSocket*> Sockets;
 
+		UDynamicMesh* AppendMesh = NewObject<UDynamicMesh>();
+
 		for (const FFaerieDynamicStaticMeshFragment& Fragment : MeshData.Fragments)
 		{
 			if (!Fragment.StaticMesh.IsValid())
@@ -40,9 +42,6 @@ namespace Faerie
 			}
 
 			// Copy mesh data
-
-			UDynamicMesh* AppendMesh = NewObject<UDynamicMesh>();
-
 			const FGeometryScriptCopyMeshFromAssetOptions AssetOptions;
 			const FGeometryScriptMeshReadLOD RequestedLOD;
 			EGeometryScriptOutcomePins Outcome;
@@ -93,9 +92,11 @@ namespace Faerie
 			// Commit new mesh
 			UGeometryScriptLibrary_MeshBasicEditFunctions::AppendMesh(OutMesh, AppendMesh, AppendTransform);
 
-			// Trash temp dynamic mesh.
-			AppendMesh->MarkAsGarbage();
+			AppendMesh->Reset();
 		}
+
+		// Trash temp dynamic mesh.
+		AppendMesh->MarkAsGarbage();
 
 		return FFaerieItemMesh::MakeDynamic(OutMesh, Materials);
 	}
@@ -409,34 +410,34 @@ void UFaerieItemMeshLoader::LoadMeshFromProxyAsynchronous(const FFaerieItemProxy
 void UFaerieItemMeshLoader::OnAsyncStaticMeshLoaded(const TConstStructView<FFaerieStaticMeshData> MeshData,
 	Faerie::FAsyncLoadRequest Request)
 {
-	const FFaerieItemMesh Mesh = FFaerieItemMesh::MakeStatic(MeshData.Get());
-	HandleAsyncLoadResult(Mesh, MoveTemp(Request));
+	FFaerieItemMesh Mesh = FFaerieItemMesh::MakeStatic(MeshData.Get());
+	HandleAsyncLoadResult(MoveTemp(Mesh), MoveTemp(Request));
 }
 
 void UFaerieItemMeshLoader::OnAsyncSkeletalMeshLoaded(const TConstStructView<FFaerieSkeletalMeshData> MeshData,
 	Faerie::FAsyncLoadRequest Request)
 {
-	const FFaerieItemMesh Mesh = FFaerieItemMesh::MakeSkeletal(MeshData.Get());
-	HandleAsyncLoadResult(Mesh, MoveTemp(Request));
+	FFaerieItemMesh Mesh = FFaerieItemMesh::MakeSkeletal(MeshData.Get());
+	HandleAsyncLoadResult(MoveTemp(Mesh), MoveTemp(Request));
 }
 
 void UFaerieItemMeshLoader::OnAsyncDynamicStaticMeshLoaded(const TConstStructView<FFaerieDynamicStaticMesh> MeshData,
 	Faerie::FAsyncLoadRequest Request)
 {
-	const FFaerieItemMesh Mesh = GetDynamicStaticMeshForData(MeshData.Get());
-	HandleAsyncLoadResult(Mesh, MoveTemp(Request));
+	FFaerieItemMesh Mesh = GetDynamicStaticMeshForData(MeshData.Get());
+	HandleAsyncLoadResult(MoveTemp(Mesh), MoveTemp(Request));
 }
 
 void UFaerieItemMeshLoader::OnAsyncDynamicSkeletalMeshLoaded(const TConstStructView<FFaerieDynamicSkeletalMesh> MeshData,
 	Faerie::FAsyncLoadRequest Request)
 {
-	const FFaerieItemMesh Mesh = GetDynamicSkeletalMeshForData(MeshData.Get());
-	HandleAsyncLoadResult(Mesh, MoveTemp(Request));
+	FFaerieItemMesh Mesh = GetDynamicSkeletalMeshForData(MeshData.Get());
+	HandleAsyncLoadResult(MoveTemp(Mesh), MoveTemp(Request));
 }
 
-void UFaerieItemMeshLoader::HandleAsyncLoadResult(const FFaerieItemMesh& Mesh, Faerie::FAsyncLoadRequest&& Request)
+void UFaerieItemMeshLoader::HandleAsyncLoadResult(FFaerieItemMesh&& Mesh, Faerie::FAsyncLoadRequest&& Request)
 {
-	(void)Request.Callback.ExecuteIfBound(true, Mesh);
+	(void)Request.Callback.ExecuteIfBound(true, MoveTemp(Mesh));
 }
 
 bool UFaerieItemMeshLoader_Cached::LoadMeshFromTokenSynchronous(const UFaerieMeshTokenBase* Token, const FGameplayTag Purpose, FFaerieItemMesh& Mesh)
@@ -461,12 +462,12 @@ bool UFaerieItemMeshLoader_Cached::LoadMeshFromTokenSynchronous(const UFaerieMes
 	return SuperResult;
 }
 
-void UFaerieItemMeshLoader_Cached::HandleAsyncLoadResult(const FFaerieItemMesh& Mesh,
+void UFaerieItemMeshLoader_Cached::HandleAsyncLoadResult(FFaerieItemMesh&& Mesh,
 	Faerie::FAsyncLoadRequest&& Request)
 {
 	const FFaerieCachedMeshKey Key = {Request.Token, Request.Purpose};
 	GeneratedMeshes.Add(Key, Mesh);
-	Super::HandleAsyncLoadResult(Mesh, MoveTemp(Request));
+	Super::HandleAsyncLoadResult(MoveTemp(Mesh), MoveTemp(Request));
 }
 
 void UFaerieItemMeshLoader_Cached::ResetCache()

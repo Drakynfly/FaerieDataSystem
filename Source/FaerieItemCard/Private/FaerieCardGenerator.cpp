@@ -12,7 +12,7 @@ TSoftClassPtr<UFaerieCardBase> UFaerieCardGenerator::GetCardClassFromProxy(const
 {
 	auto&& Item = Proxy.GetItemObject();
 
-	if (!IsValid(Item))
+	if (!IsValidChecked(Item))
 	{
 		UE_LOG(LogFaerieItemCard, Warning, TEXT("Unable to determine card class: Invalid Item!"))
 		return nullptr;

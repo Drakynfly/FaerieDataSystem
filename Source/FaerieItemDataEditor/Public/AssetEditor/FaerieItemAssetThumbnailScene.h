@@ -6,7 +6,7 @@
 #include "ThumbnailHelpers.h"
 
 class IFaerieItemDataProxy;
-class AItemRepresentationActor;
+class AFaerieProxyActorBase;
 class UBoxComponent;
 class UFaerieItemAsset;
 class UFaerieItemMeshLoader;

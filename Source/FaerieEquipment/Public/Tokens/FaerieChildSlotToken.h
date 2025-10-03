@@ -37,7 +37,7 @@ public:
 	UFaerieEquipmentSlot* GetSlotContainer() const;
 
 protected:
-	void OnSlotItemChanged(UFaerieEquipmentSlot* FaerieEquipmentSlot);
+	void OnSlotItemChanged(UFaerieItemStackContainer* Slot, FFaerieInventoryTag Event);
 
 protected:
 	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Replicated, Category = "EquipmentSlot")

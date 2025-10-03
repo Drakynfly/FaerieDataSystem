@@ -4,13 +4,13 @@
 #include "FaerieEquipmentSlot.h"
 #include "ItemContainerExtensionBase.h"
 #include "Net/UnrealNetwork.h"
+#include "GameFramework/Actor.h"
 
 #if WITH_EDITOR
 #include "Misc/DataValidation.h"
 #include "FaerieEquipmentSlotDescription.h"
 #endif
 
-#include "GameFramework/Actor.h"
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieChildSlotToken)
 
 UFaerieChildSlotToken::UFaerieChildSlotToken()
@@ -100,7 +100,7 @@ UFaerieEquipmentSlot* UFaerieChildSlotToken::GetSlotContainer() const
 	return Cast<UFaerieEquipmentSlot>(ItemContainer);
 }
 
-void UFaerieChildSlotToken::OnSlotItemChanged(UFaerieEquipmentSlot* FaerieEquipmentSlot)
+void UFaerieChildSlotToken::OnSlotItemChanged(UFaerieItemStackContainer*, FFaerieInventoryTag)
 {
 	NotifyOuterOfChange();
 }

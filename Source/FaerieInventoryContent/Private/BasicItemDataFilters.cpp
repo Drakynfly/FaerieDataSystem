@@ -1,6 +1,7 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "BasicItemDataFilters.h"
+#include "FaerieItem.h"
 #include "Tokens/FaerieStackLimiterToken.h"
 #include "Tokens/FaerieTagToken.h"
 

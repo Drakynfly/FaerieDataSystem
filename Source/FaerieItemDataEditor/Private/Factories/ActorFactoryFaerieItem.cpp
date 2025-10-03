@@ -4,7 +4,7 @@
 #include "FaerieItem.h"
 #include "FaerieItemAsset.h"
 #include "FaerieMeshSettings.h"
-#include "ActorClasses/FaerieItemOwningActorBase.h"
+#include "Actors/FaerieItemOwningActorBase.h"
 #include "Tokens/FaerieVisualActorClassToken.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ActorFactoryFaerieItem)
@@ -37,7 +37,10 @@ UClass* UActorFactoryFaerieItem::GetDefaultActorClass(const FAssetData& AssetDat
 			const UFaerieVisualActorClassToken* VisualActorToken = Item->GetToken<UFaerieVisualActorClassToken>();
 			if (IsValid(VisualActorToken))
 			{
-				return VisualActorToken->LoadActorClassSynchronous();
+				if (TSubclassOf<AFaerieItemOwningActorBase> OwningActorClass = VisualActorToken->LoadOwningActorClassSynchronous())
+				{
+					return OwningActorClass;
+				}
 			}
 		}
 
@@ -68,10 +71,16 @@ void UActorFactoryFaerieItem::PostSpawnActor(UObject* Asset, AActor* NewActor)
 		1
 	};
 
-	if (AFaerieItemOwningActorBase* Visual = Cast<AFaerieItemOwningActorBase>(NewActor))
+	if (IFaerieItemOwnerInterface* Visual = Cast<IFaerieItemOwnerInterface>(NewActor))
 	{
+		if (AFaerieItemOwningActorBase* OwningActor = Cast<AFaerieItemOwningActorBase>(Visual))
+		{
+			OwningActor->ItemSourceAsset = ItemAsset;
+			OwningActor->StackCopies = 1;
+		}
+
 		FEditorScriptExecutionGuard ScriptGuard;
-		Visual->Possess(Stack);
+		(void)Visual->Possess(Stack);
 	}
 }
 

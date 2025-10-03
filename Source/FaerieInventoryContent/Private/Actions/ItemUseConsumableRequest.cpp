@@ -1,6 +1,7 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "Actions/ItemUseConsumableRequest.h"
+#include "FaerieItem.h"
 #include "FaerieItemContainerBase.h"
 #include "Actions/FaerieInventoryClient.h"
 #include "Tokens/FaerieItemConsumableBase.h"

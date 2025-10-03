@@ -22,6 +22,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FFaerieClientChecksumEvent, EFaerieC
 /**
  * An item container extension that hashes the contents of initialized containers, and replicates the result.
  */
+// @todo move this out of Equipment module
 UCLASS()
 class FAERIEEQUIPMENT_API UContentHashExtension : public UItemContainerExtensionBase
 {

@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "GameplayTagContainer.h"
 #include "UObject/Object.h"
 #include "FaerieItemAssetEditorCustomSettings.generated.h"
 
@@ -27,6 +28,9 @@ public:
 
 	UPROPERTY(EditAnywhere, config, transient, Category = "Token Data")
 	bool ShowCapacityBounds = false;
+
+	UPROPERTY(EditAnywhere, config, transient, Category = "Visual Preview", meta = (Categories = "MeshPurpose"))
+	FGameplayTag MeshPreviewTag;
 
 	FEditorCustomSettingsEvent::RegistrationType& GetOnSettingsChanged() { return EditorCustomSettingsEvent; }
 

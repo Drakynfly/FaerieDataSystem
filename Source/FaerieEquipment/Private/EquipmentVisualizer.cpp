@@ -17,11 +17,19 @@
 
 namespace Faerie
 {
+	// @todo these are hardcoded for now.
+	static const FAttachmentTransformRules TempTransformRules{
+		EAttachmentRule::SnapToTarget,
+		EAttachmentRule::SnapToTarget,
+		EAttachmentRule::KeepRelative,
+		false
+	};
+
 	void UpdateActorAttachment(AActor* Visual, const FEquipmentVisualAttachment& Metadata)
 	{
 		if (IsValid(Metadata.Parent.Get()))
 		{
-			Visual->AttachToComponent(Metadata.Parent.Get(), Metadata.TransformRules, Metadata.ParentSocket);
+			Visual->AttachToComponent(Metadata.Parent.Get(), TempTransformRules, Metadata.ParentSocket);
 
 			const USceneComponent* SelfComponent = Visual->GetDefaultAttachComponent();
 			if (SelfComponent->DoesSocketExist(Metadata.ChildSocket))
@@ -42,7 +50,7 @@ namespace Faerie
 	{
 		if (IsValid(Metadata.Parent.Get()))
 		{
-			Visual->AttachToComponent(Metadata.Parent.Get(), Metadata.TransformRules, Metadata.ParentSocket);
+			Visual->AttachToComponent(Metadata.Parent.Get(), TempTransformRules, Metadata.ParentSocket);
 			if (Visual->DoesSocketExist(Metadata.ChildSocket))
 			{
 				const FVector Offset = -Visual->GetSocketTransform(Metadata.ChildSocket, RTS_Component).GetTranslation();
@@ -217,12 +225,7 @@ AActor* UEquipmentVisualizer::SpawnVisualActor(const FFaerieVisualKey Key, const
 
 		if (Attachment.Parent.IsValid())
 		{
-			auto TempMetadata = Attachment;
-			TempMetadata.TransformRules.LocationRule = EAttachmentRule::SnapToTarget;
-			TempMetadata.TransformRules.RotationRule = EAttachmentRule::SnapToTarget;
-			TempMetadata.TransformRules.ScaleRule = EAttachmentRule::KeepRelative;
-
-			Faerie::UpdateActorAttachment(NewActor, TempMetadata);
+			Faerie::UpdateActorAttachment(NewActor, Attachment);
 
 			KeyedMetadata.FindOrAdd(Key).Attachment = Attachment;
 		}
@@ -260,14 +263,7 @@ USceneComponent* UEquipmentVisualizer::SpawnVisualComponent(const FFaerieVisualK
 
 		KeyedMetadata.FindOrAdd(Key).Attachment = Attachment;
 
-		auto TempMetadata = Attachment;
-
-		// @todo these are hardcoded for now.
-		TempMetadata.TransformRules.LocationRule = EAttachmentRule::SnapToTarget;
-		TempMetadata.TransformRules.RotationRule = EAttachmentRule::SnapToTarget;
-		TempMetadata.TransformRules.ScaleRule = EAttachmentRule::KeepRelative;
-
-		Faerie::UpdateComponentAttachment(NewComponent, TempMetadata);
+		Faerie::UpdateComponentAttachment(NewComponent, Attachment);
 
 		KeyedMetadata.FindOrAdd(Key).ChangeCallback.Broadcast(Key, NewComponent);
 		OnAnyVisualSpawnedNative.Broadcast(Key, NewComponent);
@@ -468,38 +464,26 @@ void UEquipmentVisualizer::ResetAttachment(const FFaerieVisualKey Key)
 {
 	const FEquipmentVisualMetadata* Metadata = KeyedMetadata.Find(Key);
 	if (!Metadata) return;
-	FEquipmentVisualAttachment TempMetadata = Metadata->Attachment;
-
-	// @todo these are hardcoded for now.
-	TempMetadata.TransformRules.LocationRule = EAttachmentRule::SnapToTarget;
-	TempMetadata.TransformRules.RotationRule = EAttachmentRule::SnapToTarget;
-	TempMetadata.TransformRules.ScaleRule = EAttachmentRule::KeepRelative;
 
 	if (AActor* Visual = GetSpawnedActorByKey(Key))
 	{
-		Faerie::UpdateActorAttachment(Visual, TempMetadata);
+		Faerie::UpdateActorAttachment(Visual, Metadata->Attachment);
 	}
 	else if (USceneComponent* VisualComponent = GetSpawnedComponentByKey(Key))
 	{
-		Faerie::UpdateComponentAttachment(VisualComponent, TempMetadata);
+		Faerie::UpdateComponentAttachment(VisualComponent, Metadata->Attachment);
 	}
 }
 
 void UEquipmentVisualizer::MoveAttachment(const FFaerieVisualKey Key, const FEquipmentVisualAttachment& Attachment)
 {
-	// @todo these are hardcoded for now.
-	FEquipmentVisualAttachment TempMetadata = Attachment;
-	TempMetadata.TransformRules.LocationRule = EAttachmentRule::SnapToTarget;
-	TempMetadata.TransformRules.RotationRule = EAttachmentRule::SnapToTarget;
-	TempMetadata.TransformRules.ScaleRule = EAttachmentRule::KeepRelative;
-
 	if (AActor* Visual = GetSpawnedActorByKey(Key))
 	{
-		Faerie::UpdateActorAttachment(Visual, TempMetadata);
+		Faerie::UpdateActorAttachment(Visual, Attachment);
 	}
 	else if (USceneComponent* VisualComponent = GetSpawnedComponentByKey(Key))
 	{
-		Faerie::UpdateComponentAttachment(VisualComponent, TempMetadata);
+		Faerie::UpdateComponentAttachment(VisualComponent, Attachment);
 	}
 }
 

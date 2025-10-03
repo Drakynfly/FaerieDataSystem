@@ -1,6 +1,7 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "Upgrades/FaerieItemUpgradeRequest.h"
+#include "FaerieItem.h"
 #include "FaerieItemGenerationLog.h"
 #include "FaerieItemMutator.h"
 #include "FaerieItemOwnerInterface.h"
@@ -49,7 +50,7 @@ void FFaerieItemUpgradeRequest::Run(UFaerieCraftingRunner* Runner) const
 				return Runner->Fail();
 			}
 
-			if (RequiredSlot.Value->TryMatch(SlotPtr->ItemProxy))
+			if (RequiredSlot.Value->TryMatch(FFaerieItemStackView(SlotPtr->ItemProxy)))
 			{
 				SlotMemory.FilledSlots.Add(RequiredSlot.Key, SlotPtr->ItemProxy);
 			}
@@ -83,7 +84,7 @@ void FFaerieItemUpgradeRequest::Run(UFaerieCraftingRunner* Runner) const
 				return Runner->Fail();
 			}
 
-			if (OptionalSlot.Value->TryMatch(SlotPtr->ItemProxy))
+			if (OptionalSlot.Value->TryMatch(FFaerieItemStackView(SlotPtr->ItemProxy)))
 			{
 				SlotMemory.FilledSlots.Add(OptionalSlot.Key, SlotPtr->ItemProxy);
 			}
@@ -138,7 +139,7 @@ void FFaerieItemUpgradeRequest::Execute(UFaerieCraftingRunner* Runner) const
 {
 	FFaerieCraftingActionSlots& RequestData = Runner->RequestStorage.GetMutable<FFaerieCraftingActionSlots>();
 
-	// Execute parent Run, as it validates some stuff, and then early out if it fails.
+	// Validation
 	for (auto&& Element : RequestData.FilledSlots)
 	{
 		if (!Element.Value.IsValid() ||

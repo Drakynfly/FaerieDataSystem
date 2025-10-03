@@ -2,7 +2,6 @@
 
 #include "BasicItemHashInstructions.h"
 #include "FaerieHashStatics.h"
-#include "FaerieItem.h"
 #include "FaerieItemDataFilter.h"
 #include "FaerieItemToken.h"
 #include "FaerieItemTokenFilter.h"
@@ -29,8 +28,7 @@ uint32 UFISHI_Literial::Hash(const FFaerieItemStackView StackView) const
 
 uint32 UFISHI_IsValid::Hash(const FFaerieItemStackView StackView) const
 {
-	if (StackView.Item.IsValid() &&
-		Faerie::ItemData::IsValidStack(StackView.Copies))
+	if (StackView.IsValid())
 	{
 		return VALIDATED_TRUE;
 	}
@@ -41,7 +39,7 @@ uint32 UFISHI_And::Hash(const FFaerieItemStackView StackView) const
 {
 	int32 Hash = 0;
 
-	for (auto Instruction : Instructions)
+	for (auto&& Instruction : Instructions)
 	{
 		Hash = Squirrel::HashCombine(Hash, ChildHash(Instruction, StackView));
 	}

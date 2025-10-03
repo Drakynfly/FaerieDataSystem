@@ -12,37 +12,46 @@ bool FFaerieItemProxy::IsValid() const
 
 const UFaerieItem* FFaerieItemProxy::GetItemObject() const
 {
-	if (Proxy.IsValid())
+	if (const IFaerieItemDataProxy* ProxyObj = operator->())
 	{
-		return operator->()->GetItemObject();
+		return ProxyObj->GetItemObject();
 	}
 	return nullptr;
 }
 
 int32 FFaerieItemProxy::GetCopies() const
 {
-	if (Proxy.IsValid())
+	if (const IFaerieItemDataProxy* ProxyObj = operator->())
 	{
-		return operator->()->GetCopies();
+		return ProxyObj->GetCopies();
 	}
 	return 0;
 }
 
 TScriptInterface<IFaerieItemOwnerInterface> FFaerieItemProxy::GetOwner() const
 {
-	if (Proxy.IsValid())
+	if (const IFaerieItemDataProxy* ProxyObj = operator->())
 	{
-		return operator->()->GetItemOwner();
+		return ProxyObj->GetItemOwner();
 	}
 	return nullptr;
 }
 
 bool FFaerieItemProxy::IsInstanceMutable() const
 {
-	if (auto&& Object = GetItemObject();
+	if (const UFaerieItem* Object = GetItemObject();
 		::IsValid(Object))
 	{
 		return Object->IsInstanceMutable();
 	}
 	return false;
+}
+
+FFaerieItemProxy::operator FFaerieItemStackView() const
+{
+	if (const IFaerieItemDataProxy* ProxyObj = operator->())
+	{
+		return FFaerieItemStackView(ProxyObj->GetItemObject(), ProxyObj->GetCopies());
+	}
+	return FFaerieItemStackView();
 }

@@ -2,7 +2,6 @@
 
 #include "Generation/FaerieGenerationStructs.h"
 #include "FaerieItem.h"
-#include "FaerieItemDataStackLiteral.h"
 #include "FaerieItemGenerationLog.h"
 #include "ItemInstancingContext_Crafting.h"
 #include "Squirrel.h"
@@ -40,9 +39,7 @@ const UFaerieItem* FFaerieTableDrop::Resolve(const FFaerieItemInstancingContext_
 
 		if (const UFaerieItem* StaticInstanceItem = ChildDrop.Resolve(ChildContext))
 		{
-			UFaerieItemDataStackLiteral* Literal = NewObject<UFaerieItemDataStackLiteral>();
-			Literal->SetValue(StaticInstanceItem);
-			TempContext.InputEntryData.Add(StaticResourceSlot.Key, Literal);
+			TempContext.GeneratedChildren.Add(StaticResourceSlot.Key, FFaerieItemStack(StaticInstanceItem, 1));
 		}
 	}
 

@@ -4,6 +4,7 @@
 
 #include "FaerieContainerExtensionInterface.h"
 #include "FaerieEquipmentSlotStructs.h"
+#include "FaerieInventoryTag.h"
 #include "FaerieSlotTag.h"
 #include "FaerieItemContainerPath.h"
 #include "LoopUtils.h"
@@ -12,8 +13,8 @@
 
 #include "FaerieEquipmentManager.generated.h"
 
+class UFaerieItemStackContainer;
 class UFaerieEquipmentSlot;
-class UFaerieEquipmentSlotDescription;
 class UFaerieInventoryClient;
 class UFaerieItemContainerBase;
 class UItemContainerExtensionBase;
@@ -47,27 +48,17 @@ struct FFaerieEquipmentSaveData
 	FGameplayTagContainer RemovedDefaultSlots;
 };
 
-UENUM(BlueprintType)
-enum class EFaerieEquipmentSlotChangeType : uint8
+namespace Faerie::Equipment::Tags
 {
-	// This slot was added
-	Addition,
-
-	// This slot is being removed
-	Removal,
-
-	// The item in this slot has changed
-	ItemChange,
-
-	// A token from an item in this slot was edited
-	TokenEdit
-};
+	FAERIEEQUIPMENT_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, SlotCreated)
+	FAERIEEQUIPMENT_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, SlotDeleted)
+}
 
 namespace Faerie
 {
-	using FEquipmentSlotEvent = TMulticastDelegate<void(UFaerieEquipmentSlot*, EFaerieEquipmentSlotChangeType)>;
+	using FEquipmentSlotEvent = TMulticastDelegate<void(UFaerieEquipmentSlot*, FFaerieInventoryTag)>;
 }
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FEquipmentChangedEvent, UFaerieEquipmentSlot*, Slot, EFaerieEquipmentSlotChangeType, Type);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FEquipmentChangedEvent, UFaerieEquipmentSlot*, Slot, FFaerieInventoryTag, Event);
 
 /*
  * An actor component that manages an array of Equipment Slots, which can each store a single item entry.
@@ -110,7 +101,7 @@ private:
 	void AddSubobjectsForReplication();
 
 protected:
-	void OnSlotItemChanged(UFaerieEquipmentSlot* Slot, bool TokenEdit);
+	void BroadcastSlotEvent(UFaerieItemStackContainer* Container, FFaerieInventoryTag Event);
 
 public:
 	/**------------------------------*/

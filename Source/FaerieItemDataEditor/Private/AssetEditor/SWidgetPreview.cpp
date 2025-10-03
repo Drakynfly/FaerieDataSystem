@@ -309,7 +309,7 @@ namespace Faerie::UMGWidgetPreview
 						if (UFaerieCardBase* Card = Cast<UFaerieCardBase>(PreviewWidget))
 						{
 							// Allow blueprint code to run here.
-							FEditorScriptExecutionGuard EditorScriptGuard;
+							FEditorScriptExecutionGuard ScriptGuard;
 							Card->SetItemData(FFaerieItemProxy(Preview), true);
 						}
 					}

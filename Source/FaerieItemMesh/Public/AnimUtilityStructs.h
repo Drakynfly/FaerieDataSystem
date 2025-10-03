@@ -28,7 +28,7 @@ struct FAERIEITEMMESH_API FSkeletonAndAnimation
 	GENERATED_BODY()
 
 	UPROPERTY(NoClear, BlueprintReadWrite, EditAnywhere, Category = "SkeletonAndAnimation")
-	TObjectPtr<USkeletalMesh> Mesh = nullptr;
+	TObjectPtr<const USkeletalMesh> Mesh = nullptr;
 
 	UPROPERTY(NoClear, BlueprintReadWrite, EditAnywhere, Category = "SkeletonAndAnimation")
 	TSubclassOf<UAnimInstance> AnimClass = nullptr;

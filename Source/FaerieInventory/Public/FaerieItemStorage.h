@@ -85,6 +85,7 @@ class FAERIEINVENTORY_API UFaerieItemStorage : public UFaerieItemContainerBase
 public:
 	//~ UObject
 	virtual void PostInitProperties() override;
+	virtual void PostDuplicate(EDuplicateMode::Type DuplicateMode) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void PostLoad() override;
 	//~ UObject
@@ -108,10 +109,13 @@ public:
 	virtual FFaerieItemStackView ViewStack(FFaerieAddress Address) const override;
 	virtual FFaerieItemProxy Proxy(FFaerieAddress Address) const override;
 	virtual FFaerieItemStack Release(FFaerieAddress Address, int32 Copies) override;
+
+private:
 	virtual TUniquePtr<Faerie::IContainerIterator> CreateIterator() const override;
 	virtual TUniquePtr<Faerie::IContainerFilter> CreateFilter(bool FilterByAddresses) const override;
 	//~ UFaerieItemContainerBase
 
+public:
 	//~ IFaerieItemOwnerInterface
 	virtual FFaerieItemStack Release(FFaerieItemStackView Stack) override;
 	virtual bool Possess(FFaerieItemStack Stack) override;
@@ -391,7 +395,7 @@ protected:
 	/*	 VARIABLES	*/
 	/**-------------*/
 private:
-	// The internal map containing the contents of the storage.
+	// Our internal data containing the contents of the storage.
 	UPROPERTY(Replicated)
 	FInventoryContent EntryMap;
 

@@ -33,7 +33,7 @@ void UFaerieCardBase::SetItemData(const FFaerieItemProxy InItemProxy, const bool
 
 FFaerieItemStackView UFaerieCardBase::GetStackView() const
 {
-	return ItemProxy;
+	return FFaerieItemStackView(ItemProxy);
 }
 
 void UFaerieCardBase::Refresh()

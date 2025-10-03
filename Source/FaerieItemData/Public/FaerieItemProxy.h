@@ -3,6 +3,7 @@
 #pragma once
 
 #include "FaerieItemDataConcepts.h"
+#include "FaerieItemStackView.h"
 #include "UObject/Interface.h"
 #include "UObject/WeakInterfacePtr.h"
 
@@ -53,10 +54,10 @@ struct FAERIEITEMDATA_API FFaerieItemSnapshot
 	GENERATED_BODY()
 
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Faerie|ItemSnapshot")
-	const UFaerieItem* ItemObject;
+	const UFaerieItem* ItemObject = nullptr;
 
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Faerie|ItemSnapshot")
-	int32 Copies;
+	int32 Copies = 0;
 
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Faerie|ItemSnapshot")
 	TScriptInterface<const IFaerieItemOwnerInterface> Owner;
@@ -101,7 +102,9 @@ public:
 	TScriptInterface<IFaerieItemOwnerInterface> GetOwner() const;
 	bool IsInstanceMutable() const;
 
-	const IFaerieItemDataProxy* operator->() const { return Cast<IFaerieItemDataProxy>(Proxy.Get()); }
+	FORCEINLINE const IFaerieItemDataProxy* operator->() const { return Cast<IFaerieItemDataProxy>(Proxy.Get()); }
+
+	explicit operator FFaerieItemStackView() const;
 
 	friend bool operator==(const FFaerieItemProxy& Lhs, const FFaerieItemProxy& Rhs) { return Lhs.Proxy == Rhs.Proxy; }
 	friend bool operator!=(const FFaerieItemProxy& Lhs, const FFaerieItemProxy& Rhs) { return !(Lhs == Rhs); }

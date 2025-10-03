@@ -7,10 +7,11 @@
 #include "EquipmentVisualizer.h"
 #include "FaerieEquipmentLog.h"
 #include "FaerieEquipmentSlot.h"
+#include "FaerieItem.h"
 #include "FaerieItemContainerBase.h"
 #include "ItemContainerEvent.h"
 
-#include "Actors/ItemRepresentationActor.h"
+#include "Actors/FaerieProxyActorBase.h"
 #include "Components/FaerieItemMeshComponent.h"
 #include "Components/MeshComponent.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -184,7 +185,7 @@ void UEquipmentVisualizationUpdater::CreateVisualImpl(UEquipmentVisualizer* Visu
 
 	// Path 1: A Visual Actor
 	{
-		TSoftClassPtr<AItemRepresentationActor> ActorClass = nullptr;
+		TSoftClassPtr<AFaerieProxyActorBase> ActorClass = nullptr;
 
 		if (auto&& VisualToken_Deprecated = ItemObject->GetToken<UFaerieVisualEquipment>();
 			IsValid(VisualToken_Deprecated))
@@ -195,31 +196,33 @@ void UEquipmentVisualizationUpdater::CreateVisualImpl(UEquipmentVisualizer* Visu
 		if (auto&& VisualToken = ItemObject->GetToken<UFaerieVisualActorClassToken>();
 			IsValid(VisualToken))
 		{
-			ActorClass = VisualToken->GetActorClass();
+			ActorClass = VisualToken->GetProxyActorClass();
 		}
 
 		if (!ActorClass.IsNull())
 		{
 			// @todo implement async path here
-			const TSubclassOf<AItemRepresentationActor> VisualClass = ActorClass.LoadSynchronous();
+			const TSubclassOf<AFaerieProxyActorBase> VisualClass = ActorClass.LoadSynchronous();
 			if (!IsValid(VisualClass))
 			{
 				UE_LOG(LogFaerieEquipment, Warning, TEXT("VisualClass failed to load!"))
 				return;
 			}
 
-			AItemRepresentationActor* NewVisual = Visualizer->SpawnVisualActorNative<AItemRepresentationActor>(
+			AFaerieProxyActorBase* NewVisual = Visualizer->SpawnVisualActorNative<AFaerieProxyActorBase>(
 				{ Proxy }, VisualClass, Attachment);
 			if (IsValid(NewVisual))
 			{
 				NewVisual->GetOnDisplayFinished().AddWeakLambda(this,
-					[this, Visualizer](bool Success, AItemRepresentationActor* Actor)
+					[this, Visualizer, Visual = TWeakObjectPtr<AFaerieProxyActorBase>(NewVisual)](bool Success)
 					{
+						if (!Visual.IsValid()) return;
+
 						for (auto&& It = Pending.CreateIterator(); It; ++It)
 						{
-							if (It->Attachment.Parent->GetOwner() == Actor)
+							if (It->Attachment.Parent->GetOwner() == Visual)
 							{
-								It->Attachment.Parent = Actor->GetDefaultAttachComponent();
+								It->Attachment.Parent = Visual->GetDefaultAttachComponent();
 								It->Attachment.Hidden = false;
 								Visualizer->UpdateAttachment({It->Proxy}, It->Attachment);
 								It.RemoveCurrentSwap();
@@ -228,7 +231,7 @@ void UEquipmentVisualizationUpdater::CreateVisualImpl(UEquipmentVisualizer* Visu
 						}
 
 						// If this wasn't pending, just update its attachment after a rebuild.
-						Visualizer->ResetAttachment({Actor->GetSourceProxy() });
+						Visualizer->ResetAttachment({Visual->GetSourceProxy() });
 					});
 				NewVisual->SetSourceProxy(Proxy);
 				return;

@@ -254,12 +254,12 @@ bool FInventoryEntry::IsValid() const
 	if (Stacks.IsEmpty()) return false;
 
 	// Invalid limit
-	if (!Faerie::ItemData::IsValidStack(Limit)) return false;
+	if (!Faerie::ItemData::IsValidStackAmount(Limit)) return false;
 
 	// Check that each stack is valid
 	for (auto&& Element : Stacks)
 	{
-		if (!Element.Key.IsValid() || !Faerie::ItemData::IsValidStack(Element.Stack))
+		if (!Element.Key.IsValid() || !Faerie::ItemData::IsValidStackAmount(Element.Stack))
 		{
 			return false;
 		}

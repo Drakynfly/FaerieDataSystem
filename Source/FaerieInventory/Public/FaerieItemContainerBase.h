@@ -6,6 +6,7 @@
 #include "FaerieContainerExtensionInterface.h"
 #include "FaerieItemContainerStructs.h"
 #include "FaerieItemOwnerInterface.h"
+#include "FaerieItemProxy.h"
 #include "ItemContainerEvent.h"
 #include "StructUtils/StructView.h"
 #include "FaerieItemContainerBase.generated.h"
@@ -30,7 +31,7 @@ public:
 };
 
 /**
- * Base class for objects that store FaerieItems
+ * The base class for objects that store and replicate FaerieItems.
  */
 UCLASS(Abstract, Blueprintable)
 class FAERIEINVENTORY_API UFaerieItemContainerBase : public UNetSupportedObject, public IFaerieItemOwnerInterface, public IFaerieContainerExtensionInterface

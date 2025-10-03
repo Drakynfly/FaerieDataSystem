@@ -159,7 +159,7 @@ struct FAERIEITEMMESH_API FFaerieItemMesh
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FaerieItemMesh")
-	TObjectPtr<UStaticMesh> StaticMesh = nullptr;
+	TObjectPtr<const UStaticMesh> StaticMesh = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FaerieItemMesh")
 	TObjectPtr<UDynamicMesh> DynamicStaticMesh = nullptr;
@@ -175,9 +175,15 @@ public:
 	bool IsDynamic() const;
 	bool IsSkeletal() const;
 
-	UStaticMesh* GetStatic() const
+	const UStaticMesh* GetStatic() const
 	{
 		return StaticMesh;
+	}
+
+	// Non-const version while UE doesn't treat these const-safely.
+	UStaticMesh* GetStatic_Unsafe() const
+	{
+		return ConstCast(StaticMesh);
 	}
 
 	UDynamicMesh* GetDynamic() const
@@ -188,6 +194,21 @@ public:
 	FSkeletonAndAnimation GetSkeletal() const
 	{
 		return SkeletonAndAnimation;
+	}
+
+	void SetStatic(const UStaticMesh* Mesh)
+	{
+		StaticMesh = Mesh;
+	}
+
+	void SetDynamic(UDynamicMesh* Mesh)
+	{
+		DynamicStaticMesh = Mesh;
+	}
+
+	void SetSkeletal(const FSkeletonAndAnimation& Mesh)
+	{
+		SkeletonAndAnimation = Mesh;
 	}
 
 	friend bool operator==(const FFaerieItemMesh& Lhs, const FFaerieItemMesh& Rhs)

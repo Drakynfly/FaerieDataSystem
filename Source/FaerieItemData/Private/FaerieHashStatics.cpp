@@ -1,6 +1,7 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieHashStatics.h"
+#include "FaerieItem.h"
 #include "FaerieItemStackHashInstruction.h"
 #include "FaerieItemTokenFilter.h"
 #include "Squirrel.h"

@@ -4,8 +4,11 @@
 
 #include "FaerieItemStack.h"
 #include "FaerieItemStackView.h"
+#include "GameplayTagContainer.h"
 #include "UObject/Interface.h"
 #include "FaerieItemOwnerInterface.generated.h"
+
+class UFaerieItemToken;
 
 UINTERFACE(NotBlueprintable, MinimalAPI)
 class UFaerieItemOwnerInterface : public UInterface

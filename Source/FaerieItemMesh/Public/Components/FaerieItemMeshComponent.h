@@ -40,8 +40,10 @@ public:
 	virtual void DestroyComponent(bool bPromoteChildren = false) override;
 
 protected:
+	void UpdateCachedBounds();
+
 	void LoadMeshFromToken(bool Async);
-	void AsyncLoadMeshReturn(bool Success, const FFaerieItemMesh& InMeshData);
+	void AsyncLoadMeshReturn(bool Success, FFaerieItemMesh&& InMeshData);
 
 	void RebuildMesh();
 
@@ -108,13 +110,17 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Config")
 	EItemMeshType PreferredType;
 
-	// If this component is allowed to exist without any mesh then enable this.
+	// Should a warning be logged when rebuilt with an invalid mesh.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Config")
-	bool AllowNullMeshes = false;
+	bool WarnIfMeshInvalid = false;
 
 	// Center the mesh according to its bounding box, instead of using its origin point.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Config")
 	bool CenterMeshByBounds = false;
+
+	// Calculate and cache the bounds of a posed skeletal mesh component.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Config")
+	bool CacheSkeletalBoundsInPose = false;
 
 	// If the mesh data does not have the preferred type, this stores the actual type used.
 	UPROPERTY(BlueprintReadOnly, Category = "State")
@@ -127,4 +133,7 @@ protected:
 	// Component generated at runtime to display the appropriate mesh from MeshData.
 	UPROPERTY(BlueprintReadOnly, Category = "State")
 	TObjectPtr<UMeshComponent> MeshComponent;
+
+	// The last cached bounds. Used for SkeletalMeshes when CacheSkeletalBoundsInPose is true.
+	TOptional<FBoxSphereBounds> CachedBounds;
 };

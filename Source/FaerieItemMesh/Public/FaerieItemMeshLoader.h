@@ -14,7 +14,7 @@ class UFaerieMeshTokenBase;
 
 namespace Faerie
 {
-	using FItemMeshAsyncLoadResult = TDelegate<void(bool, const FFaerieItemMesh&)>;
+	using FItemMeshAsyncLoadResult = TDelegate<void(bool, FFaerieItemMesh&&)>;
 
 	struct FAsyncLoadRequest
 	{
@@ -70,7 +70,7 @@ protected:
 	void OnAsyncDynamicStaticMeshLoaded(TConstStructView<FFaerieDynamicStaticMesh> MeshData, Faerie::FAsyncLoadRequest Request);
 	void OnAsyncDynamicSkeletalMeshLoaded(TConstStructView<FFaerieDynamicSkeletalMesh> MeshData, Faerie::FAsyncLoadRequest Request);
 
-	virtual void HandleAsyncLoadResult(const FFaerieItemMesh& Mesh, Faerie::FAsyncLoadRequest&& Request);
+	virtual void HandleAsyncLoadResult(FFaerieItemMesh&& Mesh, Faerie::FAsyncLoadRequest&& Request);
 };
 
 /**
@@ -123,7 +123,7 @@ public:
 	//virtual bool LoadMeshFromProxySynchronous(FFaerieItemProxy Proxy, const FGameplayTag Purpose, FFaerieItemMesh& Mesh) override;
 
 protected:
-	virtual void HandleAsyncLoadResult(const FFaerieItemMesh& Mesh, Faerie::FAsyncLoadRequest&& Request) override;
+	virtual void HandleAsyncLoadResult(FFaerieItemMesh&& Mesh, Faerie::FAsyncLoadRequest&& Request) override;
 	//~ UFaerieItemMeshLoader
 
 public:

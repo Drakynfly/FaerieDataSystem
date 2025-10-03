@@ -15,6 +15,12 @@
 DECLARE_STATS_GROUP(TEXT("FaerieEquipmentManager"), STATGROUP_FaerieEquipmentManager, STATCAT_Advanced);
 DECLARE_CYCLE_STAT(TEXT("BuildPaths"), STAT_Equipment_BuildPaths, STATGROUP_FaerieEquipmentManager);
 
+namespace Faerie::Equipment::Tags
+{
+	UE_DEFINE_GAMEPLAY_TAG_TYPED(FFaerieInventoryTag, SlotCreated, "Fae.Inventory.SlotCreated")
+	UE_DEFINE_GAMEPLAY_TAG_TYPED(FFaerieInventoryTag, SlotDeleted, "Fae.Inventory.SlotDeleted")
+}
+
 UFaerieEquipmentManager::UFaerieEquipmentManager()
 {
 	PrimaryComponentTick.bCanEverTick = false;
@@ -141,11 +147,13 @@ void UFaerieEquipmentManager::AddSubobjectsForReplication()
 	}
 }
 
-void UFaerieEquipmentManager::OnSlotItemChanged(UFaerieEquipmentSlot* Slot, const bool TokenEdit)
+void UFaerieEquipmentManager::BroadcastSlotEvent(UFaerieItemStackContainer* Container, const FFaerieInventoryTag Event)
 {
-	const EFaerieEquipmentSlotChangeType Type = TokenEdit ? EFaerieEquipmentSlotChangeType::TokenEdit : EFaerieEquipmentSlotChangeType::ItemChange;
-	OnEquipmentSlotEventNative.Broadcast(Slot, Type);
-	OnEquipmentChangedEvent.Broadcast(Slot, Type);
+	if (UFaerieEquipmentSlot* Slot = CastChecked<UFaerieEquipmentSlot>(Container))
+	{
+		OnEquipmentSlotEventNative.Broadcast(Slot, Event);
+		OnEquipmentChangedEvent.Broadcast(Slot, Event);
+	}
 }
 
 FFaerieEquipmentSaveData UFaerieEquipmentManager::MakeSaveData() const
@@ -164,11 +172,7 @@ FFaerieEquipmentSaveData UFaerieEquipmentManager::MakeSaveData() const
 
 void UFaerieEquipmentManager::LoadSaveData(const FFaerieEquipmentSaveData& SaveData)
 {
-	ON_SCOPE_EXIT
-	{
-		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Slots, this);
-	};
-
+	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Slots, this);
 	Slots.Reset();
 
 	RemovedDefaultSlots = SaveData.RemovedDefaultSlots;
@@ -208,19 +212,19 @@ UFaerieEquipmentSlot* UFaerieEquipmentManager::AddSlot(const FFaerieEquipmentSlo
 	if (UFaerieEquipmentSlot* NewSlot = NewObject<UFaerieEquipmentSlot>(this);
 		ensure(IsValid(NewSlot)))
 	{
+		AActor* Owner = GetOwner();
+
 		NewSlot->Config = Config;
 		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Slots, this)
 		Slots.Add(NewSlot);
-		GetOwner()->AddReplicatedSubObject(NewSlot);
-		NewSlot->InitializeNetObject(GetOwner());
+		Owner->AddReplicatedSubObject(NewSlot);
+		NewSlot->InitializeNetObject(Owner);
 
-		NewSlot->OnItemChangedNative.AddUObject(this, &ThisClass::OnSlotItemChanged, false);
-		NewSlot->OnItemDataChangedNative.AddUObject(this, &ThisClass::OnSlotItemChanged, true);
+		NewSlot->OnItemChangedNative.AddUObject(this, &ThisClass::BroadcastSlotEvent);
 
 		NewSlot->GetExtensionGroup()->SetParentGroup(ExtensionGroup);
 
-		OnEquipmentSlotEventNative.Broadcast(NewSlot, EFaerieEquipmentSlotChangeType::Addition);
-		OnEquipmentChangedEvent.Broadcast(NewSlot, EFaerieEquipmentSlotChangeType::Addition);
+		BroadcastSlotEvent(NewSlot, Faerie::Equipment::Tags::SlotCreated);
 
 		return NewSlot;
 	}
@@ -237,8 +241,7 @@ bool UFaerieEquipmentManager::RemoveSlot(UFaerieEquipmentSlot* Slot)
 
 	if (Slots.Remove(Slot))
 	{
-		OnEquipmentSlotEventNative.Broadcast(Slot, EFaerieEquipmentSlotChangeType::Removal);
-		OnEquipmentChangedEvent.Broadcast(Slot, EFaerieEquipmentSlotChangeType::Removal);
+		BroadcastSlotEvent(Slot, Faerie::Equipment::Tags::SlotDeleted);
 
 		Slot->GetExtensionGroup()->SetParentGroup(nullptr);
 
@@ -247,7 +250,6 @@ bool UFaerieEquipmentManager::RemoveSlot(UFaerieEquipmentSlot* Slot)
 		GetOwner()->RemoveReplicatedSubObject(Slot);
 
 		Slot->OnItemChangedNative.RemoveAll(this);
-		Slot->OnItemDataChangedNative.RemoveAll(this);
 
 		// If this slot was a default slot, mark it as removed, so it doesn't get restored after a load.
 		for (auto&& Element : InstanceDefaultSlots)

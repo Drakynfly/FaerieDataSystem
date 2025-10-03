@@ -4,6 +4,7 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieSlotTag)
 
+// @todo Move these to demo project
 namespace Faerie::Equipment::Tags
 {
 	UE_DEFINE_GAMEPLAY_TAG_TYPED(FFaerieSlotTag, SlotBody, "Fae.Slot.Body")

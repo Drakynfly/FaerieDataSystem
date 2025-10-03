@@ -3,9 +3,10 @@
 #pragma once
 
 #include "FaerieItemToken.h"
-#include "Actors/ItemRepresentationActor.h"
-
 #include "FaerieVisualActorClassToken.generated.h"
+
+class AFaerieItemOwningActorBase;
+class AFaerieProxyActorBase;
 
 /**
  *
@@ -16,11 +17,18 @@ class FAERIEITEMMESH_API UFaerieVisualActorClassToken : public UFaerieItemToken
 	GENERATED_BODY()
 
 public:
-	const TSoftClassPtr<AItemRepresentationActor>& GetActorClass() const { return ActorClass; }
+	const TSoftClassPtr<AFaerieItemOwningActorBase>& GetOwningActorClass() const { return OwningActorClass; }
+	const TSoftClassPtr<AFaerieProxyActorBase>& GetProxyActorClass() const { return ProxyActorClass; }
 
-	TSubclassOf<AItemRepresentationActor> LoadActorClassSynchronous() const;
+	TSubclassOf<AFaerieItemOwningActorBase> LoadOwningActorClassSynchronous() const;
+	TSubclassOf<AFaerieProxyActorBase> LoadProxyActorClassSynchronous() const;
 
 protected:
+	// Actor class to use when spawning an actor to own this item (e.g. pickups)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VisualActorClassToken", meta = (ExposeOnSpawn))
-	TSoftClassPtr<AItemRepresentationActor> ActorClass;
+	TSoftClassPtr<AFaerieItemOwningActorBase> OwningActorClass;
+
+	// Actor class to use when spawning proxy visualizations of this item (e.g. equipment)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VisualActorClassToken", meta = (ExposeOnSpawn))
+	TSoftClassPtr<AFaerieProxyActorBase> ProxyActorClass;
 };

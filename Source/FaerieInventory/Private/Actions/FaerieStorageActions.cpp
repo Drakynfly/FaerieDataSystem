@@ -12,7 +12,7 @@ bool FFaerieClientAction_MoveFromStorage::IsValid(const UFaerieInventoryClient* 
 	if (!::IsValid(Storage) ||
 		!Client->CanAccessContainer(Storage, FFaerieClientAction_MoveHandlerBase::StaticStruct()) ||
 		!Storage->Contains(Address) ||
-		!Faerie::ItemData::IsValidStack(Amount) ||
+		!Faerie::ItemData::IsValidStackAmount(Amount) ||
 		!Storage->CanRemoveStack(Address, Faerie::Inventory::Tags::RemovalMoving))
 	{
 		return false;

@@ -127,6 +127,14 @@ void UFaerieItemStorage::PostInitProperties()
 	EntryMap.ChangeListener = this;
 }
 
+void UFaerieItemStorage::PostDuplicate(const EDuplicateMode::Type DuplicateMode)
+{
+	Super::PostDuplicate(DuplicateMode);
+
+	// Rebind replication functions out into this class.
+	EntryMap.ChangeListener = this;
+}
+
 void UFaerieItemStorage::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -198,6 +206,8 @@ void UFaerieItemStorage::LoadSaveData(const FConstStructView ItemData, UFaerieIt
 	}
 
 	EntryMap.MarkArrayDirty();
+
+	// Rebind replication functions out into this class.
 	EntryMap.ChangeListener = this;
 
 	// Determine the next valid key to use.
@@ -568,8 +578,7 @@ UInventoryStackProxy* UFaerieItemStorage::GetStackProxyImpl(const FFaerieAddress
 Faerie::Inventory::FEventLog UFaerieItemStorage::AddStackImpl(const FFaerieItemStack& InStack, const bool ForceNewStack)
 {
 	if (!ensureAlwaysMsgf(
-			IsValid(InStack.Item) &&
-			Faerie::ItemData::IsValidStack(InStack.Copies),
+			InStack.IsValid(),
 			TEXT("AddStackImpl was passed an invalid stack.")))
 	{
 		return Faerie::Inventory::FEventLog::AdditionFailed("AddStackImpl was passed an invalid stack.");
@@ -638,7 +647,7 @@ Faerie::Inventory::FEventLog UFaerieItemStorage::RemoveFromEntryImpl(const FEntr
 
 	// RemoveEntryImpl should not be called with unvalidated parameters.
 	check(Contains(Key));
-	check(Faerie::ItemData::IsValidStack(Amount));
+	check(Faerie::ItemData::IsValidStackAmount(Amount));
 	check(Reason.MatchesTag(Faerie::Inventory::Tags::RemovalBase))
 
 	Faerie::Inventory::FEventLog Event;
@@ -693,7 +702,7 @@ Faerie::Inventory::FEventLog UFaerieItemStorage::RemoveFromStackImpl(const FFaer
 
 	// RemoveFromStackImpl should not be called with unvalidated parameters.
 	check(Contains(Address));
-	check(Faerie::ItemData::IsValidStack(Amount));
+	check(Faerie::ItemData::IsValidStackAmount(Amount));
 	check(Reason.MatchesTag(Faerie::Inventory::Tags::RemovalBase))
 
 	Faerie::Inventory::FEventLog Event;
@@ -1293,7 +1302,7 @@ FEntryKey UFaerieItemStorage::MoveStack(UFaerieItemStorage* ToStorage, const FFa
 {
 	if (!IsValid(ToStorage) ||
 		ToStorage == this ||
-		!Faerie::ItemData::IsValidStack(Amount) ||
+		!Faerie::ItemData::IsValidStackAmount(Amount) ||
 		!CanRemoveStack(Address, Faerie::Inventory::Tags::RemovalMoving))
 	{
 		return FEntryKey::InvalidKey;

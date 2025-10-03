@@ -4,7 +4,12 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieVisualActorClassToken)
 
-TSubclassOf<AItemRepresentationActor> UFaerieVisualActorClassToken::LoadActorClassSynchronous() const
+TSubclassOf<AFaerieItemOwningActorBase> UFaerieVisualActorClassToken::LoadOwningActorClassSynchronous() const
 {
-	return ActorClass.LoadSynchronous();
+	return OwningActorClass.LoadSynchronous();
+}
+
+TSubclassOf<AFaerieProxyActorBase> UFaerieVisualActorClassToken::LoadProxyActorClassSynchronous() const
+{
+	return ProxyActorClass.LoadSynchronous();
 }

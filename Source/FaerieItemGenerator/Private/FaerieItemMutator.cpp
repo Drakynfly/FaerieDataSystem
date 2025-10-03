@@ -1,6 +1,7 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieItemMutator.h"
+#include "FaerieItem.h"
 #include "FaerieItemDataFilter.h"
 #include "FaerieItemTemplate.h"
 

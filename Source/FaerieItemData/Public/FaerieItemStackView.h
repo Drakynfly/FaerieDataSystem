@@ -3,7 +3,6 @@
 #pragma once
 
 #include "FaerieItem.h"
-#include "FaerieItemProxy.h"
 #include "FaerieItemStack.h"
 #include "FaerieItemStackView.generated.h"
 
@@ -22,10 +21,6 @@ struct FAERIEITEMDATA_API FFaerieItemStackView
 	  : Item(ItemData),
 		Copies(Copies) {}
 
-	FFaerieItemStackView(const FFaerieItemProxy Proxy)
-	  : Item(Proxy.GetItemObject()),
-		Copies(Proxy.GetCopies()) {}
-
 	FFaerieItemStackView(const FFaerieItemStack& Stack)
 	  : Item(Stack.Item),
 		Copies(Stack.Copies) {}
@@ -38,16 +33,9 @@ struct FAERIEITEMDATA_API FFaerieItemStackView
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FaerieItemStack")
 	int32 Copies = 0;
 
-	// Changes the number of copies this stack represents.
-	FFaerieItemStackView& Resize(const int32 Amount)
-	{
-		Copies = Amount;
-		return *this;
-	}
-
 	bool IsValid() const
 	{
-		return Item.IsValid() && Faerie::ItemData::IsValidStack(Copies);
+		return Item.IsValid() && Faerie::ItemData::IsValidStackAmount(Copies);
 	}
 
 	friend bool operator==(const FFaerieItemStackView Lhs, const FFaerieItemStackView Rhs)

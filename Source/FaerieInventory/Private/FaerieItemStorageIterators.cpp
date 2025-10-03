@@ -157,7 +157,7 @@ namespace Faerie
 
 	void FStorageIterator_MaskedEntries::AdvanceEntry()
 	{
-		UE_LOG(LogTemp, Log, TEXT("BitIterator Index: %i, KeyMask Num: %i, Content Num: %i"), BitIterator.GetIndex(), KeyMask.Num(), Content->Num())
+		UE_LOG(LogTemp, Verbose, TEXT("BitIterator Index: %i, KeyMask Num: %i, Content Num: %i"), BitIterator.GetIndex(), KeyMask.Num(), Content->Num())
 
 		if (KeyMask.IsValidIndex(BitIterator.GetIndex()))
 		{

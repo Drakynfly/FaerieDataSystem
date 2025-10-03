@@ -5,7 +5,7 @@
 #include "FaerieItemToken.h"
 #include "FaerieVisualEquipment.generated.h"
 
-class AItemRepresentationActor;
+class AFaerieProxyActorBase;
 
 /**
  * #DEPRECATED USE UFaerieVisualActorClassToken instead
@@ -16,9 +16,9 @@ class FAERIEEQUIPMENT_API UFaerieVisualEquipment : public UFaerieItemToken
 	GENERATED_BODY()
 
 public:
-	const TSoftClassPtr<AItemRepresentationActor>& GetActorClass() const { return ActorClass; }
+	const TSoftClassPtr<AFaerieProxyActorBase>& GetActorClass() const { return ActorClass; }
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Faerie|VisualEquipment", meta = (ExposeOnSpawn))
-	TSoftClassPtr<AItemRepresentationActor> ActorClass;
+	TSoftClassPtr<AFaerieProxyActorBase> ActorClass;
 };

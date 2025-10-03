@@ -40,7 +40,7 @@ void FFaerieRecipeCraftRequest::Run(UFaerieCraftingRunner* Runner) const
 					return Runner->Fail();
 				}
 
-				if (RequiredSlot.Value->TryMatch(SlotPtr->ItemProxy))
+				if (RequiredSlot.Value->TryMatch(FFaerieItemStackView(SlotPtr->ItemProxy)))
 				{
 					RequestData.FilledSlots.Add(RequiredSlot.Key, SlotPtr->ItemProxy);
 				}
@@ -74,7 +74,7 @@ void FFaerieRecipeCraftRequest::Run(UFaerieCraftingRunner* Runner) const
 					return Runner->Fail();
 				}
 
-				if (OptionalSlot.Value->TryMatch(SlotPtr->ItemProxy))
+				if (OptionalSlot.Value->TryMatch(FFaerieItemStackView(SlotPtr->ItemProxy)))
 				{
 					RequestData.FilledSlots.Add(OptionalSlot.Key, SlotPtr->ItemProxy);
 				}
@@ -88,7 +88,7 @@ void FFaerieRecipeCraftRequest::Run(UFaerieCraftingRunner* Runner) const
 		}
 	}
 
-	// Execute parent Run, as it validates some stuff, and then early out if it fails.
+	// Validation
 	for (auto&& Element : RequestData.FilledSlots)
 	{
 		if (!Element.Value.IsValid() ||
@@ -100,7 +100,7 @@ void FFaerieRecipeCraftRequest::Run(UFaerieCraftingRunner* Runner) const
 		}
 	}
 
-	UE_LOG(LogItemGeneration, Log, TEXT("Running CraftEntries"));
+	UE_LOG(LogItemGeneration, Log, TEXT("Running RecipeCraft"));
 
 	if (!ensure(IsValid(Config->Recipe)))
 	{

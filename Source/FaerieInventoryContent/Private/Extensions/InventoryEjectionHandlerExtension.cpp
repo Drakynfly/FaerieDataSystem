@@ -5,7 +5,7 @@
 #include "FaerieItemStorage.h"
 #include "ItemContainerEvent.h"
 #include "Actions/FaerieInventoryClient.h"
-#include "ActorClasses/FaerieItemOwningActorBase.h"
+#include "Actors/FaerieItemOwningActorBase.h"
 #include "Tokens/FaerieVisualActorClassToken.h"
 #include "Engine/AssetManager.h"
 #include "Engine/World.h"
@@ -60,13 +60,14 @@ void UInventoryEjectionHandlerExtension::HandleNextInQueue()
 {
 	if (PendingEjectionQueue.IsEmpty()) return;
 
-	TSoftClassPtr<AItemRepresentationActor> ClassToSpawn;
+	TSoftClassPtr<AFaerieItemOwningActorBase> ClassToSpawn;
 
 	if (auto&& ClassToken = PendingEjectionQueue[0].Item->GetToken<UFaerieVisualActorClassToken>())
 	{
-		ClassToSpawn = ClassToken->GetActorClass();
+		ClassToSpawn = ClassToken->GetOwningActorClass();
 	}
-	else
+
+	if (ClassToSpawn.IsNull())
 	{
 		ClassToSpawn = ExtensionDefaultClass;
 	}
@@ -154,8 +155,7 @@ bool FFaerieClientAction_EjectViaRelease::Server_Execute(const UFaerieInventoryC
 	}
 
 	if (const FFaerieItemStack Stack = Handle.Container->Release(Handle.Address, Amount);
-		IsValid(Stack.Item) &&
-		Faerie::ItemData::IsValidStack(Stack.Copies))
+		Stack.IsValid())
 	{
 		Ejector->Enqueue(Stack);
 		return true;

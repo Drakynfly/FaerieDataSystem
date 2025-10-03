@@ -128,12 +128,12 @@ public:
 	}
 
 	template <typename Predicate>
-	bool Remove(KeyType Key, Predicate Pred)
+	bool Remove(KeyType Key, Predicate PreRemovalPredicate)
 	{
 		if (const int32 Index = IndexOf(Key);
 			Index != INDEX_NONE)
 		{
-			Pred(GetArray_Internal()[Index]);
+			PreRemovalPredicate(GetArray_Internal()[Index]);
 
 			// RemoveAtSwap would be faster but would break Entry key order.
 			GetArray_Internal().RemoveAt(Index);

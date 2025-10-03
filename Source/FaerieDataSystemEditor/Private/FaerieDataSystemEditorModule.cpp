@@ -42,9 +42,12 @@ void IFaerieDataSystemEditorModuleBase::ShutdownModule()
 
 void IFaerieDataSystemEditorModuleBase::OnPostEngineInit()
 {
-    // @note: this is a patch to fix a bug in Unreal as of 5.4/5.5 where gameplay tag filters are evaluated in the wrong order
-    TSharedPtr<FGameplayTagsGraphPanelPinFactory_ForFix> GameplayTagsGraphPanelPinFactoryFixed = MakeShared<FGameplayTagsGraphPanelPinFactory_ForFix>();
-    FEdGraphUtilities::RegisterVisualPinFactory(GameplayTagsGraphPanelPinFactoryFixed);
+    UE_CALL_ONCE([]()
+    {
+        // @note: this is a patch to fix a bug in Unreal as of 5.4/5.5 where gameplay tag filters are evaluated in the wrong order
+        TSharedPtr<FGameplayTagsGraphPanelPinFactory_ForFix> GameplayTagsGraphPanelPinFactoryFixed = MakeShared<FGameplayTagsGraphPanelPinFactory_ForFix>();
+        FEdGraphUtilities::RegisterVisualPinFactory(GameplayTagsGraphPanelPinFactoryFixed);
+    });
 }
 
 void IFaerieDataSystemEditorModuleBase::RegisterDetailCustomizations(

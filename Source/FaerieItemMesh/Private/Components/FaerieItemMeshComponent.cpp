@@ -7,6 +7,7 @@
 #include "FaerieMeshSubsystem.h"
 #include "Components/DynamicMeshComponent.h"
 #include "GeometryScript/MeshQueryFunctions.h"
+#include "GeometryScript/SceneUtilityFunctions.h"
 #include "Libraries/FaerieMeshStructsLibrary.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
@@ -41,6 +42,25 @@ void UFaerieItemMeshComponent::DestroyComponent(const bool bPromoteChildren)
 	}
 
 	Super::DestroyComponent(bPromoteChildren);
+}
+
+void UFaerieItemMeshComponent::UpdateCachedBounds()
+{
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_UBoundsCachingSkeletalMeshComponent_UpdateCachedBounds)
+
+	// Make sure skeletal mesh has its animation initialized.
+	Cast<USkeletalMeshComponent>(MeshComponent)->RefreshBoneTransforms();
+
+	// Convert skeletal mesh component to dynamic (so we copy its pose).
+	UDynamicMesh* DynamicMesh = NewObject<UDynamicMesh>();
+	FGeometryScriptCopyMeshFromComponentOptions Options;
+	Options.RequestedLOD.LODType = EGeometryScriptLODType::RenderData;
+	constexpr bool bTransformToWorld = false;
+	FTransform LocalToWorld;
+	EGeometryScriptOutcomePins Outcome;
+	UGeometryScriptLibrary_SceneUtilityFunctions::CopyMeshFromComponent(MeshComponent, DynamicMesh, Options, bTransformToWorld, LocalToWorld, Outcome);
+
+	CachedBounds = UGeometryScriptLibrary_MeshQueryFunctions::GetMeshBoundingBox(DynamicMesh);
 }
 
 void UFaerieItemMeshComponent::LoadMeshFromToken(const bool Async)
@@ -82,17 +102,17 @@ void UFaerieItemMeshComponent::LoadMeshFromToken(const bool Async)
 	}
 }
 
-void UFaerieItemMeshComponent::AsyncLoadMeshReturn(const bool Success, const FFaerieItemMesh& InMeshData)
+void UFaerieItemMeshComponent::AsyncLoadMeshReturn(const bool Success, FFaerieItemMesh&& InMeshData)
 {
 	if (Success)
 	{
-		MeshData = InMeshData;
+		MeshData = MoveTemp(InMeshData);
+		RebuildMesh();
 	}
 	else
 	{
-		MeshData = FFaerieItemMesh();
+		ClearItemMesh();
 	}
-	RebuildMesh();
 }
 
 void UFaerieItemMeshComponent::RebuildMesh()
@@ -154,9 +174,9 @@ void UFaerieItemMeshComponent::RebuildMesh()
 	}
 
 	// Warn if we have switched to None illegally.
-	if (NewMeshType == EItemMeshType::None && !AllowNullMeshes)
+	if (NewMeshType == EItemMeshType::None && WarnIfMeshInvalid)
 	{
-		UE_LOG(LogFaerieItemMesh, Error, TEXT("No valid mesh in Mesh Data. RebuildMesh cancelled."))
+		UE_LOG(LogFaerieItemMesh, Error, TEXT("No valid mesh in Mesh Data."))
 		return;
 	}
 
@@ -200,6 +220,8 @@ void UFaerieItemMeshComponent::RebuildMesh()
 		MeshComponent->AttachToComponent(this, FAttachmentTransformRules::SnapToTargetIncludingScale);
 	}
 
+	bool CanCenterByBounds = CenterMeshByBounds;
+
 	// Load the mesh and materials to the mesh component.
 	switch (ActualType)
 	{
@@ -207,16 +229,10 @@ void UFaerieItemMeshComponent::RebuildMesh()
 	case EItemMeshType::Static:
 		if (UStaticMeshComponent* StaticMesh = Cast<UStaticMeshComponent>(MeshComponent))
 		{
-			StaticMesh->SetStaticMesh(MeshData.GetStatic());
+			StaticMesh->SetStaticMesh(MeshData.GetStatic_Unsafe());
 			for (int32 i = 0; i < MeshData.Materials.Num(); ++i)
 			{
 				StaticMesh->SetMaterial(i, MeshData.Materials[i].Material);
-			}
-
-			if (CenterMeshByBounds)
-			{
-				auto BoundsOrigin = StaticMesh->GetStaticMesh()->GetBounds().Origin;
-				StaticMesh->AddLocalOffset(-BoundsOrigin);
 			}
 		}
 		break;
@@ -225,42 +241,30 @@ void UFaerieItemMeshComponent::RebuildMesh()
 		{
 			DynamicMesh->SetDynamicMesh(MeshData.GetDynamic());
 			DynamicMesh->ConfigureMaterialSet(UFaerieMeshStructsLibrary::FaerieItemMaterialsToObjectArray(MeshData.Materials));
-
-			if (CenterMeshByBounds)
-			{
-				auto BoundsOrigin = DynamicMesh->GetMesh()->GetBounds().Center();
-				DynamicMesh->AddLocalOffset(-BoundsOrigin);
-			}
 		}
 		break;
 	case EItemMeshType::Skeletal:
 		if (USkeletalMeshComponent* SkeletalMesh = Cast<USkeletalMeshComponent>(MeshComponent))
 		{
 			auto&& Skeletal = MeshData.GetSkeletal();
-			SkeletalMesh->SetSkeletalMesh(Skeletal.Mesh);
+			SkeletalMesh->SetSkeletalMesh(ConstCast(Skeletal.Mesh));
 
-			// Try to setup animation
+			// Try to set up animation. Disable CenterByBounds while animating.
 			if (IsValid(Skeletal.AnimClass))
 			{
 				SkeletalMesh->SetAnimInstanceClass(Skeletal.AnimClass);
+				//CanCenterByBounds = false;
 			}
 			else if (IsValid(Skeletal.AnimationAsset))
 			{
 				SkeletalMesh->PlayAnimation(Skeletal.AnimationAsset, true);
+				//CanCenterByBounds = false;
 			}
-			// If there is no Animation Class or Asset, maybe we were supposed to be a LeaderPose component.
 			else if (IsValid(SkeletalMeshLeader))
 			{
+				// If there is no Animation Class or Asset, maybe we were supposed to be a LeaderPose component.
 				SkeletalMesh->SetLeaderPoseComponent(SkeletalMeshLeader, true);
-			}
-			// No animation, assuming that skeletal mesh is being displayed in default pose. Center if enabled.
-			else
-			{
-				if (CenterMeshByBounds)
-				{
-					auto BoundsOrigin = SkeletalMesh->GetSkeletalMeshAsset()->GetBounds().Origin;
-					SkeletalMesh->AddLocalOffset(-BoundsOrigin);
-				}
+				CanCenterByBounds = false;
 			}
 
 			// Setup Materials
@@ -268,10 +272,25 @@ void UFaerieItemMeshComponent::RebuildMesh()
 			{
 				SkeletalMesh->SetMaterial(i, MeshData.Materials[i].Material);
 			}
+
+			if (CacheSkeletalBoundsInPose)
+			{
+				UpdateCachedBounds();
+			}
 		}
 		break;
 	default: checkNoEntry();
 	}
+
+	if (CanCenterByBounds)
+	{
+		const FBoxSphereBounds MeshBounds = GetBounds();
+		MeshComponent->AddLocalOffset(-MeshBounds.Origin);
+	}
+
+#if WITH_EDITOR
+	MeshComponent->bSelectable = true;
+#endif
 
 	OnMeshRebuiltNative.Broadcast(this);
 	OnMeshRebuilt.Broadcast();
@@ -369,7 +388,14 @@ FBoxSphereBounds UFaerieItemMeshComponent::GetBounds() const
 	{
 	case EItemMeshType::Static: return MeshData.GetStatic()->GetBounds();
 	case EItemMeshType::Dynamic: return UGeometryScriptLibrary_MeshQueryFunctions::GetMeshBoundingBox(MeshData.GetDynamic());
-	case EItemMeshType::Skeletal: return MeshData.GetSkeletal().Mesh->GetBounds();
+	case EItemMeshType::Skeletal:
+		{
+			if (CacheSkeletalBoundsInPose && CachedBounds.IsSet())
+			{
+				return CachedBounds.GetValue();
+			}
+			return MeshData.GetSkeletal().Mesh->GetBounds();
+		}
 	default: return FBoxSphereBounds();
 	}
 }

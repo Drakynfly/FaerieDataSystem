@@ -19,7 +19,8 @@ public class FaerieItemMesh : ModuleRules
         PublicDependencyModuleNames.AddRange(
             new []
             {
-                "FaerieItemData"
+                "FaerieItemData",
+                "FaerieInventory"
             });
 
         PrivateDependencyModuleNames.AddRange(

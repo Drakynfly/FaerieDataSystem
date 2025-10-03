@@ -2,11 +2,11 @@
 
 #pragma once
 
+#include "GameplayTagContainer.h"
 #include "Engine/DeveloperSettings.h"
 #include "FaerieMeshSettings.generated.h"
 
-class AItemRepresentationActor;
-//class AFaerieItemOwningActorBase;
+class AFaerieItemOwningActorBase;
 
 /**
  *
@@ -17,6 +17,8 @@ class FAERIEITEMMESH_API UFaerieMeshSettings : public UDeveloperSettings
 	GENERATED_BODY()
 
 public:
+	UFaerieMeshSettings();
+
 	// UDeveloperSettings implementation
 	virtual FName GetCategoryName() const override;
 	// End UDeveloperSettings implementation
@@ -25,8 +27,12 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Generator")
 	bool CreateMeshLoaderWorldSubsystem = true;
 
+	// If the purpose requested when loading a mesh is not available, the tag "MeshPurpose.Default" is normally used as
+	// a fallback. If this is set to a tag other than that, then this will be tried first, before the default.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Categories = "MeshPurpose"))
+	FGameplayTag FallbackPurpose;
+
 	// Default pick-up item actor class
-	// @todo should be AFaerieItemOwningActorBase, but module mayhem prevents that for now...
 	UPROPERTY(Config, EditAnywhere, Category = "Classes", meta = (ForceInlineRow))
-	TSoftClassPtr<AItemRepresentationActor> DefaultPickupActor;
+	TSoftClassPtr<AFaerieItemOwningActorBase> DefaultPickupActor;
 };

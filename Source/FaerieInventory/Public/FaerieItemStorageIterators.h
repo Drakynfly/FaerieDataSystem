@@ -3,6 +3,7 @@
 #pragma once
 
 #include "FaerieContainerIterator.h"
+#include "FaerieItemProxy.h"
 #include "InventoryDataStructs.h"
 
 struct FInventoryContent;

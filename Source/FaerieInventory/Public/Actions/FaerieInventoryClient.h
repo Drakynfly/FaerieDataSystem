@@ -33,7 +33,7 @@ struct FFaerieClientStackPromptResult
 	FFaerieAddressableHandle Handle;
 
 	UPROPERTY(BlueprintReadWrite, Category = "ClientStackPromptResult")
-	int32 Amount;
+	int32 Amount = 0;
 };
 
 DECLARE_DYNAMIC_DELEGATE_OneParam(FFaerieClientStackPromptCallback, const FFaerieClientStackPromptResult&, Result);

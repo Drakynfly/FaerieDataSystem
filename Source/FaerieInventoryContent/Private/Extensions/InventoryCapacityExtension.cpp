@@ -429,7 +429,7 @@ bool UInventoryCapacityExtension::CanContainProxy(const FFaerieItemProxy Proxy) 
 
 	const int32 Stack = Proxy->GetCopies();
 
-	if (!Faerie::ItemData::IsValidStack(Stack))
+	if (!Faerie::ItemData::IsValidStackAmount(Stack))
 	{
 		return false;
 	}

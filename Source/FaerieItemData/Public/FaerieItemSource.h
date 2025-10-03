@@ -5,6 +5,7 @@
 #include "UObject/Interface.h"
 #include "UObject/Object.h"
 #include "FaerieAssetInfo.h"
+#include "FaerieItemDataEnums.h"
 
 #include "FaerieItemSource.generated.h"
 
@@ -21,7 +22,7 @@ public:
 
 	// Flags to mark instances with
 	UPROPERTY()
-	EFaerieItemInstancingMutability Flags;
+	EFaerieItemInstancingMutability Flags = EFaerieItemInstancingMutability::Automatic;
 
 	// Children must implement this to allow safe casting.
 	virtual const UScriptStruct* GetScriptStruct() const { return FFaerieItemInstancingContext::StaticStruct(); }
