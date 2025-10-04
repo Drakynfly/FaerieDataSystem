@@ -101,9 +101,6 @@ UFaerieItem* UFaerieItem::CreateNewInstance(const TConstArrayView<UFaerieItemTok
 	EnumAddFlags(Instance->MutabilityFlags, ToFlags(Mutability) | EFaerieItemMutabilityFlags::InstanceMutability);
 	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, MutabilityFlags, Instance);
 
-	// Initialize token mutability.
-	Instance->CacheTokenMutability();
-
 	for (auto&& Token : Tokens)
 	{
 		// Mutable tokens have to be owned by us.
@@ -124,6 +121,9 @@ UFaerieItem* UFaerieItem::CreateNewInstance(const TConstArrayView<UFaerieItemTok
 		Instance->Tokens.Add(Token);
 	}
 	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Tokens, Instance);
+
+	// Initialize token mutability.
+	Instance->CacheTokenMutability();
 
 	Instance->LastModified = FDateTime::UtcNow();
 	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, LastModified, Instance);
@@ -171,9 +171,6 @@ UFaerieItem* UFaerieItem::CreateDuplicate(const EFaerieItemInstancingMutability 
 	EnumAddFlags(Duplicate->MutabilityFlags, ToFlags(Mutability) | EFaerieItemMutabilityFlags::InstanceMutability);
 	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, MutabilityFlags, Duplicate);
 
-	// Initialize token mutability.
-	Duplicate->CacheTokenMutability();
-
 	// Add our tokens to the new object.
 	Duplicate->Tokens.Reserve(Tokens.Num());
 	for (const TObjectPtr<UFaerieItemToken>& Token : Tokens)
@@ -189,6 +186,9 @@ UFaerieItem* UFaerieItem::CreateDuplicate(const EFaerieItemInstancingMutability 
 			Duplicate->Tokens.Add(ConstCast(Token));
 		}
 	}
+
+	// Initialize token mutability.
+	Duplicate->CacheTokenMutability();
 
 	Duplicate->LastModified = FDateTime::UtcNow();
 

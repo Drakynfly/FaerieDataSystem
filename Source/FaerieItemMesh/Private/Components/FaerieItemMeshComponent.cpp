@@ -6,8 +6,8 @@
 #include "FaerieMeshStructs.h"
 #include "FaerieMeshSubsystem.h"
 #include "Components/DynamicMeshComponent.h"
+#include "ConversionUtils/SceneComponentToDynamicMesh.h"
 #include "GeometryScript/MeshQueryFunctions.h"
-#include "GeometryScript/SceneUtilityFunctions.h"
 #include "Libraries/FaerieMeshStructsLibrary.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
@@ -51,16 +51,21 @@ void UFaerieItemMeshComponent::UpdateCachedBounds()
 	// Make sure skeletal mesh has its animation initialized.
 	Cast<USkeletalMeshComponent>(MeshComponent)->RefreshBoneTransforms();
 
-	// Convert skeletal mesh component to dynamic (so we copy its pose).
-	UDynamicMesh* DynamicMesh = NewObject<UDynamicMesh>();
-	FGeometryScriptCopyMeshFromComponentOptions Options;
-	Options.RequestedLOD.LODType = EGeometryScriptLODType::RenderData;
+	UE::Conversion::FToMeshOptions ToMeshOptions;
+	ToMeshOptions.bUseClosestLOD = false;
+	ToMeshOptions.LODType = UE::Conversion::EMeshLODType::RenderData;
 	constexpr bool bTransformToWorld = false;
+	UE::Geometry::FDynamicMesh3 NewMesh;
 	FTransform LocalToWorld;
-	EGeometryScriptOutcomePins Outcome;
-	UGeometryScriptLibrary_SceneUtilityFunctions::CopyMeshFromComponent(MeshComponent, DynamicMesh, Options, bTransformToWorld, LocalToWorld, Outcome);
-
-	CachedBounds = UGeometryScriptLibrary_MeshQueryFunctions::GetMeshBoundingBox(DynamicMesh);
+	FText ErrorMessage;
+	if (UE::Conversion::SceneComponentToDynamicMesh(MeshComponent, ToMeshOptions, bTransformToWorld, NewMesh, LocalToWorld, ErrorMessage))
+	{
+		CachedBounds = static_cast<FBox>(NewMesh.GetBounds(true));
+	}
+	else
+	{
+		CachedBounds.Reset();
+	}
 }
 
 void UFaerieItemMeshComponent::LoadMeshFromToken(const bool Async)

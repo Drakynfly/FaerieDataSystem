@@ -22,7 +22,10 @@ AFaerieItemOwningActorBase::AFaerieItemOwningActorBase()
 #if WITH_EDITOR
 void AFaerieItemOwningActorBase::InitStackFromConfig(const bool RegenerateDisplay)
 {
-	ItemStack->TakeItemFromSlot(Faerie::ItemData::UnlimitedStack);
+	if (ItemStack->IsFilled())
+	{
+		ItemStack->TakeItemFromSlot(Faerie::ItemData::UnlimitedStack);
+	}
 
 	if (StackCopies > 0 &&
 		IsValid(ItemSourceAsset.GetObject()))
@@ -147,7 +150,10 @@ bool AFaerieItemOwningActorBase::Possess(const FFaerieItemStack Stack)
 
 void AFaerieItemOwningActorBase::SetOwnedStack(const FFaerieItemStack& Stack)
 {
-	ItemStack->TakeItemFromSlot(Faerie::ItemData::UnlimitedStack);
+	if (ItemStack->IsFilled())
+	{
+		ItemStack->TakeItemFromSlot(Faerie::ItemData::UnlimitedStack);
+	}
 	ItemStack->Possess(Stack);
 }
 

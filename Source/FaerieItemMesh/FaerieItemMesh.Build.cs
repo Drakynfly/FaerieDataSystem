@@ -29,7 +29,8 @@ public class FaerieItemMesh : ModuleRules
                 "CoreUObject",
                 "Engine",
                 "NetCore",
-                "SkeletalMerging"
+                "SkeletalMerging",
+                "ModelingComponents"
             });
 
         PrivateDependencyModuleNames.AddRange(
