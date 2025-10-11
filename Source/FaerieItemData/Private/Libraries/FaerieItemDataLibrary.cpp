@@ -7,6 +7,7 @@
 #include "FaerieItemStackView.h"
 #include "FaerieItemToken.h"
 #include "FaerieItemTokenFilter.h"
+#include "FaerieItemTokenFilterTypes.h"
 #include "FlakesJsonSerializer.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemDataLibrary)
@@ -83,7 +84,7 @@ void UFaerieItemDataLibrary::FindTokensByClass(const UFaerieItem* Item, const TS
 {
 	using namespace Faerie::Token;
 	if (!IsValid(Item)) return;
-	FoundTokens = FTokenFilter(Item).ByClass(Class).BlueprintOnlyAccess();
+	FoundTokens = Filter(Item).ByClass(Class).BlueprintOnlyAccess();
 }
 
 TArray<UFaerieItemToken*> UFaerieItemDataLibrary::FindTokensByTag(const UFaerieItem* Item, const FGameplayTag& Tag,
@@ -91,7 +92,7 @@ TArray<UFaerieItemToken*> UFaerieItemDataLibrary::FindTokensByTag(const UFaerieI
 {
 	using namespace Faerie::Token;
 	if (!IsValid(Item)) return {};
-	return FTokenFilter(Item).By<FTagFilter>(Tag, Exact).BlueprintOnlyAccess();
+	return Filter(Item).By<FTagFilter>(Tag, Exact).BlueprintOnlyAccess();
 }
 
 TArray<UFaerieItemToken*> UFaerieItemDataLibrary::FindTokensByTags(const UFaerieItem* Item, const FGameplayTagContainer& Tags,
@@ -99,14 +100,14 @@ TArray<UFaerieItemToken*> UFaerieItemDataLibrary::FindTokensByTags(const UFaerie
 {
 	using namespace Faerie::Token;
 	if (!IsValid(Item)) return {};
-	return FTokenFilter(Item).By<FTagsFilter>(Tags, All, Exact).BlueprintOnlyAccess();
+	return Filter(Item).By<FTagsFilter>(Tags, All, Exact).BlueprintOnlyAccess();
 }
 
 TArray<UFaerieItemToken*> UFaerieItemDataLibrary::FindTokensByTagQuery(const UFaerieItem* Item, const FGameplayTagQuery& Query)
 {
 	using namespace Faerie::Token;
 	if (!IsValid(Item)) return {};
-	return FTokenFilter(Item).By<FTagQueryFilter>(Query).BlueprintOnlyAccess();
+	return Filter(Item).By<FTagQueryFilter>(Query).BlueprintOnlyAccess();
 }
 
 FFaerieItemStackView UFaerieItemDataLibrary::StackToView(const FFaerieItemStack& Stack)

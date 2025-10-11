@@ -267,7 +267,7 @@ bool UFaerieEquipmentManager::RemoveSlot(UFaerieEquipmentSlot* Slot)
 	return false;
 }
 
-UFaerieEquipmentSlot* UFaerieEquipmentManager::FindSlot(const FFaerieSlotTag SlotID, const bool Recursive) const
+const UFaerieEquipmentSlot* UFaerieEquipmentManager::FindSlot(const FFaerieSlotTag SlotID, const bool Recursive) const
 {
 	for (auto&& Slot : Slots)
 	{
@@ -291,6 +291,11 @@ UFaerieEquipmentSlot* UFaerieEquipmentManager::FindSlot(const FFaerieSlotTag Slo
 	}
 
 	return nullptr;
+}
+
+UFaerieEquipmentSlot* UFaerieEquipmentManager::FindSlot(const FFaerieSlotTag SlotID, const bool Recursive)
+{
+	return const_cast<UFaerieEquipmentSlot*>(const_cast<const UFaerieEquipmentManager*>(this)->FindSlot(SlotID, Recursive));
 }
 
 bool UFaerieEquipmentManager::AddExtension(UItemContainerExtensionBase* Extension)
@@ -374,68 +379,6 @@ bool UFaerieEquipmentManager::RemoveExtensionFromSlot(const FFaerieSlotTag SlotI
 	Slot->RemoveExtension(Extension);
 
 	return true;
-}
-
-void UFaerieEquipmentManager::ForEachContainer(Faerie::TBreakableLoop<UFaerieItemContainerBase*> Iter, const bool Recursive)
-{
-	if (Recursive)
-	{
-		for (auto&& Slot : Slots)
-		{
-			if (Iter(Slot) == Faerie::Stop)
-			{
-				return;
-			}
-
-			if (!Slot->IsFilled()) continue;
-
-			if (UFaerieItemContainerToken::ForEachContainer(Slot->GetItemObject()->MutateCast(), Iter, true) == Faerie::Stop)
-			{
-				return;
-			}
-		}
-	}
-	else
-	{
-		for (auto&& Element : Slots)
-		{
-			if (Iter(Element) == Faerie::Stop)
-			{
-				return;
-			}
-		}
-	}
-}
-
-void UFaerieEquipmentManager::ForEachSlot(Faerie::TBreakableLoop<UFaerieEquipmentSlot*> Iter, const bool Recursive)
-{
-	if (Recursive)
-	{
-		for (auto&& Slot : Slots)
-		{
-			if (Iter(Slot) == Faerie::Stop)
-			{
-				return;
-			}
-
-			if (!Slot->IsFilled()) continue;
-
-			if (UFaerieItemContainerToken::ForEachContainer(Slot->GetItemObject()->MutateCast(), Iter, true) == Faerie::Stop)
-			{
-				return;
-			}
-		}
-	}
-	else
-	{
-		for (auto&& Element : Slots)
-		{
-			if (Iter(Element) == Faerie::Stop)
-			{
-				return;
-			}
-		}
-	}
 }
 
 TArray<FFaerieItemContainerPath> UFaerieEquipmentManager::GetAllContainerPaths() const

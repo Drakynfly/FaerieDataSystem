@@ -6,6 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
+#include "TypeCastingUtils.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ContentHashExtension)
 
@@ -59,7 +60,7 @@ void UContentHashExtension::RecalcContainerHash(const UFaerieItemContainerBase* 
 void UContentHashExtension::RecalcLocalChecksum()
 {
 	TArray<uint32> Hashes;
-	PerContainerHash.GenerateValueArray(*reinterpret_cast<TArray<FFaerieHash>*>(&Hashes));
+	PerContainerHash.GenerateValueArray(*Type::Cast<TArray<FFaerieHash>*>(&Hashes));
 
 	LocalChecksum = Faerie::Hash::CombineHashes(Hashes);
 

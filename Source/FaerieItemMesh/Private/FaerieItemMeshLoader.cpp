@@ -183,13 +183,15 @@ namespace Faerie
 			return false;
 		}
 
-		if (!IsValid(Proxy->GetItemObject()))
+		auto Item = Proxy->GetItemObject();
+
+		if (!IsValid(Item))
 		{
 			UE_LOG(LogFaerieItemMesh, Error, TEXT("%hs: Invalid item object!"), __FUNCTION__)
 			return false;
 		}
 
-		if (auto&& MeshToken = Proxy->GetItemObject()->GetToken<UFaerieMeshTokenBase>())
+		if (auto&& MeshToken = Item->GetToken<UFaerieMeshTokenBase>())
 		{
 			return LoadMeshFromTokenSynchronous(MeshToken, Purpose, Mesh);
 		}
@@ -395,13 +397,15 @@ void UFaerieItemMeshLoader::LoadMeshFromProxyAsynchronous(const FFaerieItemProxy
 		(void)Callback.ExecuteIfBound(false, {});
 	}
 
-	if (!IsValid(Proxy->GetItemObject()))
+	auto Item = Proxy->GetItemObject();
+
+	if (!IsValid(Item))
 	{
 		UE_LOG(LogFaerieItemMesh, Error, TEXT("%hs: Invalid item object!"), __FUNCTION__)
 		(void)Callback.ExecuteIfBound(false, {});
 	}
 
-	if (auto&& MeshToken = Proxy->GetItemObject()->GetToken<UFaerieMeshTokenBase>())
+	if (auto&& MeshToken = Item->GetToken<UFaerieMeshTokenBase>())
 	{
 		return LoadMeshFromTokenAsynchronous(MeshToken, Purpose, MoveTemp(Callback));
 	}

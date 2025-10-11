@@ -4,7 +4,7 @@
 #include "FaerieItemDataFilter.h"
 #include "FaerieItemStackView.h"
 
-namespace Faerie
+namespace Faerie::Container
 {
 	bool FSingleKey::Passes(const FEntryKey Key)
 	{

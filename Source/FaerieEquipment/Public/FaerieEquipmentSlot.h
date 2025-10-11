@@ -43,7 +43,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentSlot")
 	FFaerieAssetInfo GetSlotInfo() const;
 
-	UFaerieEquipmentSlot* FindSlot(FFaerieSlotTag SlotTag, bool bRecursive) const;
+	const UFaerieEquipmentSlot* FindSlot(FFaerieSlotTag SlotTag, bool bRecursive) const;
 
 protected:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Replicated, Category = "Config", meta = (ExposeOnSpawn = true))

@@ -8,8 +8,29 @@
 
 class UFaerieItemContainerBase;
 
-namespace Faerie
+namespace Faerie::Container
 {
+	using FSnapshotPredicate = TDelegate<bool(const FFaerieItemSnapshot&)>;
+	using FSnapshotComparator = TDelegate<bool(const FFaerieItemSnapshot&, const FFaerieItemSnapshot&)>;
+
+	namespace Private
+	{
+		class FContainerReader
+		{
+		protected:
+			static UFaerieItem* GetItem(const UFaerieItemContainerBase* Container, FEntryKey Key);
+			static UFaerieItem* GetItem(const UFaerieItemContainerBase* Container, FFaerieAddress Address);
+			static const UFaerieItem* ConstGetItem(const UFaerieItemContainerBase* Container, FEntryKey Key);
+			static const UFaerieItem* ConstGetItem(const UFaerieItemContainerBase* Container, FFaerieAddress Address);
+			static FFaerieItemSnapshot MakeSnapshot(const UFaerieItemContainerBase* Container, FEntryKey Key);
+			static FFaerieItemSnapshot MakeSnapshot(const UFaerieItemContainerBase* Container, FFaerieAddress Address);
+
+			// #@todo temporary accessors while implementing filters
+			static FEntryKey GetAddressEntry(const UFaerieItemContainerBase* Container, FFaerieAddress Address);
+			static TArray<FFaerieAddress> GetEntryAddresses(const UFaerieItemContainerBase* Container, FEntryKey Key);
+		};
+	}
+
 	enum class EFilterFlags : uint32
 	{
 		None = 0,
@@ -28,11 +49,20 @@ namespace Faerie
 
 		// This filter can be invoked statically
 		Static = 1 << 4,
+
+		// This filter stores its results in internal memory
+		InMemory = 1 << 5,
 	};
 	ENUM_CLASS_FLAGS(EFilterFlags)
 
+	enum ESortDirection
+	{
+		Forward,
+		Backward,
+	};
+
 	template <typename T>
-	struct TFilterProperties
+	struct TFilterTraits
 	{
 		static constexpr EFilterFlags GrantFlags = EFilterFlags::None;
 		static constexpr EFilterFlags RemoveFlags = EFilterFlags::None;
@@ -41,13 +71,19 @@ namespace Faerie
 	template <typename T, EFilterFlags Flags>
 	consteval EFilterFlags CombineFilterFlags()
 	{
-		return (Flags & ~TFilterProperties<T>::RemoveFlags) | TFilterProperties<T>::GrantFlags;
+		return (Flags & ~TFilterTraits<T>::RemoveFlags) | TFilterTraits<T>::GrantFlags;
 	}
 
 	struct FAERIEINVENTORY_API IEntryKeyFilter
 	{
 		virtual ~IEntryKeyFilter() = default;
 		virtual bool Passes(FEntryKey Key) = 0;
+	};
+
+	struct FAERIEINVENTORY_API IAddressFilter
+	{
+		virtual ~IAddressFilter() = default;
+		virtual bool Passes(FFaerieAddress Address) = 0;
 	};
 
 	struct FAERIEINVENTORY_API IItemDataFilter
@@ -62,37 +98,56 @@ namespace Faerie
 		virtual bool Passes(const FFaerieItemSnapshot& Snapshot) = 0;
 	};
 
+	class IFilter;
+
+	struct FAERIEINVENTORY_API ICustomFilter
+	{
+		virtual ~ICustomFilter() = default;
+		virtual bool Passes(IFilter& Filter) = 0;
+	};
+
 	template <typename T>
 	concept CFilterType =
 		TIsDerivedFrom<typename TRemoveReference<T>::Type, IEntryKeyFilter>::Value ||
 		TIsDerivedFrom<typename TRemoveReference<T>::Type, IItemDataFilter>::Value ||
-		TIsDerivedFrom<typename TRemoveReference<T>::Type, ISnapshotFilter>::Value;
+		TIsDerivedFrom<typename TRemoveReference<T>::Type, IAddressFilter>::Value ||
+		TIsDerivedFrom<typename TRemoveReference<T>::Type, ISnapshotFilter>::Value ||
+		TIsDerivedFrom<typename TRemoveReference<T>::Type, ICustomFilter>::Value;
 
-	class IContainerFilter
+	template <typename T>
+	concept CAddressFilter =
+		TIsDerivedFrom<typename TRemoveReference<T>::Type, IAddressFilter>::Value;
+
+	class IFilter
 	{
 	public:
-		virtual ~IContainerFilter() = default;
+		virtual ~IFilter() = default;
 
 		virtual void Run_Impl(IItemDataFilter&& Filter) = 0;
 		virtual void Run_Impl(IEntryKeyFilter&& Filter) = 0;
+		virtual void Run_Impl(IAddressFilter&& Filter) = 0;
 		virtual void Run_Impl(ISnapshotFilter&& Filter) = 0;
+		void Run_Impl(ICustomFilter&& Filter)
+		{
+			Filter.Passes(*this);
+		}
 		virtual void Invert_Impl() = 0;
 
 		virtual void Reset() = 0;
 		virtual int32 Num() const = 0;
 
-		virtual FDefaultKeyIterator KeyRange() const = 0;
-		virtual FDefaultAddressIterator AddressRange() const = 0;
-		virtual FDefaultItemIterator ItemRange() const = 0;
-		virtual FDefaultConstItemIterator ConstItemRange() const = 0;
+		virtual FVirtualKeyIterator KeyRange() const = 0;
+		virtual FVirtualAddressIterator AddressRange() const = 0;
+		virtual FVirtualItemIterator ItemRange() const = 0;
+		virtual FVirtualConstItemIterator ConstItemRange() const = 0;
 	};
 
-	class FDefaultFilterStorage
+	class FVirtualFilter
 	{
-		template <EFilterFlags Flags, typename ImplType> friend class TContainerFilter;
+		template <EFilterFlags Flags, typename ImplType> friend class TFilter;
 
 	public:
-		FDefaultFilterStorage(TUniquePtr<IContainerFilter>&& FilterPtr) : FilterPtr(MoveTemp(FilterPtr)) {}
+		FVirtualFilter(TUniquePtr<IFilter>&& FilterPtr) : FilterPtr(MoveTemp(FilterPtr)) {}
 
 	private:
 		template <CFilterType T>
@@ -135,39 +190,416 @@ namespace Faerie
 			}
 		}
 
-		TUniquePtr<IContainerFilter> FilterPtr;
+		TUniquePtr<IFilter> FilterPtr;
+	};
+
+	struct FIteratorSwitchThunk_Keys : Private::FContainerReader
+	{
+		FIteratorSwitchThunk_Keys(const UFaerieItemContainerBase* Container, const TArray<FEntryKey>& Array)
+		  : Container(Container), Iterator(Array.CreateConstIterator())
+		{
+			Addresses = GetEntryAddresses(Container, *Iterator);
+			operator++();
+		}
+
+		FFaerieAddress operator*() const
+		{
+			return Address;
+		}
+
+		operator bool() const { return Address.IsValid(); }
+
+		void operator++()
+		{
+			AddressIndex++;
+			if (Addresses.IsValidIndex(AddressIndex))
+			{
+				Address = Addresses[AddressIndex];
+			}
+			else
+			{
+				++Iterator;
+				if (static_cast<bool>(Iterator))
+				{
+					Addresses = GetEntryAddresses(Container, *Iterator);
+					AddressIndex = INDEX_NONE;
+					operator++();
+					return;
+				}
+				else
+				{
+					Address = FFaerieAddress();
+				}
+			}
+		}
+
+		[[nodiscard]] FORCEINLINE bool operator!=(EIteratorType) const
+		{
+			// As long as we are valid, then we have not ended.
+			return static_cast<bool>(*this);
+		}
+
+		const UFaerieItemContainerBase* Container;
+		TArray<FEntryKey>::TConstIterator Iterator;
+		TArray<FFaerieAddress> Addresses;
+		int32 AddressIndex = INDEX_NONE;
+		FFaerieAddress Address;
+	};
+
+	struct FIteratorSwitchThunk_Address : Private::FContainerReader
+	{
+		FIteratorSwitchThunk_Address(const UFaerieItemContainerBase* Container, const TArray<FFaerieAddress>& Array)
+		  : Container(Container), Iterator(Array.CreateConstIterator())
+		{
+			operator++();
+		}
+
+		FEntryKey operator*() const
+		{
+			return Key;
+		}
+
+		operator bool() const { return Key != FEntryKey::InvalidKey; }
+
+		void operator++()
+		{
+			const FEntryKey LastKey = Key;
+			do
+			{
+				++Iterator;
+				Key = GetAddressEntry(Container, *Iterator);
+			}
+			while (Key == LastKey && static_cast<bool>(Iterator));
+		}
+
+		[[nodiscard]] FORCEINLINE bool operator!=(EIteratorType) const
+		{
+			// As long as we are valid, then we have not ended.
+			return static_cast<bool>(*this);
+		}
+
+		const UFaerieItemContainerBase* Container;
+		TArray<FFaerieAddress>::TConstIterator Iterator;
+		FEntryKey Key;
+	};
+
+	template <bool bAddress>
+	class TMemoryFilter : Private::FContainerReader
+	{
+		template <EFilterFlags Flags, typename ImplType> friend class TFilter;
+		using FFilterElement = std::conditional_t<bAddress, FFaerieAddress, FEntryKey>;
+		using FFilterArray = TArray<FFilterElement>;
+
+	public:
+		TMemoryFilter(TArray<FFilterElement>&& FilterArray, const UFaerieItemContainerBase* Container)
+		  : FilterMemory(MoveTemp(FilterArray)),
+		  	Container(Container) {}
+
+	private:
+		template <CFilterType T>
+		void Run(T&& Filter)
+		{
+			for (auto It(FilterMemory.CreateIterator()); It; ++It)
+			{
+				if constexpr (TIsDerivedFrom<T, IEntryKeyFilter>::Value)
+				{
+					if (bAddress)
+					{
+						unimplemented()
+					}
+					else
+					{
+						// Remove elements that fail the filter.
+						if (!Filter.Passes(*It))
+						{
+							It.RemoveCurrent();
+						}
+					}
+				}
+				else if constexpr (TIsDerivedFrom<T, IAddressFilter>::Value)
+				{
+					if (bAddress)
+					{
+						// Remove elements that fail the filter.
+						if (!Filter.Passes(*It))
+						{
+							It.RemoveCurrent();
+						}
+					}
+					else
+					{
+						unimplemented()
+					}
+				}
+				else if constexpr (TIsDerivedFrom<T, IItemDataFilter>::Value)
+				{
+					// Remove elements that fail the filter.
+					if (const UFaerieItem* Item = ConstGetItem(Container, *It);
+						!Filter.Passes(Item))
+					{
+						It.RemoveCurrent();
+					}
+				}
+				else if constexpr (TIsDerivedFrom<T, ISnapshotFilter>::Value)
+				{
+					// Remove elements that fail the filter.
+					if (const FFaerieItemSnapshot Snapshot = MakeSnapshot(Container, *It);
+						!Filter.Passes(Snapshot))
+					{
+						It.RemoveCurrent();
+					}
+				}
+				else if constexpr (TIsDerivedFrom<T, ICustomFilter>::Value)
+				{
+					Filter.Passes(*this);
+				}
+				else
+				{
+					unimplemented()
+				}
+			}
+		}
+
+		// Implement the template version for compatibility, even though we cannot actually resolve this statically.
+		template <CFilterType T>
+		void RunStatic()
+		{
+			for (auto It(FilterMemory.CreateIterator()); It; ++It)
+			{
+				if constexpr (TIsDerivedFrom<T, IEntryKeyFilter>::Value)
+				{
+					if constexpr (bAddress)
+					{
+						unimplemented()
+					}
+					else
+					{
+						// Remove elements that fail the filter.
+						if (!T::StaticPasses(*It))
+						{
+							It.RemoveCurrent();
+						}
+					}
+				}
+				else if constexpr (TIsDerivedFrom<T, IAddressFilter>::Value)
+				{
+					if constexpr (bAddress)
+					{
+						// Remove elements that fail the filter.
+						if (!T::StaticPasses(*It))
+						{
+							It.RemoveCurrent();
+						}
+					}
+					else
+					{
+						unimplemented()
+					}
+				}
+				else if constexpr (TIsDerivedFrom<T, IItemDataFilter>::Value)
+				{
+					// Remove elements that fail the filter.
+					if (const UFaerieItem* Item = ConstGetItem(Container, *It);
+						!T::StaticPasses(Item))
+					{
+						It.RemoveCurrent();
+					}
+				}
+				else if constexpr (TIsDerivedFrom<T, ISnapshotFilter>::Value)
+				{
+					// Remove elements that fail the filter.
+					if (const FFaerieItemSnapshot Snapshot = MakeSnapshot(Container, *It);
+						!T::StaticPasses(Snapshot))
+					{
+						It.RemoveCurrent();
+					}
+				}
+				else if constexpr (TIsDerivedFrom<T, ICustomFilter>::Value)
+				{
+					T::StaticPasses(*this);
+				}
+				else
+				{
+					unimplemented()
+				}
+			}
+		}
+
+		void Invert();
+		void Reset();
+		int32 Num() const { return FilterMemory.Num(); }
+
+		struct FRangeSwitchThunk
+		{
+			FRangeSwitchThunk(const FFilterArray& Array, const UFaerieItemContainerBase* Container)
+			  : Array(Array), Container(Container) {}
+
+			[[nodiscard]] FORCEINLINE auto begin() const
+			{
+				if constexpr (std::is_same_v<FFilterElement, FFaerieAddress>)
+				{
+					return FIteratorSwitchThunk_Address(Container, Array);
+				}
+				else
+				{
+					return FIteratorSwitchThunk_Keys(Container, Array);
+				}
+			}
+			[[nodiscard]] FORCEINLINE EIteratorType end () const { return End; }
+
+			const FFilterArray& Array;
+			const UFaerieItemContainerBase* Container;
+		};
+
+		template <bool Const>
+		struct TItemIteratorThunk
+		{
+			TItemIteratorThunk(FFilterArray::TConstIterator&& It, const UFaerieItemContainerBase* Container)
+				: Iterator(MoveTemp(It)), Container(Container) {}
+
+			auto operator*()
+			{
+				if constexpr (Const)
+				{
+					return ConstGetItem(Container, *Iterator);
+				}
+				else
+				{
+					return GetItem(Container, *Iterator);
+				}
+			}
+
+			operator bool() const { return static_cast<bool>(Iterator); }
+
+			void operator++() { ++Iterator; }
+
+			[[nodiscard]] FORCEINLINE bool operator!=(EIteratorType) const
+			{
+				// As long as we are valid, then we have not ended.
+				return static_cast<bool>(*this);
+			}
+
+			FFilterArray::TConstIterator Iterator;
+			const UFaerieItemContainerBase* Container;
+		};
+
+		template <bool Const>
+		struct TItemRangeThunk
+		{
+			TItemRangeThunk(const FFilterArray& Array, const UFaerieItemContainerBase* Container)
+			  : Array(Array), Container(Container) {}
+
+			[[nodiscard]] FORCEINLINE TItemIteratorThunk<Const> begin() const
+			{
+				return TItemIteratorThunk(Array.CreateConstIterator(), Container);
+			}
+			[[nodiscard]] FORCEINLINE EIteratorType end () const { return End; }
+
+			const FFilterArray& Array;
+			const UFaerieItemContainerBase* Container;
+		};
+
+		template <typename ResolveType>
+		FORCEINLINE auto Range() const
+		{
+			if constexpr (std::is_same_v<ResolveType, FEntryKey>)
+			{
+				if constexpr (bAddress)
+				{
+					unimplemented();
+				}
+				else
+				{
+					return FRangeSwitchThunk(FilterMemory, Container);
+				}
+			}
+			else if constexpr (std::is_same_v<ResolveType, FFaerieAddress>)
+			{
+				if constexpr (bAddress)
+				{
+					return FilterMemory.CreateConstIterator();
+				}
+				else
+				{
+					return FRangeSwitchThunk(FilterMemory, Container);
+				}
+			}
+			else if constexpr (std::is_same_v<ResolveType, const UFaerieItem*>)
+			{
+				return TItemRangeThunk<true>(FilterMemory, Container);
+			}
+			else if constexpr (std::is_same_v<ResolveType, UFaerieItem*>)
+			{
+				return TItemRangeThunk<false>(FilterMemory, Container);
+			}
+			else
+			{
+				return;
+			}
+		}
+
+		template <ESortDirection Direction>
+		void SortBySnapshot(const FSnapshotComparator& Sort)
+		{
+			if constexpr (Direction == ESortDirection::Forward)
+			{
+				Algo::Sort(FilterMemory,
+					[Sort, this](const FFilterElement& A, const FFilterElement& B)
+					{
+						return Sort.Execute(MakeSnapshot(Container, A), MakeSnapshot(Container, B));
+					});
+			}
+			else
+			{
+				Algo::Sort(FilterMemory,
+					[Sort, this](const FFilterElement& A, const FFilterElement& B)
+					{
+						return !Sort.Execute(MakeSnapshot(Container, A), MakeSnapshot(Container, B));
+					});
+			}
+		}
+
+		FFilterArray FilterMemory;
+		const UFaerieItemContainerBase* Container;
 	};
 
 	template <EFilterFlags Flags, typename ImplType>
-	class TContainerFilter
+	class TFilter
 	{
 		template <CFilterType T> using TReturnFilterType =
 			std::conditional_t<
 				CombineFilterFlags<T, Flags>() == Flags,
-				TContainerFilter&,
-				TContainerFilter<CombineFilterFlags<T, Flags>(), ImplType>>;
+				TFilter&,
+				TFilter<CombineFilterFlags<T, Flags>(), ImplType>>;
 
 	public:
-		TContainerFilter(const ImplType& Storage)
+		TFilter(const ImplType& Storage)
 		  : Impl(Storage) {}
 
-		TContainerFilter(ImplType&& Storage)
+		TFilter(ImplType&& Storage)
 		  : Impl(MoveTemp(Storage)) {}
 
 		// Filter functions
-		TContainerFilter& Run(IItemDataFilter&& Filter)
+		TFilter& Run(IItemDataFilter&& Filter)
 		{
 			Impl.Run(MoveTemp(Filter));
 			return *this;
 		}
 
-		TContainerFilter& Run(IEntryKeyFilter&& Filter)
+		TFilter& Run(IEntryKeyFilter&& Filter)
 		{
 			Impl.Run(MoveTemp(Filter));
 			return *this;
 		}
 
-		TContainerFilter& Run(ISnapshotFilter&& Filter)
+		template <CAddressFilter FilterType UE_REQUIRES(EnumHasAnyFlags(Flags, EFilterFlags::AddressFilter))>
+		TFilter& Run(FilterType&& Filter)
+		{
+			Impl.Run(MoveTemp(Filter));
+			return *this;
+		}
+
+		TFilter& Run(ISnapshotFilter&& Filter)
 		{
 			Impl.Run(MoveTemp(Filter));
 			return *this;
@@ -185,14 +617,14 @@ namespace Faerie
 			}
 			else
 			{
-				return TContainerFilter<CombineFilterFlags<T, Flags>(), ImplType>(MoveTemp(Impl));
+				return TFilter<CombineFilterFlags<T, Flags>(), ImplType>(MoveTemp(Impl));
 			}
 		}
 
 		template <CFilterType T>
 		[[nodiscard]] TReturnFilterType<T> Run()
 		{
-			if constexpr (EnumHasAnyFlags(TFilterProperties<T>::TypeFlags, EFilterFlags::Static))
+			if constexpr (EnumHasAnyFlags(TFilterTraits<T>::TypeFlags, EFilterFlags::Static))
 			{
 				Impl.template RunStatic<T>();
 			}
@@ -208,11 +640,11 @@ namespace Faerie
 			}
 			else
 			{
-				return TContainerFilter<CombineFilterFlags<T, Flags>(), ImplType>(MoveTemp(Impl));
+				return TFilter<CombineFilterFlags<T, Flags>(), ImplType>(MoveTemp(Impl));
 			}
 		}
 
-		TContainerFilter& Invert()
+		TFilter& Invert()
 		{
 			Impl.Invert();
 			return *this;
@@ -236,7 +668,7 @@ namespace Faerie
 		{
 			TArray<ResolveType> Out;
 			Out.Reserve(Impl.Num());
-			for (ResolveType Item : Impl.template Range<ResolveType>())
+			for (const ResolveType& Item : Impl.template Range<ResolveType>())
 			{
 				Out.Add(Item);
 			}
@@ -294,16 +726,49 @@ namespace Faerie
 			}
 		}
 
+		template <
+			ESortDirection Direction = Forward
+			UE_REQUIRES(!EnumHasAnyFlags(Flags, EFilterFlags::InMemory))
+		>
+		[[nodiscard]] auto SortBySnapshot(const FSnapshotComparator& Sort)
+		{
+			auto MemoryFilter = [this]()
+			{
+				// Switchover to in-filter memory
+				if constexpr (EnumHasAnyFlags(Flags, EFilterFlags::AddressFilter))
+				{
+					return TMemoryFilter<true>(EmitAddresses(), Impl.GetContainer());
+				}
+				else
+				{
+					return TMemoryFilter<false>(EmitKeys(), Impl.GetContainer());
+				}
+			}();
+
+			// Apply sort
+			MemoryFilter.template SortBySnapshot<Direction>(Sort);
+
+			// Move into new wrapper, marked with InMemory
+			return TFilter<Flags | EFilterFlags::InMemory, TMemoryFilter<EnumHasAnyFlags(Flags, EFilterFlags::AddressFilter)>>(MoveTemp(MemoryFilter));
+		}
+
+		template <
+			ESortDirection Direction = Forward
+			UE_REQUIRES(EnumHasAnyFlags(Flags, EFilterFlags::InMemory))
+		>
+		TFilter& SortBySnapshot(const FSnapshotComparator& Sort)
+		{
+			Impl.template SortBySnapshot<Direction>(Sort);
+			return *this;
+		}
+
 	private:
 		ImplType Impl;
 	};
 
-	using FContainerKeyFilter = TContainerFilter<EFilterFlags::KeyFilter, FDefaultFilterStorage>;
-	using FContainerAddressFilter = TContainerFilter<EFilterFlags::AddressFilter, FDefaultFilterStorage>;
+	using FKeyFilter = TFilter<EFilterFlags::KeyFilter, FVirtualFilter>;
+	using FAddressFilter = TFilter<EFilterFlags::AddressFilter, FVirtualFilter>;
 
-	using FSnapshotFilter = TDelegate<bool(const FFaerieItemSnapshot&)>;
-	using FItemComparator = TDelegate<bool(const FFaerieItemSnapshot&, const FFaerieItemSnapshot&)>;
-
-	FAERIEINVENTORY_API FContainerKeyFilter KeyFilter(const UFaerieItemContainerBase* Container);
-	FAERIEINVENTORY_API FContainerAddressFilter AddressFilter(const UFaerieItemContainerBase* Container);
+	FAERIEINVENTORY_API FKeyFilter KeyFilter(const UFaerieItemContainerBase* Container);
+	FAERIEINVENTORY_API FAddressFilter AddressFilter(const UFaerieItemContainerBase* Container);
 }

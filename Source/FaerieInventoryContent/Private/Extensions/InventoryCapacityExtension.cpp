@@ -51,7 +51,7 @@ void UInventoryCapacityExtension::InitializeExtension(const UFaerieItemContainer
 {
 	if (!ensure(IsValid(Container))) return;
 
-	for (const FEntryKey Key : Faerie::KeyRange(Container))
+	for (const FEntryKey Key : Faerie::Container::KeyRange(Container))
 	{
 		UpdateCacheForEntry(Container, Key);
 	}

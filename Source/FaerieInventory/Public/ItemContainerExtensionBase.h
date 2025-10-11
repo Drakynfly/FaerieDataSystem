@@ -124,7 +124,7 @@ protected:
 	Ext->SetIdentifier();
 #endif
 
-namespace Faerie
+namespace Faerie::Extension
 {
 	// A flat iterator that looks through each extension directly referenced by a group.
 	template <bool Const>
@@ -156,19 +156,14 @@ namespace Faerie
 			return Group && Current;
 		}
 
-		[[nodiscard]] FORCEINLINE bool operator!=(const TExtensionIterator& Rhs) const
-		{
-			return Current != Rhs.Current;
-		}
-
 		[[nodiscard]] FORCEINLINE bool operator!=(EIteratorType) const
 		{
-			// As long we are valid, then we have not ended.
+			// As long as we are valid, then we have not ended.
 			return static_cast<bool>(*this);
 		}
 
-		FORCEINLINE TExtensionIterator begin() { return *this; }
-		FORCEINLINE EIteratorType end () { return End; }
+		[[nodiscard]] FORCEINLINE TExtensionIterator begin() { return *this; }
+		[[nodiscard]] FORCEINLINE EIteratorType end () const { return End; }
 
 	private:
 		GroupType* Group;
@@ -177,9 +172,9 @@ namespace Faerie
 		enum
 		{
 			Init,
-			ParentGroup,
 			Extensions,
-			DynamicExtensions
+			DynamicExtensions,
+			ParentGroup
 		} State = Init;
 	};
 
@@ -207,19 +202,14 @@ namespace Faerie
 			return static_cast<bool>(Iterator);
 		}
 
-		[[nodiscard]] FORCEINLINE bool operator!=(const TRecursiveExtensionIterator& Rhs) const
-		{
-			return Iterator != Rhs.Iterator;
-		}
-
 		[[nodiscard]] FORCEINLINE bool operator!=(EIteratorType) const
 		{
-			// As long we are valid, then we have not ended.
+			// As long as we are valid, then we have not ended.
 			return static_cast<bool>(*this);
 		}
 
-		FORCEINLINE TRecursiveExtensionIterator begin() const { return *this; }
-		FORCEINLINE EIteratorType end () const { return End; }
+		[[nodiscard]] FORCEINLINE TRecursiveExtensionIterator begin() const { return *this; }
+		[[nodiscard]] FORCEINLINE EIteratorType end () const { return End; }
 
 	private:
 		TArray<ElementType*> Extensions;
@@ -241,8 +231,8 @@ class FAERIEINVENTORY_API UItemContainerExtensionGroup final : public UItemConta
 {
 	GENERATED_BODY()
 
-	template <bool Const> friend class Faerie::TExtensionIterator;
-	template <bool Const> friend class Faerie::TRecursiveExtensionIterator;
+	template <bool Const> friend class Faerie::Extension::TExtensionIterator;
+	template <bool Const> friend class Faerie::Extension::TRecursiveExtensionIterator;
 
 public:
 	//~ UObject
@@ -290,8 +280,6 @@ public:
 
 	// Explanation: Cleanup the extensions array after a load to remove stale pointers.
 	void ValidateGroup();
-
-	void ForEachExtension(Faerie::TLoop<const UItemContainerExtensionBase*> Func) const;
 
 #if !UE_BUILD_SHIPPING
 	void PrintDebugData() const;

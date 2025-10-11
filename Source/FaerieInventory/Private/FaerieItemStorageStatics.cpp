@@ -8,6 +8,7 @@
 #include "FaerieItemContainerBase.h"
 #include "FaerieItemToken.h"
 #include "FaerieItemTokenFilter.h"
+#include "FaerieItemTokenFilterTypes.h"
 #include "ItemContainerExtensionBase.h"
 #include "GameFramework/Actor.h"
 #include "Tokens/FaerieItemStorageToken.h"
@@ -47,7 +48,7 @@ namespace Faerie
 
 			if (UFaerieItemContainerToken* SubStorage = Cast<UFaerieItemContainerToken>(Token))
 			{
-				for (const UFaerieItem* SubItem : ItemRange(SubStorage->GetItemContainer()))
+				for (const UFaerieItem* SubItem : Container::ItemRange(SubStorage->GetItemContainer()))
 				{
 #if WITH_EDITOR
 					if (RecursiveValidationTracker.Contains(SubItem))
@@ -86,7 +87,7 @@ namespace Faerie
 				Actor->RemoveReplicatedSubObject(MutableItem);
 			}
 
-			for (UFaerieItemToken* Token : Token::FTokenFilter(MutableItem).By<Token::FMutableFilter>())
+			for (UFaerieItemToken* Token : Token::Filter(MutableItem).By<Token::FMutableFilter>())
 			{
 				if (RegisteredWithActor)
 				{
@@ -103,7 +104,7 @@ namespace Faerie
 				// If the token contains nested items, release ownership recursively.
 				if (UFaerieItemContainerToken* ContainerToken = Cast<UFaerieItemContainerToken>(Token))
 				{
-					for (const UFaerieItem* ChildItem : ItemRange(ContainerToken->GetItemContainer()))
+					for (const UFaerieItem* ChildItem : Container::ItemRange(ContainerToken->GetItemContainer()))
 					{
 						ReleaseOwnership_Impl<true>(Owner, ChildItem);
 					}
@@ -186,7 +187,7 @@ namespace Faerie
 				OuterExtensions = OuterWithExtension->GetExtensionGroup();
 			}
 
-			for (UFaerieItemToken* Token : Token::FTokenFilter(MutableItem).By<Token::FMutableFilter>())
+			for (UFaerieItemToken* Token : Token::Filter(MutableItem).By<Token::FMutableFilter>())
 			{
 				if (RegisterWithActor)
 				{
@@ -206,7 +207,7 @@ namespace Faerie
 				// If the token contains nested items, take ownership recursively.
 				if (UFaerieItemContainerToken* ContainerToken = Cast<UFaerieItemContainerToken>(Token))
 				{
-					for (const UFaerieItem* ChildItem : ItemRange(ContainerToken->GetItemContainer()))
+					for (const UFaerieItem* ChildItem : Container::ItemRange(ContainerToken->GetItemContainer()))
 					{
 						TakeOwnership_Impl<true>(Owner, ChildItem);
 					}

@@ -8,7 +8,7 @@
 
 namespace Faerie::Equipment
 {
-	bool RunEquipmentQuery(const UFaerieEquipmentManager* Manager, const FFaerieEquipmentSetQuery& SetQuery, UFaerieEquipmentSlot*& PassingSlot)
+	bool RunEquipmentQuery(UFaerieEquipmentManager* Manager, const FFaerieEquipmentSetQuery& SetQuery, UFaerieEquipmentSlot*& PassingSlot)
 	{
 		for (auto&& QueryTag : SetQuery.TagSet.Tags)
 		{

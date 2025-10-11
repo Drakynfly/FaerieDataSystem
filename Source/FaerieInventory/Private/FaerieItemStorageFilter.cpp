@@ -5,7 +5,7 @@
 #include "FaerieItemContainerBase.h"
 #include "FaerieItemStorage.h"
 
-namespace Faerie
+namespace Faerie::Storage
 {
 	template <typename Pred>
 	void FilterEntriesByEntry(TBitArray<>& KeyBits, const FInventoryContent& Content, Pred&& Func)
@@ -26,7 +26,7 @@ namespace Faerie
 	{
 		for (TConstSetBitIterator<> It(KeyBits); It; ++It)
 		{
-			// Disable keys that the predicate.
+			// Disable keys that fail the predicate.
 			if (const UFaerieItem* Item = Content.GetElementAt(It.GetIndex()).GetItem();
 				!Func(Item))
 			{
@@ -35,13 +35,13 @@ namespace Faerie
 		}
 	}
 
-	FItemStorageEntryFilter::FItemStorageEntryFilter(const UFaerieItemStorage* Storage)
+	FEntryFilter::FEntryFilter(const UFaerieItemStorage* Storage)
 	  : Storage(Storage)
 	{
 		KeyBits.Init(true, Storage->GetEntryCount());
 	}
 
-	FItemStorageEntryFilter& FItemStorageEntryFilter::Run(IItemDataFilter&& Filter)
+	FEntryFilter& FEntryFilter::Run(Container::IItemDataFilter&& Filter)
 	{
 		FilterEntriesByItem(KeyBits, ReadInventoryContent(*Storage),
 			[&Filter](const UFaerieItem* Item)
@@ -51,7 +51,7 @@ namespace Faerie
 		return *this;
 	}
 
-	FItemStorageEntryFilter& FItemStorageEntryFilter::Run(IEntryKeyFilter&& Filter)
+	FEntryFilter& FEntryFilter::Run(Container::IEntryKeyFilter&& Filter)
 	{
 		FilterEntriesByEntry(KeyBits, ReadInventoryContent(*Storage),
 			[&Filter](const FEntryKey Key)
@@ -61,7 +61,7 @@ namespace Faerie
 		return *this;
 	}
 
-	FItemStorageEntryFilter& FItemStorageEntryFilter::Run(ISnapshotFilter&& Filter)
+	FEntryFilter& FEntryFilter::Run(Container::ISnapshotFilter&& Filter)
 	{
 		FilterEntriesByEntry(KeyBits, ReadInventoryContent(*Storage), [this, &Filter](const FEntryKey Key)
 			{
@@ -75,7 +75,7 @@ namespace Faerie
 		return *this;
 	}
 
-	void FItemStorageEntryFilter::Reset()
+	void FEntryFilter::Reset()
 	{
 		KeyBits.Init(true, Storage->GetEntryCount());
 	}
@@ -100,7 +100,7 @@ namespace Faerie
 		{
 			const FFaerieAddress Address = IndexToAddress(It.GetIndex(), Converter);
 
-			// Disable keys that are invalid, or fail the predicate.
+			// Disable keys that are invalid, or fail the filter.
 			if (!Func(Address))
 			{
 				AddressBits.AccessCorrespondingBit(It) = false;
@@ -108,7 +108,7 @@ namespace Faerie
 		}
 	}
 
-	FItemStorageAddressFilter::FItemStorageAddressFilter(const UFaerieItemStorage* Storage)
+	FAddressFilter::FAddressFilter(const UFaerieItemStorage* Storage)
 	  : Storage(Storage)
 	{
 		const int32 StackCount = Storage->GetStackCount();
@@ -122,7 +122,7 @@ namespace Faerie
 		}
 	}
 
-	FItemStorageAddressFilter& FItemStorageAddressFilter::Run(IItemDataFilter& Filter)
+	FAddressFilter& FAddressFilter::Run(IItemDataFilter& Filter)
 	{
 		// @todo ItemDataFilters only need to iterator once per item, not per each stack
 		FilterAddressesByAddress(AddressBits,
@@ -133,7 +133,7 @@ namespace Faerie
 		return *this;
 	}
 
-	FItemStorageAddressFilter& FItemStorageAddressFilter::Run(IEntryKeyFilter& Filter)
+	FAddressFilter& FAddressFilter::Run(IEntryKeyFilter& Filter)
 	{
 		const TArray<FStackKey> Stacks = Storage->BreakEntryIntoKeys(Key);
 
@@ -147,12 +147,12 @@ namespace Faerie
 		return *this;
 	}
 
-	void FItemStorageAddressFilter::Reset()
+	void FAddressFilter::Reset()
 	{
 		AddressBits.Init(true, Storage->GetStackCount());
 	}
 
-	FStorageAddressMask FItemStorageAddressFilter::AddressRange() const
+	FStorageAddressMask FAddressFilter::AddressRange() const
 	{
 		if (AddressBits.CountSetBits() == 0)
 		{
@@ -162,7 +162,7 @@ namespace Faerie
 		return FStorageAddressMask(FStorageIterator_MaskedAddresses(Storage, AddressBits));
 	}
 
-	FStorageItemMask FItemStorageAddressFilter::ItemRange() const
+	FStorageItemMask FAddressFilter::ItemRange() const
 	{
 		if (AddressBits.CountSetBits() == 0)
 		{
@@ -172,7 +172,7 @@ namespace Faerie
 		return FStorageItemMask(FStorageIterator_MaskedAddresses(Storage, AddressBits));
 	}
 
-	FStorageConstItemMask FItemStorageAddressFilter::ConstItemRange() const
+	FStorageConstItemMask FAddressFilter::ConstItemRange() const
 	{
 		if (AddressBits.CountSetBits() == 0)
 		{
@@ -182,7 +182,7 @@ namespace Faerie
 		return FStorageConstItemMask(FStorageIterator_MaskedAddresses(Storage, AddressBits));
 	}
 
-	FItemStorageAddressFilter::FStorageSingleAddressIterator FItemStorageAddressFilter::AddressRange(const FEntryKey Key) const
+	FAddressFilter::FStorageSingleAddressIterator FAddressFilter::AddressRange(const FEntryKey Key) const
 	{
 		const int32 Index = Storage->FindIndexOfKey(Key);
 		if (!AddressBits[Index])
@@ -194,12 +194,12 @@ namespace Faerie
 		return FStorageSingleAddressIterator(FStorageIterator_SingleEntry(Storage, Index));
 	}
 
-	TArray<FEntryKey> FItemStorageAddressFilter::EmitKeys() const
+	TArray<FEntryKey> FAddressFilter::EmitKeys() const
 	{
 
 	}
 
-	TArray<FFaerieAddress> FItemStorageAddressFilter::EmitAddresses() const
+	TArray<FFaerieAddress> FAddressFilter::EmitAddresses() const
 	{
 		TArray<FFaerieAddress> Out;
 		Out.Reserve(Num());
@@ -210,7 +210,7 @@ namespace Faerie
 		return Out;
 	}
 
-	TArray<FFaerieAddress> FItemStorageAddressFilter::EmitAddresses(const FEntryKey Key) const
+	TArray<FFaerieAddress> FAddressFilter::EmitAddresses(const FEntryKey Key) const
 	{
 		TArray<FFaerieAddress> Out;
 		for (const FFaerieAddress Address : AddressRange(Key))
@@ -220,7 +220,7 @@ namespace Faerie
 		return Out;
 	}
 
-	TArray<const UFaerieItem*> FItemStorageAddressFilter::EmitItems() const
+	TArray<const UFaerieItem*> FAddressFilter::EmitItems() const
 	{
 		TArray<const UFaerieItem*> Out;
 		for (const UFaerieItem* Item : ItemRange())

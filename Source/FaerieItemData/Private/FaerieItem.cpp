@@ -5,6 +5,7 @@
 #include "AssetLoadFlagFixer.h"
 #include "FaerieItemDataLog.h"
 #include "FaerieItemTokenFilter.h"
+#include "FaerieItemTokenFilterTypes.h"
 #include "Algo/Copy.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
@@ -287,8 +288,8 @@ bool UFaerieItem::CompareWith(const UFaerieItem* Other, const EFaerieItemCompari
 	if (EnumHasAnyFlags(Flags, EFaerieItemComparisonFlags::Tokens_ComparePrimaryIdentifiers))
 	{
 		using namespace Faerie::Token;
-		return FTokenFilter(this).By<FTagFilter>(Tags::PrimaryIdentifierToken)
-			.CompareTokens(FTokenFilter(Other).By<FTagFilter>(Tags::PrimaryIdentifierToken));
+		return Filter(this).By<FTagFilter>(Tags::PrimaryIdentifierToken)
+			.CompareTokens(Filter(Other).By<FTagFilter>(Tags::PrimaryIdentifierToken));
 	}
 
 	// This already indicates they are not equal.

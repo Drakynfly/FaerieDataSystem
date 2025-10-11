@@ -13,7 +13,12 @@ FFaerieItemEditHandle::FFaerieItemEditHandle(const UFaerieItem* InItem)
 
 FFaerieItemEditHandle::FFaerieItemEditHandle(const IFaerieItemDataProxy* InProxy)
 {
-	Item = InProxy->GetItemObject()->MutateCast();
+	const UFaerieItem* ItemObject = InProxy->GetItemObject();
+	if (!::IsValid(ItemObject))
+	{
+		return;
+	}
+	Item = ItemObject->MutateCast();
 }
 
 bool FFaerieItemEditHandle::IsValid() const

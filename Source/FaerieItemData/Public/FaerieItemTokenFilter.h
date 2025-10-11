@@ -3,20 +3,14 @@
 #pragma once
 
 #include "FaerieItemDataConcepts.h"
-#include "GameplayTagContainer.h"
 #include "LoopUtils.h"
 
-struct FGameplayTag;
-struct FGameplayTagContainer;
-struct FGameplayTagQuery;
 class UFaerieItem;
 class UFaerieItemDataLibrary;
 class UFaerieItemToken;
 
 namespace Faerie::Token
 {
-	class ITokenFilter;
-
 	namespace Private
 	{
 		class FAERIEITEMDATA_API FIteratorAccess
@@ -30,26 +24,28 @@ namespace Faerie::Token
 		};
 	}
 
+	class IFilter;
+
 	template <CItemToken FilterClass, bool Const>
-	class TTokenIterator_Masked : Private::FIteratorAccess
+	class TIterator_Masked : Private::FIteratorAccess
 	{
-		friend ITokenFilter;
+		friend IFilter;
 
 		using ElementType = std::conditional_t<Const, const FilterClass, FilterClass>;
 
 	public:
-		TTokenIterator_Masked(const UFaerieItem* Item, const TBitArray<>& TokenBits)
+		TIterator_Masked(const UFaerieItem* Item, const TBitArray<>& TokenBits)
 		  : Item(Item), TokenBits(TokenBits), Iterator(this->TokenBits)
 		{
 			AddWriteLock(Item);
 		}
 
-		~TTokenIterator_Masked()
+		~TIterator_Masked()
 		{
 			RemoveWriteLock(Item);
 		}
 
-		FORCEINLINE ElementType* operator*() const
+		[[nodiscard]] FORCEINLINE ElementType* operator*() const
 		{
 			if constexpr (Const)
 			{
@@ -61,7 +57,7 @@ namespace Faerie::Token
 			}
 		}
 
-		TTokenIterator_Masked& operator++()
+		TIterator_Masked& operator++()
 		{
 			++Iterator;
 			return *this;
@@ -74,7 +70,7 @@ namespace Faerie::Token
 
 		[[nodiscard]] FORCEINLINE bool operator!=(EIteratorType) const
 		{
-			// As long we are valid, then we have not ended.
+			// As long as we are valid, then we have not ended.
 			return static_cast<bool>(*this);
 		}
 
@@ -109,7 +105,7 @@ namespace Faerie::Token
 	ENUM_CLASS_FLAGS(EFilterFlags)
 
 	template <typename T>
-	struct TFilterProperties
+	struct TFilterTraits
 	{
 		static constexpr EFilterFlags GrantFlags = EFilterFlags::None;
 		static constexpr EFilterFlags RemoveFlags = EFilterFlags::None;
@@ -118,101 +114,37 @@ namespace Faerie::Token
 	template <typename T, EFilterFlags Flags>
 	consteval EFilterFlags CombineFilterFlags()
 	{
-		return (Flags & ~TFilterProperties<T>::RemoveFlags) | TFilterProperties<T>::GrantFlags;
+		return (Flags & ~TFilterTraits<T>::RemoveFlags) | TFilterTraits<T>::GrantFlags;
 	}
 
-	struct FAERIEITEMDATA_API FMutableFilter final : ITokenFilterType
-	{
-		virtual bool Passes(const UFaerieItemToken* Token) override { return StaticPasses(Token); }
-		static bool StaticPasses(const UFaerieItemToken* Token);
-	};
-
-	template <>
-	struct TFilterProperties<FMutableFilter>
-	{
-		static constexpr EFilterFlags TypeFlags = EFilterFlags::Static;
-		static constexpr EFilterFlags GrantFlags = EFilterFlags::MutableOnly;
-		static constexpr EFilterFlags RemoveFlags = EFilterFlags::ImmutableOnly;
-	};
-
-	struct FAERIEITEMDATA_API FImmutableFilter final : ITokenFilterType
-	{
-		virtual bool Passes(const UFaerieItemToken* Token) override { return StaticPasses(Token); }
-		static bool StaticPasses(const UFaerieItemToken* Token);
-	};
-
-	template <>
-	struct TFilterProperties<FImmutableFilter>
-	{
-		static constexpr EFilterFlags FilterFlags = EFilterFlags::Static;
-		static constexpr EFilterFlags GrantFlags = EFilterFlags::ImmutableOnly;
-		static constexpr EFilterFlags RemoveFlags = EFilterFlags::MutableOnly;
-	};
-
-	struct FAERIEITEMDATA_API FTagFilter final : ITokenFilterType
-	{
-		FTagFilter(const FGameplayTag& Tag, const bool Exact = false)
-		  : Tag(Tag), Exact(Exact) {}
-
-		virtual bool Passes(const UFaerieItemToken* Token) override;
-
-	protected:
-		const FGameplayTag Tag;
-		const bool Exact;
-	};
-
-	struct FAERIEITEMDATA_API FTagsFilter final : ITokenFilterType
-	{
-		FTagsFilter(const FGameplayTagContainer& Tags, const bool All = false, const bool Exact = false)
-		  : Tags(Tags), All(All), Exact(Exact) {}
-
-		virtual bool Passes(const UFaerieItemToken* Token) override;
-
-	protected:
-		const FGameplayTagContainer Tags;
-		const bool All;
-		const bool Exact;
-	};
-
-	struct FAERIEITEMDATA_API FTagQueryFilter final : ITokenFilterType
-	{
-		FTagQueryFilter(const FGameplayTagQuery& Query)
-		  : Query(Query) {}
-
-		virtual bool Passes(const UFaerieItemToken* Token) override;
-
-	protected:
-		const FGameplayTagQuery Query;
-	};
-
-	class ITokenFilter : Private::FIteratorAccess
+	class IFilter : Private::FIteratorAccess
 	{
 		// Let this library use BlueprintOnlyAccess;
 		friend UFaerieItemDataLibrary;
 
 	public:
-		FAERIEITEMDATA_API ITokenFilter(const UFaerieItem* Item);
+		FAERIEITEMDATA_API IFilter(const UFaerieItem* Item);
 
 		// Construct with an existing bit array.
-		ITokenFilter(const UFaerieItem* Item, const TBitArray<>& TokenBits)
+		IFilter(const UFaerieItem* Item, const TBitArray<>& TokenBits)
 		  : Item(Item), TokenBits(TokenBits) {}
 
 	protected:
-		ITokenFilter& Invert_Impl()
+		IFilter& Invert_Impl()
 		{
 			TokenBits.BitwiseNOT();
 			return *this;
 		}
 
 		// Removes tokens from filter not of the given class.
-		FAERIEITEMDATA_API ITokenFilter& ByClass_Impl(const TSubclassOf<UFaerieItemToken>& Class);
+		FAERIEITEMDATA_API IFilter& ByClass_Impl(const TSubclassOf<UFaerieItemToken>& Class);
 
 		// Run a filter type by its virtual Passes implementation.
-		ITokenFilter& ByVirtual_Impl(ITokenFilterType& Type);
+		IFilter& ByVirtual_Impl(ITokenFilterType& Type);
 
 		// Run a filter type by directly calling the Passes implementation on a typed instance.
 		template <CTokenFilterType T>
-		ITokenFilter& ByTemplate_Impl(T& Type)
+		IFilter& ByTemplate_Impl(T& Type)
 		{
 			for (TConstSetBitIterator<> It(TokenBits); It; ++It)
 			{
@@ -228,7 +160,7 @@ namespace Faerie::Token
 
 		// Run a filter type by invoking the static version of its Passes Implementation
 		template <CTokenFilterType T>
-		ITokenFilter& ByStatic_Impl()
+		IFilter& ByStatic_Impl()
 		{
 			for (TConstSetBitIterator<> It(TokenBits); It; ++It)
 			{
@@ -243,7 +175,7 @@ namespace Faerie::Token
 		}
 
 	public:
-		bool CompareTokens(const ITokenFilter& OtherFilter) const;
+		bool CompareTokens(const IFilter& OtherFilter) const;
 
 		bool IsEmpty() const { return TokenBits.IsEmpty(); }
 		int32 Num() const { return TokenBits.CountSetBits(); }
@@ -252,13 +184,13 @@ namespace Faerie::Token
 		FAERIEITEMDATA_API TArray<const UFaerieItemToken*> Emit() const;
 
 		// Create an array with the filters set of tokens.
-		TArray<const UFaerieItemToken*> operator*() const { return Emit(); }
+		[[nodiscard]] TArray<const UFaerieItemToken*> operator*() const { return Emit(); }
 
-		FORCEINLINE auto begin() const { return TTokenIterator_Masked<UFaerieItemToken, true>(Item, TokenBits); }
-		FORCEINLINE EIteratorType end () const { return End; }
+		[[nodiscard]] FORCEINLINE auto begin() const { return TIterator_Masked<UFaerieItemToken, true>(Item, TokenBits); }
+		[[nodiscard]] FORCEINLINE EIteratorType end () const { return End; }
 
 	private:
-		TArray<TObjectPtr<UFaerieItemToken>> BlueprintOnlyAccess() const;
+		TArray<UFaerieItemToken*> BlueprintOnlyAccess() const;
 
 	protected:
 		const UFaerieItem* Item;
@@ -266,54 +198,62 @@ namespace Faerie::Token
 	};
 
 	template <CItemToken FilterClass, EFilterFlags Flags>
-	class TTokenFilter : public ITokenFilter
+	class TFilter : public IFilter
 	{
 	public:
 		static constexpr bool Const = !EnumHasAnyFlags(Flags, EFilterFlags::MutableOnly);
 		using ElementType = std::conditional_t<Const, const FilterClass, FilterClass>;
 
-		template <typename T> using TReturnFilterType =
+		template <typename T> using TReturnType_CombineFlags =
 			std::conditional_t<
 				CombineFilterFlags<T, Flags>() == Flags,
-				TTokenFilter&,
-				TTokenFilter<FilterClass, CombineFilterFlags<T, Flags>()>>;
+				TFilter&,
+				TFilter<FilterClass, CombineFilterFlags<T, Flags>()>>;
 
-		using ITokenFilter::ITokenFilter;
+		template <typename T> using TReturnType_FilterClass =
+			std::conditional_t<
+				std::is_same_v<FilterClass, T>,
+				TFilter&,
+				TFilter<T, Flags>>;
 
-		TTokenFilter& Invert()
+		using IFilter::IFilter;
+
+		TFilter& Invert()
 		{
 			Invert_Impl();
 			return *this;
 		}
 
-		// Removes tokens from filter not of the given class.
-		TTokenFilter& ByClass(const TSubclassOf<UFaerieItemToken>& Class)
+		// Removes tokens from filter of the given class.
+		// Only allows running the filter if it is more specific than the class we are already filtered by.
+		template<
+			CItemToken T
+			UE_REQUIRES(TIsDerivedFrom<T, FilterClass>::Value)
+		>
+		[[nodiscard]] auto ByClass()
 		{
-			ByClass_Impl(Class);
-			return *this;
+			ByClass_Impl(T::StaticClass());
+			return TFilter<T, Flags>(Item, TokenBits);
 		}
 
 		// Removes tokens from filter of the given class.
-		template<CItemToken T>
-		[[nodiscard]] auto ByClass()
+		// Only allows running the filter if it is more specific than the class we are already filtered by.
+		template<
+			CItemToken T
+			UE_REQUIRES(TIsDerivedFrom<T, FilterClass>::Value)
+		>
+		[[nodiscard]] TReturnType_FilterClass<T> ByClass(const TSubclassOf<T>& Class)
 		{
-			// Only bother running a filter if it is more specific than the class we are already filtered by.
-			if constexpr (TIsDerivedFrom<T, FilterClass>::Value)
-			{
-				ByClass_Impl(T::StaticClass());
-				return TTokenFilter<T, Flags>(Item, TokenBits);
-			}
-			else
+			ByClass_Impl(Class);
+
+			if constexpr (std::is_same_v<FilterClass, T>)
 			{
 				return *this;
 			}
-		}
-
-		template<CItemToken T>
-		[[nodiscard]] TTokenFilter<T, Flags> ByClass(const TSubclassOf<T>& Class)
-		{
-			ByClass_Impl(Class);
-			return TTokenFilter<T, Flags>(Item, TokenBits);
+			else
+			{
+				return TFilter<T, Flags>(Item, TokenBits);
+			}
 		}
 
 		ElementType* At(const int32 Index) const
@@ -330,9 +270,9 @@ namespace Faerie::Token
 
 		// Removes tokens from filter that fail the Filter Type
 		template <CTokenFilterType T>
-		[[nodiscard]] TReturnFilterType<T> By()
+		[[nodiscard]] TReturnType_CombineFlags<T> By()
 		{
-			if constexpr (EnumHasAnyFlags(TFilterProperties<T>::TypeFlags, EFilterFlags::Static))
+			if constexpr (EnumHasAnyFlags(TFilterTraits<T>::TypeFlags, EFilterFlags::Static))
 			{
 				ByStatic_Impl<T>();
 			}
@@ -348,14 +288,14 @@ namespace Faerie::Token
 			}
 			else
 			{
-				return TTokenFilter<FilterClass, CombineFilterFlags<T, Flags>()>(Item, TokenBits);
+				return TFilter<FilterClass, CombineFilterFlags<T, Flags>()>(Item, TokenBits);
 			}
 		}
 
 
 		// Removes tokens from filter that fail the Filter Type
 		template <CTokenFilterType T, typename... TArgs>
-		[[nodiscard]] TReturnFilterType<T> By(TArgs&&... Args)
+		[[nodiscard]] TReturnType_CombineFlags<T> By(TArgs&&... Args)
 		{
 			T TypeStruct(Args...);
 			ByTemplate_Impl(TypeStruct);
@@ -366,15 +306,20 @@ namespace Faerie::Token
 			}
 			else
 			{
-				return TTokenFilter<FilterClass, CombineFilterFlags<T, Flags>()>(Item, TokenBits);
+				return TFilter<FilterClass, CombineFilterFlags<T, Flags>()>(Item, TokenBits);
 			}
 		}
 
 		FORCEINLINE auto begin() const
 		{
-			return TTokenIterator_Masked<FilterClass, Const>(Item, TokenBits);
+			return TIterator_Masked<FilterClass, Const>(Item, TokenBits);
 		}
 	};
 
-	using FTokenFilter = TTokenFilter<UFaerieItemToken, EFilterFlags::None>;
+	// Forward declare the default parameters of the template
+	template <CItemToken FilterClass = UFaerieItemToken, EFilterFlags Flags = EFilterFlags::None>
+	class TFilter;
+
+	// Create a filter to select tokens from an Item
+	FAERIEITEMDATA_API TFilter<> Filter(const UFaerieItem* Item);
 }

@@ -9,6 +9,7 @@
 #include "FaerieEquipmentSlot.h"
 #include "FaerieItem.h"
 #include "FaerieItemContainerBase.h"
+#include "FaerieSubObjectFilter.h"
 #include "ItemContainerEvent.h"
 
 #include "Actors/FaerieProxyActorBase.h"
@@ -18,7 +19,6 @@
 #include "Tokens/FaerieMeshToken.h"
 #include "Tokens/FaerieVisualActorClassToken.h"
 #include "Tokens/FaerieVisualEquipment.h"
-#include "Tokens/FaerieItemStorageToken.h"
 
 #include "GameFramework/Character.h"
 
@@ -305,8 +305,7 @@ void UEquipmentVisualizationUpdater::CreateVisualImpl(UEquipmentVisualizer* Visu
 	// Step 3: Recurse over children
 	if (UFaerieItem* Mutable = ItemObject->MutateCast())
 	{
-		auto SubContainers = UFaerieItemContainerToken::GetContainersInItem<UFaerieEquipmentSlot>(Mutable);
-		for (auto SubContainer : SubContainers)
+		for (auto SubContainer : Faerie::SubObject::Filter().ByClass<UFaerieEquipmentSlot>().Iterate(Mutable))
 		{
 			auto Key = SubContainer->GetCurrentKey();
 			if (Key.IsValid())
@@ -323,10 +322,15 @@ void UEquipmentVisualizationUpdater::RemoveVisualImpl(UEquipmentVisualizer* Visu
 	Visualizer->DestroyVisualByKey({Proxy});
 
 	// Recurse over children
-	if (UFaerieItem* Mutable = Proxy->GetItemObject()->MutateCast())
+	auto Item = Proxy->GetItemObject();
+	if (!IsValid(Item))
 	{
-		auto SubContainers = UFaerieItemContainerToken::GetContainersInItem<UFaerieEquipmentSlot>(Mutable);
-        for (auto SubContainer : SubContainers)
+		return;
+	}
+
+	if (UFaerieItem* Mutable = Item->MutateCast())
+	{
+        for (UFaerieEquipmentSlot* SubContainer : Faerie::SubObject::Filter().ByClass<UFaerieEquipmentSlot>().Iterate(Mutable))
         {
         	auto Key = SubContainer->GetCurrentKey();
         	if (Key.IsValid())

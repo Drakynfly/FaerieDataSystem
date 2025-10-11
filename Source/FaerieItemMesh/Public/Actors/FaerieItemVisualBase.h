@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "GameFramework/Actor.h"
 #include "FaerieItemProxy.h"
 #include "FaerieItemVisualBase.generated.h"
 

@@ -11,10 +11,10 @@
 #include "StructUtils/StructView.h"
 #include "FaerieItemContainerBase.generated.h"
 
-namespace Faerie
+namespace Faerie::Container
 {
-	class IContainerIterator;
-	class IContainerFilter;
+	class IIterator;
+	class IFilter;
 }
 
 class UFaerieItemContainerBase;
@@ -120,8 +120,11 @@ public:
 	virtual FFaerieItemStack Release(FFaerieAddress Address, int32 Copies) PURE_VIRTUAL(UFaerieItemContainerBase::Release, return FFaerieItemStack(); )
 
 	// Create an iterator for the specific implementation of this container.
-	virtual TUniquePtr<Faerie::IContainerIterator> CreateIterator() const;
-	virtual TUniquePtr<Faerie::IContainerFilter> CreateFilter(bool FilterByAddresses) const;
+	virtual TUniquePtr<Faerie::Container::IIterator> CreateIterator(bool IterateByAddresses) const;
+	virtual TUniquePtr<Faerie::Container::IFilter> CreateFilter(bool FilterByAddresses) const;
+
+	virtual FEntryKey FILTER_GetBaseKey(FFaerieAddress Address) const PURE_VIRTUAL(UFaerieItemContainerBase::GetBaseKey, return FEntryKey::InvalidKey; )
+	virtual TArray<FFaerieAddress> FILTER_GetKeyAddresses(FEntryKey Key) const PURE_VIRTUAL(UFaerieItemContainerBase::GetKeyAddresses, return {}; )
 
 protected:
 	// Blueprint versions (temp, until Old Blueprint versions are removed)

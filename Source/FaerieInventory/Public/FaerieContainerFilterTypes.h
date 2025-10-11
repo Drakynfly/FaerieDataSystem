@@ -6,7 +6,7 @@
 
 class UFaerieItemDataFilter;
 
-namespace Faerie
+namespace Faerie::Container
 {
 	struct FAERIEINVENTORY_API FSingleKey final : IEntryKeyFilter
 	{
@@ -31,7 +31,7 @@ namespace Faerie
 	};
 
 	template <>
-	struct TFilterProperties<FMutableFilter>
+	struct TFilterTraits<FMutableFilter>
 	{
 		static constexpr EFilterFlags TypeFlags = EFilterFlags::Static;
 		static constexpr EFilterFlags GrantFlags = EFilterFlags::MutableOnly;
@@ -46,7 +46,7 @@ namespace Faerie
 	};
 
 	template <>
-	struct TFilterProperties<FImmutableFilter>
+	struct TFilterTraits<FImmutableFilter>
 	{
 		static constexpr EFilterFlags TypeFlags = EFilterFlags::Static;
 		static constexpr EFilterFlags GrantFlags = EFilterFlags::ImmutableOnly;
@@ -60,9 +60,10 @@ namespace Faerie
 		UFaerieItemDataFilter* FilterObj;
 	};
 
+
 	struct FAERIEINVENTORY_API FSnapshotFilterCallback : ISnapshotFilter
 	{
 		virtual bool Passes(const FFaerieItemSnapshot& Snapshot) override;
-		FSnapshotFilter Callback;
+		FSnapshotPredicate Callback;
 	};
 }

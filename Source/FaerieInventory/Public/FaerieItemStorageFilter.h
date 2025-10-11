@@ -9,67 +9,69 @@
 
 class UFaerieItemStorage;
 
-namespace Faerie
+namespace Faerie::Storage
 {
-	struct IItemDataFilter;
+	using FKeyMask = Container::TIterator<FEntryKey, FIterator_MaskedEntries>;
+	//using FAddressMask = TIterator<FFaerieAddress, FIterator_MaskedAddresses>; // @todo
+	using FItemMask = Container::TIterator<UFaerieItem*, FIterator_MaskedEntries>;
+	using FConstItemMask = Container::TIterator<const UFaerieItem*, FIterator_MaskedEntries>;
 
-	using FStorageKeyMask = TContainerIterator<FEntryKey, FStorageIterator_MaskedEntries>;
-	//using FStorageAddressMask = TContainerIterator<FFaerieAddress, FStorageIterator_MaskedAddresses>; // @todo
-	using FStorageItemMask = TContainerIterator<UFaerieItem*, FStorageIterator_MaskedEntries>;
-	using FStorageConstItemMask = TContainerIterator<const UFaerieItem*, FStorageIterator_MaskedEntries>;
-
-	enum ESortDirection
-	{
-		Forward,
-		Backward,
-	};
-
-	class FAERIEINVENTORY_API FItemStorageEntryFilter : FStorageDataAccess
+	class FAERIEINVENTORY_API FEntryFilter : FStorageDataAccess
 	{
 	public:
-		FItemStorageEntryFilter(const UFaerieItemStorage* Storage);
+		FEntryFilter(const UFaerieItemStorage* Storage);
 
-		FItemStorageEntryFilter& Run(IItemDataFilter&& Filter);
-		FItemStorageEntryFilter& Run(IEntryKeyFilter&& Filter);
-		FItemStorageEntryFilter& Run(ISnapshotFilter&& Filter);
+		const UFaerieItemStorage* GetContainer() const { return Storage; }
 
-		template <CFilterType T>
+		FEntryFilter& Run(Container::IItemDataFilter&& Filter);
+		FEntryFilter& Run(Container::IEntryKeyFilter&& Filter);
+		FEntryFilter& Run(Container::ISnapshotFilter&& Filter);
+
+		template <Container::CFilterType T>
 		void RunStatic()
 		{
 			for (TConstSetBitIterator<> It(KeyBits); It; ++It)
 			{
-				if constexpr (TIsDerivedFrom<T, IEntryKeyFilter>::Value)
+				if constexpr (TIsDerivedFrom<T, Container::IEntryKeyFilter>::Value)
 				{
-					// Disable keys that fail the predicate.
+					// Disable keys that fail the filter.
                     if (const FEntryKey Key = ReadInventoryContent(*Storage).GetKeyAt(It.GetIndex());
                     	!T::StaticPasses(Key))
                     {
                     	KeyBits.AccessCorrespondingBit(It) = false;
                     }
 				}
-				else if constexpr (TIsDerivedFrom<T, IItemDataFilter>::Value)
+				else if constexpr (TIsDerivedFrom<T, Container::IItemDataFilter>::Value)
 				{
-					// Disable keys that the predicate.
+					// Disable keys that fail the filter.
 					if (const UFaerieItem* Item = ReadInventoryContent(*Storage).GetElementAt(It.GetIndex()).GetItem();
 						!T::StaticPasses(Item))
 					{
 						KeyBits.AccessCorrespondingBit(It) = false;
 					}
 				}
-				else if constexpr (TIsDerivedFrom<T, ISnapshotFilter>::Value)
+				else if constexpr (TIsDerivedFrom<T, Container::ISnapshotFilter>::Value)
 				{
-					// Disable keys that the predicate.
+					// Disable keys that fail the filter.
 					if (const FFaerieItemSnapshot Snapshot = MakeSnapshot(*Storage, It.GetIndex());
 						!T::StaticPasses(Snapshot))
 					{
 						KeyBits.AccessCorrespondingBit(It) = false;
 					}
 				}
+				else if constexpr (TIsDerivedFrom<T, Container::ICustomFilter>::Value)
+				{
+					T::StaticPasses(*this);
+				}
+				else
+				{
+					unimplemented()
+				}
 			}
 		}
 
 		// Invert the filter to reverse keys from disabled to enabled, and vice versa.
-		FItemStorageEntryFilter& Invert()
+		FEntryFilter& Invert()
 		{
 			KeyBits.BitwiseNOT();
 			return *this;
@@ -81,23 +83,17 @@ namespace Faerie
 		int32 Num() const { return KeyBits.CountSetBits(); }
 
 		template <typename ResolveType>
-		TContainerIterator<ResolveType, FStorageIterator_MaskedEntries> Range() const
+		Container::TIterator<ResolveType, FIterator_MaskedEntries> Range() const
 		{
 			if (KeyBits.CountSetBits() == 0)
 			{
 				// No bits set, return invalid iterator.
-				return TContainerIterator<ResolveType, FStorageIterator_MaskedEntries>(FStorageIterator_MaskedEntries(Storage, {}));
+				return Container::TIterator<ResolveType, FIterator_MaskedEntries>(FIterator_MaskedEntries(Storage, {}));
 			}
-			return TContainerIterator<ResolveType, FStorageIterator_MaskedEntries>(FStorageIterator_MaskedEntries(Storage, KeyBits));
+			return Container::TIterator<ResolveType, FIterator_MaskedEntries>(FIterator_MaskedEntries(Storage, KeyBits));
 		}
 
-		template <ESortDirection Direction = Forward>
-		void SortBySnapshot(const FItemComparator& Sort)
-		{
-			unimplemented();
-		}
-
-		[[nodiscard]] FORCEINLINE FStorageKeyMask begin() const { return Range<FEntryKey>(); }
+		[[nodiscard]] FORCEINLINE FKeyMask begin() const { return Range<FEntryKey>(); }
 		[[nodiscard]] FORCEINLINE EIteratorType end () const { return End; }
 
 	protected:
@@ -109,16 +105,18 @@ namespace Faerie
 
 	// @todo this is a complex filter to implement, come back to this
 	/*
-	class FAERIEINVENTORY_API FItemStorageAddressFilter : FStorageDataAccess
+	class FAERIEINVENTORY_API FAddressFilter : FStorageDataAccess
 	{
 	public:
-		FItemStorageAddressFilter(const UFaerieItemStorage* Storage);
+		FAddressFilter(const UFaerieItemStorage* Storage);
 
-		FItemStorageAddressFilter& Run(IItemDataFilter& Filter);
-		FItemStorageAddressFilter& Run(IEntryKeyFilter& Filter);
+		FAddressFilter& Run(Container::IItemDataFilter& Filter);
+		FAddressFilter& Run(Container::IEntryKeyFilter& Filter);
+		FAddressFilter& Run(Container::IAddressFilter&& Filter);
+		FAddressFilter& Run(Container::ISnapshotFilter&& Filter);
 
 		// Invert the filter to reverse keys from disabled to enabled, and vice versa.
-		FItemStorageAddressFilter& Invert()
+		FAddressFilter& Invert()
 		{
 			AddressBits.BitwiseNOT();
 			return *this;
@@ -129,13 +127,13 @@ namespace Faerie
 		bool IsEmpty() const { return AddressBits.CountSetBits() == 0; }
 		int32 Num() const { return AddressBits.CountSetBits(); }
 
-		FStorageAddressMask AddressRange() const;
-		FStorageItemMask ItemRange() const;
-		FStorageConstItemMask ConstItemRange() const;
+		FAddressMask AddressRange() const;
+		FItemMask ItemRange() const;
+		FConstItemMask ConstItemRange() const;
 
 		// Enables ranged for-loops through each address for a key in the container.
-		using FStorageSingleAddressIterator = TContainerIterator<FFaerieAddress, FStorageIterator_SingleEntry>;
-		FStorageSingleAddressIterator AddressRange(FEntryKey Key) const;
+		using FSingleAddressIterator = TIterator<FFaerieAddress, FIterator_SingleEntry>;
+		FSingleAddressIterator AddressRange(FEntryKey Key) const;
 
 		// Emits all keys for which the filter contains any address.
 		TArray<FEntryKey> EmitKeys() const;
@@ -143,14 +141,8 @@ namespace Faerie
 		TArray<FFaerieAddress> EmitAddresses(FEntryKey Key) const;
 		TArray<const UFaerieItem*> EmitItems() const;
 
-		template <ESortDirection Direction = Forward>
-		void SortBySnapshot(const FItemComparator& Sort)
-		{
-			unimplemented();
-		}
-
-		[[nodiscard]] FORCEINLINE FStorageAddressMask begin() const { return AddressRange(); }
-		[[nodiscard]] FORCEINLINE FStorageAddressMask end  () const { return End; }
+		[[nodiscard]] FORCEINLINE FAddressMask begin() const { return AddressRange(); }
+		[[nodiscard]] FORCEINLINE FAddressMask end  () const { return End; }
 
 	protected:
 		const UFaerieItemStorage* Storage;
@@ -161,6 +153,6 @@ namespace Faerie
 	};
 	*/
 
-	using FItemStorageFilter_Key = TContainerFilter<EFilterFlags::KeyFilter, FItemStorageEntryFilter>;
-	//using FItemStorageFilter_Address = TContainerFilter<EFilterFlags::AddressFilter, FItemStorageAddressFilter>;
+	using FItemFilter_Key = Container::TFilter<Container::EFilterFlags::KeyFilter, FEntryFilter>;
+	//using FItemFilter_Address = Container::TFilter<Container::EFilterFlags::AddressFilter, FAddressFilter>;
 }

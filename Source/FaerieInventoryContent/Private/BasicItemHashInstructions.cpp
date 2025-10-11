@@ -97,7 +97,7 @@ uint32 UFISHI_Tokens::Hash(const FFaerieItemStackView StackView) const
 
 	for (auto&& TokenClass : TokenClasses)
 	{
-		auto&& Filter = Faerie::Token::FTokenFilter(StackView.Item.Get()).ByClass(TokenClass);
+		auto&& Filter = Faerie::Token::Filter(StackView.Item.Get()).ByClass(TokenClass);
 
 		if (Filter.IsEmpty())
 		{

@@ -331,13 +331,15 @@ void UInventoryReplicatedDataExtensionBase::PostRemoval(const UFaerieItemContain
 {
 	Super::PostRemoval(Container, Event);
 
+	using namespace Faerie::Container;
+
 	if (const TStructView<FFaerieReplicatedSimMap> ContainerData = FindFastArrayForContainer(Container);
 		ContainerData.IsValid())
 	{
 		FFaerieReplicatedSimMap& Ref = ContainerData.Get<FFaerieReplicatedSimMap>();
 
-		for (const FFaerieAddress Address : Faerie::KeyFilter(Container)
-				.Run(Faerie::FSingleKey(Event.EntryTouched))
+		for (const FFaerieAddress Address : KeyFilter(Container)
+				.Run(FSingleKey(Event.EntryTouched))
 				.AddressRange())
 		{
 			// If the whole stack was removed, delete any data we have for the entry

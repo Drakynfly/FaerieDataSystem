@@ -34,9 +34,9 @@ namespace Faerie
 
 	struct FStorageQuery
 	{
-		FSnapshotFilter Filter;
+		Container::FSnapshotPredicate Filter;
 		bool InvertFilter = false;
-		FItemComparator Sort;
+		Container::FSnapshotComparator Sort;
 		bool InvertSort = false;
 	};
 }
@@ -80,7 +80,7 @@ class FAERIEINVENTORY_API UFaerieItemStorage : public UFaerieItemContainerBase
 	friend FInventoryContent;
 
 	// Allow iterators and filters to read our data.
-	friend Faerie::FStorageDataAccess;
+	friend Faerie::Storage::FStorageDataAccess;
 
 public:
 	//~ UObject
@@ -111,8 +111,11 @@ public:
 	virtual FFaerieItemStack Release(FFaerieAddress Address, int32 Copies) override;
 
 private:
-	virtual TUniquePtr<Faerie::IContainerIterator> CreateIterator() const override;
-	virtual TUniquePtr<Faerie::IContainerFilter> CreateFilter(bool FilterByAddresses) const override;
+	virtual TUniquePtr<Faerie::Container::IIterator> CreateIterator(bool IterateByAddresses) const override;
+	virtual TUniquePtr<Faerie::Container::IFilter> CreateFilter(bool FilterByAddresses) const override;
+
+	virtual FEntryKey FILTER_GetBaseKey(FFaerieAddress Address) const override;
+	virtual TArray<FFaerieAddress> FILTER_GetKeyAddresses(FEntryKey Key) const override;
 	//~ UFaerieItemContainerBase
 
 public:
@@ -145,7 +148,7 @@ private:
 
 	void PostContentAdded(const FInventoryEntry& Entry);
 	void PreContentRemoved(const FInventoryEntry& Entry);
-	void PostContentChanged(const FInventoryEntry& Entry, FInventoryContent::EChangeType ChangeType);
+	void PostContentChanged(const FInventoryEntry& Entry, FInventoryContent::EChangeType ChangeType, const TBitArray<>* ChangeMask);
 
 	void BroadcastAddressEvent(EFaerieAddressEventType Type, FFaerieAddress Address);
 
@@ -399,13 +402,10 @@ private:
 	UPROPERTY(Replicated)
 	FInventoryContent EntryMap;
 
+	// Locally stored proxies per entry stack.
 	// These properties are transient, mainly so that editor code that accesses them doesn't need to worry about Caches
 	// being left around. Using weak pointers here is intentional. We don't want this storage to keep these alive. They
 	// should be stored in a strong pointer by whatever requested them, and once nothing needs the proxies, they will die.
-	// Effectively mutable, as these are written to by the const proxy accessors.
-	// @todo how will these maps get cleaned up, to they don't accrue hundreds of stale ptrs?
-
-	// Locally stored proxies per individual stack.
 	UPROPERTY(Transient)
 	TMap<FFaerieAddress, TWeakObjectPtr<UInventoryStackProxy>> LocalStackProxies;
 };

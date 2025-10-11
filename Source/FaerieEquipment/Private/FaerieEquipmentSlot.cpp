@@ -8,10 +8,10 @@
 #include "FaerieItem.h"
 #include "FaerieItemStorageStatics.h"
 #include "FaerieItemTemplate.h"
+#include "FaerieSubObjectFilter.h"
 #include "InventoryDataEnums.h"
 #include "ItemContainerEvent.h"
 #include "ItemContainerExtensionBase.h"
-#include "Tokens/FaerieChildSlotToken.h"
 
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
@@ -166,7 +166,7 @@ FFaerieAssetInfo UFaerieEquipmentSlot::GetSlotInfo() const
 	return FFaerieAssetInfo();
 }
 
-UFaerieEquipmentSlot* UFaerieEquipmentSlot::FindSlot(const FFaerieSlotTag SlotTag, const bool bRecursive) const
+const UFaerieEquipmentSlot* UFaerieEquipmentSlot::FindSlot(const FFaerieSlotTag SlotTag, const bool bRecursive) const
 {
 	if (IsFilled())
 	{
@@ -176,7 +176,7 @@ UFaerieEquipmentSlot* UFaerieEquipmentSlot::FindSlot(const FFaerieSlotTag SlotTa
 			return nullptr;
 		}
 
-		const TSet<UFaerieEquipmentSlot*> Children = UFaerieItemContainerToken::GetContainersInItem<UFaerieEquipmentSlot>(Mutable);
+		const TArray<UFaerieEquipmentSlot*> Children = Faerie::SubObject::Filter().ByClass<UFaerieEquipmentSlot>().Emit(Mutable);
 
 		for (auto&& Child : Children)
 		{

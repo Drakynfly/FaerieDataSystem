@@ -143,7 +143,7 @@ void UInventoryGridExtensionBase::InitializeExtension(const UFaerieItemContainer
 	OccupiedCells.Reset(GridSize);
 	if (const UFaerieItemStorage* ItemStorage = Cast<UFaerieItemStorage>(Container))
 	{
-		for (Faerie::FStorageIterator_AllAddresses It(ItemStorage); It; ++It)
+		for (Faerie::Storage::FIterator_AllAddresses It(ItemStorage); It; ++It)
 		{
 			const UFaerieItem* Item = It.GetItem();
 			const FFaerieAddress Address = It.GetAddress();

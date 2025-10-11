@@ -187,7 +187,7 @@ namespace Faerie::Hash
 		return 0;
 	}
 
-	uint32 HashItemByTokens(const Token::ITokenFilter& Filter)
+	uint32 HashItemByTokens(const Token::IFilter& Filter)
 	{
 		uint32 Hash = 0;
 		for (const UFaerieItemToken* Token : Filter)

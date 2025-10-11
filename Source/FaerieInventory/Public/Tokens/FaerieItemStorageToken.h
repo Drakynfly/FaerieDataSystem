@@ -4,8 +4,6 @@
 
 #include "FaerieContainerExtensionInterface.h"
 #include "FaerieItemToken.h"
-#include "LoopUtils.h"
-#include "TypeCastingUtils.h"
 #include "FaerieItemStorageToken.generated.h"
 
 class UFaerieItemContainerBase;
@@ -22,37 +20,6 @@ class FAERIEINVENTORY_API UFaerieItemContainerToken : public UFaerieItemToken
 public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual bool IsMutable() const override;
-
-	// Get all container objects from ContainerTokens.
-	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainerToken")
-	static TSet<UFaerieItemContainerBase*> GetAllContainersInItem(UFaerieItem* Item);
-
-	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainerToken", meta = (DeterminesOutputType = Class))
-	static TSet<UFaerieItemContainerBase*> GetContainersInItemOfClass(UFaerieItem* Item, TSubclassOf<UFaerieItemContainerBase> Class);
-
-	template <
-		typename T
-		UE_REQUIRES(TIsDerivedFrom<T, UFaerieItemContainerBase>::Value)
-	>
-	static TSet<T*> GetContainersInItem(UFaerieItem* Item)
-	{
-		return Type::Cast<TSet<T*>>(GetContainersInItemOfClass(Item, T::StaticClass()));
-	}
-
-	static Faerie::ELoopControl ForEachContainer(UFaerieItem* Item, Faerie::TBreakableLoop<UFaerieItemContainerBase*> Iter, bool Recursive);
-
-	static Faerie::ELoopControl ForEachContainerOfClass(UFaerieItem* Item, const TSubclassOf<UFaerieItemContainerBase>& Class, Faerie::TBreakableLoop<UFaerieItemContainerBase*> Iter, bool Recursive);
-
-	template <
-		typename T
-		UE_REQUIRES(TIsDerivedFrom<T, UFaerieItemContainerBase>::Value)
-	>
-	static Faerie::ELoopControl ForEachContainer(UFaerieItem* Item, Faerie::TBreakableLoop<T*> Iter, const bool Recursive)
-	{
-		return ForEachContainerOfClass(Item, T::StaticClass(),
-			reinterpret_cast<const TFunctionRef<Faerie::ELoopControl(UFaerieItemContainerBase*)>&>(Iter)
-			, Recursive);
-	}
 
 	UFaerieItemContainerBase* GetItemContainer() { return ItemContainer; }
 	const UFaerieItemContainerBase* GetItemContainer() const { return ItemContainer; }

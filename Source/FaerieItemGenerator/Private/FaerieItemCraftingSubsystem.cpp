@@ -6,11 +6,15 @@
 
 void UFaerieItemCraftingSubsystem::Deinitialize()
 {
-	for (auto&& ActiveAction : ActiveActions)
+	if (!ActiveActions.IsEmpty())
 	{
-		ActiveAction->Cancel();
+		auto ActionsCopy = ActiveActions;
+		for (auto&& ActiveAction : ActionsCopy)
+		{
+			ActiveAction->Cancel();
+		}
+		ensure(ActiveActions.IsEmpty());
 	}
-	ActiveActions.Empty();
 
 	Super::Deinitialize();
 }

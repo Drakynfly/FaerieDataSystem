@@ -292,7 +292,7 @@ namespace Faerie::Hacks
 						FFastArraySerializer::FPostReplicatedReceiveParameters PostReceivedParameters = { OldArraySize, Parms.bOutHasMoreUnmapped };
 			ArraySerializer.PostReplicatedReceive(PostReceivedParameters);
 			PRAGMA_ENABLE_DEPRECATION_WARNINGS
-					}
+		}
 
 		template<typename FastArrayType = SerializerType>
 		inline typename TEnableIf<!TModels_V<FFastArraySerializer::CPostReplicatedReceiveFuncable, FastArrayType, const FFastArraySerializer::FPostReplicatedReceiveParameters>, void>::Type CallPostReplicatedReceiveOrNot(int32) {}
@@ -305,22 +305,22 @@ namespace Faerie::Hacks
 		{
 			static void PreReplicatedRemove(void* FastArrayItem, const struct FFastArrayDeltaSerializeParams& Params)
 			{
-				reinterpret_cast<Type*>(FastArrayItem)->PreReplicatedRemove(static_cast<SerializerType&>(Params.ArraySerializer));
+				static_cast<Type*>(FastArrayItem)->PreReplicatedRemove(static_cast<SerializerType&>(Params.ArraySerializer));
 			}
 
 			static void PostReplicatedAdd(void* FastArrayItem, const struct FFastArrayDeltaSerializeParams& Params)
 			{
-				reinterpret_cast<Type*>(FastArrayItem)->PostReplicatedAdd(static_cast<SerializerType&>(Params.ArraySerializer));
+				static_cast<Type*>(FastArrayItem)->PostReplicatedAdd(static_cast<SerializerType&>(Params.ArraySerializer));
 			}
 
 			static void PostReplicatedChange(void* FastArrayItem, const struct FFastArrayDeltaSerializeParams& Params)
 			{
-				reinterpret_cast<Type*>(FastArrayItem)->PostReplicatedChange(static_cast<SerializerType&>(Params.ArraySerializer));
+				static_cast<Type*>(FastArrayItem)->PostReplicatedChange(static_cast<SerializerType&>(Params.ArraySerializer));
 			}
 
 			static void ReceivedItem(void* FastArrayItem, const FFastArrayDeltaSerializeParams& Params, const uint32 ReplicationID)
 			{
-				Type* Item = reinterpret_cast<Type*>(FastArrayItem);
+				Type* Item = static_cast<Type*>(FastArrayItem);
 				Item->ReplicationID = ReplicationID;
 				Item->MostRecentArrayReplicationKey = Params.ReadArrayReplicationKey;
 				Item->ReplicationKey++;

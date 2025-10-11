@@ -7,7 +7,6 @@
 #include "FaerieInventoryTag.h"
 #include "FaerieSlotTag.h"
 #include "FaerieItemContainerPath.h"
-#include "LoopUtils.h"
 #include "Components/ActorComponent.h"
 #include "StructUtils/InstancedStruct.h"
 
@@ -124,14 +123,19 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Faerie|EquipmentManager")
 	bool RemoveSlot(UFaerieEquipmentSlot* Slot);
 
-	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentManager")
-	TArray<UFaerieEquipmentSlot*> GetSlots() const { return Slots; }
+protected:
+	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentManager", meta = (DisplayName = "Get Slots"))
+	TArray<UFaerieEquipmentSlot*> BP_GetSlots() const { return Slots; }
+
+public:
+	TConstArrayView<UFaerieEquipmentSlot*> GetSlots() const { return Slots; }
 
 	/**
 	 * Find a slot contained in this manager. Enable recursive to check slots contained in other slots.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentManager")
-	UFaerieEquipmentSlot* FindSlot(FFaerieSlotTag SlotID, bool Recursive = false) const;
+	const UFaerieEquipmentSlot* FindSlot(FFaerieSlotTag SlotID, bool Recursive = false) const;
+		  UFaerieEquipmentSlot* FindSlot(FFaerieSlotTag SlotID, bool Recursive = false);
 
 
 	/**------------------------------*/
@@ -155,9 +159,6 @@ public:
 	/*		 EXTRA UTILITIES		 */
 	/**------------------------------*/
 
-	void ForEachContainer(Faerie::TBreakableLoop<UFaerieItemContainerBase*> Iter, bool Recursive);
-	void ForEachSlot(Faerie::TBreakableLoop<UFaerieEquipmentSlot*> Iter, bool Recursive);
-
 	// Gets all Slots and Storage objects for this manager and all contained items.
 	// For only top-level containers, use GetSlots instead.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentManager")
@@ -165,6 +166,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Faerie|EquipmentManager", meta = (DevelopmentOnly))
 	void PrintSlotDebugInfo() const;
+
 
 	/**------------------------------*/
 	/*		C++ AND NATIVE EVENTS	 */

@@ -125,16 +125,22 @@ void FItemCapacityCustomization::UpdateInfo()
         EfficiencyHandle.IsValid())
     {
         int32 WeightValue = 0;
-        FIntVector* BoundsValue = nullptr;
-        float EfficiencyValue = 0.f;
         if (auto&& WeightValueProp = WeightHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FWeightEditor, Weight)))
         {
             WeightValueProp->GetValue(WeightValue);
         }
-        BoundsHandle->GetValueData(reinterpret_cast<void*&>(BoundsValue));
+
+        void* BoundsAddress;
+        if (BoundsHandle->GetValueData(BoundsAddress) != FPropertyAccess::Success)
+        {
+            return;
+        }
+        const FIntVector* Bounds = static_cast<FIntVector*>(BoundsAddress);
+
+        float EfficiencyValue = 0.f;
         EfficiencyHandle->GetValue(EfficiencyValue);
 
-        const int32 CubicSpace = BoundsValue->X * BoundsValue->Y * BoundsValue->Z;
+        const int32 CubicSpace = Bounds->X * Bounds->Y * Bounds->Z;
         const int32 WeightPerCentimeter = WeightValue / CubicSpace;
         const float SuccessiveWeightPerCentimeter = WeightPerCentimeter * EfficiencyValue;
 

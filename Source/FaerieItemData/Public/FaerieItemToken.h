@@ -6,6 +6,7 @@
 #include "GameplayTagContainer.h"
 #include "NativeGameplayTags.h"
 #include "NetSupportedObject.h"
+#include "TypeCastingUtils.h"
 #include "FaerieItemToken.generated.h"
 
 class UFaerieItem;
@@ -110,7 +111,7 @@ public:
 	template <Faerie::CItemToken T>
 	void EditToken(const TFunctionRef<bool(T*)>& EditFunc)
 	{
-		EditToken(reinterpret_cast<const TFunctionRef<bool(UFaerieItemToken*)>&>(EditFunc));
+		EditToken(Type::Cast<TFunctionRef<bool(UFaerieItemToken*)>>(EditFunc));
 	}
 
 protected:

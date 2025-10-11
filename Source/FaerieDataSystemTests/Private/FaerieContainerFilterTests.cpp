@@ -56,7 +56,7 @@ bool FaerieContainerFilterTests::RunTest(const FString& Parameters)
 
 	// Test Direct Filter
 	{
-		Faerie::FItemStorageFilter_Key KeyFilter(Storage);
+		Faerie::Storage::FItemFilter_Key KeyFilter(Storage);
 
 		TestTrue("(Direct) FilterNumIsExpected", KeyFilter.Num() == ExpectedEntries);
 
@@ -87,7 +87,7 @@ bool FaerieContainerFilterTests::RunTest(const FString& Parameters)
 
 	// Test Interface Filter
 	{
-		Faerie::FContainerKeyFilter KeyFilter = Faerie::KeyFilter(Storage);
+		Faerie::Container::FKeyFilter KeyFilter = Faerie::Container::KeyFilter(Storage);
 
 		TestTrue("(Interface) FilterNumIsExpected", KeyFilter.Num() == ExpectedEntries);
 

@@ -53,8 +53,11 @@ private:
 	virtual FFaerieItemStackView ViewStack(FFaerieAddress Address) const override;
 	virtual FFaerieItemProxy Proxy(FFaerieAddress Address) const override;
 	virtual FFaerieItemStack Release(FFaerieAddress Address, int32 Copies) override;
-	virtual TUniquePtr<Faerie::IContainerIterator> CreateIterator() const override;
-	virtual TUniquePtr<Faerie::IContainerFilter> CreateFilter(bool FilterByAddresses) const override;
+	virtual TUniquePtr<Faerie::Container::IIterator> CreateIterator(bool) const override;
+	virtual TUniquePtr<Faerie::Container::IFilter> CreateFilter(bool) const override;
+
+	virtual FEntryKey FILTER_GetBaseKey(FFaerieAddress Address) const override;
+	virtual TArray<FFaerieAddress> FILTER_GetKeyAddresses(FEntryKey Key) const override;
 
 public:
 	FFaerieItemStackView View() const;

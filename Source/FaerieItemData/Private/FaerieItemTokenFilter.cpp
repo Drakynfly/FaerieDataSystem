@@ -30,7 +30,7 @@ namespace Faerie::Token
 		}
 	}
 
-	ITokenFilter::ITokenFilter(const UFaerieItem* Item)
+	IFilter::IFilter(const UFaerieItem* Item)
 	  : Item(Item)
 	{
 		check(IsValid(Item))
@@ -53,7 +53,7 @@ namespace Faerie::Token
 		}
 	}
 
-	ITokenFilter& ITokenFilter::ByClass_Impl(const TSubclassOf<UFaerieItemToken>& Class)
+	IFilter& IFilter::ByClass_Impl(const TSubclassOf<UFaerieItemToken>& Class)
 	{
 		if (!IsValid(Class) ||
 			Class == UFaerieItemToken::StaticClass()) return *this;
@@ -66,7 +66,7 @@ namespace Faerie::Token
 		return *this;
 	}
 
-	ITokenFilter& ITokenFilter::ByVirtual_Impl(ITokenFilterType& Type)
+	IFilter& IFilter::ByVirtual_Impl(ITokenFilterType& Type)
 	{
 		FilterByPredicate(TokenBits, Item, [&](const UFaerieItemToken* Token)
 			{
@@ -75,7 +75,7 @@ namespace Faerie::Token
 		return *this;
 	}
 
-	bool ITokenFilter::CompareTokens(const ITokenFilter& OtherFilter) const
+	bool IFilter::CompareTokens(const IFilter& OtherFilter) const
 	{
 		// This already indicates they are not equal.
 		if (Num() != OtherFilter.Num())
@@ -113,7 +113,7 @@ namespace Faerie::Token
 		return true;
 	}
 
-	TArray<const UFaerieItemToken*> ITokenFilter::Emit() const
+	TArray<const UFaerieItemToken*> IFilter::Emit() const
 	{
 		TArray<const UFaerieItemToken*> Tokens;
 		Tokens.Reserve(TokenBits.CountSetBits());
@@ -126,50 +126,13 @@ namespace Faerie::Token
 		return Tokens;
 	}
 
-	TArray<TObjectPtr<UFaerieItemToken>> ITokenFilter::BlueprintOnlyAccess() const
+	TArray<UFaerieItemToken*> IFilter::BlueprintOnlyAccess() const
 	{
-		return Type::Cast<TArray<TObjectPtr<UFaerieItemToken>>>(Emit());
+		return Type::Cast<TArray<UFaerieItemToken*>>(Emit());
 	}
 
-	bool FMutableFilter::StaticPasses(const UFaerieItemToken* Token)
+	TFilter<> Filter(const UFaerieItem* Item)
 	{
-		return Token->IsMutable();
-	}
-
-	bool FImmutableFilter::StaticPasses(const UFaerieItemToken* Token)
-	{
-		return !Token->IsMutable();
-	}
-
-	bool FTagFilter::Passes(const UFaerieItemToken* Token)
-	{
-		if (Exact)
-		{
-			return Token->GetClassTags().HasTagExact(Tag);
-		}
-		return Token->GetClassTags().HasTag(Tag);
-	}
-
-	bool FTagsFilter::Passes(const UFaerieItemToken* Token)
-	{
-		if (Exact)
-		{
-			if (All)
-			{
-				return Token->GetClassTags().HasAllExact(Tags);
-			}
-			return Token->GetClassTags().HasAnyExact(Tags);
-		}
-
-		if (All)
-		{
-			return Token->GetClassTags().HasAll(Tags);
-		}
-		return Token->GetClassTags().HasAny(Tags);
-	}
-
-	bool FTagQueryFilter::Passes(const UFaerieItemToken* Token)
-	{
-		return Token->GetClassTags().MatchesQuery(Query);
+		return TFilter<>(Item);
 	}
 }

@@ -8,31 +8,30 @@
 
 class UFaerieItem;
 
-namespace Faerie
+namespace Faerie::Container
 {
-	class FDefaultIteratorStorage;
+	class FVirtualIterator;
 
-	class IContainerIterator
+	class IIterator
 	{
 	public:
-		virtual ~IContainerIterator() = default;
+		virtual ~IIterator() = default;
 
-		virtual FDefaultIteratorStorage Copy() const = 0;
+		virtual FVirtualIterator Copy() const = 0;
 		virtual FEntryKey ResolveKey() const = 0;
 		virtual FFaerieAddress ResolveAddress() const = 0;
 		virtual const UFaerieItem* ResolveItem() const = 0;
 		virtual void Advance() = 0;
 		virtual bool IsValid() const = 0;
-		virtual bool Equals(const TUniquePtr<IContainerIterator>& Other) const = 0;
 	};
 
-	class FDefaultIteratorStorage
+	class FVirtualIterator
 	{
-		template <typename ResolveType, typename ImplType> friend class TContainerIterator;
+		template <typename ResolveType, typename ImplType> friend class TIterator;
 
 	public:
-		FDefaultIteratorStorage(TUniquePtr<IContainerIterator>&& IteratorPtr) : IteratorPtr(MoveTemp(IteratorPtr)) {}
-		FDefaultIteratorStorage(const FDefaultIteratorStorage& Other)
+		FVirtualIterator(TUniquePtr<IIterator>&& IteratorPtr) : IteratorPtr(MoveTemp(IteratorPtr)) {}
+		FVirtualIterator(const FVirtualIterator& Other)
 		  : IteratorPtr(Other.Copy().IteratorPtr) {}
 
 		FORCEINLINE explicit operator bool() const { return IsValid(); }
@@ -42,38 +41,13 @@ namespace Faerie
 			IteratorPtr->Advance();
 		}
 
-		[[nodiscard]] FORCEINLINE bool operator!=(const FDefaultIteratorStorage& Rhs) const
-		{
-			// If we are valid
-			if (IteratorPtr.IsValid())
-			{
-				// If both are valid
-				if (Rhs.IteratorPtr.IsValid())
-				{
-					// Run implementation Equals
-					return !IteratorPtr->Equals(Rhs.IteratorPtr);
-				}
-				// Run
-				return IteratorPtr->IsValid();
-			}
-
-			// If we are invalid, and the other is valid
-			if (Rhs.IteratorPtr.IsValid())
-			{
-				return Rhs.IteratorPtr->IsValid();
-			}
-
-			// Both are invalid, so we are the same
-			return false;
-		}
-
-		FDefaultIteratorStorage ToInterface() const
+		FVirtualIterator ToInterface() const
 		{
 			return Copy();
 		}
 
 	private:
-		FORCEINLINE FDefaultIteratorStorage Copy() const
+		FORCEINLINE FVirtualIterator Copy() const
 		{
 			if (IteratorPtr.IsValid())
 			{
@@ -86,39 +60,39 @@ namespace Faerie
 		FORCEINLINE const UFaerieItem* GetItem() const { return IteratorPtr->ResolveItem(); }
 		FORCEINLINE bool IsValid() const { return IteratorPtr.IsValid() && IteratorPtr->IsValid(); }
 
-		TUniquePtr<IContainerIterator> IteratorPtr;
+		TUniquePtr<IIterator> IteratorPtr;
 	};
 
 	template <typename ResolveType, typename ImplType>
-	class TContainerIterator
+	class TIterator
 	{
 	public:
-		FORCEINLINE explicit TContainerIterator(ImplType&& Impl)
+		FORCEINLINE explicit TIterator(ImplType&& Impl)
 		  : IteratorImpl(MoveTemp(Impl))
 		{
 #if WITH_EDITOR
-			UE_LOG(LogTemp, Verbose, TEXT("TContainerIterator::Move Ctor"));
+			UE_LOG(LogTemp, Verbose, TEXT("TIterator::Move Ctor"));
 #endif
 		}
 
-		FORCEINLINE explicit TContainerIterator(const ImplType& Impl)
+		FORCEINLINE explicit TIterator(const ImplType& Impl)
 		  : IteratorImpl(Impl)
 		{
 #if WITH_EDITOR
-			UE_LOG(LogTemp, Verbose, TEXT("TContainerIterator::Copy Ctor"));
+			UE_LOG(LogTemp, Verbose, TEXT("TIterator::Copy Ctor"));
 #endif
 		}
 
 		// Copies this iterator into a new iterator.
-		TContainerIterator<ResolveType, FDefaultIteratorStorage> Copy()
+		[[nodiscard]] TIterator<ResolveType, FVirtualIterator> Copy()
 		{
-			return TContainerIterator<ResolveType, FDefaultIteratorStorage>(IteratorImpl.ToInterface());
+			return TIterator<ResolveType, FVirtualIterator>(IteratorImpl.ToInterface());
 		}
 
-		FORCEINLINE ResolveType operator*() const
+		[[nodiscard]] FORCEINLINE ResolveType operator*() const
 		{
 #if WITH_EDITOR
-			UE_LOG(LogTemp, Verbose, TEXT("TContainerIterator::operator*"));
+			UE_LOG(LogTemp, Verbose, TEXT("TIterator::operator*"));
 #endif
 			if constexpr (std::is_same_v<ResolveType, FEntryKey>)
 			{
@@ -142,10 +116,10 @@ namespace Faerie
 			}
 		}
 
-		FORCEINLINE TContainerIterator& operator++()
+		FORCEINLINE TIterator& operator++()
 		{
 #if WITH_EDITOR
-			UE_LOG(LogTemp, Verbose, TEXT("TContainerIterator::operator++"));
+			UE_LOG(LogTemp, Verbose, TEXT("TIterator::operator++"));
 #endif
 			++IteratorImpl;
 			return *this;
@@ -155,36 +129,27 @@ namespace Faerie
 		{
 #if WITH_EDITOR
 			const bool Result = static_cast<bool>(IteratorImpl);
-			UE_LOG(LogTemp, Verbose, TEXT("TContainerIterator::operator bool - returning '%hs'"), Result ? "true" : "false");
+			UE_LOG(LogTemp, Verbose, TEXT("TIterator::operator bool - returning '%hs'"), Result ? "true" : "false");
 #endif
 			return static_cast<bool>(IteratorImpl);
-		}
-
-		[[nodiscard]] FORCEINLINE bool operator!=(const TContainerIterator& Rhs) const
-		{
-#if WITH_EDITOR
-			const bool Result = IteratorImpl != Rhs.IteratorImpl;
-			UE_LOG(LogTemp, Verbose, TEXT("TContainerIterator::operator!= (Other) - returning '%hs'"), Result ? "true" : "false");
-#endif
-			return IteratorImpl != Rhs.IteratorImpl;
 		}
 
 		[[nodiscard]] FORCEINLINE bool operator!=(EIteratorType) const
 		{
 #if WITH_EDITOR
 			const bool Result = static_cast<bool>(*this);
-			UE_LOG(LogTemp, Verbose, TEXT("TContainerIterator::operator!= (EIteratorType) - returning '%hs'"), Result ? "true" : "false");
+			UE_LOG(LogTemp, Verbose, TEXT("TIterator::operator!= (EIteratorType) - returning '%hs'"), Result ? "true" : "false");
 #endif
-			// As long we are valid, then we have not ended.
+			// As long as we are valid, then we have not ended.
 			return static_cast<bool>(*this);
 		}
 
 		FFaerieAddress GetAddress() const { return IteratorImpl.ResolveAddress(); }
 		const UFaerieItem* GetItem() const { return IteratorImpl.ResolveItem(); }
 
-		[[nodiscard]] FORCEINLINE TContainerIterator begin() const
+		[[nodiscard]] FORCEINLINE TIterator begin() const
 		{
-			return TContainerIterator(IteratorImpl);
+			return TIterator(IteratorImpl);
 		}
 		[[nodiscard]] FORCEINLINE EIteratorType end () const { return End; }
 
@@ -192,17 +157,17 @@ namespace Faerie
 		ImplType IteratorImpl;
 	};
 
-	using FDefaultKeyIterator = TContainerIterator<FEntryKey, FDefaultIteratorStorage>;
-	using FDefaultAddressIterator = TContainerIterator<FFaerieAddress, FDefaultIteratorStorage>;
-	using FDefaultItemIterator = TContainerIterator<UFaerieItem*, FDefaultIteratorStorage>;
-	using FDefaultConstItemIterator = TContainerIterator<const UFaerieItem*, FDefaultIteratorStorage>;
+	using FVirtualKeyIterator = TIterator<FEntryKey, FVirtualIterator>;
+	using FVirtualAddressIterator = TIterator<FFaerieAddress, FVirtualIterator>;
+	using FVirtualItemIterator = TIterator<UFaerieItem*, FVirtualIterator>;
+	using FVirtualConstItemIterator = TIterator<const UFaerieItem*, FVirtualIterator>;
 
 	// Enables ranged for-loops through each key in the container. Simple range with no filtering.
-	FAERIEINVENTORY_API FDefaultKeyIterator KeyRange(const UFaerieItemContainerBase* Container);
+	FAERIEINVENTORY_API FVirtualKeyIterator KeyRange(const UFaerieItemContainerBase* Container);
 
 	// Enables ranged for-loops through each address in the container. Simple range with no filtering.
-	FAERIEINVENTORY_API FDefaultAddressIterator AddressRange(const UFaerieItemContainerBase* Container);
+	FAERIEINVENTORY_API FVirtualAddressIterator AddressRange(const UFaerieItemContainerBase* Container);
 
 	// Enables ranged for-loops through each item in the container. Simple range with no filtering.
-	FAERIEINVENTORY_API FDefaultConstItemIterator ItemRange(const UFaerieItemContainerBase* Container);
+	FAERIEINVENTORY_API FVirtualConstItemIterator ItemRange(const UFaerieItemContainerBase* Container);
 }

@@ -78,15 +78,14 @@ public:
 		FValueWriteScope(const FFaerieAddress Address, FFaerieReplicatedSimMap& Source);
 		~FValueWriteScope();
 
+		FInstancedStruct* operator->() const { return &Handle.Value; }
+		FStructView Get() const { return Handle.Value; }
+
 	protected:
 		FFaerieReplicatedValue& Handle;
 
 	private:
 		FFaerieReplicatedSimMap& Source;
-
-	public:
-		FInstancedStruct* operator->() const { return &Handle.Value; }
-		FStructView Get() const { return Handle.Value; }
 	};
 
 	FValueWriteScope GetWriteScope(const FFaerieAddress Address)

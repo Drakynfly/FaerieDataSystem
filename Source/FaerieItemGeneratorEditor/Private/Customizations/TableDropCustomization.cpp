@@ -62,8 +62,12 @@ void FTableDropCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> Prop
     	}
     }
 
-	TMap<FFaerieItemSlotHandle, TInstancedStruct<FFaerieTableDrop>>* SlotsAddress;
-	SlotsHandle->GetValueData(reinterpret_cast<void*&>(SlotsAddress));
+	void* SlotsAddress;
+	if (SlotsHandle->GetValueData(SlotsAddress) != FPropertyAccess::Success)
+	{
+		return;
+	}
+	auto&& Slots = static_cast<TMap<FFaerieItemSlotHandle, TInstancedStruct<FFaerieTableDrop>>*>(SlotsAddress);
 
 	if (!IsValid(ObjectValue))
 	{
@@ -90,7 +94,7 @@ void FTableDropCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> Prop
 
     	ShowSlotsProperty = true;
 
-    	FScriptMapHelper MapHelper(CastField<FMapProperty>(SlotsHandle->GetProperty()), SlotsAddress);
+    	FScriptMapHelper MapHelper(CastField<FMapProperty>(SlotsHandle->GetProperty()), Slots);
 
     	// Prefill the map with the slots from the asset:
     	auto SlotIter = [&](const TPair<FFaerieItemSlotHandle, TObjectPtr<UFaerieItemTemplate>>& Slot)

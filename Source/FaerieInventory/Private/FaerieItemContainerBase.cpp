@@ -6,10 +6,11 @@
 #include "FaerieContainerFilter.h"
 #include "FaerieContainerFilterTypes.h"
 #include "FaerieInventoryLog.h"
+#include "FaerieItemToken.h"
+#include "FaerieSubObjectFilter.h"
 #include "ItemContainerExtensionBase.h"
 #include "GameFramework/Actor.h"
 #include "Net/UnrealNetwork.h"
-#include "Tokens/FaerieItemStorageToken.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemContainerBase)
 
@@ -111,51 +112,57 @@ bool UFaerieItemContainerBase::AddExtension(UItemContainerExtensionBase* Extensi
 
 void UFaerieItemContainerBase::RavelExtensionData(TMap<FGuid, FInstancedStruct>& ExtensionData) const
 {
-	for (auto Extension : FRecursiveConstExtensionIterator(Extensions))
+	using namespace Faerie::Container;
+
+	auto ExtractSaveData = [&ExtensionData](const UFaerieItemContainerBase* Container)
 	{
-		const FGuid Identifier = Extension->GetIdentifier();
-		if (!ensure(Identifier.IsValid())) return;
-
-		// Skip if we have already included this extension.
-		const uint32 IdentifierHash = GetTypeHash(Identifier);
-		if (ExtensionData.ContainsByHash(IdentifierHash, Identifier)) return;
-
-		if (const FInstancedStruct SaveData = Extension->MakeSaveData(this);
-			SaveData.IsValid())
+		for (auto Extension : Extension::FRecursiveConstExtensionIterator(Container->Extensions))
 		{
-			ExtensionData.AddByHash(IdentifierHash, Identifier, SaveData);
-		}
-	}
+			const FGuid Identifier = Extension->GetIdentifier();
+			if (!ensure(Identifier.IsValid())) return;
 
-	TSet<UFaerieItemContainerBase*> SubContainers;
+			// Skip if we have already included this extension.
+			const uint32 IdentifierHash = GetTypeHash(Identifier);
+			if (ExtensionData.ContainsByHash(IdentifierHash, Identifier)) return;
+
+			if (const FInstancedStruct SaveData = Extension->MakeSaveData(Container);
+				SaveData.IsValid())
+			{
+				ExtensionData.AddByHash(IdentifierHash, Identifier, SaveData);
+			}
+		}
+	};
+
+	ExtractSaveData(this);
+
 	for (UFaerieItem* Item : KeyFilter(this).Run<FMutableFilter>().Items())
 	{
-		SubContainers.Append(UFaerieItemContainerToken::GetAllContainersInItem(Item));
-	}
-
-	for (const UFaerieItemContainerBase* SubContainer : SubContainers)
-	{
-		SubContainer->RavelExtensionData(ExtensionData);
+		for (UFaerieItemContainerBase* Container : SubObject::Filter().Recursive().Iterate(Item))
+		{
+			ExtractSaveData(Container);
+		}
 	}
 }
 
 void UFaerieItemContainerBase::UnravelExtensionData(UFaerieItemContainerExtensionData* ExtensionData)
 {
+	using namespace Faerie::Container;
+
 	UnclaimedExtensionData = ExtensionData;
 	if (!IsValid(UnclaimedExtensionData))
 	{
 		return;
 	}
 
-	for (auto&& Extension : FRecursiveExtensionIterator(Extensions))
+	for (auto&& Extension : Extension::FRecursiveExtensionIterator(Extensions))
 	{
 		TryApplyUnclaimedSaveData(Extension);
 	}
 
-	TSet<UFaerieItemContainerBase*> SubContainers;
+	TArray<UFaerieItemContainerBase*> SubContainers;
 	for (UFaerieItem* Item : KeyFilter(this).Run<FMutableFilter>().Items())
 	{
-		SubContainers.Append(UFaerieItemContainerToken::GetAllContainersInItem(Item));
+		SubContainers.Append(GetAllContainersInItem(Item));
 	}
 
 	for (UFaerieItemContainerBase* SubContainer : SubContainers)
@@ -183,8 +190,8 @@ void UFaerieItemContainerBase::TryApplyUnclaimedSaveData(UItemContainerExtension
 }
 
 // Note: Implementations for these PURE_VIRTUALS need to be here because TUniquePtr complains about their dtors if they are forward declared.
-TUniquePtr<IContainerIterator> UFaerieItemContainerBase::CreateIterator() const
-PURE_VIRTUAL(UFaerieItemContainerBase::CreateIterator, return TUniquePtr<Faerie::IContainerIterator>(); )
+TUniquePtr<Container::IIterator> UFaerieItemContainerBase::CreateIterator(bool IterateByAddresses) const
+PURE_VIRTUAL(UFaerieItemContainerBase::CreateIterator, return TUniquePtr<Faerie::Container::IIterator>(); )
 
-TUniquePtr<IContainerFilter> UFaerieItemContainerBase::CreateFilter(bool FilterByAddresses) const
-PURE_VIRTUAL(UFaerieItemContainerBase::CreateFilter, return TUniquePtr<Faerie::IContainerFilter>(); )
+TUniquePtr<Container::IFilter> UFaerieItemContainerBase::CreateFilter(bool FilterByAddresses) const
+PURE_VIRTUAL(UFaerieItemContainerBase::CreateFilter, return TUniquePtr<Faerie::Container::IFilter>(); )

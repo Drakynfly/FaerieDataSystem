@@ -102,15 +102,14 @@ public:
 		FScopedStackHandle(const FFaerieAddress Key, FFaerieGridContent& Source);
 		~FScopedStackHandle();
 
+		FFaerieGridPlacement* operator->() const { return &Handle.Value; }
+		FFaerieGridPlacement& Get() const { return Handle.Value; }
+
 	protected:
 		FFaerieGridKeyedStack& Handle;
 
 	private:
 		FFaerieGridContent& Source;
-
-	public:
-		FFaerieGridPlacement* operator->() const { return &Handle.Value; }
-		FFaerieGridPlacement& Get() const { return Handle.Value; }
 	};
 
 	FScopedStackHandle GetHandle(const FFaerieAddress Key)

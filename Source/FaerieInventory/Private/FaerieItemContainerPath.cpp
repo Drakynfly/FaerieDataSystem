@@ -4,23 +4,23 @@
 #include "FaerieContainerFilter.h"
 #include "FaerieContainerFilterTypes.h"
 #include "FaerieItemContainerBase.h"
-#include "Tokens/FaerieItemStorageToken.h"
+#include "FaerieSubObjectFilter.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemContainerPath)
 
 void BuildPath_Recurse(UFaerieItemContainerBase* Container, const FFaerieItemContainerPath& BasePath, TArray<FFaerieItemContainerPath>& OutPaths)
 {
+	using namespace Faerie::Container;
+
 	FFaerieItemContainerPath& NewPath = OutPaths.Emplace_GetRef(BasePath);
 	NewPath.Containers.Add(Container);
 
-	for (UFaerieItem* Item : Faerie::KeyFilter(Container).Run<Faerie::FMutableFilter>().Items())
+	for (UFaerieItem* Item : KeyFilter(Container).Run<FMutableFilter>().Items())
 	{
-		UFaerieItemContainerToken::ForEachContainer(Item,
-			[&](UFaerieItemContainerBase* SubContainer)
-			{
-				BuildPath_Recurse(SubContainer, NewPath, OutPaths);
-				return Faerie::Continue;
-			}, false);
+		for (UFaerieItemContainerBase* SubContainer : Faerie::SubObject::Iterate(Item))
+		{
+			BuildPath_Recurse(SubContainer, NewPath, OutPaths);
+		}
 	}
 }
 

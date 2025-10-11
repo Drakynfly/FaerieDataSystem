@@ -126,7 +126,7 @@ namespace Faerie
 			{
 				auto&& ItemProxy = *Slots.Find(Slot.Key);
 
-				UFaerieItem* Item = ItemProxy->GetItemObject()->MutateCast();
+				const UFaerieItem* Item = ItemProxy->GetItemObject();
 				if (!ensure(IsValid(Item)))
 				{
 					return;
@@ -135,9 +135,9 @@ namespace Faerie
 				bool RemovedUse = false;
 
 				// If the item can be used as a resource multiple times.
-				if (Item->IsInstanceMutable())
+				if (UFaerieItem* Mutable = Item->MutateCast())
 				{
-					if (auto&& Uses = Item->GetMutableToken<UFaerieItemUsesToken>())
+					if (auto&& Uses = Mutable->GetMutableToken<UFaerieItemUsesToken>())
 					{
 						RemovedUse = Uses->RemoveUses(1);
 					}

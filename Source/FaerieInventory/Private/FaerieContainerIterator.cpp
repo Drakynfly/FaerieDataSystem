@@ -3,20 +3,20 @@
 #include "FaerieContainerIterator.h"
 #include "FaerieItemContainerBase.h"
 
-namespace Faerie
+namespace Faerie::Container
 {
-	FDefaultKeyIterator KeyRange(const UFaerieItemContainerBase* Container)
+	FVirtualKeyIterator KeyRange(const UFaerieItemContainerBase* Container)
 	{
-		return FDefaultKeyIterator(Container->CreateIterator());
+		return FVirtualKeyIterator(Container->CreateIterator(false));
 	}
 
-	FDefaultAddressIterator AddressRange(const UFaerieItemContainerBase* Container)
+	FVirtualAddressIterator AddressRange(const UFaerieItemContainerBase* Container)
 	{
-		return FDefaultAddressIterator(Container->CreateIterator());
+		return FVirtualAddressIterator(Container->CreateIterator(true));
 	}
 
-	FDefaultConstItemIterator ItemRange(const UFaerieItemContainerBase* Container)
+	FVirtualConstItemIterator ItemRange(const UFaerieItemContainerBase* Container)
 	{
-		return FDefaultConstItemIterator(Container->CreateIterator());
+		return FVirtualConstItemIterator(Container->CreateIterator(false));
 	}
 }

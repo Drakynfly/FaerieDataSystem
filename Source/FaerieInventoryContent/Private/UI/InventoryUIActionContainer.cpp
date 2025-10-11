@@ -2,7 +2,6 @@
 
 #include "UI/InventoryUIActionContainer.h"
 #include "Templates/SubclassOf.h"
-#include "UI/InventoryUIAction.h"
 #include "UObject/ObjectKey.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventoryUIActionContainer)
@@ -105,8 +104,9 @@ TArray<UInventoryUIAction*> UInventoryUIActionContainer::GetAllActions() const
 		}
 	}
 
-	TArray<UInventoryUIAction*> AllActions = AllInstances.Array();
-	AllActions.Reserve(AllActions.Num() + AllClasses.Num());
+	TArray<UInventoryUIAction*> AllActions;
+	AllActions.Reserve(AllInstances.Num() + AllClasses.Num());
+	AllActions.Append(AllInstances.Array());
 	for (auto&& ActionClass : AllClasses)
 	{
 		AllActions.Add(ActionClass->GetDefaultObject<UInventoryUIAction>());

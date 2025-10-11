@@ -65,15 +65,16 @@ struct FInventoryEntry : public FFastArraySerializerItem
 
 	FInventoryEntry() = default;
 	FInventoryEntry(const UFaerieItem* InItem);
+	FInventoryEntry(FFaerieItemStackView InStack, TArray<FStackKey>& OutAddedKeys);
 
 	// Unique key to identify this entry.
-	UPROPERTY(VisibleAnywhere, Category = "KeyedInventoryEntry")
+	UPROPERTY(VisibleAnywhere, Category = "InventoryEntry")
 	FEntryKey Key;
 
 private:
 	// The item stored for all stacks in this entry.
 	UPROPERTY(VisibleAnywhere, Category = "InventoryEntry")
-	TObjectPtr<UFaerieItem> ItemObject;
+	TObjectPtr<const UFaerieItem> ItemObject;
 
 	UPROPERTY(VisibleAnywhere, Category = "InventoryEntry")
 	TArray<FKeyedStack> Stacks;
@@ -85,7 +86,6 @@ private:
 	Faerie::TKeyGen<FStackKey> KeyGen;
 
 	int32 GetStackIndex(FStackKey InKey) const;
-	FKeyedStack* GetStackPtr(FStackKey InKey);
 	const FKeyedStack* GetStackPtr(FStackKey InKey) const;
 
 	void UpdateCachedStackLimit();
@@ -93,6 +93,8 @@ private:
 public:
 	FORCEINLINE const UFaerieItem* GetItem() const { return ItemObject; }
 	FORCEINLINE TConstArrayView<FKeyedStack> GetStacks() const { return Stacks; }
+
+	FORCEINLINE int32 NumStacks() const { return Stacks.Num(); }
 
 	int32 GetCachedStackLimit() const { return Limit; }
 
@@ -107,27 +109,6 @@ public:
 
 	int32 StackSum() const;
 
-	void SetStack(FStackKey InKey, const int32 Stack);
-
-	// Add the Amount to the stacks, adding new stacks as needed. Can optionally return the list of added stacks.
-	// ReturnValue is 0 if Stack was successfully added, or the remainder, otherwise.
-	void AddToAnyStack(int32 Amount, TArray<FStackKey>* OutAddedKeys = nullptr);
-
-	// Add the Amount as new stacks. Can optionally return the list of added stacks.
-	// ReturnValue is 0 if Stack was successfully added, or the remainder, otherwise.
-	void AddToNewStacks(int32 Amount, TArray<FStackKey>* OutAddedKeys = nullptr);
-
-	// Remove the amount from any number of stacks. Can optionally return the list of modified stacks, and/or just the removed stacks
-	// ReturnValue is 0 if Stack was successfully removed, or the remainder, if not.
-	int32 RemoveFromAnyStack(int32 Amount, TArray<FStackKey>* OutAllModifiedKeys = nullptr, TArray<FStackKey>* OutRemovedKeys = nullptr);
-
-	// Move an amount from one stack to another.
-	// The amount not moved will be returned if some remains.
-	int32 MoveStack(FStackKey From, FStackKey To, int32 Amount);
-
-	// Split a stack into two. Returns the new stack key made.
-	FStackKey SplitStack(FStackKey InKey, int32 Amount);
-
 	bool IsValid() const;
 
 	// Gets a view of the item and stack
@@ -141,6 +122,51 @@ public:
 	void PostReplicatedChange(const FInventoryContent& InArraySerializer);
 
 	static bool IsEqualTo(const FInventoryEntry& A, const FInventoryEntry& B, EEntryEquivalencyFlags CheckFlags);
+
+	struct FMutableAccess : FNoncopyable
+	{
+		FMutableAccess(FInventoryContent& Source, int32 Index);
+		FMutableAccess(FInventoryContent& Source, const FEntryKey Key);
+		~FMutableAccess();
+
+		FInventoryEntry* operator->() const { return &Handle; }
+		FInventoryEntry& Get() const { return Handle; }
+
+		void SetStack(FStackKey InKey, const int32 Stack);
+
+		// Add the Amount to the stacks, adding new stacks as needed. Can optionally return the list of added stacks.
+		// ReturnValue is 0 if Amount was successfully added, or the remainder, otherwise.
+		void AddToAnyStack(int32 Amount, TArray<FStackKey>& OutAddedKeys);
+
+		// Add the Amount as new stacks. Can optionally return the list of added stacks.
+		// ReturnValue is 0 if Amount was successfully added, or the remainder, otherwise.
+		void AddToNewStacks(int32 Amount, TArray<FStackKey>& OutAddedKeys);
+
+		// Remove the amount from any number of stacks. Can optionally return the list of modified stacks, and/or just the removed stacks
+		// ReturnValue is 0 if Amount was successfully removed, or the remainder, if not.
+		int32 RemoveFromAnyStack(int32 Amount, TArray<FStackKey>* OutAllModifiedKeys = nullptr, TArray<FStackKey>* OutRemovedKeys = nullptr);
+
+		// Move an amount from one stack to another.
+		// ReturnValue is 0 if Amount was successfully moved, or the remainder, otherwise.
+		int32 MoveStack(FStackKey From, FStackKey To, int32 Amount);
+
+		// Split a stack into two. Returns the new stack key made.
+		FStackKey SplitStack(FStackKey InKey, int32 Amount);
+
+	protected:
+		void MarkStackDirty(int32 Index);
+		void MarkAllStacksDirty();
+
+		FInventoryEntry& Handle;
+
+		FKeyedStack* GetStackPtr(FStackKey InKey);
+
+	private:
+		FInventoryContent& Source;
+
+		// Tracks the stacks that were changed (either added or had their value edited)
+		TBitArray<> ChangeMask;
+	};
 };
 
 template<>
@@ -151,31 +177,6 @@ struct TStructOpsTypeTraits<FInventoryEntry> : public TStructOpsTypeTraitsBase2<
 		WithPostSerialize = true,
 		WithPostScriptConstruct = true,
 	};
-};
-
-// A minimal struct to replicate a Key and Value pair as an emulation of a TMap
-USTRUCT()
-struct FKeyedInventoryEntry : public FFastArraySerializerItem
-{
-	GENERATED_BODY()
-
-	FKeyedInventoryEntry() = default;
-
-	FKeyedInventoryEntry(const FEntryKey Key, const FInventoryEntry& Value)
-	  : Key(Key),
-		Value(Value) {}
-
-	// Unique key to identify this entry.
-	UPROPERTY(VisibleAnywhere, Category = "KeyedInventoryEntry")
-	FEntryKey Key;
-
-	// A canonical entry.
-	UPROPERTY(VisibleAnywhere, Category = "KeyedInventoryEntry")
-	FInventoryEntry Value;
-
-	void PreReplicatedRemove(const FInventoryContent& InArraySerializer);
-	void PostReplicatedAdd(const FInventoryContent& InArraySerializer);
-	void PostReplicatedChange(const FInventoryContent& InArraySerializer);
 };
 
 class UFaerieItemStorage;
@@ -190,6 +191,7 @@ struct FInventoryContent : public FFaerieFastArraySerializer,
 {
 	GENERATED_BODY()
 
+	friend FInventoryEntry::FMutableAccess;
 	friend TBinarySearchOptimizedArray;
 	friend UFaerieItemStorage;
 
@@ -240,25 +242,9 @@ public:
 	void LockWriteAccess() const;
 	void UnlockWriteAccess() const;
 
-	struct FScopedItemHandle : FNoncopyable
+	FInventoryEntry::FMutableAccess GetMutableEntry(const FEntryKey Key)
 	{
-		FScopedItemHandle(const FEntryKey Key, FInventoryContent& Source);
-		~FScopedItemHandle();
-
-	protected:
-		FInventoryEntry& Handle;
-
-	private:
-		FInventoryContent& Source;
-
-	public:
-		FInventoryEntry* operator->() const { return &Handle; }
-		FInventoryEntry& Get() const { return Handle; }
-	};
-
-	FScopedItemHandle GetHandle(const FEntryKey Key)
-	{
-		return FScopedItemHandle(Key, *this);
+		return FInventoryEntry::FMutableAccess(*this, Key);
 	}
 
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
@@ -286,7 +272,8 @@ public:
 
 	void PreEntryReplicatedRemove(const FInventoryEntry& Entry) const;
 	void PostEntryReplicatedAdd(const FInventoryEntry& Entry) const;
-	void PostEntryReplicatedChange(const FInventoryEntry& Entry, EChangeType ChangeType) const;
+	void PostEntryReplicatedChange_Server(const FInventoryEntry& Entry, EChangeType ChangeType, const TBitArray<>& ChangeMask) const;
+	void PostEntryReplicatedChange_Client(const FInventoryEntry& Entry) const;
 
 	// Only const iteration is allowed.
 	using TRangedForConstIterator = TArray<FInventoryEntry>::RangedForConstIteratorType;

@@ -11,23 +11,23 @@ struct FInventoryEntry;
 struct FKeyedStack;
 class UFaerieItemStorage;
 
-namespace Faerie
+namespace Faerie::Storage
 {
 	class FStorageDataAccess
 	{
 	protected:
-		const FInventoryContent& ReadInventoryContent(const UFaerieItemStorage& Storage);
-		FFaerieItemSnapshot MakeSnapshot(const UFaerieItemStorage& Storage, const int32 Index);
+		static const FInventoryContent& ReadInventoryContent(const UFaerieItemStorage& Storage);
+		static FFaerieItemSnapshot MakeSnapshot(const UFaerieItemStorage& Storage, const int32 Index);
 	};
 
-	class FAERIEINVENTORY_API FStorageIterator_AllEntries : FStorageDataAccess
+	class FAERIEINVENTORY_API FIterator_AllEntries : FStorageDataAccess
 	{
 	public:
-		FStorageIterator_AllEntries(const UFaerieItemStorage* Storage);
+		FIterator_AllEntries(const UFaerieItemStorage* Storage);
 
-		~FStorageIterator_AllEntries();
+		~FIterator_AllEntries();
 
-		//FDefaultIteratorStorage ToInterface() const;
+		Container::FVirtualIterator ToInterface() const;
 
 		void AdvanceEntry();
 
@@ -39,7 +39,7 @@ namespace Faerie
 		FEntryKey GetKey() const;
 		const UFaerieItem* GetItem() const;
 
-		FStorageIterator_AllEntries& operator++()
+		FIterator_AllEntries& operator++()
 		{
 			AdvanceEntry();
 			return *this;
@@ -50,18 +50,13 @@ namespace Faerie
 			return EntryIndex != INDEX_NONE;
 		}
 
-		[[nodiscard]] FORCEINLINE bool operator!=(const FStorageIterator_AllEntries& Rhs) const
-		{
-			return EntryIndex != Rhs.EntryIndex;
-		}
-
 		[[nodiscard]] FORCEINLINE bool operator!=(EIteratorType) const
 		{
-			// As long we are valid, then we have not ended.
+			// As long as we are valid, then we have not ended.
 			return static_cast<bool>(*this);
 		}
 
-		[[nodiscard]] FORCEINLINE FStorageIterator_AllEntries begin() const { return *this; }
+		[[nodiscard]] FORCEINLINE FIterator_AllEntries begin() const { return *this; }
 		[[nodiscard]] FORCEINLINE EIteratorType end () const { return End; }
 
 	private:
@@ -70,14 +65,14 @@ namespace Faerie
 		int32 EntryIndex = -1;
 	};
 
-	class FAERIEINVENTORY_API FStorageIterator_AllAddresses : FStorageDataAccess
+	class FAERIEINVENTORY_API FIterator_AllAddresses : FStorageDataAccess
 	{
 	public:
-		FStorageIterator_AllAddresses(const UFaerieItemStorage* Storage);
+		FIterator_AllAddresses(const UFaerieItemStorage* Storage);
 
-		~FStorageIterator_AllAddresses();
+		~FIterator_AllAddresses();
 
-		FDefaultIteratorStorage ToInterface() const;
+		Container::FVirtualIterator ToInterface() const;
 
 		void AdvanceEntry();
 
@@ -91,7 +86,7 @@ namespace Faerie
 		const UFaerieItem* GetItem() const;
 		int32 GetStack() const;
 
-		FStorageIterator_AllAddresses& operator++()
+		FIterator_AllAddresses& operator++()
 		{
 			if (NumRemaining)
 			{
@@ -110,18 +105,13 @@ namespace Faerie
 			return EntryIndex != INDEX_NONE && StackPtr != nullptr;
 		}
 
-		[[nodiscard]] FORCEINLINE bool operator!=(const FStorageIterator_AllAddresses& Rhs) const
-		{
-			return StackPtr != Rhs.StackPtr;
-		}
-
 		[[nodiscard]] FORCEINLINE bool operator!=(EIteratorType) const
 		{
-			// As long we are valid, then we have not ended.
+			// As long as we are valid, then we have not ended.
 			return static_cast<bool>(*this);
 		}
 
-		[[nodiscard]] FORCEINLINE FStorageIterator_AllAddresses begin() const { return *this; }
+		[[nodiscard]] FORCEINLINE FIterator_AllAddresses begin() const { return *this; }
 		[[nodiscard]] FORCEINLINE EIteratorType end  () const { return End; }
 
 	private:
@@ -134,16 +124,16 @@ namespace Faerie
 		int32 NumRemaining;
 	};
 
-	class FAERIEINVENTORY_API FStorageIterator_MaskedEntries : FStorageDataAccess
+	class FAERIEINVENTORY_API FIterator_MaskedEntries : FStorageDataAccess
 	{
 	public:
-		FStorageIterator_MaskedEntries(const UFaerieItemStorage* Storage, const TBitArray<>& EntryMask);
-		FStorageIterator_MaskedEntries(const FInventoryContent* Content, const TBitArray<>& EntryMask);
-		FStorageIterator_MaskedEntries(const FStorageIterator_MaskedEntries& Other);
+		FIterator_MaskedEntries(const UFaerieItemStorage* Storage, const TBitArray<>& EntryMask);
+		FIterator_MaskedEntries(const FInventoryContent* Content, const TBitArray<>& EntryMask);
+		FIterator_MaskedEntries(const FIterator_MaskedEntries& Other);
 
-		~FStorageIterator_MaskedEntries();
+		~FIterator_MaskedEntries();
 
-		FDefaultIteratorStorage ToInterface() const;
+		Container::FVirtualIterator ToInterface() const;
 
 		void AdvanceEntry();
 
@@ -156,7 +146,7 @@ namespace Faerie
 		FFaerieAddress GetAddress() const;
 		const UFaerieItem* GetItem() const;
 
-		FStorageIterator_MaskedEntries& operator++()
+		FIterator_MaskedEntries& operator++()
 		{
 			if (NumRemaining)
 			{
@@ -176,18 +166,13 @@ namespace Faerie
 			return StackPtr != nullptr && KeyMask.IsValidIndex(BitIterator.GetIndex());
 		}
 
-		[[nodiscard]] FORCEINLINE bool operator!=(const FStorageIterator_MaskedEntries& Rhs) const
-		{
-			return StackPtr != Rhs.StackPtr;
-		}
-
 		[[nodiscard]] FORCEINLINE bool operator!=(EIteratorType) const
 		{
-			// As long we are valid, then we have not ended.
+			// As long as we are valid, then we have not ended.
 			return static_cast<bool>(*this);
 		}
 
-		[[nodiscard]] FORCEINLINE FStorageIterator_MaskedEntries begin() const { return FStorageIterator_MaskedEntries(Content, KeyMask); }
+		[[nodiscard]] FORCEINLINE FIterator_MaskedEntries begin() const { return FIterator_MaskedEntries(Content, KeyMask); }
 		[[nodiscard]] FORCEINLINE EIteratorType end () const { return End; }
 
 	private:
@@ -214,13 +199,14 @@ namespace Faerie
 	};
 	*/
 
-	class FAERIEINVENTORY_API FStorageIterator_SingleEntry : FStorageDataAccess
+	class FAERIEINVENTORY_API FIterator_SingleEntry : FStorageDataAccess
 	{
 	public:
-		FStorageIterator_SingleEntry(const UFaerieItemStorage* Storage, const FEntryKey Key);
-		FStorageIterator_SingleEntry(const UFaerieItemStorage* Storage, const int32 Index);
+		FIterator_SingleEntry(const FInventoryEntry& Entry);
+		FIterator_SingleEntry(const UFaerieItemStorage* Storage, const FEntryKey Key);
+		FIterator_SingleEntry(const UFaerieItemStorage* Storage, const int32 Index);
 
-		FDefaultIteratorStorage ToInterface() const;
+		Container::FVirtualIterator ToInterface() const;
 
 		FFaerieAddress operator*() const
 		{
@@ -235,7 +221,7 @@ namespace Faerie
 			return EntryPtr->GetItem();
 		}
 
-		FORCEINLINE FStorageIterator_SingleEntry& operator++()
+		FORCEINLINE FIterator_SingleEntry& operator++()
 		{
 			if (NumRemaining)
 			{
@@ -254,18 +240,13 @@ namespace Faerie
 			return StackPtr && NumRemaining;
 		}
 
-		[[nodiscard]] FORCEINLINE bool operator!=(const FStorageIterator_SingleEntry& Rhs) const
-		{
-			return StackPtr != Rhs.StackPtr;
-		}
-
 		[[nodiscard]] FORCEINLINE bool operator!=(EIteratorType) const
 		{
-			// As long we are valid, then we have not ended.
+			// As long as we are valid, then we have not ended.
 			return static_cast<bool>(*this);
 		}
 
-		[[nodiscard]] FORCEINLINE FStorageIterator_SingleEntry begin() const { return *this; }
+		[[nodiscard]] FORCEINLINE FIterator_SingleEntry begin() const { return *this; }
 		[[nodiscard]] FORCEINLINE EIteratorType end  () const { return End; }
 
 	private:
@@ -274,69 +255,75 @@ namespace Faerie
 		uint32 NumRemaining;
 	};
 
-	class FAERIEINVENTORY_API FStorageIterator_MaskedEntries_ForInterface final : public IContainerIterator
+	class FAERIEINVENTORY_API FIterator_MaskedEntries_ForInterface final : public Container::IIterator
 	{
 	public:
-		FStorageIterator_MaskedEntries_ForInterface(FStorageIterator_MaskedEntries&& Inner) : Inner(Inner) {}
+		FIterator_MaskedEntries_ForInterface(FIterator_MaskedEntries&& Inner) : Inner(Inner) {}
 
-		//~ IContainerIterator
-		FORCEINLINE virtual FDefaultIteratorStorage Copy() const override { return Inner.ToInterface(); }
+		//~ Container::IIterator
+		FORCEINLINE virtual Container::FVirtualIterator Copy() const override { return Inner.ToInterface(); }
 		FORCEINLINE virtual void Advance() override { ++Inner; }
 		FORCEINLINE virtual FEntryKey ResolveKey() const override { return Inner.GetKey(); }
 		FORCEINLINE virtual FFaerieAddress ResolveAddress() const override { return Inner.GetAddress(); }
 		FORCEINLINE virtual const UFaerieItem* ResolveItem() const override { return Inner.GetItem(); }
 		FORCEINLINE virtual bool IsValid() const override { return static_cast<bool>(Inner); }
-		FORCEINLINE virtual bool Equals(const TUniquePtr<IContainerIterator>& Other) const override
-		{
-			return !(Inner != reinterpret_cast<FStorageIterator_MaskedEntries_ForInterface*>(Other.Get())->Inner);
-		}
-		//~ IContainerIterator
+		//~ Container::IIterator
 
 	private:
-		FStorageIterator_MaskedEntries Inner;
+		FIterator_MaskedEntries Inner;
 	};
 
-	class FAERIEINVENTORY_API FStorageIterator_AllAddresses_ForInterface final : public IContainerIterator
+	class FAERIEINVENTORY_API FIterator_AllEntries_ForInterface final : public Container::IIterator
 	{
 	public:
-		FStorageIterator_AllAddresses_ForInterface(const FStorageIterator_AllAddresses& Inner) : Inner(Inner) {}
+		FIterator_AllEntries_ForInterface(const FIterator_AllEntries& Inner) : Inner(Inner) {}
 
-		//~ IContainerIterator
-		FORCEINLINE virtual FDefaultIteratorStorage Copy() const override { return Inner.ToInterface(); }
+		//~ Container::IIterator
+		FORCEINLINE virtual Container::FVirtualIterator Copy() const override { return Inner.ToInterface(); }
 		FORCEINLINE virtual void Advance() override { ++Inner; }
 		FORCEINLINE virtual FEntryKey ResolveKey() const override { return Inner.GetKey(); }
-		FORCEINLINE virtual FFaerieAddress ResolveAddress() const override { return Inner.GetAddress(); }
+		FORCEINLINE virtual FFaerieAddress ResolveAddress() const override { checkNoEntry(); return {}; }
 		FORCEINLINE virtual const UFaerieItem* ResolveItem() const override { return Inner.GetItem(); }
 		FORCEINLINE virtual bool IsValid() const override { return static_cast<bool>(Inner); }
-		FORCEINLINE virtual bool Equals(const TUniquePtr<IContainerIterator>& Other) const override
-		{
-			return !(Inner != reinterpret_cast<FStorageIterator_AllAddresses_ForInterface*>(Other.Get())->Inner);
-		}
-		//~ IContainerIterator
+		//~ Container::IIterator
 
 	private:
-		FStorageIterator_AllAddresses Inner;
+		FIterator_AllEntries Inner;
 	};
 
-	class FAERIEINVENTORY_API FStorageIterator_SingleEntry_ForInterface final : public IContainerIterator
+	class FAERIEINVENTORY_API FIterator_AllAddresses_ForInterface final : public Container::IIterator
 	{
 	public:
-		FStorageIterator_SingleEntry_ForInterface(const FStorageIterator_SingleEntry& Inner) : Inner(Inner) {}
+		FIterator_AllAddresses_ForInterface(const FIterator_AllAddresses& Inner) : Inner(Inner) {}
 
-		//~ IContainerIterator
-		FORCEINLINE virtual FDefaultIteratorStorage Copy() const override { return Inner.ToInterface(); }
+		//~ Container::IIterator
+		FORCEINLINE virtual Container::FVirtualIterator Copy() const override { return Inner.ToInterface(); }
 		FORCEINLINE virtual void Advance() override { ++Inner; }
 		FORCEINLINE virtual FEntryKey ResolveKey() const override { return Inner.GetKey(); }
 		FORCEINLINE virtual FFaerieAddress ResolveAddress() const override { return Inner.GetAddress(); }
 		FORCEINLINE virtual const UFaerieItem* ResolveItem() const override { return Inner.GetItem(); }
 		FORCEINLINE virtual bool IsValid() const override { return static_cast<bool>(Inner); }
-		FORCEINLINE virtual bool Equals(const TUniquePtr<IContainerIterator>& Other) const override
-		{
-			return !(Inner != reinterpret_cast<FStorageIterator_SingleEntry_ForInterface*>(Other.Get())->Inner);
-		}
-		//~ IContainerIterator
+		//~ Container::IIterator
 
 	private:
-		FStorageIterator_SingleEntry Inner;
+		FIterator_AllAddresses Inner;
+	};
+
+	class FAERIEINVENTORY_API FIterator_SingleEntry_ForInterface final : public Container::IIterator
+	{
+	public:
+		FIterator_SingleEntry_ForInterface(const FIterator_SingleEntry& Inner) : Inner(Inner) {}
+
+		//~ Container::IIterator
+		FORCEINLINE virtual Container::FVirtualIterator Copy() const override { return Inner.ToInterface(); }
+		FORCEINLINE virtual void Advance() override { ++Inner; }
+		FORCEINLINE virtual FEntryKey ResolveKey() const override { return Inner.GetKey(); }
+		FORCEINLINE virtual FFaerieAddress ResolveAddress() const override { return Inner.GetAddress(); }
+		FORCEINLINE virtual const UFaerieItem* ResolveItem() const override { return Inner.GetItem(); }
+		FORCEINLINE virtual bool IsValid() const override { return static_cast<bool>(Inner); }
+		//~ Container::IIterator
+
+	private:
+		FIterator_SingleEntry Inner;
 	};
 }
