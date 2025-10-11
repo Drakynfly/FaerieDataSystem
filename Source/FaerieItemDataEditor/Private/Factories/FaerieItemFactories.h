@@ -5,6 +5,8 @@
 #include "Factories/Factory.h"
 #include "FaerieItemFactories.generated.h"
 
+class UFaerieItemAsset;
+
 UCLASS()
 class FAERIEITEMDATAEDITOR_API UFaerieItemAsset_Factory : public UFactory
 {
@@ -13,8 +15,12 @@ class FAERIEITEMDATAEDITOR_API UFaerieItemAsset_Factory : public UFactory
 public:
     UFaerieItemAsset_Factory(const FObjectInitializer& ObjectInitializer);
 
-protected:
+    virtual bool ConfigureProperties() override;
     virtual UObject* FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn) override;
+
+    // The template to duplicate
+    UPROPERTY(EditAnywhere, Category = "Config")
+    TObjectPtr<UFaerieItemAsset> Template = nullptr;
 };
 
 UCLASS()
@@ -25,6 +31,5 @@ class FAERIEITEMDATAEDITOR_API UFaerieItemTemplate_Factory : public UFactory
 public:
     UFaerieItemTemplate_Factory(const FObjectInitializer& ObjectInitializer);
 
-protected:
     virtual UObject* FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn) override;
 };

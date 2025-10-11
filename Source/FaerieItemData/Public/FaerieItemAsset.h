@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "UObject/Object.h"
+#include "Engine/DataAsset.h"
 #include "FaerieItemSource.h"
 
 #include "FaerieItemAsset.generated.h"
@@ -15,11 +15,15 @@ class UFaerieItemTemplate;
  * A basic item definition. Used to generate generic items with no procedural data.
  */
 UCLASS(BlueprintType, Const)
-class FAERIEITEMDATA_API UFaerieItemAsset : public UObject, public IFaerieItemSource
+class FAERIEITEMDATA_API UFaerieItemAsset : public UPrimaryDataAsset, public IFaerieItemSource
 {
 	GENERATED_BODY()
 
 public:
+#if WITH_EDITORONLY_DATA
+	virtual void GetAssetRegistryTagMetadata(TMap<FName, FAssetRegistryTagMetadata>& OutMetadata) const override;
+#endif
+
 	virtual void PreSave(FObjectPreSaveContext SaveContext) override;
 	virtual void PostLoad() override;
 
@@ -65,6 +69,10 @@ protected:
 	bool AlwaysMutable = false;
 
 public:
+	// If this is enabled, this will be a template that will appear in the template section when creating a new asset.
+	UPROPERTY(EditInstanceOnly, Category = "ItemAsset", AssetRegistrySearchable)
+	bool IsEditorTemplate = false;
+
 	UPROPERTY(VisibleAnywhere, Instanced, Category = "Thumbnail")
 	TObjectPtr<class UThumbnailInfo> ThumbnailInfo;
 #endif

@@ -17,6 +17,27 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemAsset)
 
+#define LOCTEXT_NAMESPACE "UFaerieItemAsset"
+
+namespace Faerie::ItemAssetPrivate
+{
+	static const FName NAME_IsEditorTemplate("IsEditorTemplate");
+}
+
+#if WITH_EDITORONLY_DATA
+void UFaerieItemAsset::GetAssetRegistryTagMetadata(TMap<FName, FAssetRegistryTagMetadata>& OutMetadata) const
+{
+	Super::GetAssetRegistryTagMetadata(OutMetadata);
+
+	OutMetadata.Add(
+		Faerie::ItemAssetPrivate::NAME_IsEditorTemplate,
+		FAssetRegistryTagMetadata()
+		.SetDisplayName(LOCTEXT("IsEditorTemplate", "Is Editor Template"))
+		.SetTooltip(LOCTEXT("IsEditorTemplateTooltip", "This asset appears in the template section when creating a new asset."))
+	);
+}
+#endif
+
 void UFaerieItemAsset::PreSave(FObjectPreSaveContext SaveContext)
 {
 #if WITH_EDITOR
@@ -169,3 +190,5 @@ const UFaerieItem* UFaerieItemAsset::GetItemInstance(const EFaerieItemInstancing
 	if (!IsValidChecked(Item)) return nullptr;
 	return Item->CreateInstance(Mutability);
 }
+
+#undef LOCTEXT_NAMESPACE
