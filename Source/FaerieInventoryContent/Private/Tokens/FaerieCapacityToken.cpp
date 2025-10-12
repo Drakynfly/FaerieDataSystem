@@ -25,10 +25,16 @@ int32 UFaerieCapacityToken::GetWeightOfStack(const int32 Stack) const
 	return Capacity.Weight * Stack;
 }
 
-int32 UFaerieCapacityToken::GetVolumeOfStack(const int32 Stack) const
+int64 UFaerieCapacityToken::GetVolumeOfStack(const int32 Stack) const
 {
 	const int64 Volume = Capacity.GetVolume();
-	return static_cast<int32>(Volume + (Volume * (Stack - 1) * Capacity.Efficiency)); // @todo maybe return int64 here?
+	return (Volume + (Volume * (Stack - 1) * Capacity.Efficiency));
+}
+
+int64 UFaerieCapacityToken::GetEfficientVolume(const int32 Stack) const
+{
+	const int64 Volume = Capacity.GetVolume();
+	return static_cast<int64>(Volume * Stack * Capacity.Efficiency);
 }
 
 FWeightAndVolume UFaerieCapacityToken::GetWeightAndVolumeOfStack(const int32 Stack) const
@@ -36,23 +42,7 @@ FWeightAndVolume UFaerieCapacityToken::GetWeightAndVolumeOfStack(const int32 Sta
 	return FWeightAndVolume(GetWeightOfStack(Stack), GetVolumeOfStack(Stack));
 }
 
-FWeightAndVolume UFaerieCapacityToken::GetWeightAndVolumeOfStackForRemoval(const int32 Current,
-																		   const int32 Removal) const
+FWeightAndVolume UFaerieCapacityToken::GetWeightAndVolumeOfPartialStack(const int32 Stack) const
 {
-	if (Removal <= 0) return FWeightAndVolume();
-
-	FWeightAndVolume Out;
-
-	if (Removal >= Current)
-	{
-		Out.GramWeight = GetWeightOfStack(Current);
-		Out.Volume = GetVolumeOfStack(Current);
-	}
-	else
-	{
-		Out.GramWeight = Capacity.Weight * Removal;
-		Out.Volume = static_cast<int64>(Capacity.GetVolume() * Removal * Capacity.Efficiency);
-	}
-
-	return Out;
+	return FWeightAndVolume(GetWeightOfStack(Stack), GetEfficientVolume(Stack));
 }
