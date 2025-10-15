@@ -62,7 +62,7 @@ namespace Faerie::Storage
 	private:
 		// Entry iteration
 		const FInventoryContent* Content;
-		int32 EntryIndex = -1;
+		int32 EntryIndex = INDEX_NONE;
 	};
 
 	class FAERIEINVENTORY_API FIterator_AllAddresses : FStorageDataAccess
@@ -117,7 +117,7 @@ namespace Faerie::Storage
 	private:
 		// Entry iteration
 		const FInventoryContent* Content;
-		int32 EntryIndex = -1;
+		int32 EntryIndex = INDEX_NONE;
 
 		// Stack iteration
 		const FKeyedStack* StackPtr;

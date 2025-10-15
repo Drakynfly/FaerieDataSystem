@@ -3,9 +3,9 @@
 #pragma once
 
 #include "UObject/Interface.h"
-#include "UObject/Object.h"
 #include "FaerieAssetInfo.h"
 #include "FaerieItemDataEnums.h"
+#include "FaerieItemStack.h"
 
 #include "FaerieItemSource.generated.h"
 
@@ -24,6 +24,10 @@ public:
 	UPROPERTY()
 	EFaerieItemInstancingMutability Flags = EFaerieItemInstancingMutability::Automatic;
 
+	// Number of copies to generate. If unset, will default to 1.
+	UPROPERTY()
+	TOptional<int32> CopiesOverride;
+
 	// Children must implement this to allow safe casting.
 	virtual const UScriptStruct* GetScriptStruct() const { return FFaerieItemInstancingContext::StaticStruct(); }
 
@@ -38,7 +42,6 @@ public:
 	}
 };
 
-// This class does not need to be modified.
 UINTERFACE(BlueprintType, meta = (CannotImplementInterfaceInBlueprint))
 class FAERIEITEMDATA_API UFaerieItemSource : public UInterface
 {
@@ -60,15 +63,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemSource")
 	virtual FFaerieAssetInfo GetSourceInfo() const { return FFaerieAssetInfo(); }
 
-	// Create a item instance from this source.
-	// An InstancingContext may be required to provide contextual data from the requester of the item.
-	virtual const UFaerieItem* CreateItemInstance(const FFaerieItemInstancingContext* Context) const
-		PURE_VIRTUAL(IFaerieItemSource::CreateItemInstance, return nullptr; )
+	// Create an item stack from this source.
+	// An InstancingContext may be required to provide contextual data from the requester of the stack, depending on the implementation.
+	virtual TOptional<FFaerieItemStack> CreateItemStack(const FFaerieItemInstancingContext* Context) const
+		PURE_VIRTUAL(IFaerieItemSource::CreateItemStack, return NullOpt; )
 };
 
 /**
- * A wrapper struct that can container a pointer to any object that implements IFaerieItemSource
- * Held reference is soft.
+ * A wrapper struct that contains a soft reference to an object implementing IFaerieItemSource
  */
 USTRUCT(BlueprintType)
 struct FAERIEITEMDATA_API FFaerieItemSourceObject

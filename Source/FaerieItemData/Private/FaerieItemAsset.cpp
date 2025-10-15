@@ -17,14 +17,16 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemAsset)
 
-#define LOCTEXT_NAMESPACE "UFaerieItemAsset"
+#if WITH_EDITORONLY_DATA
 
 namespace Faerie::ItemAssetPrivate
 {
 	static const FName NAME_IsEditorTemplate("IsEditorTemplate");
 }
 
-#if WITH_EDITORONLY_DATA
+
+#define LOCTEXT_NAMESPACE "FaerieItemAssetMetadata"
+
 void UFaerieItemAsset::GetAssetRegistryTagMetadata(TMap<FName, FAssetRegistryTagMetadata>& OutMetadata) const
 {
 	Super::GetAssetRegistryTagMetadata(OutMetadata);
@@ -36,6 +38,9 @@ void UFaerieItemAsset::GetAssetRegistryTagMetadata(TMap<FName, FAssetRegistryTag
 		.SetTooltip(LOCTEXT("IsEditorTemplateTooltip", "This asset appears in the template section when creating a new asset."))
 	);
 }
+
+#undef LOCTEXT_NAMESPACE
+
 #endif
 
 void UFaerieItemAsset::PreSave(FObjectPreSaveContext SaveContext)
@@ -105,7 +110,7 @@ void UFaerieItemAsset::PostLoad()
 
 #if WITH_EDITOR
 
-#define LOCTEXT_NAMESPACE "ValidateFaerieItemAsset"
+#define LOCTEXT_NAMESPACE "FaerieItemAssetValidation"
 
 EDataValidationResult UFaerieItemAsset::IsDataValid(FDataValidationContext& Context) const
 {
@@ -175,14 +180,19 @@ FFaerieAssetInfo UFaerieItemAsset::GetSourceInfo() const
 	return FFaerieAssetInfo();
 }
 
-const UFaerieItem* UFaerieItemAsset::CreateItemInstance(const FFaerieItemInstancingContext* Context) const
+TOptional<FFaerieItemStack> UFaerieItemAsset::CreateItemStack(const FFaerieItemInstancingContext* Context) const
 {
-	if (!IsValidChecked(Item)) return nullptr;
+	if (!IsValidChecked(Item)) return NullOpt;
 	if (Context)
 	{
-		return Item->CreateInstance(Context->Flags);
+		int32 Copies = 1;
+		if (Context->CopiesOverride.IsSet())
+		{
+			Copies = Context->CopiesOverride.GetValue();
+		}
+		return FFaerieItemStack(Item->CreateInstance(Context->Flags), Copies);
 	}
-	return Item->CreateInstance();
+	return FFaerieItemStack(Item->CreateInstance(), 1);
 }
 
 const UFaerieItem* UFaerieItemAsset::GetItemInstance(const EFaerieItemInstancingMutability Mutability) const

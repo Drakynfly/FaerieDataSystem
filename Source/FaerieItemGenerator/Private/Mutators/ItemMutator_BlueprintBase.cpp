@@ -1,0 +1,37 @@
+﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
+
+#include "Mutators/ItemMutator_BlueprintBase.h"
+
+void FFaerieItemMutator_Blueprint::GetRequiredAssets(TArray<TSoftObjectPtr<UObject>>& RequiredAssets) const
+{
+	if (IsValid(Blueprint))
+	{
+		return Blueprint->NativeGetRequiredAssets(RequiredAssets);
+	}
+}
+
+bool FFaerieItemMutator_Blueprint::Apply(FFaerieItemStack& Stack, USquirrel* Squirrel) const
+{
+	if (IsValid(Blueprint))
+	{
+		return Blueprint->NativeApply(Stack, Squirrel);
+	}
+	return false;
+}
+
+void UFaerieItemMutator_BlueprintBase::NativeGetRequiredAssets(TArray<TSoftObjectPtr<UObject>>& RequiredAssets) const
+{
+	GetRequiredAssets(RequiredAssets);
+}
+
+bool UFaerieItemMutator_BlueprintBase::NativeApply(FFaerieItemStack& Stack, USquirrel* Squirrel) const
+{
+	return Apply(Stack, Squirrel);
+}
+
+void UFaerieItemMutator_BlueprintBase::GetRequiredAssets_Implementation(TArray<TSoftObjectPtr<UObject>>& RequiredAssets) const {}
+
+bool UFaerieItemMutator_BlueprintBase::Apply_Implementation(FFaerieItemStack& Stack, USquirrel* Squirrel) const
+{
+	return false;
+}

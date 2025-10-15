@@ -3,8 +3,11 @@
 #pragma once
 
 #include "BenchBehaviorBase.h"
+#include "StructUtils/InstancedStruct.h"
 #include "ItemGenerationBench.generated.h"
 
+struct FFaerieItemStack;
+struct FFaerieItemMutator;
 class USquirrel;
 class UFaerieItemGenerationConfig;
 
@@ -23,9 +26,19 @@ public:
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 
+	UFUNCTION(BlueprintCallable, Category = "Faerie|Bench", DisplayName = "Run Mutator on Stack (ref)")
+	void RunMutatorOnStack(UPARAM(ref) FFaerieItemStack& Stack);
+
+	UFUNCTION(BlueprintCallable, Category = "Faerie|Bench", DisplayName = "Run Mutator on Stack")
+	FFaerieItemStack RunMutatorOnStack_Passthrough(const FFaerieItemStack& Stack);
+
 protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, NoClear, Category = "ItemGeneration", meta = (NoResetToDefault))
 	TArray<TObjectPtr<UFaerieItemGenerationConfig>> Drivers;
+
+	// Mutator to run on applicable items generated.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ItemGeneration", meta = (ExcludeBaseStruct))
+	TInstancedStruct<FFaerieItemMutator> Mutator;
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, NoClear, Category = "ItemGeneration", meta = (NoResetToDefault, DisplayThumbnail = false, ShowInnerProperties))
 	TObjectPtr<USquirrel> Squirrel;

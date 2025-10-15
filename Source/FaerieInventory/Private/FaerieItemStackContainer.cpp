@@ -424,7 +424,7 @@ bool UFaerieItemStackContainer::CanTakeFromSlot(const int32 Copies) const
 {
 	if (!ItemStack.IsValid()) return false;
 
-	if (Copies != Faerie::ItemData::UnlimitedStack &&
+	if (Copies != Faerie::ItemData::EntireStack &&
 		ItemStack.Copies < Copies)
 	{
 		return false;
@@ -469,7 +469,7 @@ FFaerieItemStack UFaerieItemStackContainer::TakeItemFromSlot(int32 Copies)
 		return FFaerieItemStack();
 	}
 
-	if (Copies == Faerie::ItemData::UnlimitedStack)
+	if (Copies == Faerie::ItemData::EntireStack)
 	{
 		Copies = ItemStack.Copies;
 	}

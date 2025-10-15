@@ -6,31 +6,24 @@
 #include "UObject/Object.h"
 #include "FaerieItemMutator.generated.h"
 
-struct FFaerieItemStackView;
-struct FSquirrelState;
+class USquirrel;
 class UFaerieItemTemplate;
 
 /**
  * Base class for mutation behavior. This is essentially a 'command' class.
+ * GetRequiredAssets is optional to implement.
+ * Apply must be implemented.
  */
-UCLASS(Abstract)
-class FAERIEITEMGENERATOR_API UFaerieItemMutator : public UObject
+USTRUCT()
+struct FFaerieItemMutator
 {
 	GENERATED_BODY()
 
-protected:
-	virtual bool CanApply(FFaerieItemStackView View) const;
-	virtual bool Apply(FFaerieItemStack Stack, FSquirrelState* Squirrel) PURE_VIRTUAL(UFaerieItemMutator::Apply, return false; )
-
-public:
-	bool TryApply(const FFaerieItemStack& Stack, FSquirrelState* Squirrel);
+	virtual ~FFaerieItemMutator() = default;
 
 	// Any soft assets required to be loaded when Apply is called should be registered here.
-	UFUNCTION(BlueprintNativeEvent, Category = "Mutator")
-	void GetRequiredAssets(TArray<TSoftObjectPtr<UObject>>& RequiredAssets) const;
+	virtual void GetRequiredAssets(TArray<TSoftObjectPtr<UObject>>& RequiredAssets) const {}
 
-protected:
-	// The filter that selects valid entries that this mutator can apply to.
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Instanced, Category = "Resource Slot Filter")
-	TObjectPtr<UFaerieItemTemplate> ApplicationFilter = nullptr;
+	//
+	virtual bool Apply(FFaerieItemStack& Stack, USquirrel* Squirrel) const PURE_VIRTUAL(FFaerieItemMutator::Apply, return false; )
 };

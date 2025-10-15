@@ -8,13 +8,13 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieGenerationStructs)
 
-const UFaerieItem* FFaerieTableDrop::Resolve(const FFaerieItemInstancingContext_Crafting& Context) const
+TOptional<FFaerieItemStack> FFaerieTableDrop::Resolve(const FFaerieItemInstancingContext_Crafting& Context) const
 {
 	auto&& DropObject = Asset.Object.LoadSynchronous();
 
 	if (!DropObject || !ensure(DropObject->Implements<UFaerieItemSource>()))
 	{
-		return nullptr;
+		return NullOpt;
 	}
 
 	const IFaerieItemSource* ItemSource = Cast<IFaerieItemSource>(DropObject);
@@ -33,18 +33,19 @@ const UFaerieItem* FFaerieTableDrop::Resolve(const FFaerieItemInstancingContext_
 		//{
 		//}
 
-		// Instead of creating millions of these, reuse them somehow. probably have Context contain a temp
 		FFaerieItemInstancingContext_Crafting ChildContext;
 		ChildContext.Squirrel = Context.Squirrel;
 
-		if (const UFaerieItem* StaticInstanceItem = ChildDrop.Resolve(ChildContext))
+		if (auto StaticInstanceItem = ChildDrop.Resolve(ChildContext))
 		{
-			TempContext.GeneratedChildren.Add(StaticResourceSlot.Key, FFaerieItemStack(StaticInstanceItem, 1));
+			if (StaticInstanceItem.IsSet())
+			{
+				TempContext.GeneratedChildren.Add(StaticResourceSlot.Key, StaticInstanceItem.GetValue());
+			}
 		}
 	}
 
-	const UFaerieItem* Item = ItemSource->CreateItemInstance(&TempContext);
-	return Item;
+	return ItemSource->CreateItemStack(&TempContext);
 }
 
 void FFaerieGenerationProcedure_OfOne::Resolve(const FFaerieWeightedPool& Pool, USquirrel* Squirrel,

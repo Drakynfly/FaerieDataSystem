@@ -111,14 +111,14 @@ void FFaerieRecipeCraftRequest::Run(UFaerieCraftingRunner* Runner) const
 	Context.Squirrel = Squirrel.Get();
 	Context.InputEntryData = RequestData.FilledSlots;
 
-	const UFaerieItem* NewItem = Config->Recipe->GetItemSource()->CreateItemInstance(&Context);
-	if (!IsValid(NewItem))
+	const TOptional<FFaerieItemStack> NewStack = Config->Recipe->GetItemSource()->CreateItemStack(&Context);
+	if (!NewStack.IsSet())
 	{
 		UE_LOG(LogItemGeneration, Error, TEXT("Item Instancing failed for Craft Item!"));
 		return Runner->Fail();
 	}
 
-	RequestData.ProcessStacks.Add({NewItem, 1});
+	RequestData.ProcessStacks.Add(NewStack.GetValue());
 
 	if (RunConsumeStep && Config->Recipe->Implements<UFaerieItemSlotInterface>())
 	{

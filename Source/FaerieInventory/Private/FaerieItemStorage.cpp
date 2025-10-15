@@ -700,7 +700,7 @@ Faerie::Inventory::FEventLog UFaerieItemStorage::RemoveFromEntryImpl(const FEntr
 		Event.Item = Entry->GetItem();
 		const int32 Sum = Entry->StackSum();
 
-		if (Amount == Faerie::ItemData::UnlimitedStack || Amount >= Sum) // Remove the entire entry
+		if (Amount == Faerie::ItemData::EntireStack || Amount >= Sum) // Remove the entire entry
 		{
 			Event.Amount = Sum;
 			Event.StackKeys = Entry->CopyKeys();
@@ -760,7 +760,7 @@ Faerie::Inventory::FEventLog UFaerieItemStorage::RemoveFromStackImpl(const FFaer
 		Event.Item = Entry->GetItem();
 
 		if (auto&& Stack = Entry->GetStack(StackKey);
-			Amount == Faerie::ItemData::UnlimitedStack || Amount >= Stack) // Remove the entire stack
+			Amount == Faerie::ItemData::EntireStack || Amount >= Stack) // Remove the entire stack
 		{
 			Event.Amount = Stack;
 
@@ -1238,7 +1238,7 @@ FLoggedInventoryEvent UFaerieItemStorage::AddItemStackWithLog(const FFaerieItemS
 
 bool UFaerieItemStorage::RemoveEntry(const FEntryKey Key, const FFaerieInventoryTag RemovalTag, const int32 Amount)
 {
-	if (Amount == 0 || Amount < -1) return false;
+	if (Amount == 0 || Amount < Faerie::ItemData::EntireStack) return false;
 	if (!Contains(Key)) return false;
 	if (!CanRemoveEntry(Key, RemovalTag)) return false;
 
@@ -1247,7 +1247,7 @@ bool UFaerieItemStorage::RemoveEntry(const FEntryKey Key, const FFaerieInventory
 
 bool UFaerieItemStorage::RemoveStack(const FFaerieAddress Address, const FFaerieInventoryTag RemovalTag, const int32 Amount)
 {
-	if (Amount == 0 || Amount < -1) return false;
+	if (Amount == 0 || Amount < Faerie::ItemData::EntireStack) return false;
 	if (!Contains(Address)) return false;
 
 	if (!RemovalTag.IsValid()) return false;
@@ -1260,7 +1260,7 @@ bool UFaerieItemStorage::RemoveStack(const FFaerieAddress Address, const FFaerie
 bool UFaerieItemStorage::TakeEntry(const FEntryKey Key, FFaerieItemStack& OutStack,
 								   const FFaerieInventoryTag RemovalTag, const int32 Amount)
 {
-	if (Amount == 0 || Amount < -1) return false;
+	if (Amount == 0 || Amount < Faerie::ItemData::EntireStack) return false;
 	if (!Contains(Key)) return false;
 
 	if (!RemovalTag.IsValid()) return false;
@@ -1280,7 +1280,7 @@ bool UFaerieItemStorage::TakeEntry(const FEntryKey Key, FFaerieItemStack& OutSta
 bool UFaerieItemStorage::TakeStack(const FFaerieAddress Address, FFaerieItemStack& OutStack,
 								   const FFaerieInventoryTag RemovalTag, const int32 Amount)
 {
-	if (Amount == 0 || Amount < -1) return false;
+	if (Amount == 0 || Amount < Faerie::ItemData::EntireStack) return false;
 	if (!Contains(Address)) return false;
 
 	if (!RemovalTag.IsValid()) return false;
@@ -1307,7 +1307,7 @@ void UFaerieItemStorage::Clear(FFaerieInventoryTag RemovalTag)
 	const TArray<FEntryKey> Entries = GetAllEntries();
 	for (const FEntryKey Entry : Entries)
 	{
-		RemoveFromEntryImpl(Entry, Faerie::ItemData::UnlimitedStack, RemovalTag);
+		RemoveFromEntryImpl(Entry, Faerie::ItemData::EntireStack, RemovalTag);
 	}
 
 	checkf(EntryMap.IsEmpty(), TEXT("Clear failed to empty EntryMap"));
@@ -1400,7 +1400,7 @@ FEntryKey UFaerieItemStorage::MoveEntry(UFaerieItemStorage* ToStorage, const FEn
 		return FEntryKey::InvalidKey;
 	}
 
-	auto&& Result = RemoveFromEntryImpl(Key, Faerie::ItemData::UnlimitedStack, Faerie::Inventory::Tags::RemovalMoving);
+	auto&& Result = RemoveFromEntryImpl(Key, Faerie::ItemData::EntireStack, Faerie::Inventory::Tags::RemovalMoving);
 
 	if (!ensure(Result.Success))
 	{
@@ -1534,7 +1534,7 @@ void UFaerieItemStorage::Dump(UFaerieItemStorage* ToStorage)
 		}
 
 		Faerie::Inventory::FEventLog Result = RemoveFromEntryImpl(Entry,
-			Faerie::ItemData::UnlimitedStack, Faerie::Inventory::Tags::RemovalMoving);
+			Faerie::ItemData::EntireStack, Faerie::Inventory::Tags::RemovalMoving);
 
 		if (!ensure(Result.Success))
 		{

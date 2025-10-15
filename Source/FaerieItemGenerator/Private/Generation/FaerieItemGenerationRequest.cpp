@@ -169,6 +169,7 @@ void FFaerieItemGenerationRequest::Generate(UFaerieCraftingRunner* Runner) const
 
 void FFaerieItemGenerationRequest::ResolveGeneration(FFaerieItemGenerationRequestStorage& Storage, const Faerie::FPendingItemGeneration& Generation, const FFaerieItemInstancingContext_Crafting& Context) const
 {
+	// If the source object is a Pool, and we are configured to recurse tables,
 	const UObject* SourceObject = Generation.Drop->Asset.Object.Get();
 	if (const UFaerieItemPool* Pool = Cast<UFaerieItemPool>(SourceObject);
 		IsValid(Pool) && RecursivelyResolveTables)
@@ -188,10 +189,10 @@ void FFaerieItemGenerationRequest::ResolveGeneration(FFaerieItemGenerationReques
 	{
 		for (int32 i = 0; i < Generation.Count; ++i)
 		{
-			if (const UFaerieItem* Item = Generation.Drop->Resolve(Context);
-				IsValid(Item))
+			if (auto NewStack = Generation.Drop->Resolve(Context);
+				NewStack.IsSet())
 			{
-				Storage.ProcessStacks.Emplace(Item, 1);
+				Storage.ProcessStacks.Emplace(NewStack.GetValue());
 			}
 			else
 			{
@@ -202,10 +203,12 @@ void FFaerieItemGenerationRequest::ResolveGeneration(FFaerieItemGenerationReques
 	// Generate a single entry stack when immutable, as there is no chance of uniqueness.
 	else
 	{
-		if (const UFaerieItem* Item = Generation.Drop->Resolve(Context);
-			IsValid(Item))
+		if (auto NewStack = Generation.Drop->Resolve(Context);
+			NewStack.IsSet())
 		{
-			Storage.ProcessStacks.Emplace(Item, Generation.Count);
+			FFaerieItemStack Value = NewStack.GetValue();
+			Value.Copies *= Generation.Count;
+			Storage.ProcessStacks.Emplace(Value);
 		}
 	}
 }

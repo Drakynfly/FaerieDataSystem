@@ -22,7 +22,7 @@ struct FAERIEITEMGENERATOR_API FFaerieTableDrop
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TableDrop", meta = (ForceInlineRow))
 	TMap<FFaerieItemSlotHandle, TInstancedStruct<struct FFaerieTableDrop>> StaticResourceSlots;
 
-	const UFaerieItem* Resolve(const struct FFaerieItemInstancingContext_Crafting& Context) const;
+	TOptional<FFaerieItemStack> Resolve(const struct FFaerieItemInstancingContext_Crafting& Context) const;
 
 	bool IsValid() const
 	{

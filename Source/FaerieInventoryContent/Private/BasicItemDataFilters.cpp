@@ -270,7 +270,8 @@ EItemDataMutabilityStatus UFilterRule_Copies::GetMutabilityStatus() const
 
 	// In cases where only stacks are allowed through, we know that we are only passing immutable data.
 
-	switch (Operator) {
+	switch (Operator)
+	{
 	case ECopiesCompareOperator::Less:				return Default;
 	case ECopiesCompareOperator::LessOrEqual:		return Default;
 	case ECopiesCompareOperator::Greater:			return EItemDataMutabilityStatus::KnownImmutable;
@@ -284,7 +285,8 @@ EItemDataMutabilityStatus UFilterRule_Copies::GetMutabilityStatus() const
 
 bool UFilterRule_Copies::Exec(const FFaerieItemStackView View) const
 {
-	switch (Operator) {
+	switch (Operator)
+	{
 	case ECopiesCompareOperator::Less:				return View.Copies < AmountToCompare;
 	case ECopiesCompareOperator::LessOrEqual:		return View.Copies <= AmountToCompare;
 	case ECopiesCompareOperator::Greater:			return View.Copies > AmountToCompare;
@@ -302,7 +304,8 @@ EItemDataMutabilityStatus UFilterRule_StackLimit::GetMutabilityStatus() const
 
 	// In cases where only stacks are allowed through, we know that we are only passing immutable data.
 
-	switch (Operator) {
+	switch (Operator)
+	{
 	case EStackCompareOperator::Less:			return Default;
 	case EStackCompareOperator::LessOrEqual:	return Default;
 	case EStackCompareOperator::Greater:		return EItemDataMutabilityStatus::KnownImmutable;
@@ -321,7 +324,8 @@ bool UFilterRule_StackLimit::Exec(const FFaerieItemStackView View) const
 	if (const int32 Limit = UFaerieStackLimiterToken::GetItemStackLimit(View.Item.Get());
 		Limit == Faerie::ItemData::UnlimitedStack)
 	{
-		switch (Operator) {
+		switch (Operator)
+		{
 		case EStackCompareOperator::Less:			return false;
 		case EStackCompareOperator::LessOrEqual:	return false;
 		case EStackCompareOperator::Greater:		return true;
@@ -335,7 +339,8 @@ bool UFilterRule_StackLimit::Exec(const FFaerieItemStackView View) const
 	}
 	else
 	{
-		switch (Operator) {
+		switch (Operator)
+		{
 		case EStackCompareOperator::Less:			return Limit < AmountToCompare;
 		case EStackCompareOperator::LessOrEqual:	return Limit <= AmountToCompare;
 		case EStackCompareOperator::Greater:		return Limit > AmountToCompare;

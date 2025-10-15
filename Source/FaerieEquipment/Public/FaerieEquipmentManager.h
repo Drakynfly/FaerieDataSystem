@@ -123,6 +123,10 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Faerie|EquipmentManager")
 	bool RemoveSlot(UFaerieEquipmentSlot* Slot);
 
+	// Switches the content of two slots, as long as the content of each can fit in the other.
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Faerie|EquipmentManager")
+	bool TrySwapSlots(UFaerieEquipmentSlot* SlotA, UFaerieEquipmentSlot* SlotB);
+
 protected:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentManager", meta = (DisplayName = "Get Slots"))
 	TArray<UFaerieEquipmentSlot*> BP_GetSlots() const { return Slots; }

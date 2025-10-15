@@ -267,6 +267,25 @@ bool UFaerieEquipmentManager::RemoveSlot(UFaerieEquipmentSlot* Slot)
 	return false;
 }
 
+bool UFaerieEquipmentManager::TrySwapSlots(UFaerieEquipmentSlot* SlotA, UFaerieEquipmentSlot* SlotB)
+{
+	if (!(IsValid(SlotA) && IsValid(SlotB)))
+	{
+		return false;
+	}
+
+	if (SlotB->IsFilled() && !SlotA->CouldSetInSlot(SlotB->ItemStack)) return false;
+	if (SlotA->IsFilled() && !SlotB->CouldSetInSlot(SlotA->ItemStack)) return false;
+
+	auto ContentA = SlotA->TakeItemFromSlot(Faerie::ItemData::EntireStack);
+	auto ContentB = SlotB->TakeItemFromSlot(Faerie::ItemData::EntireStack);
+
+	SlotA->SetItemInSlot(ContentA);
+	SlotA->SetItemInSlot(ContentB);
+
+	return true;
+}
+
 const UFaerieEquipmentSlot* UFaerieEquipmentManager::FindSlot(const FFaerieSlotTag SlotID, const bool Recursive) const
 {
 	for (auto&& Slot : Slots)

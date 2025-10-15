@@ -64,7 +64,7 @@ bool FFaerieClientAction_MoveToGrid::Release(FFaerieItemStack& Stack) const
 	check(GridExtension);
 
 	const FFaerieAddress Address = GridExtension->GetKeyAt(Position);
-	return Storage->TakeStack(Address, Stack, Faerie::Inventory::Tags::RemovalMoving, Faerie::ItemData::UnlimitedStack);
+	return Storage->TakeStack(Address, Stack, Faerie::Inventory::Tags::RemovalMoving, Faerie::ItemData::EntireStack);
 }
 
 bool FFaerieClientAction_MoveToGrid::IsSwap() const

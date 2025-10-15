@@ -14,7 +14,7 @@
 
 EDataValidationResult UFaerieItemUpgradeConfig::IsDataValid(FDataValidationContext& Context) const
 {
-	if (!Mutator)
+	if (!Mutator.IsValid())
 	{
 		Context.AddError(LOCTEXT("MutatorNotValid", "Mutators is invalid."));
 	}

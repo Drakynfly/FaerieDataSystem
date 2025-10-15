@@ -28,13 +28,14 @@ void FFaerieItemLastUseLogic_Replace::OnLastUse(UFaerieItem* Item) const
 	if (IFaerieItemOwnerInterface* Container = Item->GetImplementingOuter<IFaerieItemOwnerInterface>())
 	{
 		FFaerieItemInstancingContext Context;
-		if (const UFaerieItem* NewItem = BaseItemSource->CreateItemInstance(&Context))
+		if (const TOptional<FFaerieItemStack> NewStack = BaseItemSource->CreateItemStack(&Context);
+			NewStack.IsSet())
 		{
 			// Release and cast into the aether.
-			(void)Container->Release({Item, 1});
+			(void)Container->Release({Item, Faerie::ItemData::EntireStack});
 
 			// Possess new item
-			(void)Container->Possess({ NewItem, 1 });
+			(void)Container->Possess(NewStack.GetValue());
 		}
 		else
 		{

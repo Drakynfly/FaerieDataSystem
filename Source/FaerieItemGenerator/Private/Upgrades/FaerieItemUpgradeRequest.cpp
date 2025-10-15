@@ -8,7 +8,6 @@
 #include "FaerieItemSlotInterface.h"
 #include "FaerieItemStackView.h"
 #include "FaerieItemTemplate.h"
-#include "Squirrel.h"
 #include "Engine/AssetManager.h"
 #include "Engine/StreamableManager.h"
 #include "Engine/World.h"
@@ -103,7 +102,7 @@ void FFaerieItemUpgradeRequest::Run(UFaerieCraftingRunner* Runner) const
 
 	// Preload any assets that the Mutator wants loaded
 	TArray<TSoftObjectPtr<UObject>> RequiredAssets;
-	Config->Mutator->GetRequiredAssets(RequiredAssets);
+	Config->Mutator.Get().GetRequiredAssets(RequiredAssets);
 
 	for (auto&& RequiredAsset : RequiredAssets)
 	{
@@ -155,15 +154,15 @@ void FFaerieItemUpgradeRequest::Execute(UFaerieCraftingRunner* Runner) const
 	int32 Copies = 1;
 
 	const FFaerieItemStackView ReleaseRequest{ItemProxy->GetItemObject(), Copies};
-	const FFaerieItemStack Stack = ItemProxy->GetItemOwner()->Release(ReleaseRequest);
 
+	FFaerieItemStack Stack = ItemProxy->GetItemOwner()->Release(ReleaseRequest);
 	if (Stack.Copies == 0)
 	{
 		return Runner->Fail();
 	}
 
-	// Apply the mutator
-	if (!Config->Mutator->TryApply(Stack, &Squirrel.Get()->GetState()))
+	// Apply the mutator, and fail if it doesn't apply, when RequireMutatorToRun is enabled.
+	if (!Config->Mutator.Get().Apply(Stack, Squirrel.Get()) && Config->RequireMutatorToRun)
 	{
 		return Runner->Fail();
 	}
@@ -172,9 +171,9 @@ void FFaerieItemUpgradeRequest::Execute(UFaerieCraftingRunner* Runner) const
 
 	if (RunConsumeStep)
 	{
-		if (Config->Mutator->Implements<UFaerieItemSlotInterface>())
+		if (Config->Implements<UFaerieItemSlotInterface>())
 		{
-			Faerie::ConsumeSlotCosts(RequestData.FilledSlots, Cast<IFaerieItemSlotInterface>(Config->Mutator));
+			Faerie::ConsumeSlotCosts(RequestData.FilledSlots, Cast<IFaerieItemSlotInterface>(Config));
 		}
 	}
 

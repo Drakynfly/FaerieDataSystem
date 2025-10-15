@@ -318,7 +318,7 @@ void UInventoryReplicatedDataExtensionBase::PreRemoval(const UFaerieItemContaine
 		FFaerieReplicatedSimMap& Ref = ContainerData.Get<FFaerieReplicatedSimMap>();
 
 		// If the whole stack is being removed, auto-delete any data we have for the entry
-		if (Container->GetStack(Key) == Removal || Removal == Faerie::ItemData::UnlimitedStack)
+		if (Container->GetStack(Key) == Removal || Removal == Faerie::ItemData::EntireStack)
 		{
 			Ref.RemoveValue(Key);
 		}

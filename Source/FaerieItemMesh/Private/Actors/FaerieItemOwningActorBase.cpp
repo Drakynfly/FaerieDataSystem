@@ -24,19 +24,19 @@ void AFaerieItemOwningActorBase::InitStackFromConfig(const bool RegenerateDispla
 {
 	if (ItemStack->IsFilled())
 	{
-		ItemStack->TakeItemFromSlot(Faerie::ItemData::UnlimitedStack);
+		ItemStack->TakeItemFromSlot(Faerie::ItemData::EntireStack);
 	}
 
 	if (StackCopies > 0 &&
 		IsValid(ItemSourceAsset.GetObject()))
 	{
-		const FFaerieItemStack NewStack
+		FFaerieItemInstancingContext Context;
+		Context.CopiesOverride = StackCopies;
+		if (auto NewStack = ItemSourceAsset->CreateItemStack(&Context);
+			NewStack.IsSet())
 		{
-			ItemSourceAsset->CreateItemInstance(nullptr),
-			StackCopies
-		};
-
-		ItemStack->Possess(NewStack);
+			ItemStack->Possess(MoveTemp(NewStack.GetValue()));
+		}
 	}
 
 	if (RegenerateDisplay)
@@ -152,7 +152,7 @@ void AFaerieItemOwningActorBase::SetOwnedStack(const FFaerieItemStack& Stack)
 {
 	if (ItemStack->IsFilled())
 	{
-		ItemStack->TakeItemFromSlot(Faerie::ItemData::UnlimitedStack);
+		ItemStack->TakeItemFromSlot(Faerie::ItemData::EntireStack);
 	}
 	ItemStack->Possess(Stack);
 }

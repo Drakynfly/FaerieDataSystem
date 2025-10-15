@@ -1,6 +1,8 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "ItemGenerationBench.h"
+#include "FaerieItemMutator.h"
+#include "FaerieItemStack.h"
 #include "Squirrel.h"
 #include "Generation/FaerieItemGenerationConfig.h"
 
@@ -28,4 +30,23 @@ void UItemGenerationBench::PostEditChangeProperty(FPropertyChangedEvent& Propert
 		}
 	}
 }
+
 #endif
+
+void UItemGenerationBench::RunMutatorOnStack(FFaerieItemStack& Stack)
+{
+	if (Stack.IsValid() && Mutator.IsValid())
+	{
+		Mutator.Get().Apply(Stack, Squirrel);
+	}
+}
+
+FFaerieItemStack UItemGenerationBench::RunMutatorOnStack_Passthrough(const FFaerieItemStack& Stack)
+{
+	FFaerieItemStack Out = Stack;
+	if (Stack.IsValid() && Mutator.IsValid())
+	{
+		Mutator.Get().Apply(Out, Squirrel);
+	}
+	return Out;
+}

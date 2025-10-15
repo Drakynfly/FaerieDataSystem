@@ -28,7 +28,7 @@ int32 UFaerieCapacityToken::GetWeightOfStack(const int32 Stack) const
 int64 UFaerieCapacityToken::GetVolumeOfStack(const int32 Stack) const
 {
 	const int64 Volume = Capacity.GetVolume();
-	return (Volume + (Volume * (Stack - 1) * Capacity.Efficiency));
+	return Volume + static_cast<int64>(Volume * (Stack - 1) * Capacity.Efficiency);
 }
 
 int64 UFaerieCapacityToken::GetEfficientVolume(const int32 Stack) const

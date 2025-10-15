@@ -157,11 +157,13 @@ namespace Faerie
 			TFilter(TFilterStorage<TFilters...>&& FilterTuple)
 			 : FilterStorage(MoveTemp(FilterTuple)) {}
 
-			// @todo fix return types
-
-			//TEnableIf<!EnumHasAnyFlags(Flags, EFilterFlags::Recursive),
-			//	TFilter<TClass, Flags | EFilterFlags::Recursive>>::Type Recursive()
-			auto Recursive()
+			// Mark this filter as searching recursively through all children.
+			// @Note: The awkward template here is to prevent calling this on a filter that is already recursive.
+			template <
+				EFilterFlags Flag = EFilterFlags::Recursive
+				UE_REQUIRES(Flag == EFilterFlags::Recursive && !EnumHasAnyFlags(Flags, EFilterFlags::Recursive))
+			>
+			[[nodiscard]] auto Recursive()
 			{
 				return TFilter<TClass, Flags | EFilterFlags::Recursive>(MoveTemp(FilterStorage));
 			}
@@ -176,7 +178,7 @@ namespace Faerie
 			[[nodiscard]] auto ByClass(const TSubclassOf<T>& Class)
 			{
 				FClassFilter NewFilter(Class);
-				return TFilter<T, Flags, TFilters..., FClassFilter>(FilterStorage.AddFilter(NewFilter));
+				return TFilter<T, Flags, TFilters..., FClassFilter>(FilterStorage.AddFilter(MoveTemp(NewFilter)));
 			}
 
 			template <typename T UE_REQUIRES(TIsDerivedFrom<T, TClass>::Value)>
@@ -185,7 +187,7 @@ namespace Faerie
 				return TFilter<T, Flags, TFilters...>(MoveTemp(FilterStorage));
 			}
 
-			TArray<TClass*> Emit(UFaerieItem* Item) const
+			[[nodiscard]] TArray<TClass*> Emit(UFaerieItem* Item) const
 			{
 				TArray<UFaerieItemContainerBase*> Containers;
 				if constexpr (EnumHasAnyFlags(Flags, EFilterFlags::Recursive))
