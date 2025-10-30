@@ -40,7 +40,7 @@ public:
 	//~ IFaerieContainerExtensionInterface
 
 protected:
-	virtual void HandleAddressEvent(UFaerieItemStorage* Storage, EFaerieAddressEventType Type, FFaerieAddress Address);
+	virtual void HandleAddressEvent(UFaerieItemStorage* Storage, EFaerieAddressEventType Type, TConstArrayView<FFaerieAddress> Addresses);
 
 
 	/**------------------------------*/

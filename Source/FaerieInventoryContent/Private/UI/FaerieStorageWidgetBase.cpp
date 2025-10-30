@@ -38,6 +38,12 @@ void UFaerieStorageWidgetBase::NativeConstruct()
 	}
 }
 
+void UFaerieStorageWidgetBase::NativeDestruct()
+{
+	Reset();
+	Super::NativeDestruct();
+}
+
 void UFaerieStorageWidgetBase::NativeTick(const FGeometry& MyGeometry, const float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
@@ -54,7 +60,7 @@ void UFaerieStorageWidgetBase::NativeTick(const FGeometry& MyGeometry, const flo
 
 	if (NeedsReconstructEntries)
 	{
-		DisplaySortedEntries();
+		DisplayAddresses();
 		NeedsReconstructEntries = false;
 	}
 }
@@ -75,30 +81,37 @@ void UFaerieStorageWidgetBase::Reset()
 	ItemStorage = nullptr;
 }
 
-void UFaerieStorageWidgetBase::HandleAddressEvent(UFaerieItemStorage* Storage, const EFaerieAddressEventType Type, const FFaerieAddress Address)
+void UFaerieStorageWidgetBase::HandleAddressEvent(UFaerieItemStorage* Storage, const EFaerieAddressEventType Type, const TConstArrayView<FFaerieAddress> Addresses)
 {
-	switch (Type)
+	for (auto Address : Addresses)
 	{
-	case EFaerieAddressEventType::PostAdd:
-		if (bAlwaysAddNewToSortOrder)
+		switch (Type)
 		{
-			AddToSortOrder(Address, true);
-			OnKeyAdded(Address);
+		case EFaerieAddressEventType::PostAdd:
+			{
+				if (bAlwaysAddNewToSortOrder)
+				{
+					AddToSortOrder(Address, true);
+					OnAddressAdded(Address);
+				}
+			}
+			break;
+		case EFaerieAddressEventType::PreRemove:
+			{
+				SortedAndFilteredAddresses.Remove(Address);
+				OnAddressRemoved(Address);
+			}
+			break;
+		case EFaerieAddressEventType::Edit:
+			{
+				if (bAlwaysAddNewToSortOrder)
+				{
+					AddToSortOrder(Address, false);
+				}
+				OnAddressUpdated(Address);
+			}
+			break;
 		}
-		break;
-	case EFaerieAddressEventType::PreRemove:
-		if (!!SortedAndFilteredAddresses.Remove(Address))
-		{
-			OnKeyRemoved(Address);
-		}
-		break;
-	case EFaerieAddressEventType::Edit:
-		if (bAlwaysAddNewToSortOrder)
-		{
-			AddToSortOrder(Address, false);
-			OnKeyUpdated(Address);
-		}
-		break;
 	}
 }
 

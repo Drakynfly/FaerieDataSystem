@@ -65,7 +65,7 @@ void UEquipmentVisualizationUpdater::PreRemoval(const UFaerieItemContainerBase* 
 	{
 		// If the whole stack is being removed, remove the visual for it
 		if (Removal == Faerie::ItemData::EntireStack ||
-			Container->GetStack(Key) == Removal)
+			Slot->GetStack() == Removal)
 		{
 			RemoveVisualForEntry(Slot, Key);
 		}

@@ -22,15 +22,16 @@ public:
 
 	virtual bool Initialize() override;
 	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
 protected:
 	virtual void Reset();
-	virtual void HandleAddressEvent(UFaerieItemStorage* Storage, const EFaerieAddressEventType Type, FFaerieAddress Address);
+	virtual void HandleAddressEvent(UFaerieItemStorage* Storage, const EFaerieAddressEventType Type, TConstArrayView<FFaerieAddress> Addresses);
 
 public:
 	// Set the inventory that will be used when this widget is constructed.
-	UFUNCTION(BlueprintCallable, Category = "Inventory Contents|Config")
+	UFUNCTION(BlueprintCallable, Category = "Faerie|StorageWidget")
 	void SetLinkedStorage(UFaerieItemStorage* Storage);
 
 	/**
@@ -40,33 +41,33 @@ public:
 	 * It is not necessary to call this at all, unless switching inventories. Calling SetLinkedInventory when created is
 	 * sufficient.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Inventory Contents|Config")
+	UFUNCTION(BlueprintCallable, Category = "Faerie|StorageWidget")
 	void InitWithInventory(UFaerieItemStorage* Storage);
 
-	UFUNCTION(BlueprintCallable, Category = "Inventory Contents|Display")
+	UFUNCTION(BlueprintCallable, Category = "Faerie|StorageWidget")
 	void AddToSortOrder(FFaerieAddress Address, bool WarnIfAlreadyExists);
 
-	UFUNCTION(BlueprintCallable, Category = "Inventory Contents|Display")
+	UFUNCTION(BlueprintCallable, Category = "Faerie|StorageWidget")
 	void RequestResort();
 
 protected:
-	UFUNCTION(BlueprintImplementableEvent, Category = "Inventory Contents|Display")
+	UFUNCTION(BlueprintImplementableEvent, Category = "Faerie|StorageWidget")
 	void OnInitWithInventory();
 
-	UFUNCTION(BlueprintImplementableEvent, Category = "Inventory Contents|Display")
-	void DisplaySortedEntries();
+	UFUNCTION(BlueprintImplementableEvent, Category = "Faerie|StorageWidget")
+	void DisplayAddresses();
 
-	UFUNCTION(BlueprintImplementableEvent, Category = "Inventory Contents|Display")
+	UFUNCTION(BlueprintImplementableEvent, Category = "Faerie|StorageWidget")
 	void OnReset();
 
-	UFUNCTION(BlueprintImplementableEvent, Category = "Inventory Contents|Display")
-	void OnKeyAdded(FFaerieAddress Address);
+	UFUNCTION(BlueprintImplementableEvent, Category = "Faerie|StorageWidget")
+	void OnAddressAdded(FFaerieAddress Address);
 
-	UFUNCTION(BlueprintImplementableEvent, Category = "Inventory Contents|Display")
-	void OnKeyUpdated(FFaerieAddress Address);
+	UFUNCTION(BlueprintImplementableEvent, Category = "Faerie|StorageWidget")
+	void OnAddressUpdated(FFaerieAddress Address);
 
-	UFUNCTION(BlueprintImplementableEvent, Category = "Inventory Contents|Display")
-	void OnKeyRemoved(FFaerieAddress Address);
+	UFUNCTION(BlueprintImplementableEvent, Category = "Faerie|StorageWidget")
+	void OnAddressRemoved(FFaerieAddress Address);
 
 
 	/// ***		SETUP		*** ///

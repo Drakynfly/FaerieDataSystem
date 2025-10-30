@@ -98,7 +98,7 @@ bool UFaerieInventoryComponent::RemoveExtension(UItemContainerExtensionBase* Ext
 }
 
 void UFaerieInventoryComponent::HandleAddressEvent(UFaerieItemStorage* Storage, const EFaerieAddressEventType Type,
-	FFaerieAddress Address)
+	TConstArrayView<FFaerieAddress> Addresses)
 {
 #if WITH_EDITOR
 	switch (Type)

@@ -5,8 +5,6 @@
 #include "FaerieItemKey.h"
 #include "FaerieItemContainerStructs.generated.h"
 
-class UFaerieItemContainerBase;
-
 // Typesafe wrapper around an FFaerieItemKeyBase used for keying entries in a UFaerieItemContainerBase.
 // @todo address-refactor, remove API export of this type
 USTRUCT(BlueprintType)
@@ -52,6 +50,7 @@ struct FAERIEINVENTORY_API FFaerieAddress
 };
 
 struct FFaerieItemProxy;
+class UFaerieItemContainerBase;
 
 /**
  * An item container and an address for some content.

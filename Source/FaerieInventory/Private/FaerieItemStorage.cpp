@@ -404,17 +404,14 @@ void UFaerieItemStorage::PostContentAdded(const FInventoryEntry& Entry)
 
 	// Proxies may already exist for keys on the client if they are replicated by extensions or other means, and
 	// happened to arrive before we got them.
-	TArray<FFaerieAddress> Addresses;
+	TArray<FFaerieAddress, TInlineAllocator<1>> Addresses;
 	Addresses.Reserve(Entry.NumStacks());
 	for (const FKeyedStack& Stack : Entry.GetStacks())
 	{
-		Addresses.Add(Encode(Entry.Key, Stack.Key));
+		Addresses.Emplace(Encode(Entry.Key, Stack.Key));
 	}
 
-	for (const FFaerieAddress Address : Addresses)
-	{
-		BroadcastAddressEvent(EFaerieAddressEventType::PostAdd, Address);
-	}
+	BroadcastAddressEventBulk(EFaerieAddressEventType::PostAdd, Addresses);
 
 	for (const FFaerieAddress Address : Addresses)
 	{
@@ -438,16 +435,21 @@ void UFaerieItemStorage::PreContentRemoved(const FInventoryEntry& Entry)
 
 	OnKeyRemoved.Broadcast(this, Entry.Key);
 
-	for (const FFaerieAddress Address : Faerie::Storage::FIterator_SingleEntry(Entry))
+	// Collate addresses
+	TArray<FFaerieAddress, TInlineAllocator<1>> Addresses;
+	Addresses.Reserve(Entry.NumStacks());
+	for (const FKeyedStack& Stack : Entry.GetStacks())
 	{
-		BroadcastAddressEvent(EFaerieAddressEventType::PreRemove, Address);
+		Addresses.Emplace(Encode(Entry.Key, Stack.Key));
 	}
 
+	BroadcastAddressEventBulk(EFaerieAddressEventType::PreRemove, Addresses);
+
 	// Cleanup local views.
-	for (auto&& Stack : Entry.GetStacks())
+	for (const FFaerieAddress Address : Addresses)
 	{
 		TWeakObjectPtr<UInventoryStackProxy> StackProxy;
-		LocalStackProxies.RemoveAndCopyValue(Encode(Entry.Key, Stack.Key), StackProxy);
+		LocalStackProxies.RemoveAndCopyValue(Address, StackProxy);
 		if (StackProxy.IsValid())
 		{
 			StackProxy->NotifyRemoval();
@@ -558,12 +560,21 @@ void UFaerieItemStorage::PostContentChanged(const FInventoryEntry& Entry, const 
 
 void UFaerieItemStorage::BroadcastAddressEvent(const EFaerieAddressEventType Type, const FFaerieAddress Address)
 {
-	OnAddressEventCallback.Broadcast(this, Type, Address);
+	OnAddressEventCallback.Broadcast(this, Type, MakeArrayView(&Address, 1));
 	OnAddressEvent.Broadcast(this, Type, Address);
 }
 
+void UFaerieItemStorage::BroadcastAddressEventBulk(const EFaerieAddressEventType Type, const TConstArrayView<FFaerieAddress> Addresses)
+{
+	OnAddressEventCallback.Broadcast(this, Type, Addresses);
+	for (auto Address : Addresses)
+	{
+		OnAddressEvent.Broadcast(this, Type, Address);
+	}
+}
 
-	/**------------------------------*/
+
+/**------------------------------*/
 	/*	  INTERNAL IMPLEMENTATIONS	 */
 	/**------------------------------*/
 
@@ -690,7 +701,7 @@ Faerie::Inventory::FEventLog UFaerieItemStorage::RemoveFromEntryImpl(const FEntr
 	Event.Type = Reason;
 	Event.EntryTouched = Key;
 
-	bool Remove = false;
+	bool RemoveEntry = false;
 
 	// Open Mutable Scope
 	{
@@ -704,7 +715,7 @@ Faerie::Inventory::FEventLog UFaerieItemStorage::RemoveFromEntryImpl(const FEntr
 			Event.Amount = Sum;
 			Event.StackKeys = Entry->CopyKeys();
 			Faerie::ReleaseOwnership(this, Entry->GetItem());
-			Remove = true;
+			RemoveEntry = true;
 		}
 		else // Remove part of the entry
 		{
@@ -714,7 +725,7 @@ Faerie::Inventory::FEventLog UFaerieItemStorage::RemoveFromEntryImpl(const FEntr
 	}
 	// Close Mutable scope
 
-	if (Remove)
+	if (RemoveEntry)
 	{
 		UE_LOG(LogFaerieInventory, Log, TEXT("Removing entire entry at: '%s'"), *Key.ToString());
 		EntryMap.Remove(Key);
@@ -750,7 +761,7 @@ Faerie::Inventory::FEventLog UFaerieItemStorage::RemoveFromStackImpl(const FFaer
 	Event.EntryTouched = EntryKey;
 	Event.StackKeys.Add(StackKey);
 
-	bool Remove = false;
+	bool RemoveEntry = false;
 
 	// Open Mutable Scope
 	{
@@ -763,12 +774,15 @@ Faerie::Inventory::FEventLog UFaerieItemStorage::RemoveFromStackImpl(const FFaer
 		{
 			Event.Amount = Stack;
 
-			Entry.SetStack(StackKey, 0);
-
-			if (Entry->GetStacks().IsEmpty())
+			// If removing this stack would remove all reference to this item, release and exit so we can remove the entry.
+			if (Entry.IsOnlyStack(StackKey))
 			{
 				Faerie::ReleaseOwnership(this, Entry->GetItem());
-				Remove = true;
+				RemoveEntry = true;
+			}
+			else
+			{
+				Entry.RemoveStack(StackKey);
 			}
 		}
 		else // Remove part of the stack
@@ -783,7 +797,7 @@ Faerie::Inventory::FEventLog UFaerieItemStorage::RemoveFromStackImpl(const FFaer
 	}
 	// Close Mutable scope
 
-	if (Remove)
+	if (RemoveEntry)
 	{
 		UE_LOG(LogFaerieInventory, Log, TEXT("Removing entire stack at: '%s_%s'"), *EntryKey.ToString(), *StackKey.ToString());
 		EntryMap.Remove(EntryKey);

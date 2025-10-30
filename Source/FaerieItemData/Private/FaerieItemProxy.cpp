@@ -7,7 +7,11 @@
 
 bool FFaerieItemProxy::IsValid() const
 {
-	return ::IsValid(GetItemObject());
+	if (const IFaerieItemDataProxy* ProxyObj = operator->())
+	{
+		return ::IsValid(ProxyObj->GetItemObject());
+	}
+	return false;
 }
 
 const UFaerieItem* FFaerieItemProxy::GetItemObject() const

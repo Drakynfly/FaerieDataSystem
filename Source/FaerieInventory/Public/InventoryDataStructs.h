@@ -132,7 +132,11 @@ public:
 		FInventoryEntry* operator->() const { return &Handle; }
 		FInventoryEntry& Get() const { return Handle; }
 
+		// Sets the number of copies in a stack. If stack is less that or equal to zero, will defer to RemoveStack.
 		void SetStack(FStackKey InKey, const int32 Stack);
+
+		// Removes a stack.
+		void RemoveStack(FStackKey InKey);
 
 		// Add the Amount to the stacks, adding new stacks as needed. Can optionally return the list of added stacks.
 		// ReturnValue is 0 if Amount was successfully added, or the remainder, otherwise.
@@ -152,6 +156,9 @@ public:
 
 		// Split a stack into two. Returns the new stack key made.
 		FStackKey SplitStack(FStackKey InKey, int32 Amount);
+
+		// Utility to check if this entry contains only the given stack.
+		bool IsOnlyStack(FStackKey InKey) const;
 
 	protected:
 		void MarkStackDirty(int32 Index);

@@ -213,20 +213,18 @@ FInventoryEntry::FMutableAccess::~FMutableAccess()
 	// Propagate change to client
 	Source.MarkItemDirty(Handle);
 
-	// Broadcast change on server
-	Source.PostEntryReplicatedChange_Server(Handle, FInventoryContent::Server_ItemHandleClosed, ChangeMask);
+	// Broadcast change on server if anything was changed
+	if (ChangeMask.CountSetBits() != 0)
+	{
+		Source.PostEntryReplicatedChange_Server(Handle, FInventoryContent::Server_ItemHandleClosed, ChangeMask);
+	}
 }
 
 void FInventoryEntry::FMutableAccess::SetStack(const FStackKey InKey, const int32 Stack)
 {
 	if (Stack <= 0)
 	{
-		if (const int32 StackIndex = Handle.GetStackIndex(InKey);
-			StackIndex != INDEX_NONE)
-		{
-			Handle.Stacks.RemoveAt(StackIndex);
-			ChangeMask.RemoveAt(StackIndex);
-		}
+		RemoveStack(InKey);
 		return;
 	}
 
@@ -238,6 +236,16 @@ void FInventoryEntry::FMutableAccess::SetStack(const FStackKey InKey, const int3
 	{
 		Handle.Stacks.Emplace(InKey, Stack);
 		ChangeMask.Add(true);
+	}
+}
+
+void FInventoryEntry::FMutableAccess::RemoveStack(const FStackKey InKey)
+{
+	if (const int32 StackIndex = Handle.GetStackIndex(InKey);
+		StackIndex != INDEX_NONE)
+	{
+		Handle.Stacks.RemoveAt(StackIndex);
+		ChangeMask.RemoveAt(StackIndex);
 	}
 }
 
@@ -384,6 +392,11 @@ FStackKey FInventoryEntry::FMutableAccess::SplitStack(const FStackKey InKey, con
 	Handle.Stacks.Emplace(FKeyedStack(NewKey, Amount));
 	ChangeMask.Add(true);
 	return NewKey;
+}
+
+bool FInventoryEntry::FMutableAccess::IsOnlyStack(const FStackKey InKey) const
+{
+	return Handle.Stacks.Num() == 1 && Handle.Stacks[0].Key == InKey;
 }
 
 void FInventoryEntry::FMutableAccess::MarkStackDirty(const int32 Index)

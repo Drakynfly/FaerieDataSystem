@@ -16,7 +16,7 @@ class UInventoryStackProxy;
 
 namespace Faerie
 {
-	using FAddressEvent = TMulticastDelegate<void(UFaerieItemStorage*, EFaerieAddressEventType, FFaerieAddress)>;
+	using FAddressEvent = TMulticastDelegate<void(UFaerieItemStorage*, EFaerieAddressEventType, TConstArrayView<FFaerieAddress>)>;
 }
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FEntryKeyEvent, UFaerieItemStorage*, Storage, FEntryKey, Key);
@@ -105,6 +105,7 @@ private:
 	void PostContentChanged(const FInventoryEntry& Entry, FInventoryContent::EChangeType ChangeType, const TBitArray<>* ChangeMask);
 
 	void BroadcastAddressEvent(EFaerieAddressEventType Type, FFaerieAddress Address);
+	void BroadcastAddressEventBulk(EFaerieAddressEventType Type, TConstArrayView<FFaerieAddress> Address);
 
 
 	/**------------------------------*/
