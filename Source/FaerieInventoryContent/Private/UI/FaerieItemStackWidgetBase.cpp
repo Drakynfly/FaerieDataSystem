@@ -4,7 +4,7 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemStackWidgetBase)
 
-void UFaerieItemStackWidgetBase::SetInventoryWidget(UInventoryContentsBase* Widget)
+void UFaerieItemStackWidgetBase::SetInventoryWidget(UFaerieStorageWidgetBase* Widget)
 {
 	InventoryWidget = Widget;
 }

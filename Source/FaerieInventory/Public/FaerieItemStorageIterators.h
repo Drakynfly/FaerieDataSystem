@@ -39,10 +39,9 @@ namespace Faerie::Storage
 		FEntryKey GetKey() const;
 		const UFaerieItem* GetItem() const;
 
-		FIterator_AllEntries& operator++()
+		void operator++()
 		{
 			AdvanceEntry();
-			return *this;
 		}
 
 		FORCEINLINE explicit operator bool() const
@@ -86,9 +85,9 @@ namespace Faerie::Storage
 		const UFaerieItem* GetItem() const;
 		int32 GetStack() const;
 
-		FIterator_AllAddresses& operator++()
+		void operator++()
 		{
-			if (NumRemaining)
+			if (NumRemaining > 0)
 			{
 				NumRemaining--;
 				StackPtr++;
@@ -97,7 +96,6 @@ namespace Faerie::Storage
 			{
 				AdvanceEntry();
 			}
-			return *this;
 		}
 
 		FORCEINLINE explicit operator bool() const
@@ -146,9 +144,9 @@ namespace Faerie::Storage
 		FFaerieAddress GetAddress() const;
 		const UFaerieItem* GetItem() const;
 
-		FIterator_MaskedEntries& operator++()
+		void operator++()
 		{
-			if (NumRemaining)
+			if (NumRemaining > 0)
 			{
 				NumRemaining--;
 				StackPtr++;
@@ -158,7 +156,6 @@ namespace Faerie::Storage
 				++BitIterator;
 				AdvanceEntry();
 			}
-			return *this;
 		}
 
 		FORCEINLINE explicit operator bool() const
@@ -221,9 +218,9 @@ namespace Faerie::Storage
 			return EntryPtr->GetItem();
 		}
 
-		FORCEINLINE FIterator_SingleEntry& operator++()
+		FORCEINLINE void operator++()
 		{
-			if (NumRemaining)
+			if (NumRemaining > 0)
 			{
 				NumRemaining--;
 				StackPtr++;
@@ -232,7 +229,6 @@ namespace Faerie::Storage
 			{
 				StackPtr = nullptr;
 			}
-			return *this;
 		}
 
 		FORCEINLINE explicit operator bool() const

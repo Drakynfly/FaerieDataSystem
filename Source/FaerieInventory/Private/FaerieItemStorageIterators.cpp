@@ -45,7 +45,7 @@ namespace Faerie::Storage
 	void FIterator_AllEntries::AdvanceEntry()
 	{
 		EntryIndex++;
-		if (EntryIndex >= Content->Num()-1)
+		if (EntryIndex >= Content->Num())
 		{
 			EntryIndex = INDEX_NONE;
 		}
@@ -84,7 +84,7 @@ namespace Faerie::Storage
 	void FIterator_AllAddresses::AdvanceEntry()
 	{
 		EntryIndex++;
-		if (EntryIndex >= Content->Num()-1)
+		if (EntryIndex >= Content->Num())
 		{
 			EntryIndex = INDEX_NONE;
 			StackPtr = nullptr;
@@ -94,7 +94,7 @@ namespace Faerie::Storage
 		const FInventoryEntry& InvEntry = Content->GetElementAt(EntryIndex);
 		const TConstArrayView<FKeyedStack> StackView = InvEntry.GetStacks();
 		StackPtr = StackView.GetData();
-		NumRemaining = StackView.Num();
+		NumRemaining = StackView.Num()-1;
 	}
 
 	FEntryKey FIterator_AllAddresses::GetKey() const
@@ -117,8 +117,7 @@ namespace Faerie::Storage
 		return Content->GetElementAt(EntryIndex).GetStack(StackPtr->Key);
 	}
 
-	FIterator_MaskedEntries::FIterator_MaskedEntries(const UFaerieItemStorage* Storage,
-																   const TBitArray<>& EntryMask)
+	FIterator_MaskedEntries::FIterator_MaskedEntries(const UFaerieItemStorage* Storage, const TBitArray<>& EntryMask)
 	  : Content(&ReadInventoryContent(*Storage)),
 		KeyMask(EntryMask),
 		BitIterator(this->KeyMask)
@@ -214,7 +213,7 @@ namespace Faerie::Storage
 	{
 		const TConstArrayView<FKeyedStack> StackView = EntryPtr->GetStacks();
 		StackPtr = StackView.GetData();
-		NumRemaining = StackView.Num();
+		NumRemaining = StackView.Num()-1;
 		checkSlow(EntryPtr);
 		checkSlow(StackPtr);
 	}
@@ -224,7 +223,7 @@ namespace Faerie::Storage
 		EntryPtr = &ReadInventoryContent(*Storage)[Key];
 		const TConstArrayView<FKeyedStack> StackView = EntryPtr->GetStacks();
 		StackPtr = StackView.GetData();
-		NumRemaining = StackView.Num();
+		NumRemaining = StackView.Num()-1;
 		checkSlow(EntryPtr);
 		checkSlow(StackPtr);
 	}
@@ -234,7 +233,7 @@ namespace Faerie::Storage
 		EntryPtr = &ReadInventoryContent(*Storage).GetElementAt(Index);
 		const TConstArrayView<FKeyedStack> StackView = EntryPtr->GetStacks();
 		StackPtr = StackView.GetData();
-		NumRemaining = StackView.Num();
+		NumRemaining = StackView.Num()-1;
 		checkSlow(EntryPtr);
 		checkSlow(StackPtr);
 	}

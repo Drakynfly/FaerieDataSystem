@@ -16,7 +16,6 @@ namespace Faerie::ItemData
 	};
 }
 
-// @todo convert these to an struct, and implement with TInstancedStruct
 /**
  *
  */

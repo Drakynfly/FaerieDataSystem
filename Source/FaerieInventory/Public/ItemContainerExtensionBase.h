@@ -149,7 +149,7 @@ namespace Faerie::Extension
 
 		FORCEINLINE ElementType* operator*() const { return Current; }
 
-		FORCEINLINE TExtensionIterator& operator++();
+		void operator++();
 
 		FORCEINLINE explicit operator bool() const
 		{
@@ -195,7 +195,10 @@ namespace Faerie::Extension
 
 		FORCEINLINE ElementType* operator*() const { return *Iterator; }
 
-		FORCEINLINE TRecursiveExtensionIterator& operator++();
+		FORCEINLINE void operator++()
+		{
+			++Iterator;
+		}
 
 		FORCEINLINE explicit operator bool() const
 		{

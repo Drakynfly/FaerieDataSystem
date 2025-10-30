@@ -16,15 +16,13 @@
 #endif
 
 #include "FaerieContainerFilter.h"
-#include "FaerieContainerFilterTypes.h"
-#include "FaerieItemDataComparator.h"
 #include "FaerieItemStorageIterators.h"
+#include "FaerieItemStorageQuery.h"
 #include "FaerieSubObjectFilter.h"
+
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemStorage)
 
 DECLARE_STATS_GROUP(TEXT("FaerieItemStorage"), STATGROUP_FaerieItemStorage, STATCAT_Advanced);
-DECLARE_CYCLE_STAT(TEXT("Query (First)"), STAT_Storage_QueryFirst, STATGROUP_FaerieItemStorage);
-DECLARE_CYCLE_STAT(TEXT("Query (All)"), STAT_Storage_QueryAll, STATGROUP_FaerieItemStorage);
 DECLARE_CYCLE_STAT(TEXT("Add to Storage"), STAT_Storage_Add, STATGROUP_FaerieItemStorage);
 DECLARE_CYCLE_STAT(TEXT("Remove from Storage"), STAT_Storage_Remove, STATGROUP_FaerieItemStorage);
 
@@ -497,6 +495,7 @@ void UFaerieItemStorage::PostContentChanged(const FInventoryEntry& Entry, const 
 					}
 				}
 			}
+			break;
 		case FInventoryContent::Client_SomethingReplicated:
 			{
 				// @todo it's overkill to update all addresses for a stack change... but we dont know how to determine which stack actually changed, so blast them all :/
@@ -852,7 +851,7 @@ TArray<int32> UFaerieItemStorage::GetStacksInEntry(const FEntryKey Key) const
 
 void UFaerieItemStorage::GetAllAddresses(TArray<FFaerieAddress>& Addresses) const
 {
-	for (const FFaerieAddress Address : Faerie::Storage::AddressRange(this))
+	for (const FFaerieAddress Address : Faerie::Storage::FIterator_AllAddresses(this))
 	{
 		Addresses.Add(Address);
 	}
@@ -954,23 +953,14 @@ const UFaerieItem* UFaerieItemStorage::GetEntryItem(const FEntryKey Key) const
 	return nullptr;
 }
 
-FFaerieAddress UFaerieItemStorage::QueryFirst(const Faerie::FStorageFilterFunc& Filter) const
+FFaerieAddress UFaerieItemStorage::QueryFirst(const Faerie::Container::FAddressPredicate& Filter) const
 {
-	SCOPE_CYCLE_COUNTER(STAT_Storage_QueryFirst);
-
-	FFaerieItemSnapshot Snap;
-	Snap.Owner = this;
-
 	for (const FInventoryEntry& Item : EntryMap)
 	{
-		Snap.ItemObject = Item.GetItem();
-
 		for (auto&& Stack : Item.GetStacks())
 		{
-			Snap.Copies = Stack.Stack;
-
 			if (const FFaerieAddress Address = Encode(Item.Key, Stack.Key);
-				Filter(Snap))
+				Filter(Address))
 			{
 				return Address;
 			}
@@ -978,99 +968,6 @@ FFaerieAddress UFaerieItemStorage::QueryFirst(const Faerie::FStorageFilterFunc& 
 	}
 
 	return FFaerieAddress();
-}
-
-void UFaerieItemStorage::QueryAll(const Faerie::FStorageQuery& Query, TArray<FFaerieAddress>& OutAddresses) const
-{
-	SCOPE_CYCLE_COUNTER(STAT_Storage_QueryAll);
-
-	// Ensure we are starting with a blank slate.
-	OutAddresses.Empty();
-
-	if (!Query.Filter.IsBound() && !Query.Sort.IsBound())
-	{
-		if (!Query.InvertFilter)
-		{
-			for (const FFaerieAddress Address : Faerie::Storage::AddressRange(this))
-			{
-				OutAddresses.Add(Address);
-			}
-
-			if (Query.InvertSort)
-			{
-				Algo::Reverse(OutAddresses);
-			}
-		}
-		return;
-	}
-
-	//Faerie::Storage::FAddressFilter Res(this);
-	Faerie::Storage::FItemFilter_Key Res(this);
-
-	{
-		Faerie::Storage::FSnapshotFilterCallback CallbackFilter;
-		CallbackFilter.Callback = Query.Filter;
-		Res.Run(MoveTemp(CallbackFilter));
-	}
-
-	if (Query.InvertFilter)
-	{
-		Res.Invert();
-	}
-
-	if (Query.Sort.IsBound())
-	{
-		if (Query.InvertSort)
-		{
-			OutAddresses = Res.SortBySnapshot<Faerie::Storage::ESortDirection::Backward>(Query.Sort).EmitAddresses();
-		}
-		else
-		{
-			OutAddresses = Res.SortBySnapshot(Query.Sort).EmitAddresses();
-		}
-	}
-	else
-	{
-		OutAddresses = Res.EmitAddresses();
-	}
-}
-
-FFaerieAddress UFaerieItemStorage::QueryFirst(const FBlueprintStorageFilter& Filter) const
-{
-	if (!Filter.IsBound()) return FFaerieAddress();
-
-	return QueryFirst(
-		[Filter](const FFaerieItemSnapshot& Proxy)
-		{
-			return Filter.Execute(Proxy);
-		});
-}
-
-void UFaerieItemStorage::QueryAll(const FFaerieItemStorageBlueprintQuery& Query, TArray<FFaerieAddress>& OutAddresses) const
-{
-	Faerie::FStorageQuery NativeQuery;
-	if (Query.Filter.IsBound())
-	{
-		NativeQuery.Filter.BindLambda(
-			[Filter = Query.Filter](const FFaerieItemSnapshot& Proxy)
-			{
-				return Filter.Execute(Proxy);
-			});
-	}
-
-	if (Query.Sort.IsBound())
-	{
-		NativeQuery.Sort.BindLambda(
-			[Sort = Query.Sort](const FFaerieItemSnapshot& A, const FFaerieItemSnapshot& B)
-			{
-				return Sort.Execute(A, B);
-			});
-	}
-
-	NativeQuery.InvertFilter = Query.InvertFilter;
-	NativeQuery.InvertSort = Query.ReverseSort;
-
-	QueryAll(NativeQuery, OutAddresses);
 }
 
 bool UFaerieItemStorage::CanAddStack(const FFaerieItemStackView Stack, const EFaerieStorageAddStackBehavior AddStackBehavior) const

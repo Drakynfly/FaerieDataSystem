@@ -8,6 +8,7 @@
 #include "FaerieItemToken.h"
 #include "FaerieItemTokenFilter.h"
 #include "FaerieItemTokenFilterTypes.h"
+#include "Tokens/FaerieInfoToken.h"
 #include "FlakesJsonSerializer.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemDataLibrary)
@@ -19,7 +20,7 @@ bool UFaerieItemDataLibrary::Equal_ItemData(const UFaerieItem* A, const UFaerieI
 
 bool UFaerieItemDataLibrary::Equal_ItemToken(const UFaerieItemToken* A, const UFaerieItemToken* B)
 {
-	return A->CompareWith(B);
+	return UFaerieItemToken::Compare(A, B);
 }
 
 const UFaerieItem* UFaerieItemDataLibrary::GetItemInstance(const UFaerieItemAsset* Asset, const EFaerieItemInstancingMutability Mutability)
@@ -113,6 +114,33 @@ TArray<UFaerieItemToken*> UFaerieItemDataLibrary::FindTokensByTagQuery(const UFa
 FFaerieItemStackView UFaerieItemDataLibrary::StackToView(const FFaerieItemStack& Stack)
 {
 	return Stack;
+}
+
+bool UFaerieItemDataLibrary::ItemLexicographicNameComparator(const UFaerieItem* A, const UFaerieItem* B)
+{
+	if (!(IsValid(A) && IsValid(B)))
+	{
+		return false;
+	}
+
+	const UFaerieInfoToken* InfoA = A->GetToken<UFaerieInfoToken>();
+	const UFaerieInfoToken* InfoB = B->GetToken<UFaerieInfoToken>();
+
+	if (IsValid(InfoA) && IsValid(InfoB))
+	{
+		return InfoA->GetItemName().ToString() < InfoB->GetItemName().ToString();
+	}
+
+	return false;
+}
+
+bool UFaerieItemDataLibrary::ItemDateModifiedComparator(const UFaerieItem* A, const UFaerieItem* B)
+{
+	if (IsValid(A) && IsValid(B))
+	{
+		return A->GetLastModified() < B->GetLastModified();
+	}
+	return false;
 }
 
 FString UFaerieItemDataLibrary::DebugEmitItemJson(const UFaerieItem* Item, const bool Pretty)

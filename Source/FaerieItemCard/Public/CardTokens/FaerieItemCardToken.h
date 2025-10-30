@@ -20,6 +20,6 @@ public:
 	TSoftClassPtr<UFaerieCardBase> GetCardClass(FFaerieItemCardType Tag) const;
 
 protected:
-	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "ItemCardToken", meta = (ExposeOnSpawn))
+	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "ItemCardToken", meta = (ExposeOnSpawn, ForceInlineRow))
 	TMap<FFaerieItemCardType, TSoftClassPtr<UFaerieCardBase>> CardClasses;
 };

@@ -2,37 +2,30 @@
 
 #pragma once
 
-#include "FaerieContainerFilterTypes.h"
 #include "Blueprint/UserWidget.h"
 #include "FaerieItemStorage.h"
-#include "InventoryContentsBase.generated.h"
+#include "FaerieStorageWidgetBase.generated.h"
 
+class UFaerieItemStorageQuery;
 class UInventoryUIActionContainer;
-class UFaerieItemDataComparator;
-class UFaerieItemDataFilter;
 
 /**
  *
  */
 UCLASS(Abstract)
-class FAERIEINVENTORYCONTENT_API UInventoryContentsBase : public UUserWidget
+class FAERIEINVENTORYCONTENT_API UFaerieStorageWidgetBase : public UUserWidget
 {
 	GENERATED_BODY()
 
 public:
-	UInventoryContentsBase(const FObjectInitializer& ObjectInitializer);
+	UFaerieStorageWidgetBase(const FObjectInitializer& ObjectInitializer);
 
 	virtual bool Initialize() override;
 	virtual void NativeConstruct() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
-private:
-	void Reset();
-
-	bool ExecFilter(const FFaerieItemSnapshot& Entry);
-	bool ExecSort(const FFaerieItemSnapshot& A, const FFaerieItemSnapshot& B);
-
 protected:
+	virtual void Reset();
 	virtual void HandleAddressEvent(UFaerieItemStorage* Storage, const EFaerieAddressEventType Type, FFaerieAddress Address);
 
 public:
@@ -54,19 +47,7 @@ public:
 	void AddToSortOrder(FFaerieAddress Address, bool WarnIfAlreadyExists);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory Contents|Display")
-	void SetFilterByDelegate(const FBlueprintStorageFilter& Filter, bool bResort = true);
-
-	UFUNCTION(BlueprintCallable, Category = "Inventory Contents|Display")
-	void ResetFilter(bool bResort = true);
-
-	UFUNCTION(BlueprintCallable, Category = "Inventory Contents|Display")
-	void SetSortRule(UFaerieItemDataComparator* Rule, bool bResort = true);
-
-	UFUNCTION(BlueprintCallable, Category = "Inventory Contents|Display")
-	void SetSortReverse(bool Reverse, bool bResort = true);
-
-	UFUNCTION(BlueprintCallable, Category = "Inventory Contents|Display")
-	void ResetSort(bool bResort = true);
+	void RequestResort();
 
 protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Inventory Contents|Display")
@@ -90,12 +71,6 @@ protected:
 
 	/// ***		SETUP		*** ///
 protected:
-	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Instanced, Category = "Display", NoClear)
-	TObjectPtr<UFaerieItemDataFilter> DefaultFilterRule;
-
-	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Instanced, Category = "Display", NoClear)
-	TObjectPtr<UFaerieItemDataComparator> DefaultSortRule;
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Instanced, Category = "Config")
 	TObjectPtr<UInventoryUIActionContainer> ActionContainer;
 
@@ -111,18 +86,13 @@ protected:
 	TArray<FFaerieAddress> SortedAndFilteredAddresses;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Runtime")
-	TObjectPtr<UFaerieItemDataFilter> ActiveFilterRule;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Runtime")
-	TObjectPtr<UFaerieItemDataComparator> ActiveSortRule;
+	TObjectPtr<UFaerieItemStorageQuery> StorageQuery;
 
 	/** The storage this widget is representing.  */
 	UPROPERTY(BlueprintReadOnly, Category = "Runtime")
 	TWeakObjectPtr<UFaerieItemStorage> ItemStorage;
 
 private:
-	Faerie::FStorageQuery Query;
-
 	bool NeedsResort = false;
 	bool NeedsReconstructEntries = false;
 };

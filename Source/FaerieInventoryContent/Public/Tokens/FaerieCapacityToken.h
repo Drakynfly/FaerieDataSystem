@@ -29,7 +29,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "CapacityToken")
 	int64 GetVolumeOfStack(const int32 Stack) const;
 
-	// Gets the volume of a partial stack. Volume == X + (X * (Stack - 1) * Efficiency)
+	// Gets the volume of a partial stack. Volume == X * Stack * Efficiency
 	UFUNCTION(BlueprintCallable, Category = "CapacityToken")
 	int64 GetEfficientVolume(const int32 Stack) const;
 

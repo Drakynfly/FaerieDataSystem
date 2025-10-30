@@ -75,6 +75,18 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Faerie|ItemStack", meta = (BlueprintAutocast, CompactNodeTitle = "->"))
 	static FFaerieItemStackView StackToView(const FFaerieItemStack& Stack);
 
+	/**
+	 * Compares two items by their name (from info token)
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Faerie|Comparators")
+	static bool ItemLexicographicNameComparator(const UFaerieItem* A, const UFaerieItem* B);
+
+	/**
+	 * Compares two items by their last modified date.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Faerie|Comparators")
+	static bool ItemDateModifiedComparator(const UFaerieItem* A, const UFaerieItem* B);
+
 	// Spits out an item in Json form for debugging.
 	UFUNCTION(BlueprintPure, Category = "Faerie|Debug", meta = (DevelopmentOnly))
 	static FString DebugEmitItemJson(const UFaerieItem* Item, bool Pretty);

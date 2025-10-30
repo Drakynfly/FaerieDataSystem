@@ -3,6 +3,8 @@
 #include "Mutators/ItemMutator_Logic.h"
 #include "FaerieItem.h"
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(ItemMutator_Logic)
+
 bool FFaerieItemMutator_ApplyFirst::Apply(FFaerieItemStack& Stack, USquirrel* Squirrel) const
 {
 	for (auto&& Child : Children)

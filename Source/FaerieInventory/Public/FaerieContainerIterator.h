@@ -116,13 +116,12 @@ namespace Faerie::Container
 			}
 		}
 
-		FORCEINLINE TIterator& operator++()
+		FORCEINLINE void operator++()
 		{
 #if WITH_EDITOR
 			UE_LOG(LogTemp, Verbose, TEXT("TIterator::operator++"));
 #endif
 			++IteratorImpl;
-			return *this;
 		}
 
 		FORCEINLINE explicit operator bool() const

@@ -4,6 +4,8 @@
 #include "FaerieItemStackView.h"
 #include "FaerieItemTemplate.h"
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(ItemMutator_Condition)
+
 bool FFaerieItemMutator_TemplateCondition::Apply(FFaerieItemStack& Stack, USquirrel* Squirrel) const
 {
 	if (!Stack.IsValid()) return false;

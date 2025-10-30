@@ -87,6 +87,12 @@ const UFaerieItem* UFaerieItemToken::GetOuterItem() const
 	return GetTypedOuter<UFaerieItem>();
 }
 
+bool UFaerieItemToken::Compare(const UFaerieItemToken* A, const UFaerieItemToken* B)
+{
+	if (!A || !B) return A == B;
+	return A->CompareWith(B);
+}
+
 bool UFaerieItemToken::CompareWith(const UFaerieItemToken* Other) const
 {
 	// Auto-success if we are the same pointer

@@ -3,6 +3,8 @@
 #include "FaerieSubObjectLibrary.h"
 #include "FaerieSubObjectFilter.h"
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieSubObjectLibrary)
+
 TArray<UFaerieItemContainerBase*> UFaerieSubObjectLibrary::GetAllContainersInItem(UFaerieItem* Item, const bool Recursive)
 {
 	if (Recursive)

@@ -88,6 +88,7 @@ public:
 	const UFaerieItem* GetOuterItem() const;
 
 	// Compare the data of this token to another.
+	static bool Compare(const UFaerieItemToken* A, const UFaerieItemToken* B);
 	bool CompareWith(const UFaerieItemToken* Other) const;
 
 	// Get the data of this token as a hash.

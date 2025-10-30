@@ -38,11 +38,20 @@ namespace Faerie::Container
 		return false;
 	}
 
+	bool FAddressFilterCallback::Passes(const FFaerieAddress Address)
+	{
+		if (Callback.IsSet())
+		{
+			return Callback(Address);
+		}
+		return false;
+	}
+
 	bool FSnapshotFilterCallback::Passes(const FFaerieItemSnapshot& Snapshot)
 	{
-		if (Callback.IsBound())
+		if (Callback.IsSet())
 		{
-			return Callback.Execute(Snapshot);
+			return Callback(Snapshot);
 		}
 		return false;
 	}

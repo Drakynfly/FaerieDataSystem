@@ -2,6 +2,8 @@
 
 #include "Mutators/ItemMutator_BlueprintBase.h"
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(ItemMutator_BlueprintBase)
+
 void FFaerieItemMutator_Blueprint::GetRequiredAssets(TArray<TSoftObjectPtr<UObject>>& RequiredAssets) const
 {
 	if (IsValid(Blueprint))

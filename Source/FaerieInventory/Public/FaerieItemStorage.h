@@ -12,60 +12,14 @@
 #include "FaerieItemStorage.generated.h"
 
 struct FFaerieExtensionAllowsAdditionArgs;
-class UFaerieItemDataComparator;
-
-UENUM(BlueprintType)
-enum class EFaerieAddressEventType : uint8
-{
-	// Broadcast whenever an address is added, or a stack amount is increased.
-	PostAdd,
-
-	// Broadcast whenever an address is removed entirely, or a stack amount is decreased.
-	PreRemove,
-
-	// Broadcast whenever data for an address is changed.
-	Edit
-};
+class UInventoryStackProxy;
 
 namespace Faerie
 {
 	using FAddressEvent = TMulticastDelegate<void(UFaerieItemStorage*, EFaerieAddressEventType, FFaerieAddress)>;
-	using FStorageFilterFunc = TFunctionRef<bool(const FFaerieItemSnapshot&)>;
-
-	struct FStorageQuery
-	{
-		Container::FSnapshotPredicate Filter;
-		bool InvertFilter = false;
-		Container::FSnapshotComparator Sort;
-		bool InvertSort = false;
-	};
 }
 
-DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(bool, FBlueprintStorageFilter, const FFaerieItemSnapshot&, Proxy);
-DECLARE_DYNAMIC_DELEGATE_RetVal_TwoParams(bool, FBlueprintStorageComparator, const FFaerieItemSnapshot&, A, const FFaerieItemSnapshot&, B);
-
-USTRUCT(BlueprintType)
-struct FFaerieItemStorageBlueprintQuery
-{
-	GENERATED_BODY()
-
-	UPROPERTY(BlueprintReadWrite, Category = "ItemStorageQuery")
-	FBlueprintStorageFilter Filter;
-
-	UPROPERTY(BlueprintReadWrite, Category = "ItemStorageQuery")
-	FBlueprintStorageComparator Sort;
-
-	UPROPERTY(BlueprintReadWrite, Category = "ItemStorageQuery")
-	bool InvertFilter = false;
-
-	UPROPERTY(BlueprintReadWrite, Category = "ItemStorageQuery")
-	bool ReverseSort = false;
-};
-
-class UInventoryStackProxy;
-
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FEntryKeyEvent, UFaerieItemStorage*, Storage, FEntryKey, Key);
-
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FFaerieAddressEvent, UFaerieItemStorage*, Storage, EFaerieAddressEventType, Type, FFaerieAddress, Key);
 
 /**
@@ -255,19 +209,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Storage|Key")
 	const UFaerieItem* GetEntryItem(FEntryKey Key) const;
 
-	// Query function to filter for the first matching entry.
-	FFaerieAddress QueryFirst(const Faerie::FStorageFilterFunc& Filter) const;
-
-	// Query function to filter and sort for a subsection of contained entries.
-	void QueryAll(const Faerie::FStorageQuery& Query, TArray<FFaerieAddress>& OutAddresses) const;
-
-	// Query function to filter for the first matching entry.
-	UFUNCTION(BlueprintCallable, Category = "Storage|Query")
-	FFaerieAddress QueryFirst(const FBlueprintStorageFilter& Filter) const;
-
-	// Query function to filter and sort for a subsection of contained entries.
-	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Storage|Query")
-	void QueryAll(const FFaerieItemStorageBlueprintQuery& Query, TArray<FFaerieAddress>& OutKeys) const;
+	// Query function to filter for the first matching address.
+	FFaerieAddress QueryFirst(const Faerie::Container::FAddressPredicate& Filter) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Storage|Permissions")
 	bool CanAddStack(FFaerieItemStackView Stack, EFaerieStorageAddStackBehavior AddStackBehavior) const;

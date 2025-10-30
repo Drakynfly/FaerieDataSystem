@@ -10,8 +10,25 @@ class UFaerieItemContainerBase;
 
 namespace Faerie::Container
 {
-	using FSnapshotPredicate = TDelegate<bool(const FFaerieItemSnapshot&)>;
-	using FSnapshotComparator = TDelegate<bool(const FFaerieItemSnapshot&, const FFaerieItemSnapshot&)>;
+	template <typename T>
+	using TStoragePredicate = TFunction<bool(T)>;
+
+	using FItemPredicate = TStoragePredicate<const UFaerieItem*>;
+	using FStackPredicate = TStoragePredicate<const FFaerieItemStackView&>;
+	using FSnapshotPredicate = TStoragePredicate<const FFaerieItemSnapshot&>;
+	using FVariantPredicate = TVariant<FEmptyVariantState, FItemPredicate, FStackPredicate, FSnapshotPredicate>;
+
+	using FAddressPredicate = TStoragePredicate<const FFaerieAddress&>;
+
+	template <typename T>
+	using TStorageComparator = TFunction<bool(T, T)>;
+
+	using FItemComparator = TStorageComparator<const UFaerieItem*>;
+	using FStackComparator = TStorageComparator<const FFaerieItemStackView&>;
+	using FSnapshotComparator = TStorageComparator<const FFaerieItemSnapshot&>;
+	using FVariantComparator = TVariant<FEmptyVariantState, FItemComparator, FStackComparator, FSnapshotComparator>;
+
+	using FAddressComparator = TStorageComparator<const FFaerieAddress&>;
 
 	namespace Private
 	{
@@ -22,6 +39,8 @@ namespace Faerie::Container
 			static UFaerieItem* GetItem(const UFaerieItemContainerBase* Container, FFaerieAddress Address);
 			static const UFaerieItem* ConstGetItem(const UFaerieItemContainerBase* Container, FEntryKey Key);
 			static const UFaerieItem* ConstGetItem(const UFaerieItemContainerBase* Container, FFaerieAddress Address);
+			static FFaerieItemStackView GetStackView(const UFaerieItemContainerBase* Container, FEntryKey Key);
+			static FFaerieItemStackView GetStackView(const UFaerieItemContainerBase* Container, FFaerieAddress Address);
 			static FFaerieItemSnapshot MakeSnapshot(const UFaerieItemContainerBase* Container, FEntryKey Key);
 			static FFaerieItemSnapshot MakeSnapshot(const UFaerieItemContainerBase* Container, FFaerieAddress Address);
 
@@ -198,8 +217,17 @@ namespace Faerie::Container
 		FIteratorSwitchThunk_Keys(const UFaerieItemContainerBase* Container, const TArray<FEntryKey>& Array)
 		  : Container(Container), Iterator(Array.CreateConstIterator())
 		{
-			Addresses = GetEntryAddresses(Container, *Iterator);
-			operator++();
+			if (static_cast<bool>(Iterator))
+			{
+				Addresses = GetEntryAddresses(Container, *Iterator);
+				AddressIndex = INDEX_NONE;
+				operator++();
+				return;
+			}
+			else
+			{
+				Address = FFaerieAddress();
+			}
 		}
 
 		FFaerieAddress operator*() const
@@ -539,14 +567,14 @@ namespace Faerie::Container
 		}
 
 		template <ESortDirection Direction>
-		void SortBySnapshot(const FSnapshotComparator& Sort)
+		void SortByItem(const FItemComparator& Sort)
 		{
 			if constexpr (Direction == ESortDirection::Forward)
 			{
 				Algo::Sort(FilterMemory,
 					[Sort, this](const FFilterElement& A, const FFilterElement& B)
 					{
-						return Sort.Execute(MakeSnapshot(Container, A), MakeSnapshot(Container, B));
+						return Sort(ConstGetItem(Container, A), ConstGetItem(Container, B));
 					});
 			}
 			else
@@ -554,8 +582,72 @@ namespace Faerie::Container
 				Algo::Sort(FilterMemory,
 					[Sort, this](const FFilterElement& A, const FFilterElement& B)
 					{
-						return !Sort.Execute(MakeSnapshot(Container, A), MakeSnapshot(Container, B));
+						return !Sort(ConstGetItem(Container, A), ConstGetItem(Container, B));
 					});
+			}
+		}
+
+		template <ESortDirection Direction>
+		void SortByStack(const FStackComparator& Sort)
+		{
+			if constexpr (Direction == ESortDirection::Forward)
+			{
+				Algo::Sort(FilterMemory,
+					[Sort, this](const FFilterElement& A, const FFilterElement& B)
+					{
+						return Sort(GetStackView(Container, A), GetStackView(Container, B));
+					});
+			}
+			else
+			{
+				Algo::Sort(FilterMemory,
+					[Sort, this](const FFilterElement& A, const FFilterElement& B)
+					{
+						return !Sort(GetStackView(Container, A), GetStackView(Container, B));
+					});
+			}
+		}
+
+		template <ESortDirection Direction>
+		void SortBySnapshot(const FSnapshotComparator& Sort)
+		{
+			if constexpr (Direction == ESortDirection::Forward)
+			{
+				Algo::Sort(FilterMemory,
+					[Sort, this](const FFilterElement& A, const FFilterElement& B)
+					{
+						return Sort(MakeSnapshot(Container, A), MakeSnapshot(Container, B));
+					});
+			}
+			else
+			{
+				Algo::Sort(FilterMemory,
+					[Sort, this](const FFilterElement& A, const FFilterElement& B)
+					{
+						return !Sort(MakeSnapshot(Container, A), MakeSnapshot(Container, B));
+					});
+			}
+		}
+
+		template <ESortDirection Direction>
+		void SortBy(const FVariantComparator& Sort)
+		{
+			switch (Sort.GetIndex())
+			{
+			case 1:
+				// Compare Items
+				SortByItem<Direction>(Sort.Get<FItemComparator>());
+				break;
+			case 2:
+				// Compare Stacks
+				SortByStack<Direction>(Sort.Get<FStackComparator>());
+				break;
+			case 3:
+				// Compare Snapshots
+				SortBySnapshot<Direction>(Sort.Get<FSnapshotComparator>());
+				break;
+			default:
+				break;
 			}
 		}
 
@@ -730,7 +822,7 @@ namespace Faerie::Container
 			ESortDirection Direction = Forward
 			UE_REQUIRES(!EnumHasAnyFlags(Flags, EFilterFlags::InMemory))
 		>
-		[[nodiscard]] auto SortBySnapshot(const FSnapshotComparator& Sort)
+		[[nodiscard]] auto SortBy(const FVariantComparator& Sort)
 		{
 			auto MemoryFilter = [this]()
 			{
@@ -746,7 +838,7 @@ namespace Faerie::Container
 			}();
 
 			// Apply sort
-			MemoryFilter.template SortBySnapshot<Direction>(Sort);
+			MemoryFilter.template SortBy<Direction>(Sort);
 
 			// Move into new wrapper, marked with InMemory
 			return TFilter<Flags | EFilterFlags::InMemory, TMemoryFilter<EnumHasAnyFlags(Flags, EFilterFlags::AddressFilter)>>(MoveTemp(MemoryFilter));
@@ -756,9 +848,9 @@ namespace Faerie::Container
 			ESortDirection Direction = Forward
 			UE_REQUIRES(EnumHasAnyFlags(Flags, EFilterFlags::InMemory))
 		>
-		TFilter& SortBySnapshot(const FSnapshotComparator& Sort)
+		TFilter& SortBy(const FVariantComparator& Sort)
 		{
-			Impl.template SortBySnapshot<Direction>(Sort);
+			Impl.template SortBy<Direction>(Sort);
 			return *this;
 		}
 

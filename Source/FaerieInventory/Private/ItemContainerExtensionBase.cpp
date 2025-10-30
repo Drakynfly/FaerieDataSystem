@@ -69,7 +69,7 @@ namespace Faerie::Extension
 	template TRecursiveExtensionIterator<true>;
 
 	template <bool Const>
-	TExtensionIterator<Const>& TExtensionIterator<Const>::operator++()
+	void TExtensionIterator<Const>::operator++()
 	{
 		switch (State)
 		{
@@ -145,7 +145,6 @@ namespace Faerie::Extension
 				break;
 			}
 		}
-		return *this;
 	}
 
 	template <bool Const> TRecursiveExtensionIterator<Const>::TRecursiveExtensionIterator(InterfaceType* Interface)
@@ -193,13 +192,6 @@ namespace Faerie::Extension
 		}
 
 		return AllExtensions.Array();
-	}
-
-	template <bool Const>
-	TRecursiveExtensionIterator<Const>& TRecursiveExtensionIterator<Const>::operator++()
-	{
-		++Iterator;
-		return *this;
 	}
 }
 

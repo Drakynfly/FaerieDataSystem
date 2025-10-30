@@ -31,6 +31,16 @@ namespace Faerie::Container
 			return Container->ViewItem(Address);
 		}
 
+		FFaerieItemStackView FContainerReader::GetStackView(const UFaerieItemContainerBase* Container, const FEntryKey Key)
+		{
+			return Container->View(Key);
+		}
+
+		FFaerieItemStackView FContainerReader::GetStackView(const UFaerieItemContainerBase* Container, const FFaerieAddress Address)
+		{
+			return Container->ViewStack(Address);
+		}
+
 		FFaerieItemSnapshot FContainerReader::MakeSnapshot(
 			const UFaerieItemContainerBase* Container, const FEntryKey Key)
 		{

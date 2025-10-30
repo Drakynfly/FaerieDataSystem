@@ -6,7 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "FaerieItemStackWidgetBase.generated.h"
 
-class UInventoryContentsBase;
+class UFaerieStorageWidgetBase;
 class UInventoryStackProxy;
 
 /**
@@ -19,11 +19,11 @@ class FAERIEINVENTORYCONTENT_API UFaerieItemStackWidgetBase : public UUserWidget
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemStackWidget")
-	void SetInventoryWidget(UInventoryContentsBase* Widget);
+	void SetInventoryWidget(UFaerieStorageWidgetBase* Widget);
 
 protected:
 	UPROPERTY(BlueprintReadOnly, Category = "ItemStackWidget")
-	TObjectPtr<UInventoryContentsBase> InventoryWidget;
+	TObjectPtr<UFaerieStorageWidgetBase> InventoryWidget;
 
 	UPROPERTY(BlueprintReadWrite, Category = "ItemStackWidget")
 	TObjectPtr<UInventoryStackProxy> LocalCache;

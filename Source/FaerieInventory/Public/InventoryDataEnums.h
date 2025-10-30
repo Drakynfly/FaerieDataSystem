@@ -55,3 +55,16 @@ enum class EFaerieItemEqualsCheck : uint8
 	// Use UFaerieItem::CompareWith to determine equivalency
 	UseCompareWith
 };
+
+UENUM(BlueprintType)
+enum class EFaerieAddressEventType : uint8
+{
+	// Broadcast whenever an address is added, or a stack amount is increased.
+	PostAdd,
+
+	// Broadcast whenever an address is removed entirely, or a stack amount is decreased.
+	PreRemove,
+
+	// Broadcast whenever data for an address is changed.
+	Edit
+};

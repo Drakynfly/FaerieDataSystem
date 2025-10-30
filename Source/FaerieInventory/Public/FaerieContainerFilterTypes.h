@@ -60,6 +60,11 @@ namespace Faerie::Container
 		UFaerieItemDataFilter* FilterObj;
 	};
 
+	struct FAERIEINVENTORY_API FAddressFilterCallback : IAddressFilter
+	{
+		virtual bool Passes(FFaerieAddress Address) override;
+		FAddressPredicate Callback;
+	};
 
 	struct FAERIEINVENTORY_API FSnapshotFilterCallback : ISnapshotFilter
 	{

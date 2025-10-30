@@ -6,7 +6,6 @@
 #include "FaerieItemProxy.h"
 #include "FaerieItemDataComparator.generated.h"
 
-
 /**
  * Compares two item proxies. Used to create sorting functionality.
  */

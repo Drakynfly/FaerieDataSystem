@@ -4,7 +4,7 @@
 #include "FaerieInventoryContentLog.h"
 #include "Actions/FaerieInventoryClient.h"
 #include "Engine/GameInstance.h"
-#include "UI/InventoryContentsBase.h"
+#include "UI/FaerieStorageWidgetBase.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventoryUIAction)
 
