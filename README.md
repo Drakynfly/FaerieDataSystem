@@ -46,13 +46,13 @@ FDS is primarily designed for:
 - A subsystem for creating UMG widgets for items in a somewhat modular way.
 
 ### FaerieEquipment (+ Editor)
-- Simple slot-based equipment manager. In an early stage of development, but a solid, simple prototype.
+- A simple slot-based equipment manager. In an early stage of development, but a solid, simple prototype.
 
 ### FaerieDataSystemEditor
 - Common shared editor utils. Nothing super important.
 
 ## General Notes
-- Main compiles against UE 5.5. I will update to future versions as they release. I don't typically support older versions, but previous commits will work on 5.4 through 5.1 with minimal effort.
+- Main compiles against UE 5.6. I will update to future versions as they release. I don't support older versions, but previous commits go back as far as 5.1.
 - This is essentially just the inventory system used by my game, Project Faerie, so there might be *some* lingering inexplicable quirks and oddities in some files. I try to remove these and make this plugin as generic and multi-purpose as a I can, but bare with me as I continue to develop the plugin :/
 - FDS is still extremely WIP. Use at your own risk. Nothing is guaranteed to function. Everything is subject to change. This plugin is essentially in Alpha, as it is still in active development.
   - This means two things:
@@ -66,8 +66,7 @@ FDS is primarily designed for:
 
 - This plugin depends on two other free plugins I've made, which can be found here:
   - Squirrel - A random-noise generator: https://github.com/Drakynfly/SquirrelUE (This plugin provides the "determinism" that I mention above.)
-  - Flakes - A serialization backend: https://github.com/Drakynfly/Flakes
-  - These dependencies are annoying, because I prefer to keep my plugins separated, but I don't want to include them as part of FDS itself, because they're off-topic. As some point, I'd like to remove this by changing the internals of FDS to use some sort of feature injection, so that people can use whatever APIs they like. *Another thing on the long long list.*
+    - This dependency is annoying, because I prefer to keep my plugins separated, but I don't want to include it as part of FDS itself, because it's off-topic.
 
 ## Engine Plugin Dependencies
 These default plugins are forcibly enabled by FDS:
@@ -75,7 +74,7 @@ These default plugins are forcibly enabled by FDS:
 ### GameplayTagsEditor
   - Prerequisite for making children of FGameplayTag.
 
-### GeometryScripting `&&` SkeletalMerging
+### GeometryScripting
   - Required for implementing FaerieItemMesh. If, for some reason, you take issue with this requirement, reimplement `UFaerieItemMeshLoader` however you want to.
 
 ### UMGWidgetPreview

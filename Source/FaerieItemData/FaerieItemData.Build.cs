@@ -23,9 +23,7 @@ public class FaerieItemData : ModuleRules
             {
                 "CoreUObject",
                 "Engine",
-                "Squirrel",
-                "Flakes",
-                "FlakesJson" // Used by FaerieItemDataLibrary
+                "Squirrel"
             }
         );
 

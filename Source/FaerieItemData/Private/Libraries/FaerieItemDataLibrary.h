@@ -86,12 +86,4 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Faerie|Comparators")
 	static bool ItemDateModifiedComparator(const UFaerieItem* A, const UFaerieItem* B);
-
-	// Spits out an item in Json form for debugging.
-	UFUNCTION(BlueprintPure, Category = "Faerie|Debug", meta = (DevelopmentOnly))
-	static FString DebugEmitItemJson(const UFaerieItem* Item, bool Pretty);
-
-	// Compare two items by their Json form.
-	UFUNCTION(BlueprintPure, Category = "Faerie|Debug", meta = (DevelopmentOnly))
-	static bool DebugCompareItemsByJson(const UFaerieItem* ItemA, const UFaerieItem* ItemB);
 };

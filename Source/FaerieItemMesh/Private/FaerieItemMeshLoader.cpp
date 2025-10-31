@@ -2,7 +2,6 @@
 
 #include "FaerieItemMeshLoader.h"
 #include "FaerieItem.h"
-#include "SkeletalMergingLibrary.h"
 #include "Tokens/FaerieMeshToken.h"
 
 #include "Engine/StaticMeshSocket.h"
@@ -108,9 +107,6 @@ namespace Faerie
 
 		FSkeletonAndAnimation OutSkeletonAndAnimation;
 		TArray<FFaerieItemMaterial> Materials;
-
-		FSkeletalMeshMergeParams Params;
-		OutSkeletonAndAnimation.Mesh = USkeletalMergingLibrary::MergeMeshes(Params);
 
 		return FFaerieItemMesh::MakeSkeletal(OutSkeletonAndAnimation, Materials);
 	}

@@ -101,15 +101,7 @@
 			"Enabled": true
 		},
 		{
-			"Name": "SkeletalMerging",
-			"Enabled": true
-		},
-		{
 			"Name": "UMGWidgetPreview",
-			"Enabled": true
-		},
-		{
-			"Name": "Flakes",
 			"Enabled": true
 		},
 		{

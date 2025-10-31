@@ -9,7 +9,6 @@
 #include "FaerieItemTokenFilter.h"
 #include "FaerieItemTokenFilterTypes.h"
 #include "Tokens/FaerieInfoToken.h"
-#include "FlakesJsonSerializer.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemDataLibrary)
 
@@ -141,17 +140,4 @@ bool UFaerieItemDataLibrary::ItemDateModifiedComparator(const UFaerieItem* A, co
 		return A->GetLastModified() < B->GetLastModified();
 	}
 	return false;
-}
-
-FString UFaerieItemDataLibrary::DebugEmitItemJson(const UFaerieItem* Item, const bool Pretty)
-{
-	const FJsonObjectWrapper Json = UFlakesJsonLibrary::CreateFlake_Json(Item);
-	return UFlakesJsonLibrary::ToString(Json, Pretty);
-}
-
-bool UFaerieItemDataLibrary::DebugCompareItemsByJson(const UFaerieItem* ItemA, const UFaerieItem* ItemB)
-{
-	const FJsonObjectWrapper JsonA = UFlakesJsonLibrary::CreateFlake_Json(ItemA);
-	const FJsonObjectWrapper JsonB = UFlakesJsonLibrary::CreateFlake_Json(ItemB);
-	return UFlakesJsonLibrary::ToString(JsonA, false) == UFlakesJsonLibrary::ToString(JsonB, false);
 }
