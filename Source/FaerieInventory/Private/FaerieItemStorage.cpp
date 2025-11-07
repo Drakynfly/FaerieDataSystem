@@ -481,12 +481,10 @@ void UFaerieItemStorage::PostContentChanged(const FInventoryEntry& Entry, const 
 			{
 				if (ChangeMask)
 				{
-					FStorageKey Key;
-					Key.EntryKey = Entry.Key;
 					for (TConstSetBitIterator<> It(*ChangeMask); It; ++It)
 					{
-						Key.StackKey = Entry.GetStackAt(It.GetIndex());
-						BroadcastAddressEvent(EFaerieAddressEventType::Edit, Key.ToAddress());
+						const FStackKey StackKey = Entry.GetStackAt(It.GetIndex());
+						BroadcastAddressEvent(EFaerieAddressEventType::Edit, MakeAddress(Entry.Key, StackKey));
 					}
 				}
 				else
@@ -816,33 +814,41 @@ Faerie::Inventory::FEventLog UFaerieItemStorage::RemoveFromStackImpl(const FFaer
 	/*	 STORAGE API - ALL USERS   */
 	/**------------------------------*/
 
-UFaerieItemStorage::FStorageKey::FStorageKey(const FFaerieAddress& Address)
+FFaerieAddress UFaerieItemStorage::MakeAddress(const FEntryKey Entry, const FStackKey Stack)
 {
-	Decode(Address, EntryKey, StackKey);
+	return Encode(Entry, Stack);
 }
 
-FFaerieAddress UFaerieItemStorage::FStorageKey::ToAddress() const
-{
-	return Encode(EntryKey, StackKey);
-}
-
-FEntryKey UFaerieItemStorage::FStorageKey::GetEntryKey(const FFaerieAddress FaerieAddress)
+FEntryKey UFaerieItemStorage::GetAddressEntry(const FFaerieAddress Address)
 {
 	FEntryKey Key;
-	Decode_Entry(FaerieAddress, Key);
+	Decode_Entry(Address, Key);
 	return Key;
 }
 
-FStackKey UFaerieItemStorage::FStorageKey::GetStackKey(const FFaerieAddress FaerieAddress)
+FStackKey UFaerieItemStorage::GetAddressStack(const FFaerieAddress Address)
 {
 	FStackKey Key;
-	Decode_Stack(FaerieAddress, Key);
+	Decode_Stack(Address, Key);
 	return Key;
 }
 
-void UFaerieItemStorage::BreakAddressIntoKeys(const FFaerieAddress Address, FEntryKey& Entry, FStackKey& Stack) const
+TTuple<FEntryKey, FStackKey> UFaerieItemStorage::BreakAddress(const FFaerieAddress Address)
+{
+	FEntryKey Entry;
+	FStackKey Stack;
+	Decode(Address, Entry, Stack);
+	return MakeTuple(Entry, Stack);
+}
+
+bool UFaerieItemStorage::BreakAddressIntoKeys(const FFaerieAddress Address, FEntryKey& Entry, FStackKey& Stack) const
 {
 	Decode(Address, Entry, Stack);
+	if (auto&& EntryPtr = GetEntrySafe(Entry))
+	{
+		return EntryPtr->Contains(Stack);
+	}
+	return false;
 }
 
 TArray<FStackKey> UFaerieItemStorage::BreakEntryIntoKeys(const FEntryKey Key) const

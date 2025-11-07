@@ -8,8 +8,18 @@
 
 class UFaerieItemStorage;
 class UInventoryStackProxy;
+
+namespace Faerie
+{
+	enum EStackProxyEventType
+	{
+		Updated,
+		Removed
+	};
+	using FStackProxyEvent = TMulticastDelegate<void(UInventoryStackProxy*, EStackProxyEventType)>;
+}
 using FEntryStorageProxyEvent = TMulticastDelegate<void(UInventoryStackProxy*)>;
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FCacheEvent, UInventoryStackProxy*, Proxy);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FFaerieStackProxyEvent, UInventoryStackProxy*, Proxy);
 
 /*
  * Class for a proxy to an address in a UFaerieItemStorage.
@@ -33,8 +43,7 @@ public:
 	FAERIEINVENTORY_API int32 GetItemVersion() const { return LocalItemVersion; }
 	FAERIEINVENTORY_API FEntryKey GetKey() const;
 
-	FAERIEINVENTORY_API FEntryStorageProxyEvent::RegistrationType& GetOnCacheUpdated() { return OnCacheUpdatedNative; }
-	FAERIEINVENTORY_API FEntryStorageProxyEvent::RegistrationType& GetOnCacheRemoved() { return OnCacheRemovedNative; }
+	FAERIEINVENTORY_API Faerie::FStackProxyEvent::RegistrationType& GetOnProxyEvent() { return OnProxyEvent; }
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|StackProxy")
 	FFaerieAddressableHandle GetAddressable() const;
@@ -52,11 +61,11 @@ protected:
 
 	// Broadcast when this proxy is first initialized, or receives an update.
 	UPROPERTY(BlueprintAssignable, Category = "Events")
-	FCacheEvent OnCacheUpdated;
+	FFaerieStackProxyEvent OnCacheUpdated;
 
 	// Broadcast when the entry represented by this proxy is being partially removed or deleted.
 	UPROPERTY(BlueprintAssignable, Category = "Events")
-	FCacheEvent OnCacheRemoved;
+	FFaerieStackProxyEvent OnCacheRemoved;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "StackProxy")
 	TWeakObjectPtr<UFaerieItemStorage> ItemStorage;
@@ -74,6 +83,5 @@ protected:
 	int32 LocalItemVersion = -1;
 
 private:
-	FEntryStorageProxyEvent OnCacheUpdatedNative;
-	FEntryStorageProxyEvent OnCacheRemovedNative;
+	Faerie::FStackProxyEvent OnProxyEvent;
 };

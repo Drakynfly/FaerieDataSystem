@@ -36,7 +36,7 @@ TScriptInterface<IFaerieItemOwnerInterface> UInventoryStackProxy::GetItemOwner()
 
 FEntryKey UInventoryStackProxy::GetKey() const
 {
-	return UFaerieItemStorage::FStorageKey::GetEntryKey(Address);
+	return UFaerieItemStorage::GetAddressEntry(Address);
 }
 
 FFaerieAddressableHandle UInventoryStackProxy::GetAddressable() const
@@ -62,21 +62,20 @@ void UInventoryStackProxy::NotifyCreation()
 		LocalItemVersion = -1;
 	}
 
-	OnCacheUpdatedNative.Broadcast(this);
 	OnCacheUpdated.Broadcast(this);
 }
 
 void UInventoryStackProxy::NotifyUpdate()
 {
 	LocalItemVersion++;
-	OnCacheUpdatedNative.Broadcast(this);
+	OnProxyEvent.Broadcast(this, Faerie::EStackProxyEventType::Updated);
 	OnCacheUpdated.Broadcast(this);
 }
 
 void UInventoryStackProxy::NotifyRemoval()
 {
 	LocalItemVersion = -1;
-	OnCacheRemovedNative.Broadcast(this);
+	OnProxyEvent.Broadcast(this, Faerie::EStackProxyEventType::Removed);
 	OnCacheRemoved.Broadcast(this);
 }
 

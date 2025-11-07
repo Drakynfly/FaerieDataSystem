@@ -85,7 +85,7 @@ namespace Faerie::Storage
 	{
 		const int32 ConverterIndex = Algo::LowerBound(Converter, Index);
 		const int32 EntryValue = Converter[ConverterIndex];
-		return UFaerieItemStorage::FStorageKey(FEntryKey(EntryValue), FStackKey(Index - EntryValue)).ToAddress();
+		return UFaerieItemStorage::MakeAddress(FEntryKey(EntryValue), FStackKey(Index - EntryValue));
 	}
 
 	int32 AddressToIndex(const FEntryKey Entry, const FStackKey Stack, const TConstArrayView<int32> Converter)

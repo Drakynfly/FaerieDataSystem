@@ -112,61 +112,16 @@ private:
 	/*	  STORAGE API - ALL USERS    */
 	/**------------------------------*/
 public:
-	// Allows conversion to and from a FaerieAddress for external API that use them separately.
-	struct FAERIEINVENTORY_API FStorageKey
-	{
-		FStorageKey() = default;
-		FStorageKey(const FEntryKey Entry, const FStackKey Stack)
-		  : EntryKey(Entry), StackKey(Stack) {}
-
-		explicit FStorageKey(const FFaerieAddress& Address);
-
-		FEntryKey EntryKey;
-		FStackKey StackKey;
-
-		FFaerieAddress ToAddress() const;
-
-		bool IsValid() const { return EntryKey.IsValid() && StackKey.IsValid(); }
-
-		FString ToString() const
-		{
-			return EntryKey.ToString() + TEXT(":") + StackKey.ToString();
-		}
-
-		FORCEINLINE friend uint32 GetTypeHash(const FStorageKey Key)
-		{
-			return HashCombineFast(GetTypeHash(Key.EntryKey), GetTypeHash(Key.StackKey));
-		}
-
-		friend bool operator==(const FStorageKey Lhs, const FStorageKey Rhs)
-		{
-			return Lhs.EntryKey == Rhs.EntryKey
-				&& Lhs.StackKey == Rhs.StackKey;
-		}
-
-		friend bool operator!=(const FStorageKey Lhs, const FStorageKey Rhs)
-		{
-			return !(Lhs == Rhs);
-		}
-
-		friend bool operator<(const FStorageKey Lhs, const FStorageKey Rhs)
-		{
-			if (Lhs.EntryKey == Rhs.EntryKey)
-			{
-				return Lhs.StackKey < Rhs.StackKey;
-			}
-
-			return Lhs.EntryKey < Rhs.EntryKey;
-		}
-
-		static FEntryKey GetEntryKey(FFaerieAddress FaerieAddress);
-		static FStackKey GetStackKey(FFaerieAddress FaerieAddress);
-	};
-
 	Faerie::FAddressEvent::RegistrationType& GetOnAddressEvent() { return OnAddressEventCallback; }
 
+	static FFaerieAddress MakeAddress(FEntryKey Entry, FStackKey Stack);
+	static FEntryKey GetAddressEntry(FFaerieAddress Address);
+	static FStackKey GetAddressStack(FFaerieAddress Address);
+	static TTuple<FEntryKey, FStackKey> BreakAddress(FFaerieAddress Address);
+
+	// Breaks an address into a entry and stack key, verifying that they are valid.
 	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Storage|Key")
-	void BreakAddressIntoKeys(FFaerieAddress Address, FEntryKey& Entry, FStackKey& Stack) const;
+	bool BreakAddressIntoKeys(FFaerieAddress Address, FEntryKey& Entry, FStackKey& Stack) const;
 
 	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Storage|Key")
 	TArray<FStackKey> BreakEntryIntoKeys(FEntryKey Key) const;

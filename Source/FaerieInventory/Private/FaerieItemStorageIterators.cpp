@@ -104,7 +104,7 @@ namespace Faerie::Storage
 
 	FFaerieAddress FIterator_AllAddresses::GetAddress() const
 	{
-		return UFaerieItemStorage::FStorageKey(Content->GetKeyAt(EntryIndex), StackPtr->Key).ToAddress();
+		return UFaerieItemStorage::MakeAddress(Content->GetKeyAt(EntryIndex), StackPtr->Key);
 	}
 
 	const UFaerieItem* FIterator_AllAddresses::GetItem() const
@@ -185,7 +185,7 @@ namespace Faerie::Storage
 	FFaerieAddress FIterator_MaskedEntries::GetAddress() const
 	{
 		checkSlow(BitIterator);
-		return UFaerieItemStorage::FStorageKey(Content->GetKeyAt(BitIterator.GetIndex()), StackPtr->Key).ToAddress();
+		return UFaerieItemStorage::MakeAddress(Content->GetKeyAt(BitIterator.GetIndex()), StackPtr->Key);
 	}
 
 	const UFaerieItem* FIterator_MaskedEntries::GetItem() const
@@ -250,6 +250,6 @@ namespace Faerie::Storage
 
 	FFaerieAddress FIterator_SingleEntry::GetAddress() const
 	{
-		return UFaerieItemStorage::FStorageKey(EntryPtr->Key, StackPtr->Key).ToAddress();
+		return UFaerieItemStorage::MakeAddress(EntryPtr->Key, StackPtr->Key);
 	}
 }

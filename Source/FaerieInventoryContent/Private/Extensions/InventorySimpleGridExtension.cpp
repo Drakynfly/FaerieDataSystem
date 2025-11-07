@@ -24,13 +24,9 @@ void UInventorySimpleGridExtension::PostAddition(const UFaerieItemContainerBase*
 {
 	// @todo don't add items for existing keys
 
-	UFaerieItemStorage::FStorageKey NewKey;
-	NewKey.EntryKey = Event.EntryTouched;
-
 	for (const FStackKey StackKey : Event.StackKeys)
 	{
-		NewKey.StackKey = StackKey;
-		AddItemToGrid(NewKey.ToAddress(), Event.Item.Get());
+		AddItemToGrid(UFaerieItemStorage::MakeAddress(Event.EntryTouched, StackKey), Event.Item.Get());
 	}
 }
 
@@ -44,7 +40,7 @@ void UInventorySimpleGridExtension::PostRemoval(const UFaerieItemContainerBase* 
 
 		for (const FStackKey StackKey : Event.StackKeys)
 		{
-			if (FFaerieAddress CurrentAddress = UFaerieItemStorage::FStorageKey{Event.EntryTouched, StackKey}.ToAddress();
+			if (FFaerieAddress CurrentAddress = UFaerieItemStorage::MakeAddress(Event.EntryTouched, StackKey);
 				ItemStorage->Contains(CurrentAddress))
 			{
 				PostStackChange({ CurrentAddress, GetStackPlacementData(CurrentAddress) });
@@ -177,13 +173,13 @@ bool UInventorySimpleGridExtension::MoveItem(const FFaerieAddress Address, const
 	if (const FFaerieAddress OverlappingAddress = FindOverlappingItem(Address);
 		OverlappingAddress.IsValid())
 	{
-		const UFaerieItemStorage::FStorageKey Key{Address};
-		const UFaerieItemStorage::FStorageKey OverlappingKey{OverlappingAddress};
+		const TTuple<FEntryKey, FStackKey> Key = UFaerieItemStorage::BreakAddress(Address);
+		const TTuple<FEntryKey, FStackKey> OverlappingKey = UFaerieItemStorage::BreakAddress(OverlappingAddress);
 
 		// If the Entry keys are identical, it gives us some other things to test before Swapping.
-		if (Key.EntryKey == OverlappingKey.EntryKey)
+		if (Key.Get<0>() == OverlappingKey.Get<0>())
 		{
-			if (Key.StackKey == OverlappingKey.StackKey)
+			if (Key.Get<1>() == OverlappingKey.Get<1>())
 			{
 				// It's the same stack? No point in this!
 				return false;
@@ -191,7 +187,7 @@ bool UInventorySimpleGridExtension::MoveItem(const FFaerieAddress Address, const
 
 			// Try merging them. This is known to be safe, since all stacks with the same key share immutability.
 			if (UFaerieItemStorage* Storage = Cast<UFaerieItemStorage>(InitializedContainer);
-				Storage->MergeStacks(Key.EntryKey, Key.StackKey, OverlappingKey.StackKey))
+				Storage->MergeStacks(Key.Get<0>(), Key.Get<1>(), OverlappingKey.Get<1>()))
 			{
 				return true;
 			}
