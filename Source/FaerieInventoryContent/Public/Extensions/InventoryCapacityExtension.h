@@ -159,6 +159,9 @@ public:
     void SetConfiguration(const FCapacityExtensionConfig& NewConfig);
 
     UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Faerie|InventoryCapacity")
+    void SetBounds(const FIntVector NewBounds);
+
+    UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Faerie|InventoryCapacity")
     void SetMaxCapacity(const FWeightAndVolume NewMax);
 
     UFUNCTION(BlueprintPure, Category = "Faerie|InventoryCapacity")

@@ -464,6 +464,15 @@ void UInventoryCapacityExtension::SetConfiguration(const FCapacityExtensionConfi
 	OnConfigurationChanged.Broadcast();
 }
 
+void UInventoryCapacityExtension::SetBounds(const FIntVector NewBounds)
+{
+	Config.Bounds = NewBounds;
+	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Config, this);
+	CheckCapacityLimit();
+	OnConfigurationChangedNative.Broadcast();
+	OnConfigurationChanged.Broadcast();
+}
+
 void UInventoryCapacityExtension::SetMaxCapacity(const FWeightAndVolume NewMax)
 {
 	Config.MaxWeight = NewMax.GramWeight;
