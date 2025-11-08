@@ -140,7 +140,7 @@ void UFaerieItemStorage::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	FDoRepLifetimeParams SharedParams;
 	SharedParams.bIsPushBased = true;
 
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, EntryMap, SharedParams);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, EntryMap, SharedParams)
 }
 
 void UFaerieItemStorage::PostLoad()

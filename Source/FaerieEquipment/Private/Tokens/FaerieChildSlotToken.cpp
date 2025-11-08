@@ -27,8 +27,8 @@ void UFaerieChildSlotToken::GetLifetimeReplicatedProps(TArray<class FLifetimePro
 	FDoRepLifetimeParams SharedParams;
 	SharedParams.bIsPushBased = true;
 
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, Config, SharedParams);
-	DOREPLIFETIME_CONDITION(ThisClass, Extensions, COND_InitialOnly);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, Config, SharedParams)
+	DOREPLIFETIME_CONDITION(ThisClass, Extensions, COND_InitialOnly)
 }
 
 void UFaerieChildSlotToken::PostLoad()

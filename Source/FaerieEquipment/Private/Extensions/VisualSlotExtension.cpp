@@ -12,11 +12,11 @@ void UVisualSlotExtension::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 
 	FDoRepLifetimeParams Params;
 	Params.bIsPushBased = true;
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, Socket, Params);
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, ChildSocket, Params);
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, ComponentTag, Params);
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, PreferredTag, Params);
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, AllowLeaderPose, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, Socket, Params)
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, ChildSocket, Params)
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, ComponentTag, Params)
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, PreferredTag, Params)
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, AllowLeaderPose, Params)
 }
 
 void UVisualSlotExtension::SetSocket(const FName InSocket)

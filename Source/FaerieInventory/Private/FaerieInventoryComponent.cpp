@@ -27,7 +27,7 @@ void UFaerieInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimePrope
 	FDoRepLifetimeParams SharedParams;
 	SharedParams.bIsPushBased = true;
 
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, ItemStorage, SharedParams);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, ItemStorage, SharedParams)
 }
 
 void UFaerieInventoryComponent::PostInitProperties()

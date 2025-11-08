@@ -50,8 +50,8 @@ void UFaerieItemUsesToken::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 
 	FDoRepLifetimeParams SharedParams;
 	SharedParams.bIsPushBased = true;
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, UsesRemaining, SharedParams);
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, MaxUses, SharedParams);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, UsesRemaining, SharedParams)
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, MaxUses, SharedParams)
 
 	DOREPLIFETIME_CONDITION(ThisClass, LastUseLogic, COND_InitialOnly);
 }

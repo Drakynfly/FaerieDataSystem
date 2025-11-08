@@ -16,7 +16,7 @@ void UFaerieInfoToken::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty
 	FDoRepLifetimeParams Params;
 	Params.bIsPushBased = true;
 	Params.Condition = COND_InitialOnly;
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, Info, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, Info, Params)
 }
 
 bool UFaerieInfoToken::CompareWithImpl(const UFaerieItemToken* Other) const

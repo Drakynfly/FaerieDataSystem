@@ -16,7 +16,7 @@ void UFaerieGuidToken::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty
 	FDoRepLifetimeParams Params;
 	Params.bIsPushBased = true;
 	Params.Condition = COND_InitialOnly;
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, Guid, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, Guid, Params)
 }
 
 void UFaerieGuidToken::PostInitProperties()

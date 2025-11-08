@@ -49,7 +49,7 @@ void UFaerieEquipmentManager::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 
 	FDoRepLifetimeParams Params;
 	Params.bIsPushBased = true;
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, Slots, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, Slots, Params)
 }
 
 void UFaerieEquipmentManager::InitializeComponent()

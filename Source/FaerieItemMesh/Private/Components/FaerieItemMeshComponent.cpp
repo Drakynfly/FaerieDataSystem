@@ -28,9 +28,9 @@ void UFaerieItemMeshComponent::GetLifetimeReplicatedProps(TArray<class FLifetime
 	FDoRepLifetimeParams SharedParams;
 	SharedParams.bIsPushBased = true;
 
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, SourceMeshToken, SharedParams);
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, SkeletalMeshLeader, SharedParams);
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, PreferredTag, SharedParams);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, SourceMeshToken, SharedParams)
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, SkeletalMeshLeader, SharedParams)
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, PreferredTag, SharedParams)
 }
 
 void UFaerieItemMeshComponent::DestroyComponent(const bool bPromoteChildren)

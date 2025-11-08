@@ -201,9 +201,9 @@ void UItemContainerExtensionGroup::GetLifetimeReplicatedProps(TArray<FLifetimePr
 
 	FDoRepLifetimeParams Params;
 	Params.bIsPushBased = true;
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, ParentGroup, Params);
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, Extensions, Params);
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, DynamicExtensions, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, ParentGroup, Params)
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, Extensions, Params)
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, DynamicExtensions, Params)
 }
 
 void UItemContainerExtensionGroup::PostLoad()

@@ -152,8 +152,8 @@ void UFaerieItemStackContainer::GetLifetimeReplicatedProps(TArray<FLifetimePrope
 	// State members are push based
 	FDoRepLifetimeParams SharedParams;
 	SharedParams.bIsPushBased = true;
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, ItemStack, SharedParams);
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, StoredKey, SharedParams);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, ItemStack, SharedParams)
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, StoredKey, SharedParams)
 }
 
 //~ UFaerieItemContainerBase

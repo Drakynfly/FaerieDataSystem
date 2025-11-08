@@ -16,7 +16,7 @@ void UContentHashExtension::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>
 
 	FDoRepLifetimeParams Params;
 	Params.bIsPushBased = true;
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, ServerChecksum, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, ServerChecksum, Params)
 }
 
 void UContentHashExtension::InitializeExtension(const UFaerieItemContainerBase* Container)

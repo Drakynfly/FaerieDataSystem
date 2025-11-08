@@ -17,8 +17,8 @@ void UInventoryCapacityExtension::GetLifetimeReplicatedProps(TArray<FLifetimePro
 	FDoRepLifetimeParams SharedParams;
 	SharedParams.bIsPushBased = true;
 
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, Config, SharedParams);
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, State, SharedParams);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, Config, SharedParams)
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, State, SharedParams)
 }
 
 #if WITH_EDITOR

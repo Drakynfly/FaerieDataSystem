@@ -118,9 +118,9 @@ void UInventoryGridExtensionBase::GetLifetimeReplicatedProps(TArray<class FLifet
 	FDoRepLifetimeParams SharedParams;
 	SharedParams.bIsPushBased = true;
 
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, GridContent, SharedParams);
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, GridSize, SharedParams);
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, InitializedContainer, SharedParams);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, GridContent, SharedParams)
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, GridSize, SharedParams)
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, InitializedContainer, SharedParams)
 }
 
 void UInventoryGridExtensionBase::PostInitProperties()

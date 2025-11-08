@@ -16,7 +16,7 @@ void UFaerieTagToken::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>
 	FDoRepLifetimeParams Params;
 	Params.bIsPushBased = true;
 	Params.Condition = COND_InitialOnly;
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, Tags, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, Tags, Params)
 }
 
 uint32 UFaerieTagToken::GetTokenHashImpl() const

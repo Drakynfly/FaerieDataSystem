@@ -69,12 +69,12 @@ void UFaerieItem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifet
 
 	// For Tokens & LastModified, they only need to replicate past the initial bunch if they are mutable.
 	SharedParams.Condition = COND_None;
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, Tokens, SharedParams);
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, LastModified, SharedParams);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, Tokens, SharedParams)
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, LastModified, SharedParams)
 
 	// Mutability doesn't change after the initial token setup, so it only needs to be sent on the first rep.
 	SharedParams.Condition = COND_InitialOnly;
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, MutabilityFlags, SharedParams);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, MutabilityFlags, SharedParams)
 }
 
 
