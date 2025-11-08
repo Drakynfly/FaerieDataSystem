@@ -46,7 +46,7 @@ public:
 #endif
 	//~ End UObject interface
 
-	// Can the data contained be this token by changed after initialization. This plays a major role on how items are
+	// Can the data contained be this token by changed after initialization. This plays a major role in how items are
 	// handled. An item with *any* mutable data cannot be stacked.
 	virtual bool IsMutable() const;
 

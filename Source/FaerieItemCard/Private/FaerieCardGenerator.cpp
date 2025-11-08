@@ -20,13 +20,11 @@ TSoftClassPtr<UFaerieCardBase> UFaerieCardGenerator::GetCardClassFromProxy(const
 
 	if (auto&& CardClassProvider = Item->GetToken<UFaerieItemCardToken>())
 	{
-		if (auto&& Class = CardClassProvider->GetCardClass(Type);
-			!Class.IsNull())
+		auto&& Class = CardClassProvider->GetCardClass(Type);
+		if (!Class.IsNull())
 		{
 			return Class;
 		}
-
-		UE_LOG(LogFaerieItemCard, Warning, TEXT("CustomCard token contained invalid class (%s). Reverting to default!"), *Type.GetTagName().ToString())
 	}
 
 	for (FFaerieItemCardType Check = Type;

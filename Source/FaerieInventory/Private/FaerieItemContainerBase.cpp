@@ -101,7 +101,7 @@ UItemContainerExtensionGroup* UFaerieItemContainerBase::GetExtensionGroup() cons
 
 bool UFaerieItemContainerBase::AddExtension(UItemContainerExtensionBase* Extension)
 {
-	UE_LOG(LogFaerieInventory, Log, TEXT("Adding Extension: '%s' to '%s'"), *Extension->GetFullName(), *this->GetFullName())
+	UE_LOG(LogFaerieInventory, Verbose, TEXT("Adding Extension: '%s' to '%s'"), *Extension->GetFullName(), *this->GetFullName())
 	if (Extensions->AddExtension(Extension))
 	{
 		TryApplyUnclaimedSaveData(Extension);

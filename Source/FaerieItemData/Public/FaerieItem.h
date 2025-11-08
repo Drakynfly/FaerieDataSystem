@@ -122,7 +122,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "FaerieItem")
 	bool IsInstanceMutable() const;
 
-	// Are the tokens in this item capable of being changed at runtime?
+	// Are any tokens in this item capable of being changed at runtime?
 	UFUNCTION(BlueprintCallable, Category = "FaerieItem")
 	bool IsDataMutable() const;
 
@@ -164,7 +164,6 @@ private:
 	mutable uint32 WriteLock = 0;
 
 protected:
-	// @deprecated
 	UE_DEPRECATED(5.6, TEXT("Replaced by UFaerieItemDataLibrary::FindTokensByClass"))
 	UFUNCTION(BlueprintCallable, BlueprintPure = false, meta = (DeterminesOutputType = Class, DynamicOutputParam = FoundTokens, deprecated, DeprecationMessage = "Replaced by UFaerieItemDataLibrary::FindTokensByClass"))
 	void FindTokens(TSubclassOf<UFaerieItemToken> Class, TArray<UFaerieItemToken*>& FoundTokens) const;
