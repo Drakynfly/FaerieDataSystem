@@ -193,8 +193,10 @@ class UFaerieItemStorage;
  * are used to keep Entries in numeric order, allowing for binary-search accelerated accessors.
  */
 USTRUCT()
-struct FInventoryContent : public FFaerieFastArraySerializer,
-                           public TBinarySearchOptimizedArray<FInventoryContent, FInventoryEntry>
+struct FInventoryContent : public FFaerieFastArraySerializer
+#if CPP
+                           , public TBinarySearchOptimizedArray<FInventoryContent, FInventoryEntry>
+#endif
 {
 	GENERATED_BODY()
 

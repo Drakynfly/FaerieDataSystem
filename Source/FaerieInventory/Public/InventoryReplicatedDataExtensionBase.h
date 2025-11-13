@@ -42,8 +42,10 @@ class UInventoryReplicatedDataExtensionBase;
  * Implementation is accelerated by using a fast array for replication, and binary search for access.
  */
 USTRUCT()
-struct FFaerieReplicatedSimMap : public FFaerieFastArraySerializer,
-								 public TBinarySearchOptimizedArray<FFaerieReplicatedSimMap, FFaerieReplicatedValue>
+struct FFaerieReplicatedSimMap : public FFaerieFastArraySerializer
+#if CPP
+								 , public TBinarySearchOptimizedArray<FFaerieReplicatedSimMap, FFaerieReplicatedValue>
+#endif
 {
 	GENERATED_BODY()
 

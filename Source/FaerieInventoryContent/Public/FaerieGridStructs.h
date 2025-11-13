@@ -68,8 +68,10 @@ struct FFaerieGridKeyedStack : public FFastArraySerializerItem
 class UInventoryGridExtensionBase;
 
 USTRUCT(BlueprintType)
-struct FFaerieGridContent : public FFaerieFastArraySerializer,
-							public TBinarySearchOptimizedArray<FFaerieGridContent, FFaerieGridKeyedStack>
+struct FFaerieGridContent : public FFaerieFastArraySerializer
+#if CPP
+							, public TBinarySearchOptimizedArray<FFaerieGridContent, FFaerieGridKeyedStack>
+#endif
 {
 	GENERATED_BODY()
 
