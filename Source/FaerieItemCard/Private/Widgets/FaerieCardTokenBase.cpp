@@ -37,10 +37,10 @@ const UFaerieItem* UFaerieCardTokenBase::GetItem() const
 {
 	if (auto&& Card = GetOwningCard())
 	{
-		if (auto&& ItemObj = Card->GetStackView().Item;
-			ItemObj.IsValid())
+		if (auto&& ItemObj = Card->GetItemData().GetItemObject();
+			IsValid(ItemObj))
 		{
-			return ItemObj.Get();
+			return ItemObj;
 		}
 	}
 	return nullptr;
@@ -55,24 +55,24 @@ FFaerieItemProxy UFaerieCardTokenBase::GetProxy() const
 	return nullptr;
 }
 
-const UFaerieItemToken* UFaerieCardTokenBase::GetItemToken() const
+UFaerieCardBase* UFaerieCardTokenBase::GetOwningCard() const
+{
+	return GetTypedOuter<UFaerieCardBase>();
+}
+
+UFaerieItemToken* UFaerieCardTokenBase::GetItemToken(const TSubclassOf<UFaerieItemToken> Class) const
 {
 	if (auto&& ItemObj = GetItem())
 	{
-		return ItemObj->GetToken(GetTokenClass());
+		// @Note: BP doesn't understand const-ness, but since UFaerieItemToken does not have a BP accessible API that can
+		// mutate it, it's perfectly safe.
+		return const_cast<UFaerieItemToken*>(ItemObj->GetToken(Class));
 	}
 	return nullptr;
 }
 
-bool UFaerieCardTokenBase::GetItemTokenChecked(UFaerieItemToken*& Token, TSubclassOf<UFaerieItemToken>) const
+bool UFaerieCardTokenBase::GetItemTokenChecked(UFaerieItemToken*& Token, const TSubclassOf<UFaerieItemToken> Class) const
 {
-	// @Note: BP doesn't understand const-ness, but since UFaerieItemToken does not have a BP accessible API that can
-	// mutate it, it's perfectly safe.
-	Token = const_cast<UFaerieItemToken*>(GetItemToken());
+	Token = GetItemToken(Class);
 	return IsValid(Token);
-}
-
-UFaerieCardBase* UFaerieCardTokenBase::GetOwningCard() const
-{
-	return GetTypedOuter<UFaerieCardBase>();
 }
