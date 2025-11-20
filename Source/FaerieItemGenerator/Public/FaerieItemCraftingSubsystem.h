@@ -21,10 +21,13 @@ public:
 	//virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 
+	using FRequestResult = TDelegate<void(EGenerationActionResult Success, const TArray<FFaerieItemStack>&)>;
+
+	UFaerieCraftingRunner* SubmitCraftingRequest(const FFaerieCraftingRequestBase& Request, const FRequestResult& Callback);
+
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Faerie|ItemGeneration")
 	UFaerieCraftingRunner* SubmitCraftingRequest(TInstancedStruct<FFaerieCraftingRequestBase> Request, const FGenerationActionOnCompleteBinding& Callback);
 
-	using FRequestResult = TDelegate<void(EGenerationActionResult Success, const TArray<FFaerieItemStack>&)>;
 	UFaerieCraftingRunner* SubmitCraftingRequest(const TInstancedStruct<FFaerieCraftingRequestBase>& Request, FRequestResult Callback);
 
 private:

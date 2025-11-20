@@ -6,6 +6,7 @@
 
 #include "BenchBehaviorBase.generated.h"
 
+class UUserWidget;
 DECLARE_DYNAMIC_DELEGATE_RetVal(bool, FBenchInteractionTest);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FBenchInteractionEvent);
 
@@ -37,7 +38,7 @@ protected:
 
 public:
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Bench|Player Interaction")
-	UUserWidget* MakeInteractionWidget();
+	UUserWidget* MakeInteractionWidget(APlayerController* PlayerController);
 
 	UFUNCTION(BlueprintCallable, Category = "Bench|Player Interaction")
 	bool CanPlayerInteract() const;

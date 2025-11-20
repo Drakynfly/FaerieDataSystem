@@ -5,6 +5,15 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ItemMutator_Logic)
 
+void FFaerieItemMutator_ApplyFirst::GetRequiredAssets(TArray<TSoftObjectPtr<UObject>>& RequiredAssets) const
+{
+	for (auto&& Child : Children)
+	{
+		if (!Child.IsValid()) continue;
+		Child.Get().GetRequiredAssets(RequiredAssets);
+	}
+}
+
 bool FFaerieItemMutator_ApplyFirst::Apply(FFaerieItemStack& Stack, USquirrel* Squirrel) const
 {
 	for (auto&& Child : Children)
@@ -18,6 +27,15 @@ bool FFaerieItemMutator_ApplyFirst::Apply(FFaerieItemStack& Stack, USquirrel* Sq
 	return false;
 }
 
+void FFaerieItemMutator_ApplyAny::GetRequiredAssets(TArray<TSoftObjectPtr<UObject>>& RequiredAssets) const
+{
+	for (auto&& Child : Children)
+	{
+		if (!Child.IsValid()) continue;
+		Child.Get().GetRequiredAssets(RequiredAssets);
+	}
+}
+
 bool FFaerieItemMutator_ApplyAny::Apply(FFaerieItemStack& Stack, USquirrel* Squirrel) const
 {
 	for (auto&& Child : Children)
@@ -26,6 +44,15 @@ bool FFaerieItemMutator_ApplyAny::Apply(FFaerieItemStack& Stack, USquirrel* Squi
 		Child.Get().Apply(Stack, Squirrel);
 	}
 	return true;
+}
+
+void FFaerieItemMutator_ApplyAll::GetRequiredAssets(TArray<TSoftObjectPtr<UObject>>& RequiredAssets) const
+{
+	for (auto&& Child : Children)
+	{
+		if (!Child.IsValid()) continue;
+		Child.Get().GetRequiredAssets(RequiredAssets);
+	}
 }
 
 bool FFaerieItemMutator_ApplyAll::Apply(FFaerieItemStack& Stack, USquirrel* Squirrel) const

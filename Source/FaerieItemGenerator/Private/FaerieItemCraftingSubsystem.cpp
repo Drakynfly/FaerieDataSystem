@@ -19,6 +19,15 @@ void UFaerieItemCraftingSubsystem::Deinitialize()
 	Super::Deinitialize();
 }
 
+UFaerieCraftingRunner* UFaerieItemCraftingSubsystem::SubmitCraftingRequest(const FFaerieCraftingRequestBase& Request, const FRequestResult& Callback)
+{
+	UFaerieCraftingRunner* ActiveAction = NewObject<UFaerieCraftingRunner>(this);
+	ActiveActions.Add(ActiveAction);
+	ActiveAction->GetOnCompletedCallback().BindUObject(this, &ThisClass::OnActionCompleted, Callback);
+	ActiveAction->Start(TInstancedStruct<FFaerieCraftingRequestBase>::Make(Request));
+	return ActiveAction;
+}
+
 UFaerieCraftingRunner* UFaerieItemCraftingSubsystem::SubmitCraftingRequest(
 	const TInstancedStruct<FFaerieCraftingRequestBase> Request, const FGenerationActionOnCompleteBinding& Callback)
 {
@@ -56,7 +65,15 @@ UFaerieCraftingRunner* UFaerieItemCraftingSubsystem::SubmitCraftingRequest(
 void UFaerieItemCraftingSubsystem::OnActionCompleted(UFaerieCraftingRunner* Runner, const EGenerationActionResult Result,
 	const FRequestResult Callback)
 {
-	const FFaerieCraftingActionData& ActionResults = Runner->RequestStorage.Get();
-	Callback.Execute(Result, ActionResults.ProcessStacks);
+	if (Result == EGenerationActionResult::Succeeded)
+	{
+		const FFaerieCraftingActionData& ActionResults = Runner->RequestStorage.Get();
+		Callback.Execute(Result, ActionResults.ProcessStacks);
+	}
+	else
+	{
+		Callback.Execute(Result, {});
+	}
+
 	ActiveActions.Remove(Runner);
 }

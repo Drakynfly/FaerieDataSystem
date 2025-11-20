@@ -34,6 +34,13 @@ void UFaerieCraftingRunner::OnTimeout()
 
 void UFaerieCraftingRunner::Finish(const EGenerationActionResult Result)
 {
+	// If the output is invalid, we finished without crafting anything... so report a failure instead of intended result.
+	if (!RequestStorage.IsValid())
+	{
+		(void)OnCompletedCallback.ExecuteIfBound(this, EGenerationActionResult::Failed);
+		return;
+	}
+
 #if WITH_EDITORONLY_DATA
 	const FDateTime TimeFinished = FDateTime::UtcNow();
 	const FTimespan TimePassed = TimeFinished - TimeStarted;

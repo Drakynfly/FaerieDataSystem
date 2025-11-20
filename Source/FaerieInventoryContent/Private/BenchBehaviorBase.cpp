@@ -4,7 +4,7 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(BenchBehaviorBase)
 
-UUserWidget* UBenchBehaviorBase::MakeInteractionWidget_Implementation()
+UUserWidget* UBenchBehaviorBase::MakeInteractionWidget_Implementation(APlayerController* PlayerController)
 {
 	return nullptr;
 }

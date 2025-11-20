@@ -6,6 +6,14 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ItemMutator_Condition)
 
+void FFaerieItemMutator_TemplateCondition::GetRequiredAssets(TArray<TSoftObjectPtr<UObject>>& RequiredAssets) const
+{
+	if (Child.IsValid())
+	{
+		Child.Get().GetRequiredAssets(RequiredAssets);
+	}
+}
+
 bool FFaerieItemMutator_TemplateCondition::Apply(FFaerieItemStack& Stack, USquirrel* Squirrel) const
 {
 	if (!Stack.IsValid()) return false;

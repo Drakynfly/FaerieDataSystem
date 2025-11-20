@@ -23,7 +23,7 @@ public:
 
 	virtual FFaerieCraftingSlotsView GetCraftingSlots() const override;
 
-	// Mutator object, created inline.
+	// Mutator struct, created inline.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upgrade Config", meta = (ExcludeBaseStruct))
 	TInstancedStruct<FFaerieItemMutator> Mutator;
 

@@ -24,6 +24,6 @@ protected:
 	virtual void BeginPlay() override;
 
 protected:
-	UPROPERTY(EditInstanceOnly, Replicated, BlueprintReadOnly, Instanced, Category = "Bench Logic")
+	UPROPERTY(EditAnywhere, Replicated, BlueprintReadOnly, Instanced, Category = "Bench Logic")
 	TObjectPtr<UBenchBehaviorBase> Behavior;
 };

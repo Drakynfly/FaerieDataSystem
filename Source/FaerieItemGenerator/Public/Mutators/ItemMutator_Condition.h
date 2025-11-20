@@ -14,6 +14,7 @@ struct FFaerieItemMutator_TemplateCondition final : public FFaerieItemMutator
 {
 	GENERATED_BODY()
 
+	virtual void GetRequiredAssets(TArray<TSoftObjectPtr<UObject>>& RequiredAssets) const override;
 	virtual bool Apply(FFaerieItemStack& Stack, USquirrel* Squirrel) const override;
 
 protected:
