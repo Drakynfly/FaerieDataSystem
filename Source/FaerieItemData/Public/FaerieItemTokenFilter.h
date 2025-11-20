@@ -42,12 +42,18 @@ namespace Faerie::Token
 			AddWriteLock(Item);
 		}
 
+		TIterator_Masked(const TIterator_Masked& Other)
+		  : Item(Other.Item), TokenBits(Other.TokenBits), Iterator(this->TokenBits)
+		{
+			AddWriteLock(Item);
+		}
+
 		~TIterator_Masked()
 		{
 			RemoveWriteLock(Item);
 		}
 
-		[[nodiscard]] FORCEINLINE ElementType* operator*() const
+		[[nodiscard]] ElementType* operator*() const
 		{
 			if constexpr (Const)
 			{
@@ -59,18 +65,18 @@ namespace Faerie::Token
 			}
 		}
 
-		TIterator_Masked& operator++()
+		UE_REWRITE TIterator_Masked& operator++()
 		{
 			++Iterator;
 			return *this;
 		}
 
-		FORCEINLINE explicit operator bool() const
+		UE_REWRITE explicit operator bool() const
 		{
 			return static_cast<bool>(Iterator);
 		}
 
-		[[nodiscard]] FORCEINLINE bool operator!=(EIteratorType) const
+		[[nodiscard]] UE_REWRITE bool operator!=(EIteratorType) const
 		{
 			// As long as we are valid, then we have not ended.
 			return static_cast<bool>(*this);
@@ -78,7 +84,7 @@ namespace Faerie::Token
 
 	protected:
 		const UFaerieItem* Item;
-		const TBitArray<>& TokenBits;
+		const TBitArray<> TokenBits;
 		TConstSetBitIterator<> Iterator;
 	};
 
@@ -179,17 +185,17 @@ namespace Faerie::Token
 	public:
 		bool CompareTokens(const IFilter& OtherFilter) const;
 
-		bool IsEmpty() const { return TokenBits.IsEmpty(); }
-		int32 Num() const { return TokenBits.CountSetBits(); }
+		UE_REWRITE bool IsEmpty() const { return TokenBits.IsEmpty(); }
+		UE_REWRITE int32 Num() const { return TokenBits.CountSetBits(); }
 
 		// Create an array with the filters set of tokens.
 		FAERIEITEMDATA_API TArray<const UFaerieItemToken*> Emit() const;
 
 		// Create an array with the filters set of tokens.
-		[[nodiscard]] TArray<const UFaerieItemToken*> operator*() const { return Emit(); }
+		[[nodiscard]] UE_REWRITE TArray<const UFaerieItemToken*> operator*() const { return Emit(); }
 
-		[[nodiscard]] FORCEINLINE auto begin() const { return TIterator_Masked<UFaerieItemToken, true>(Item, TokenBits); }
-		[[nodiscard]] FORCEINLINE EIteratorType end () const { return End; }
+		[[nodiscard]] UE_REWRITE auto begin() const { return TIterator_Masked<UFaerieItemToken, true>(Item, TokenBits); }
+		[[nodiscard]] UE_REWRITE EIteratorType end () const { return End; }
 
 	private:
 		TArray<UFaerieItemToken*> BlueprintOnlyAccess() const;
@@ -220,7 +226,7 @@ namespace Faerie::Token
 
 		using IFilter::IFilter;
 
-		TFilter& Invert()
+		UE_REWRITE TFilter& Invert()
 		{
 			Invert_Impl();
 			return *this;
@@ -312,7 +318,7 @@ namespace Faerie::Token
 			}
 		}
 
-		FORCEINLINE auto begin() const
+		UE_REWRITE auto begin() const
 		{
 			return TIterator_Masked<FilterClass, Const>(Item, TokenBits);
 		}

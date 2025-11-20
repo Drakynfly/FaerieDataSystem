@@ -162,7 +162,7 @@ namespace Faerie::Extension
 			return static_cast<bool>(*this);
 		}
 
-		[[nodiscard]] FORCEINLINE TExtensionIterator begin() { return *this; }
+		[[nodiscard]] FORCEINLINE const TExtensionIterator& begin() { return *this; }
 		[[nodiscard]] FORCEINLINE EIteratorType end () const { return End; }
 
 	private:
@@ -211,7 +211,7 @@ namespace Faerie::Extension
 			return static_cast<bool>(*this);
 		}
 
-		[[nodiscard]] FORCEINLINE TRecursiveExtensionIterator begin() const { return *this; }
+		[[nodiscard]] FORCEINLINE const TRecursiveExtensionIterator& begin() const { return *this; }
 		[[nodiscard]] FORCEINLINE EIteratorType end () const { return End; }
 
 	private:

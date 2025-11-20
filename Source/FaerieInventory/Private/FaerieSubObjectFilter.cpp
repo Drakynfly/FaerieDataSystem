@@ -5,19 +5,20 @@
 #include "FaerieContainerFilterTypes.h"
 #include "FaerieItem.h"
 #include "FaerieItemContainerBase.h"
-#include "FaerieItemTokenFilter.h"
 #include "FaerieItemTokenFilterTypes.h"
-#include "Tokens/FaerieItemStorageToken.h"
 
 namespace Faerie
 {
+	auto GetItemContainersFilter(UFaerieItem* Item)
+	{
+		return Token::Filter(Item).ByClass<UFaerieItemContainerToken>().By<Token::FMutableFilter>();
+	}
+
 	void GetAllContainersInItem(UFaerieItem* Item, TArray<UFaerieItemContainerBase*>& OutContainers)
 	{
 		if (!ensure(IsValid(Item))) return;
 
-		auto&& Filter = Token::Filter(Item).ByClass<UFaerieItemContainerToken>().By<Token::FMutableFilter>();
-
-		for (UFaerieItemContainerToken* Token : Filter)
+		for (UFaerieItemContainerToken* Token : GetItemContainersFilter(Item))
 		{
 			OutContainers.Add(Token->GetItemContainer());
 		}
@@ -116,8 +117,11 @@ namespace Faerie
 			}
 		}
 
-		FIterator::FIterator(UFaerieItem* Item)
-		  : Containers(GetAllContainersInItem(Item)),
+		FArrayIterator::FArrayIterator(UFaerieItem* Item, const bool Recursive)
+		  : Containers(Recursive ? GetAllContainersInItemRecursive(Item) : GetAllContainersInItem(Item)),
 			Iterator(Containers.CreateIterator()) {}
+
+		FFilterIterator::FFilterIterator(UFaerieItem* Item)
+		  : Iterator(GetItemContainersFilter(Item).begin()) {}
 	}
 }

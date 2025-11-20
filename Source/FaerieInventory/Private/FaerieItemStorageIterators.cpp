@@ -117,6 +117,19 @@ namespace Faerie::Storage
 		return Content->GetElementAt(EntryIndex).GetStack(StackPtr->Key);
 	}
 
+	void FIterator_AllAddresses::operator++()
+	{
+		if (NumRemaining > 0)
+		{
+			NumRemaining--;
+			StackPtr++;
+		}
+		else
+		{
+			AdvanceEntry();
+		}
+	}
+
 	FIterator_MaskedEntries::FIterator_MaskedEntries(const UFaerieItemStorage* Storage, const TBitArray<>& EntryMask)
 	  : Content(&ReadInventoryContent(*Storage)),
 		KeyMask(EntryMask),
@@ -196,6 +209,20 @@ namespace Faerie::Storage
 		return Content->GetElementAt(BitIterator.GetIndex()).GetItem();
 	}
 
+	void FIterator_MaskedEntries::operator++()
+	{
+		if (NumRemaining > 0)
+		{
+			NumRemaining--;
+			StackPtr++;
+		}
+		else
+		{
+			++BitIterator;
+			AdvanceEntry();
+		}
+	}
+
 	/*
 	FStorageIterator_MaskedAddresses::FStorageIterator_MaskedAddresses(const UFaerieItemStorage* Storage,
 		const TBitArray<>& AddressMask)
@@ -251,5 +278,18 @@ namespace Faerie::Storage
 	FFaerieAddress FIterator_SingleEntry::GetAddress() const
 	{
 		return UFaerieItemStorage::MakeAddress(EntryPtr->Key, StackPtr->Key);
+	}
+
+	void FIterator_SingleEntry::operator++()
+	{
+		if (NumRemaining > 0)
+		{
+			NumRemaining--;
+			StackPtr++;
+		}
+		else
+		{
+			StackPtr = nullptr;
+		}
 	}
 }

@@ -31,7 +31,7 @@ namespace Faerie::Storage
 
 		void AdvanceEntry();
 
-		FORCEINLINE FEntryKey operator*() const
+		UE_REWRITE FEntryKey operator*() const
 		{
 			return GetKey();
 		}
@@ -39,24 +39,24 @@ namespace Faerie::Storage
 		FEntryKey GetKey() const;
 		const UFaerieItem* GetItem() const;
 
-		void operator++()
+		UE_REWRITE void operator++()
 		{
 			AdvanceEntry();
 		}
 
-		FORCEINLINE explicit operator bool() const
+		UE_REWRITE explicit operator bool() const
 		{
 			return EntryIndex != INDEX_NONE;
 		}
 
-		[[nodiscard]] FORCEINLINE bool operator!=(EIteratorType) const
+		[[nodiscard]] UE_REWRITE bool operator!=(EIteratorType) const
 		{
 			// As long as we are valid, then we have not ended.
 			return static_cast<bool>(*this);
 		}
 
-		[[nodiscard]] FORCEINLINE FIterator_AllEntries begin() const { return *this; }
-		[[nodiscard]] FORCEINLINE EIteratorType end () const { return End; }
+		[[nodiscard]] UE_REWRITE const FIterator_AllEntries& begin() const { return *this; }
+		[[nodiscard]] UE_REWRITE EIteratorType end () const { return End; }
 
 	private:
 		// Entry iteration
@@ -75,7 +75,7 @@ namespace Faerie::Storage
 
 		void AdvanceEntry();
 
-		FORCEINLINE FFaerieAddress operator*() const
+		UE_REWRITE FFaerieAddress operator*() const
 		{
 			return GetAddress();
 		}
@@ -85,32 +85,21 @@ namespace Faerie::Storage
 		const UFaerieItem* GetItem() const;
 		int32 GetStack() const;
 
-		void operator++()
-		{
-			if (NumRemaining > 0)
-			{
-				NumRemaining--;
-				StackPtr++;
-			}
-			else
-			{
-				AdvanceEntry();
-			}
-		}
+		void operator++();
 
-		FORCEINLINE explicit operator bool() const
+		UE_REWRITE explicit operator bool() const
 		{
 			return EntryIndex != INDEX_NONE && StackPtr != nullptr;
 		}
 
-		[[nodiscard]] FORCEINLINE bool operator!=(EIteratorType) const
+		[[nodiscard]] UE_REWRITE bool operator!=(EIteratorType) const
 		{
 			// As long as we are valid, then we have not ended.
 			return static_cast<bool>(*this);
 		}
 
-		[[nodiscard]] FORCEINLINE FIterator_AllAddresses begin() const { return *this; }
-		[[nodiscard]] FORCEINLINE EIteratorType end  () const { return End; }
+		[[nodiscard]] UE_REWRITE const FIterator_AllAddresses& begin() const { return *this; }
+		[[nodiscard]] UE_REWRITE EIteratorType end  () const { return End; }
 
 	private:
 		// Entry iteration
@@ -135,7 +124,7 @@ namespace Faerie::Storage
 
 		void AdvanceEntry();
 
-		FORCEINLINE FFaerieAddress operator*() const
+		UE_REWRITE FFaerieAddress operator*() const
 		{
 			return GetAddress();
 		}
@@ -144,33 +133,21 @@ namespace Faerie::Storage
 		FFaerieAddress GetAddress() const;
 		const UFaerieItem* GetItem() const;
 
-		void operator++()
-		{
-			if (NumRemaining > 0)
-			{
-				NumRemaining--;
-				StackPtr++;
-			}
-			else
-			{
-				++BitIterator;
-				AdvanceEntry();
-			}
-		}
+		void operator++();
 
-		FORCEINLINE explicit operator bool() const
+		UE_REWRITE explicit operator bool() const
 		{
 			return StackPtr != nullptr && KeyMask.IsValidIndex(BitIterator.GetIndex());
 		}
 
-		[[nodiscard]] FORCEINLINE bool operator!=(EIteratorType) const
+		[[nodiscard]] UE_REWRITE bool operator!=(EIteratorType) const
 		{
 			// As long as we are valid, then we have not ended.
 			return static_cast<bool>(*this);
 		}
 
-		[[nodiscard]] FORCEINLINE FIterator_MaskedEntries begin() const { return FIterator_MaskedEntries(Content, KeyMask); }
-		[[nodiscard]] FORCEINLINE EIteratorType end () const { return End; }
+		[[nodiscard]] UE_REWRITE FIterator_MaskedEntries begin() const { return FIterator_MaskedEntries(Content, KeyMask); }
+		[[nodiscard]] UE_REWRITE EIteratorType end () const { return End; }
 
 	private:
 		// Entry iteration
@@ -213,37 +190,26 @@ namespace Faerie::Storage
 		FEntryKey GetKey() const;
 		FFaerieAddress GetAddress() const;
 
-		FORCEINLINE const UFaerieItem* GetItem() const
+		UE_REWRITE const UFaerieItem* GetItem() const
 		{
 			return EntryPtr->GetItem();
 		}
 
-		FORCEINLINE void operator++()
-		{
-			if (NumRemaining > 0)
-			{
-				NumRemaining--;
-				StackPtr++;
-			}
-			else
-			{
-				StackPtr = nullptr;
-			}
-		}
+		void operator++();
 
-		FORCEINLINE explicit operator bool() const
+		UE_REWRITE explicit operator bool() const
 		{
 			return StackPtr && NumRemaining;
 		}
 
-		[[nodiscard]] FORCEINLINE bool operator!=(EIteratorType) const
+		[[nodiscard]] UE_REWRITE bool operator!=(EIteratorType) const
 		{
 			// As long as we are valid, then we have not ended.
 			return static_cast<bool>(*this);
 		}
 
-		[[nodiscard]] FORCEINLINE FIterator_SingleEntry begin() const { return *this; }
-		[[nodiscard]] FORCEINLINE EIteratorType end  () const { return End; }
+		[[nodiscard]] UE_REWRITE const FIterator_SingleEntry& begin() const { return *this; }
+		[[nodiscard]] UE_REWRITE EIteratorType end  () const { return End; }
 
 	private:
 		const FInventoryEntry* EntryPtr;
@@ -257,12 +223,12 @@ namespace Faerie::Storage
 		FIterator_MaskedEntries_ForInterface(FIterator_MaskedEntries&& Inner) : Inner(Inner) {}
 
 		//~ Container::IIterator
-		FORCEINLINE virtual Container::FVirtualIterator Copy() const override { return Inner.ToInterface(); }
-		FORCEINLINE virtual void Advance() override { ++Inner; }
-		FORCEINLINE virtual FEntryKey ResolveKey() const override { return Inner.GetKey(); }
-		FORCEINLINE virtual FFaerieAddress ResolveAddress() const override { return Inner.GetAddress(); }
-		FORCEINLINE virtual const UFaerieItem* ResolveItem() const override { return Inner.GetItem(); }
-		FORCEINLINE virtual bool IsValid() const override { return static_cast<bool>(Inner); }
+		UE_REWRITE virtual Container::FVirtualIterator Copy() const override { return Inner.ToInterface(); }
+		UE_REWRITE virtual void Advance() override { ++Inner; }
+		UE_REWRITE virtual FEntryKey ResolveKey() const override { return Inner.GetKey(); }
+		UE_REWRITE virtual FFaerieAddress ResolveAddress() const override { return Inner.GetAddress(); }
+		UE_REWRITE virtual const UFaerieItem* ResolveItem() const override { return Inner.GetItem(); }
+		UE_REWRITE virtual bool IsValid() const override { return static_cast<bool>(Inner); }
 		//~ Container::IIterator
 
 	private:
@@ -275,12 +241,12 @@ namespace Faerie::Storage
 		FIterator_AllEntries_ForInterface(const FIterator_AllEntries& Inner) : Inner(Inner) {}
 
 		//~ Container::IIterator
-		FORCEINLINE virtual Container::FVirtualIterator Copy() const override { return Inner.ToInterface(); }
-		FORCEINLINE virtual void Advance() override { ++Inner; }
-		FORCEINLINE virtual FEntryKey ResolveKey() const override { return Inner.GetKey(); }
-		FORCEINLINE virtual FFaerieAddress ResolveAddress() const override { checkNoEntry(); return {}; }
-		FORCEINLINE virtual const UFaerieItem* ResolveItem() const override { return Inner.GetItem(); }
-		FORCEINLINE virtual bool IsValid() const override { return static_cast<bool>(Inner); }
+		UE_REWRITE virtual Container::FVirtualIterator Copy() const override { return Inner.ToInterface(); }
+		UE_REWRITE virtual void Advance() override { ++Inner; }
+		UE_REWRITE virtual FEntryKey ResolveKey() const override { return Inner.GetKey(); }
+		UE_REWRITE virtual FFaerieAddress ResolveAddress() const override { checkNoEntry(); return {}; }
+		UE_REWRITE virtual const UFaerieItem* ResolveItem() const override { return Inner.GetItem(); }
+		UE_REWRITE virtual bool IsValid() const override { return static_cast<bool>(Inner); }
 		//~ Container::IIterator
 
 	private:
@@ -293,12 +259,12 @@ namespace Faerie::Storage
 		FIterator_AllAddresses_ForInterface(const FIterator_AllAddresses& Inner) : Inner(Inner) {}
 
 		//~ Container::IIterator
-		FORCEINLINE virtual Container::FVirtualIterator Copy() const override { return Inner.ToInterface(); }
-		FORCEINLINE virtual void Advance() override { ++Inner; }
-		FORCEINLINE virtual FEntryKey ResolveKey() const override { return Inner.GetKey(); }
-		FORCEINLINE virtual FFaerieAddress ResolveAddress() const override { return Inner.GetAddress(); }
-		FORCEINLINE virtual const UFaerieItem* ResolveItem() const override { return Inner.GetItem(); }
-		FORCEINLINE virtual bool IsValid() const override { return static_cast<bool>(Inner); }
+		UE_REWRITE virtual Container::FVirtualIterator Copy() const override { return Inner.ToInterface(); }
+		UE_REWRITE virtual void Advance() override { ++Inner; }
+		UE_REWRITE virtual FEntryKey ResolveKey() const override { return Inner.GetKey(); }
+		UE_REWRITE virtual FFaerieAddress ResolveAddress() const override { return Inner.GetAddress(); }
+		UE_REWRITE virtual const UFaerieItem* ResolveItem() const override { return Inner.GetItem(); }
+		UE_REWRITE virtual bool IsValid() const override { return static_cast<bool>(Inner); }
 		//~ Container::IIterator
 
 	private:
@@ -311,12 +277,12 @@ namespace Faerie::Storage
 		FIterator_SingleEntry_ForInterface(const FIterator_SingleEntry& Inner) : Inner(Inner) {}
 
 		//~ Container::IIterator
-		FORCEINLINE virtual Container::FVirtualIterator Copy() const override { return Inner.ToInterface(); }
-		FORCEINLINE virtual void Advance() override { ++Inner; }
-		FORCEINLINE virtual FEntryKey ResolveKey() const override { return Inner.GetKey(); }
-		FORCEINLINE virtual FFaerieAddress ResolveAddress() const override { return Inner.GetAddress(); }
-		FORCEINLINE virtual const UFaerieItem* ResolveItem() const override { return Inner.GetItem(); }
-		FORCEINLINE virtual bool IsValid() const override { return static_cast<bool>(Inner); }
+		UE_REWRITE virtual Container::FVirtualIterator Copy() const override { return Inner.ToInterface(); }
+		UE_REWRITE virtual void Advance() override { ++Inner; }
+		UE_REWRITE virtual FEntryKey ResolveKey() const override { return Inner.GetKey(); }
+		UE_REWRITE virtual FFaerieAddress ResolveAddress() const override { return Inner.GetAddress(); }
+		UE_REWRITE virtual const UFaerieItem* ResolveItem() const override { return Inner.GetItem(); }
+		UE_REWRITE virtual bool IsValid() const override { return static_cast<bool>(Inner); }
 		//~ Container::IIterator
 
 	private:

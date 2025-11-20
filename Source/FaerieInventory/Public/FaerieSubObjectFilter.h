@@ -5,6 +5,9 @@
 #include "LoopUtils.h"
 #include "TypeCastingUtils.h"
 #include "FaerieInventoryConcepts.h"
+#include "FaerieItemTokenFilter.h"
+#include "Templates/SubclassOf.h"
+#include "Tokens/FaerieItemStorageToken.h"
 
 class UFaerieItem;
 class UFaerieItemContainerBase;
@@ -25,76 +28,98 @@ namespace Faerie
 			FAERIEINVENTORY_API void ByClass(TArray<UFaerieItemContainerBase*>& Containers, const TSubclassOf<UFaerieItemContainerBase>& Class);
 		}
 
-		class FIterator
+		class FArrayIterator
 		{
 			using FStorageType = TArray<UFaerieItemContainerBase*>;
 
 		public:
-			explicit FIterator(FStorageType&& Array)
+			explicit FArrayIterator(FStorageType&& Array)
 			  : Containers(MoveTemp(Array)),
 				Iterator(Containers.CreateIterator()) {}
 
-			explicit FIterator(const FStorageType& Array)
+			explicit FArrayIterator(const FStorageType& Array)
 			  : Containers(Array),
 				Iterator(Containers.CreateIterator()) {}
 
-			explicit FIterator(UFaerieItem* Item);
+			explicit FArrayIterator(UFaerieItem* Item, bool Recursive);
 
-			[[nodiscard]] FORCEINLINE UFaerieItemContainerBase* operator*() const { return Iterator.operator*(); }
+			[[nodiscard]] UE_REWRITE UFaerieItemContainerBase* operator*() const { return Iterator.operator*(); }
 
-			FORCEINLINE explicit operator bool() const { return static_cast<bool>(Iterator); }
+			UE_REWRITE explicit operator bool() const { return static_cast<bool>(Iterator); }
 
-			FORCEINLINE void operator++()
-			{
-				++Iterator;
-			}
+			UE_REWRITE void operator++() { ++Iterator; }
 
-			[[nodiscard]] FORCEINLINE bool operator!=(EIteratorType) const
+			[[nodiscard]] UE_REWRITE bool operator!=(EIteratorType) const
 			{
 				// As long as we are valid, then we have not ended.
 				return static_cast<bool>(*this);
 			}
 
-			[[nodiscard]] FORCEINLINE FIterator begin() const { return *this; }
-			[[nodiscard]] FORCEINLINE EIteratorType end () const { return End; }
+			[[nodiscard]] UE_REWRITE const FArrayIterator& begin() const { return *this; }
+			[[nodiscard]] UE_REWRITE EIteratorType end () const { return End; }
 
 		protected:
 			FStorageType Containers;
 			FStorageType::TIterator Iterator;
 		};
 
-		template <CItemContainerBase TClass>
-		class TFilteredIterator
+		class FFilterIterator
 		{
-			using FStorageType = TArray<UFaerieItemContainerBase*>;
-
 		public:
-			explicit TFilteredIterator(FStorageType&& Array)
-			  : Containers(MoveTemp(Array)),
-				Iterator(Containers.CreateIterator()) {}
+			explicit FFilterIterator(UFaerieItem* Item);
+			~FFilterIterator() {}
 
-			explicit TFilteredIterator(const FStorageType& Array)
-			  : Containers(Array),
-				Iterator(Containers.CreateIterator()) {}
+			[[nodiscard]] UE_REWRITE UFaerieItemContainerBase* operator*() const { return Iterator.operator*()->GetItemContainer(); }
 
-		public:
-			[[nodiscard]] FORCEINLINE TClass* operator*() const { return CastChecked<TClass>(Iterator.operator*()); }
+			UE_REWRITE explicit operator bool() const { return static_cast<bool>(Iterator); }
 
-			FORCEINLINE explicit operator bool() const { return static_cast<bool>(Iterator); }
+			UE_REWRITE void operator++() { ++Iterator; }
 
-			FORCEINLINE void operator++()
-			{
-				++Iterator;
-			}
-
-			[[nodiscard]] FORCEINLINE bool operator!=(EIteratorType) const
+			[[nodiscard]] UE_REWRITE bool operator!=(EIteratorType) const
 			{
 				// As long as we are valid, then we have not ended.
 				return static_cast<bool>(*this);
 			}
 
-			[[nodiscard]] FORCEINLINE TFilteredIterator begin() { return *this; }
-			[[nodiscard]] FORCEINLINE EIteratorType end () const { return End; }
+			[[nodiscard]] UE_REWRITE const FFilterIterator& begin() const { return *this; }
+			[[nodiscard]] UE_REWRITE EIteratorType end () const { return End; }
+
+		protected:
+			Token::TIterator_Masked<UFaerieItemContainerToken, false> Iterator;
+		};
+
+		template <CItemContainerBase TClass>
+		class TFilteredArrayIterator
+		{
+			using FStorageType = TArray<UFaerieItemContainerBase*>;
+
+		public:
+			explicit TFilteredArrayIterator(FStorageType&& Array)
+			  : Containers(MoveTemp(Array)),
+				Iterator(Containers.CreateIterator()) {}
+
+			explicit TFilteredArrayIterator(const FStorageType& Array)
+			  : Containers(Array),
+				Iterator(Containers.CreateIterator()) {}
+
+		public:
+			[[nodiscard]] UE_REWRITE TClass* operator*() const { return CastChecked<TClass>(Iterator.operator*()); }
+
+			UE_REWRITE explicit operator bool() const { return static_cast<bool>(Iterator); }
+
+			UE_REWRITE void operator++()
+			{
+				++Iterator;
+			}
+
+			[[nodiscard]] UE_REWRITE bool operator!=(EIteratorType) const
+			{
+				// As long as we are valid, then we have not ended.
+				return static_cast<bool>(*this);
+			}
+
+			[[nodiscard]] UE_REWRITE const TFilteredArrayIterator& begin() { return *this; }
+			[[nodiscard]] UE_REWRITE EIteratorType end () const { return End; }
 
 		protected:
 			FStorageType Containers;
@@ -207,9 +232,9 @@ namespace Faerie
 			}
 
 			// Create an iterator from this filter.
-			[[nodiscard]] FORCEINLINE auto Iterate(UFaerieItem* Item) const
+			[[nodiscard]] UE_REWRITE auto Iterate(UFaerieItem* Item) const
 			{
-				return TFilteredIterator<TClass>(Type::Cast<TArray<UFaerieItemContainerBase*>>(Emit(Item)));
+				return TFilteredArrayIterator<TClass>(Type::Cast<TArray<UFaerieItemContainerBase*>>(Emit(Item)));
 			}
 
 		private:
@@ -221,12 +246,18 @@ namespace Faerie
 		class TFilter;
 
 		// Iterate over the direct subobject containers in an item.
-		FAERIEINVENTORY_API FORCEINLINE FIterator Iterate(UFaerieItem* Item)
+		FAERIEINVENTORY_API UE_REWRITE FFilterIterator Iterate(UFaerieItem* Item)
 		{
-			return FIterator(Item);
+			return FFilterIterator(Item);
 		}
 
-		FAERIEINVENTORY_API FORCEINLINE TFilter<UFaerieItemContainerBase> Filter()
+		// Iterate over the all subobject containers in an item recursively.
+		FAERIEINVENTORY_API UE_REWRITE FArrayIterator IterateRecursive(UFaerieItem* Item)
+		{
+			return FArrayIterator(Item, true);
+		}
+
+		FAERIEINVENTORY_API UE_REWRITE TFilter<UFaerieItemContainerBase> Filter()
 		{
 			return TFilter<>();
 		}
