@@ -3,10 +3,9 @@
 #pragma once
 
 #include "FaerieItemToken.h"
+#include "Actors/FaerieItemOwningActorBase.h"
+#include "Actors/FaerieProxyActorBase.h"
 #include "FaerieVisualActorClassToken.generated.h"
-
-class AFaerieItemOwningActorBase;
-class AFaerieProxyActorBase;
 
 /**
  *

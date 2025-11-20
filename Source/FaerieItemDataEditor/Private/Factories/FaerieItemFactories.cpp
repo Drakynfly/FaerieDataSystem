@@ -2,9 +2,11 @@
 
 #include "FaerieItemFactories.h"
 #include "ContentBrowserModule.h"
+#include "Editor.h"
 #include "FaerieItemAsset.h"
 #include "FaerieItemTemplate.h"
 #include "IContentBrowserSingleton.h"
+#include "SlateOptMacros.h"
 #include "Widgets/Layout/SUniformGridPanel.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemFactories)

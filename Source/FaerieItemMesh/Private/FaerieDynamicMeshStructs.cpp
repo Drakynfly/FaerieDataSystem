@@ -2,6 +2,8 @@
 
 #include "FaerieDynamicMeshStructs.h"
 #include "FaerieItemMeshLog.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/SkeletalMesh.h"
 
 FFaerieDynamicStaticMesh::FFaerieDynamicStaticMesh(const FFaerieStaticMeshData& MeshData)
 {

@@ -7,6 +7,7 @@
 #include "FaerieMeshStructsLibrary.generated.h"
 
 struct FFaerieItemMaterial;
+class UMaterialInterface;
 
 /**
  *

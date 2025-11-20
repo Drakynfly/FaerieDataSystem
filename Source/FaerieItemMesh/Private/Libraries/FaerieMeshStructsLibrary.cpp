@@ -2,6 +2,7 @@
 
 #include "FaerieMeshStructsLibrary.h"
 #include "FaerieMeshStructs.h"
+#include "Materials/MaterialInterface.h"
 
 TArray<UMaterialInterface*> UFaerieMeshStructsLibrary::FaerieItemMaterialsToObjectArray(
 	const TArray<FFaerieItemMaterial>& Materials)

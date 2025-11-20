@@ -2,6 +2,9 @@
 
 #include "FaerieMeshStructs.h"
 #include "UDynamicMesh.h"
+#include "Engine/SkeletalMesh.h"
+#include "Engine/StaticMesh.h"
+#include "Materials/MaterialInterface.h"
 
 namespace Faerie::ItemMesh::Tags
 {

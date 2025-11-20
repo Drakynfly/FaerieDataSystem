@@ -6,7 +6,7 @@ public class FaerieItemMesh : ModuleRules
 {
     public FaerieItemMesh(ReadOnlyTargetRules Target) : base(Target)
     {
-        PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+        FaerieDataUtils.ApplySharedModuleSetup(this, Target);
 
         PublicDependencyModuleNames.AddRange(
             new []

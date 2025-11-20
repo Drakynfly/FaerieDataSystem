@@ -10,6 +10,8 @@
 #include "FaerieItemMeshLog.h"
 #include "UDynamicMesh.h" // For creating static meshes at runtime
 #include "Engine/AssetManager.h"
+#include "Engine/StaticMesh.h"
+#include "Materials/MaterialInterface.h"
 
 #include "GeometryScript/MeshAssetFunctions.h"
 #include "GeometryScript/MeshBasicEditFunctions.h"

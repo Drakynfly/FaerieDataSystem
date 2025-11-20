@@ -3,6 +3,7 @@
 #include "Tokens/FaerieItemStorageToken.h"
 #include "FaerieItemStorage.h"
 #include "ItemContainerExtensionBase.h"
+#include "GameFramework/Actor.h"
 #include "Net/UnrealNetwork.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemStorageToken)

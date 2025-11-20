@@ -5,6 +5,7 @@
 #include "FaerieContainerFilter.h"
 #include "FaerieContainerIterator.h"
 #include "FaerieItemProxy.h"
+#include "Misc/TVariant.h"
 
 class UFaerieItemContainerBase;
 

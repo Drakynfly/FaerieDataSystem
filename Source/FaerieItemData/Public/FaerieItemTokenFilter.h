@@ -4,6 +4,8 @@
 
 #include "FaerieItemDataConcepts.h"
 #include "LoopUtils.h"
+#include "Containers/BitArray.h"
+#include "Templates/Casts.h"
 
 class UFaerieItem;
 class UFaerieItemDataLibrary;
