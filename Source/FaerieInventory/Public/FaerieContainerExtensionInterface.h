@@ -45,18 +45,18 @@ public:
 	*/
 
 	// Try to add an extension to this storage. This will only fail if the extension pointer is invalid or already added.
-	UFUNCTION(BlueprintCallable, Category = "Faerie|Extensions", BlueprintAuthorityOnly)
+	UFUNCTION(BlueprintCallable, Category = "Faerie|Extensions")
 	virtual bool AddExtension(UItemContainerExtensionBase* Extension);
 
 	// Add a new extension of the given class, and return the result. If an extension of this class already exists, it
 	// will be returned instead.
-	UFUNCTION(BlueprintCallable, Category = "Faerie|Extensions", BlueprintAuthorityOnly, meta = (DeterminesOutputType = "ExtensionClass"), DisplayName = "Add Extension (by class)")
+	UFUNCTION(BlueprintCallable, Category = "Faerie|Extensions", meta = (DeterminesOutputType = "ExtensionClass"), DisplayName = "Add Extension (by class)")
 	virtual UItemContainerExtensionBase* AddExtensionByClass(TSubclassOf<UItemContainerExtensionBase> ExtensionClass);
 
-	UFUNCTION(BlueprintCallable, Category = "Faerie|Extensions", BlueprintAuthorityOnly)
+	UFUNCTION(BlueprintCallable, Category = "Faerie|Extensions")
 	virtual bool RemoveExtension(UItemContainerExtensionBase* Extension);
 
-	UFUNCTION(BlueprintCallable, Category = "Faerie|Extensions", BlueprintAuthorityOnly, DisplayName = "Remove Extension (by class)")
+	UFUNCTION(BlueprintCallable, Category = "Faerie|Extensions", DisplayName = "Remove Extension (by class)")
 	virtual bool RemoveExtensionByClass(TSubclassOf<UItemContainerExtensionBase> ExtensionClass, bool RecursiveSearch = true);
 
 protected:

@@ -155,13 +155,13 @@ public:
     UFUNCTION(BlueprintPure, Category = "Faerie|InventoryCapacity")
     FWeightAndVolume GetMaxCapacity() const;
 
-    UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Faerie|InventoryCapacity")
+    UFUNCTION(BlueprintCallable, Category = "Faerie|InventoryCapacity")
     void SetConfiguration(const FCapacityExtensionConfig& NewConfig);
 
-    UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Faerie|InventoryCapacity")
+    UFUNCTION(BlueprintCallable, Category = "Faerie|InventoryCapacity")
     void SetBounds(const FIntVector NewBounds);
 
-    UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Faerie|InventoryCapacity")
+    UFUNCTION(BlueprintCallable, Category = "Faerie|InventoryCapacity")
     void SetMaxCapacity(const FWeightAndVolume NewMax);
 
     UFUNCTION(BlueprintPure, Category = "Faerie|InventoryCapacity")

@@ -61,31 +61,27 @@ public:
 	bool HasUses(int32 TestUses) const;
 
 	/**
-	 * SERVER ONLY.
-	 * Add uses to an entry
+	 * Add uses to an entry.
 	 */
-	UFUNCTION(BlueprintAuthorityOnly, Category = "FaerieToken|Uses")
+	UFUNCTION(BlueprintCallable, Category = "FaerieToken|Uses")
 	void AddUses(const int32 Amount, bool ClampRemainingToMax = true);
 
 	/**
-	 * SERVER ONLY.
-	 * Removes uses from an entry
+	 * Removes uses from an entry.
 	 */
-	UFUNCTION(BlueprintAuthorityOnly, Category = "FaerieToken|Uses")
+	UFUNCTION(BlueprintCallable, Category = "FaerieToken|Uses")
 	bool RemoveUses(const int32 Amount);
 
 	/**
-	 * SERVER ONLY.
 	 * Resets remaining uses to value of max uses.
 	 */
-	UFUNCTION(BlueprintAuthorityOnly, Category = "FaerieToken|Uses")
+	UFUNCTION(BlueprintCallable, Category = "FaerieToken|Uses")
 	void ResetUses();
 
 	/**
-	 * SERVER ONLY.
 	 * Removes uses from an entry
 	 */
-	UFUNCTION(BlueprintAuthorityOnly, Category = "FaerieToken|Uses")
+	UFUNCTION(BlueprintCallable, Category = "FaerieToken|Uses")
 	void SetMaxUses(const int32 NewMax, bool ClampRemainingToMax = true);
 
 protected:

@@ -117,14 +117,14 @@ public:
 
 	Faerie::FEquipmentSlotEvent::RegistrationType& GetOnEquipmentSlotEvent() { return OnEquipmentSlotEventNative; }
 
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Faerie|EquipmentManager")
+	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentManager")
 	UFaerieEquipmentSlot* AddSlot(const FFaerieEquipmentSlotConfig& Config);
 
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Faerie|EquipmentManager")
+	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentManager")
 	bool RemoveSlot(UFaerieEquipmentSlot* Slot);
 
 	// Switches the content of two slots, as long as the content of each can fit in the other.
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Faerie|EquipmentManager")
+	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentManager")
 	bool TrySwapSlots(UFaerieEquipmentSlot* SlotA, UFaerieEquipmentSlot* SlotB);
 
 protected:
@@ -151,11 +151,11 @@ public:
 
 	// Add a new extension of the given class, and return the result. If an extension of this class already exists, it
 	// will be returned instead. Adds only to the slot at the ID
-	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentManager", BlueprintAuthorityOnly, meta = (DeterminesOutputType = "ExtensionClass"))
+	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentManager", meta = (DeterminesOutputType = "ExtensionClass"))
 	UItemContainerExtensionBase* AddExtensionToSlot(FFaerieSlotTag SlotID, TSubclassOf<UItemContainerExtensionBase> ExtensionClass);
 
 	// Removes any existing extension(s) of the given class.
-	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentManager", BlueprintAuthorityOnly)
+	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentManager")
 	bool RemoveExtensionFromSlot(FFaerieSlotTag SlotID, TSubclassOf<UItemContainerExtensionBase> ExtensionClass);
 
 

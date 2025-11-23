@@ -25,7 +25,7 @@ public:
 
 	UFaerieCraftingRunner* SubmitCraftingRequest(const FFaerieCraftingRequestBase& Request, const FRequestResult& Callback);
 
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Faerie|ItemGeneration")
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemGeneration")
 	UFaerieCraftingRunner* SubmitCraftingRequest(TInstancedStruct<FFaerieCraftingRequestBase> Request, const FGenerationActionOnCompleteBinding& Callback);
 
 	UFaerieCraftingRunner* SubmitCraftingRequest(const TInstancedStruct<FFaerieCraftingRequestBase>& Request, FRequestResult Callback);

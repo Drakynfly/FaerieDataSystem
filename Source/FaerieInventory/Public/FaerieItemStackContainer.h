@@ -101,10 +101,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemStackContainer")
 	bool CanTakeFromSlot(int32 Copies) const;
 
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Faerie|ItemStackContainer")
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemStackContainer")
 	bool SetItemInSlot(FFaerieItemStack Stack);
 
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Faerie|ItemStackContainer")
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemStackContainer")
 	FFaerieItemStack TakeItemFromSlot(int32 Copies);
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemStackContainer")
