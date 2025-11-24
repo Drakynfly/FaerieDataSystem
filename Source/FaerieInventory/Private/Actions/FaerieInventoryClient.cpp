@@ -11,6 +11,7 @@
 UFaerieInventoryClient::UFaerieInventoryClient()
 {
 	PrimaryComponentTick.bCanEverTick = false;
+	SetIsReplicatedByDefault(true);
 }
 
 bool UFaerieInventoryClient::CanAccessContainer(const UFaerieItemContainerBase* Container, const UScriptStruct* RequestType) const

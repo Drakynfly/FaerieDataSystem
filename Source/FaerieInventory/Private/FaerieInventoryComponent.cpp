@@ -49,6 +49,7 @@ void UFaerieInventoryComponent::ReadyForReplication()
 	if (IsValid(Extensions))
 	{
 		Extensions->ReplicationFixup();
+		ItemStorage->GetExtensionGroup()->ReplicationFixup();
 		ItemStorage->GetExtensionGroup()->SetParentGroup(Extensions);
 	}
 
