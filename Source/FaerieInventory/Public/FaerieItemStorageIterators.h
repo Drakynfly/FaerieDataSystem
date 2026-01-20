@@ -23,8 +23,7 @@ namespace Faerie::Storage
 	class FAERIEINVENTORY_API FIterator_AllEntries : FStorageDataAccess
 	{
 	public:
-		FIterator_AllEntries(const UFaerieItemStorage* Storage);
-
+		FIterator_AllEntries(const UFaerieItemStorage& Storage);
 		~FIterator_AllEntries();
 
 		Container::FVirtualIterator ToInterface() const;
@@ -67,7 +66,7 @@ namespace Faerie::Storage
 	class FAERIEINVENTORY_API FIterator_AllAddresses : FStorageDataAccess
 	{
 	public:
-		FIterator_AllAddresses(const UFaerieItemStorage* Storage);
+		FIterator_AllAddresses(const UFaerieItemStorage& Storage);
 
 		~FIterator_AllAddresses();
 
@@ -114,8 +113,8 @@ namespace Faerie::Storage
 	class FAERIEINVENTORY_API FIterator_MaskedEntries : FStorageDataAccess
 	{
 	public:
-		FIterator_MaskedEntries(const UFaerieItemStorage* Storage, const TBitArray<>& EntryMask);
-		FIterator_MaskedEntries(const FInventoryContent* Content, const TBitArray<>& EntryMask);
+		FIterator_MaskedEntries(const UFaerieItemStorage& Storage, const TBitArray<>& EntryMask);
+		FIterator_MaskedEntries(const FInventoryContent& Content, const TBitArray<>& EntryMask);
 		FIterator_MaskedEntries(const FIterator_MaskedEntries& Other);
 
 		~FIterator_MaskedEntries();
@@ -146,7 +145,7 @@ namespace Faerie::Storage
 			return static_cast<bool>(*this);
 		}
 
-		[[nodiscard]] UE_REWRITE FIterator_MaskedEntries begin() const { return FIterator_MaskedEntries(Content, KeyMask); }
+		[[nodiscard]] UE_REWRITE FIterator_MaskedEntries begin() const { return FIterator_MaskedEntries(*Content, KeyMask); }
 		[[nodiscard]] UE_REWRITE EIteratorType end () const { return End; }
 
 	private:
@@ -209,7 +208,7 @@ namespace Faerie::Storage
 		}
 
 		[[nodiscard]] UE_REWRITE const FIterator_SingleEntry& begin() const { return *this; }
-		[[nodiscard]] UE_REWRITE EIteratorType end  () const { return End; }
+		[[nodiscard]] UE_REWRITE EIteratorType end () const { return End; }
 
 	private:
 		const FInventoryEntry* EntryPtr;
@@ -238,7 +237,7 @@ namespace Faerie::Storage
 	class FAERIEINVENTORY_API FIterator_AllEntries_ForInterface final : public Container::IIterator
 	{
 	public:
-		FIterator_AllEntries_ForInterface(const FIterator_AllEntries& Inner) : Inner(Inner) {}
+		FIterator_AllEntries_ForInterface(const UFaerieItemStorage& Storage) : Inner(Storage) {}
 
 		//~ Container::IIterator
 		UE_REWRITE virtual Container::FVirtualIterator Copy() const override { return Inner.ToInterface(); }
@@ -256,7 +255,7 @@ namespace Faerie::Storage
 	class FAERIEINVENTORY_API FIterator_AllAddresses_ForInterface final : public Container::IIterator
 	{
 	public:
-		FIterator_AllAddresses_ForInterface(const FIterator_AllAddresses& Inner) : Inner(Inner) {}
+		FIterator_AllAddresses_ForInterface(const UFaerieItemStorage& Storage) : Inner(Storage) {}
 
 		//~ Container::IIterator
 		UE_REWRITE virtual Container::FVirtualIterator Copy() const override { return Inner.ToInterface(); }

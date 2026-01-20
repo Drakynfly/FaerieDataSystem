@@ -14,7 +14,7 @@ void FFaerieItemMutator_TemplateCondition::GetRequiredAssets(TArray<TSoftObjectP
 	}
 }
 
-bool FFaerieItemMutator_TemplateCondition::Apply(FFaerieItemStack& Stack, USquirrel* Squirrel) const
+bool FFaerieItemMutator_TemplateCondition::Apply(FFaerieItemStack& Stack, FFaerieItemMutatorContext* Context) const
 {
 	if (!Stack.IsValid()) return false;
 	if (!Stack.Item->CanMutate()) return false;
@@ -28,7 +28,7 @@ bool FFaerieItemMutator_TemplateCondition::Apply(FFaerieItemStack& Stack, USquir
 	}
 	if (Child.IsValid())
 	{
-		return Child.Get().Apply(Stack, Squirrel);
+		return Child.Get().Apply(Stack, Context);
 	}
 	return false;
 }

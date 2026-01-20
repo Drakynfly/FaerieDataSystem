@@ -9,7 +9,7 @@
 
 bool UFaerieItemConsumableBase::CanConsume(const UFaerieItem* Item, const AActor* Consumer) const
 {
-	const UFaerieItemUsesToken* Uses = Item->GetToken<UFaerieItemUsesToken>();
+	const UFaerieItemUsesToken* Uses = Item->GetOwnedToken<UFaerieItemUsesToken>();
 	if (IsValid(Uses))
 	{
 		return Uses->HasUses(1);

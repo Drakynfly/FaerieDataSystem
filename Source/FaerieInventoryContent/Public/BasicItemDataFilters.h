@@ -37,7 +37,7 @@ public:
 	virtual bool Exec(FFaerieItemStackView View) const override;
 
 protected:
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Instanced, Category = "Inventory Filter")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Instanced, Category = "LogicalOr")
 	TArray<TObjectPtr<UFaerieItemDataFilter>> Rules;
 };
 
@@ -58,7 +58,7 @@ public:
 	virtual bool Exec(FFaerieItemStackView View) const override;
 
 protected:
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Instanced, Category = "Inventory Filter")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Instanced, Category = "LogicalAnd")
 	TArray<TObjectPtr<UFaerieItemDataFilter>> Rules;
 };
 
@@ -152,7 +152,7 @@ public:
 
 protected:
 	// Enable to require a mutable entry. Leave disabled to only allow immutable entries.
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stack Compare")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Mutability")
 	bool RequireMutable;
 };
 
@@ -173,7 +173,7 @@ public:
 	virtual bool Exec(FFaerieItemStackView View) const override;
 
 protected:
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stack Compare", meta = (AllowAbstract))
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "MatchTemplate", meta = (AllowAbstract))
 	TObjectPtr<UFaerieItemTemplate> Template;
 };
 
@@ -197,8 +197,12 @@ public:
 	virtual bool Exec(FFaerieItemStackView View) const override;
 
 protected:
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Find Token", meta = (AllowAbstract = "true"))
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "HasTokens", meta = (AllowAbstract = "true"))
 	TArray<TSubclassOf<UFaerieItemToken>> TokenClasses;
+
+	// Include tokens from the default static reference, if present.
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "HasTokens")
+	bool IncludeDefaultReferences = true;
 };
 
 UENUM()
@@ -289,7 +293,7 @@ public:
 	virtual bool Exec(FFaerieItemStackView View) const override;
 
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Faerie|TagToken")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GameplayTagAny")
 	FGameplayTagContainer Tags;
 };
 
@@ -309,6 +313,6 @@ public:
 	virtual bool Exec(FFaerieItemStackView View) const override;
 
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Faerie|TagToken")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GameplayTagAll")
 	FGameplayTagContainer Tags;
 };

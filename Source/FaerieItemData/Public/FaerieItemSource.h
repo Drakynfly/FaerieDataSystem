@@ -20,9 +20,9 @@ struct FAERIEITEMDATA_API FFaerieItemInstancingContext
 public:
 	virtual ~FFaerieItemInstancingContext() = default;
 
-	// Flags to mark instances with
+	// Mutability of the instanced item
 	UPROPERTY()
-	EFaerieItemInstancingMutability Flags = EFaerieItemInstancingMutability::Automatic;
+	EFaerieItemInstancingMutability Mutability = EFaerieItemInstancingMutability::Automatic;
 
 	// Number of copies to generate. If unset, will default to 1.
 	UPROPERTY()
@@ -34,9 +34,19 @@ public:
 	template <typename T>
 	const T* Cast() const
 	{
-		if (GetScriptStruct()->IsChildOf(T::StaticStruct()))
+		if (GetScriptStruct()->IsChildOf<T>())
 		{
 			return static_cast<const T*>(this);
+		}
+		return nullptr;
+	}
+
+	template <typename T>
+	T* Cast()
+	{
+		if (GetScriptStruct()->IsChildOf<T>())
+		{
+			return static_cast<T*>(this);
 		}
 		return nullptr;
 	}

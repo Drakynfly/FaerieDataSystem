@@ -6,8 +6,6 @@
 #include "StructViewWrapper.h"
 #include "RunMutatorRequest.generated.h"
 
-struct FFaerieItemMutator;
-
 /*
  * A simple crafting request to run a mutator. Pass this to UFaerieItemCraftingSubsystem::SubmitCraftingRequest to run
  * asynchronous mutators.

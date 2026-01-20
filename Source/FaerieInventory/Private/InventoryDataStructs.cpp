@@ -2,6 +2,8 @@
 
 // ReSharper disable CppMemberFunctionMayBeConst
 #include "InventoryDataStructs.h"
+#include "DebuggingFlags.h"
+#include "FaerieInventoryLog.h"
 #include "FaerieItemStorage.h"
 #include "InventoryDataEnums.h"
 #include "HAL/LowLevelMemStats.h"
@@ -192,6 +194,12 @@ FInventoryEntry::FMutableAccess::FMutableAccess(FInventoryContent& Source, const
   : Handle(Source.Entries[Index]),
 	Source(Source)
 {
+#if FAERIE_DEBUG
+	if (Faerie::Debug::CVarEnableWriteLockTracking.GetValueOnGameThread())
+	{
+		UE_LOG(LogFaerieInventory, Warning, TEXT("WriteLock++ (FMutableAccess ctor 1)"))
+	}
+#endif
 	Source.WriteLock++;
 	ChangeMask.Init(false, Handle.NumStacks());
 }
@@ -200,6 +208,12 @@ FInventoryEntry::FMutableAccess::FMutableAccess(FInventoryContent& Source, const
   : Handle(Source.Entries[Source.IndexOf(Key)]),
 	Source(Source)
 {
+#if FAERIE_DEBUG
+	if (Faerie::Debug::CVarEnableWriteLockTracking.GetValueOnGameThread())
+	{
+		UE_LOG(LogFaerieInventory, Warning, TEXT("WriteLock++ (FMutableAccess ctor 2)"))
+	}
+#endif
 	Source.WriteLock++;
 	ChangeMask.Init(false, Handle.NumStacks());
 }
@@ -207,6 +221,14 @@ FInventoryEntry::FMutableAccess::FMutableAccess(FInventoryContent& Source, const
 FInventoryEntry::FMutableAccess::~FMutableAccess()
 {
 	checkSlow(Handle.NumStacks() == ChangeMask.Num());
+
+#if FAERIE_DEBUG
+	if (Faerie::Debug::CVarEnableWriteLockTracking.GetValueOnGameThread())
+	{
+		ensureAlways(Source.WriteLock > 0);
+		UE_LOG(LogFaerieInventory, Warning, TEXT("WriteLock-- (FMutableAccess dtor)"))
+	}
+#endif
 
 	Source.WriteLock--;
 
@@ -482,11 +504,24 @@ void FInventoryContent::Remove(const FEntryKey Key)
 
 void FInventoryContent::LockWriteAccess() const
 {
+#if FAERIE_DEBUG
+	if (Faerie::Debug::CVarEnableWriteLockTracking.GetValueOnGameThread())
+	{
+		UE_LOG(LogFaerieInventory, Warning, TEXT("WriteLock++ (LockWriteAccess)"))
+	}
+#endif
 	WriteLock++;
 }
 
 void FInventoryContent::UnlockWriteAccess() const
 {
+#if FAERIE_DEBUG
+	if (Faerie::Debug::CVarEnableWriteLockTracking.GetValueOnGameThread())
+	{
+		ensureAlways(WriteLock > 0);
+		UE_LOG(LogFaerieInventory, Warning, TEXT("WriteLock-- (UnlockWriteAccess)"))
+	}
+#endif
 	WriteLock--;
 }
 
@@ -524,12 +559,25 @@ void FInventoryContent::PostEntryReplicatedChange_Client(const FInventoryEntry& 
 
 FInventoryContent::TRangedForConstIterator FInventoryContent::begin() const
 {
+#if FAERIE_DEBUG
+	if (Faerie::Debug::CVarEnableWriteLockTracking.GetValueOnGameThread())
+	{
+		UE_LOG(LogFaerieInventory, Warning, TEXT("WriteLock++ (iterator begin)"))
+	}
+#endif
 	WriteLock++;
 	return TRangedForConstIterator(Entries.begin());
 }
 
 FInventoryContent::TRangedForConstIterator FInventoryContent::end() const
 {
+#if FAERIE_DEBUG
+	if (Faerie::Debug::CVarEnableWriteLockTracking.GetValueOnGameThread())
+	{
+		ensureAlways(WriteLock > 0);
+		UE_LOG(LogFaerieInventory, Warning, TEXT("WriteLock-- (iterator end)"))
+	}
+#endif
 	WriteLock--;
 	return TRangedForConstIterator(Entries.end());
 }

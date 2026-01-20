@@ -121,25 +121,9 @@ namespace Faerie::Ed
 		const UFaerieItem* FaerieItem = ItemProxy ? ItemProxy->GetItemObject() : nullptr;
 		if (!IsValid(FaerieItem)) return;
 
-		const UFaerieVisualActorClassToken* ActorClassToken = nullptr;
-		const UFaerieMeshTokenBase* MeshToken = nullptr;
-		const UFaerieCapacityToken* CapToken = nullptr;
-
-		for (auto&& Element : FaerieItem->GetTokens())
-		{
-			if (auto AsActorClassToken = Cast<UFaerieVisualActorClassToken>(Element))
-			{
-				ActorClassToken = AsActorClassToken;
-			}
-			else if (auto AsMeshToken = Cast<UFaerieMeshTokenBase>(Element))
-			{
-				MeshToken = AsMeshToken;
-			}
-			else if (auto AsCapToken = Cast<UFaerieCapacityToken>(Element))
-			{
-				CapToken = AsCapToken;
-			}
-		}
+		const UFaerieVisualActorClassToken* ActorClassToken = FaerieItem->GetToken<UFaerieVisualActorClassToken>();
+		const UFaerieMeshTokenBase* MeshToken = FaerieItem->GetToken<UFaerieMeshTokenBase>();
+		const UFaerieCapacityToken* CapToken = FaerieItem->GetToken<UFaerieCapacityToken>();
 
 		// Draw Capacity Bounds
 		if (CapToken)

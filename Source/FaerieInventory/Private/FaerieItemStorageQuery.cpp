@@ -317,6 +317,11 @@ void UFaerieItemStorageQuery::QueryAllAddresses(const UFaerieItemStorage* Storag
 {
 	SCOPE_CYCLE_COUNTER(STAT_Storage_QueryAll);
 
+	if (!IsValid(Storage))
+	{
+		return;
+	}
+
 	// Ensure we are starting with a blank slate.
 	OutAddresses.Empty();
 
@@ -327,7 +332,7 @@ void UFaerieItemStorageQuery::QueryAllAddresses(const UFaerieItemStorage* Storag
 	{
 		if (!InvertFilter)
 		{
-			for (const FFaerieAddress Address : Faerie::Storage::FIterator_AllAddresses(Storage))
+			for (const FFaerieAddress Address : Faerie::Storage::FIterator_AllAddresses(*Storage))
 			{
 				OutAddresses.Add(Address);
 			}

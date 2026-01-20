@@ -61,7 +61,7 @@ struct FFaerieGridKeyedStack : public FFastArraySerializerItem
 	FFaerieGridPlacement Value;
 
 	void PreReplicatedRemove(const FFaerieGridContent& InArraySerializer);
-	void PostReplicatedAdd(FFaerieGridContent& InArraySerializer);
+	void PostReplicatedAdd(const FFaerieGridContent& InArraySerializer);
 	void PostReplicatedChange(const FFaerieGridContent& InArraySerializer);
 };
 
@@ -82,7 +82,7 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = "FaerieGridContent")
 	TArray<FFaerieGridKeyedStack> Items;
 
-	TArray<FFaerieGridKeyedStack>& GetArray() { return Items; }
+	UE_REWRITE TArray<FFaerieGridKeyedStack>& GetArray() { return Items; }
 
 	/** Owning extension to send Fast Array callbacks to */
 	// UPROPERTY() Fast Arrays cannot have additional properties with Iris

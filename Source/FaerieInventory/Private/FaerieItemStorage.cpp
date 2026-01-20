@@ -10,6 +10,7 @@
 
 #include "Algo/Transform.h"
 #include "Net/UnrealNetwork.h"
+#include "GameFramework/Actor.h"
 
 #if WITH_EDITOR
 #include "Engine/Engine.h"
@@ -17,7 +18,6 @@
 
 #include "FaerieContainerFilter.h"
 #include "FaerieItemStorageIterators.h"
-#include "FaerieItemStorageQuery.h"
 #include "FaerieSubObjectFilter.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemStorage)
@@ -30,25 +30,24 @@ namespace Faerie::Storage
 {
 	namespace Address
 	{
-		// @todo
-		/**UE_REWRITE**/ [[nodiscard]] inline FFaerieAddress Encode(const FEntryKey Entry, const FStackKey Stack)
+		[[nodiscard]] UE_REWRITE FFaerieAddress Encode(const FEntryKey Entry, const FStackKey Stack)
 		{
 			return FFaerieAddress((static_cast<int64>(Entry.Value()) << 32) | static_cast<int64>(Stack.Value()));
 		}
 
-		/**UE_REWRITE**/ inline void Decode(const FFaerieAddress Address, FEntryKey& Entry, FStackKey& Stack)
+		UE_REWRITE void Decode(const FFaerieAddress Address, FEntryKey& Entry, FStackKey& Stack)
 		{
 			constexpr int64 Mask = 0x00000000FFFFFFFF;
 			Stack = FStackKey(Address.Address & Mask);
 			Entry = FEntryKey(Address.Address >> 32);
 		}
 
-		/**UE_REWRITE**/ inline void Decode_Entry(const FFaerieAddress Address, FEntryKey& Entry)
+		UE_REWRITE void Decode_Entry(const FFaerieAddress Address, FEntryKey& Entry)
 		{
 			Entry = FEntryKey(Address.Address >> 32);
 		}
 
-		/**UE_REWRITE**/ inline void Decode_Stack(const FFaerieAddress Address, FStackKey& Stack)
+		UE_REWRITE void Decode_Stack(const FFaerieAddress Address, FStackKey& Stack)
 		{
 			constexpr int64 Mask = 0x00000000FFFFFFFF;
 			Stack = FStackKey(Address.Address & Mask);
@@ -327,9 +326,9 @@ TUniquePtr<Faerie::Container::IIterator> UFaerieItemStorage::CreateIterator(cons
 	// Otherwise, use the full iterator.
 	if (IterateByAddresses)
 	{
-		return MakeUnique<Faerie::Storage::FIterator_AllAddresses_ForInterface>(this);
+		return MakeUnique<Faerie::Storage::FIterator_AllAddresses_ForInterface>(*this);
 	}
-	return MakeUnique<Faerie::Storage::FIterator_AllEntries_ForInterface>(this);
+	return MakeUnique<Faerie::Storage::FIterator_AllEntries_ForInterface>(*this);
 }
 
 TUniquePtr<Faerie::Container::IFilter> UFaerieItemStorage::CreateFilter(const bool FilterByAddresses) const
@@ -871,7 +870,7 @@ TArray<int32> UFaerieItemStorage::GetStacksInEntry(const FEntryKey Key) const
 
 void UFaerieItemStorage::GetAllAddresses(TArray<FFaerieAddress>& Addresses) const
 {
-	for (const FFaerieAddress Address : Faerie::Storage::FIterator_AllAddresses(this))
+	for (const FFaerieAddress Address : Faerie::Storage::FIterator_AllAddresses(*this))
 	{
 		Addresses.Add(Address);
 	}

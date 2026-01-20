@@ -51,15 +51,14 @@ TOptional<FFaerieItemStack> FFaerieTableDrop::Resolve(const FFaerieItemInstancin
 void FFaerieGenerationProcedure_OfOne::Resolve(const FFaerieWeightedPool& Pool, USquirrel* Squirrel,
 											   TArray<Faerie::FPendingItemGeneration>& Pending, const int32 Amount) const
 {
-	double RanWeight = 0.f;
-	if (IsValid(Squirrel))
+	const double RanWeight = [Squirrel]
 	{
-		RanWeight = Squirrel->NextReal();
-	}
-	else
-	{
-		RanWeight = FMath::FRand();
-	}
+		if (IsValid(Squirrel))
+		{
+			return Squirrel->NextReal();
+		}
+		return static_cast<double>(FMath::FRand());
+	}();
 
 	if (const FFaerieTableDrop* Drop = Pool.GetDrop(RanWeight))
 	{

@@ -14,12 +14,12 @@ void FFaerieItemMutator_ApplyFirst::GetRequiredAssets(TArray<TSoftObjectPtr<UObj
 	}
 }
 
-bool FFaerieItemMutator_ApplyFirst::Apply(FFaerieItemStack& Stack, USquirrel* Squirrel) const
+bool FFaerieItemMutator_ApplyFirst::Apply(FFaerieItemStack& Stack, FFaerieItemMutatorContext* Context) const
 {
 	for (auto&& Child : Children)
 	{
 		if (!Child.IsValid()) continue;
-		if (Child.Get().Apply(Stack, Squirrel))
+		if (Child.Get().Apply(Stack, Context))
 		{
 			return true;
 		}
@@ -36,12 +36,12 @@ void FFaerieItemMutator_ApplyAny::GetRequiredAssets(TArray<TSoftObjectPtr<UObjec
 	}
 }
 
-bool FFaerieItemMutator_ApplyAny::Apply(FFaerieItemStack& Stack, USquirrel* Squirrel) const
+bool FFaerieItemMutator_ApplyAny::Apply(FFaerieItemStack& Stack, FFaerieItemMutatorContext* Context) const
 {
 	for (auto&& Child : Children)
 	{
 		if (!Child.IsValid()) continue;
-		Child.Get().Apply(Stack, Squirrel);
+		Child.Get().Apply(Stack, Context);
 	}
 	return true;
 }
@@ -55,7 +55,7 @@ void FFaerieItemMutator_ApplyAll::GetRequiredAssets(TArray<TSoftObjectPtr<UObjec
 	}
 }
 
-bool FFaerieItemMutator_ApplyAll::Apply(FFaerieItemStack& Stack, USquirrel* Squirrel) const
+bool FFaerieItemMutator_ApplyAll::Apply(FFaerieItemStack& Stack, FFaerieItemMutatorContext* Context) const
 {
 	if (!Stack.IsValid()) return false;
 	if (!Stack.Item->CanMutate()) return false;
@@ -70,7 +70,7 @@ bool FFaerieItemMutator_ApplyAll::Apply(FFaerieItemStack& Stack, USquirrel* Squi
 	for (auto&& Child : Children)
 	{
 		if (!Child.IsValid()) continue;
-		if (!Child.Get().Apply(CopyForMutation, Squirrel))
+		if (!Child.Get().Apply(CopyForMutation, Context))
 		{
 			return false;
 		}

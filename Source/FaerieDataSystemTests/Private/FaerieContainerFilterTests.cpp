@@ -28,8 +28,8 @@ bool FaerieContainerFilterTests::RunTest(const FString& Parameters)
 	UFaerieItem* TestItem2 = UFaerieItem::CreateNewInstance({}, EFaerieItemInstancingMutability::Mutable);
 	TestItem2->AddToken(InfoToken1);
 
-	TestTrue("GetToken (StaticClass)", TestItem1->GetToken(UFaerieInfoToken::StaticClass()) == InfoToken1);
-	TestTrue("GetToken (Template)", TestItem1->GetToken<UFaerieInfoToken>() == InfoToken1);
+	TestTrue("GetToken (StaticClass)", TestItem1->GetOwnedToken(UFaerieInfoToken::StaticClass()) == InfoToken1);
+	TestTrue("GetToken (Template)", TestItem1->GetOwnedToken<UFaerieInfoToken>() == InfoToken1);
 
 	UFaerieItemStorage* Storage = NewObject<UFaerieItemStorage>();
 

@@ -30,7 +30,7 @@ namespace Faerie
 		RecursiveValidationTracker.Add(Item);
 #endif
 
-		auto Tokens = Item->GetTokens();
+		auto Tokens = Item->GetOwnedTokens();
 		for (int32 i = 0; i < Tokens.Num(); ++i)
 		{
 			UFaerieItemToken* Token = Tokens[i];

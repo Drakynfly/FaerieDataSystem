@@ -28,7 +28,7 @@ namespace Faerie::Token
 
 	class IFilter;
 
-	template <CItemToken FilterClass, bool Const>
+	template <CItemTokenBase FilterClass, bool Const>
 	class TIterator_Masked : Private::FIteratorAccess
 	{
 		friend IFilter;
@@ -146,6 +146,7 @@ namespace Faerie::Token
 
 		// Removes tokens from filter not of the given class.
 		FAERIEITEMDATA_API IFilter& ByClass_Impl(const TSubclassOf<UFaerieItemToken>& Class);
+		FAERIEITEMDATA_API IFilter& ByInterface_Impl(const UClass* Class);
 
 		// Run a filter type by its virtual Passes implementation.
 		IFilter& ByVirtual_Impl(ITokenFilterType& Type);
@@ -205,7 +206,7 @@ namespace Faerie::Token
 		TBitArray<> TokenBits;
 	};
 
-	template <CItemToken FilterClass, EFilterFlags Flags>
+	template <CItemTokenBase FilterClass, EFilterFlags Flags>
 	class TFilter : public IFilter
 	{
 	public:
@@ -235,7 +236,7 @@ namespace Faerie::Token
 		// Removes tokens from filter of the given class.
 		// Only allows running the filter if it is more specific than the class we are already filtered by.
 		template<
-			CItemToken T
+			CItemTokenImpl T
 			UE_REQUIRES(TIsDerivedFrom<T, FilterClass>::Value)
 		>
 		[[nodiscard]] auto ByClass()
@@ -244,10 +245,19 @@ namespace Faerie::Token
 			return TFilter<T, Flags>(Item, TokenBits);
 		}
 
+		template<
+			typename TClass
+		>
+		[[nodiscard]] TFilter& ByInterface()
+		{
+			ByClass_Impl(TClass::StaticClass());
+			return *this;
+		}
+
 		// Removes tokens from filter of the given class.
 		// Only allows running the filter if it is more specific than the class we are already filtered by.
 		template<
-			CItemToken T
+			CItemTokenBase T
 			UE_REQUIRES(TIsDerivedFrom<T, FilterClass>::Value)
 		>
 		[[nodiscard]] TReturnType_FilterClass<T> ByClass(const TSubclassOf<T>& Class)
@@ -325,7 +335,7 @@ namespace Faerie::Token
 	};
 
 	// Forward declare the default parameters of the template
-	template <CItemToken FilterClass = UFaerieItemToken, EFilterFlags Flags = EFilterFlags::None>
+	template <CItemTokenBase FilterClass = UFaerieItemToken, EFilterFlags Flags = EFilterFlags::None>
 	class TFilter;
 
 	// Create a filter to select tokens from an Item

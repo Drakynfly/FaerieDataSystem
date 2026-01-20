@@ -3,6 +3,7 @@
 #include "BasicItemDataFilters.h"
 #include "FaerieItem.h"
 #include "Tokens/FaerieStackLimiterToken.h"
+#include "Tokens/FaerieStaticReferenceToken.h"
 #include "Tokens/FaerieTagToken.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(BasicItemDataFilters)
@@ -216,9 +217,19 @@ EItemDataMutabilityStatus UFilterRule_HasTokens::GetMutabilityStatus() const
 
 bool UFilterRule_HasTokens::ExecWithLog(const FFaerieItemStackView View, Faerie::ItemData::FFilterLogger& Logger) const
 {
+	static const FText InvalidViewError = LOCTEXT("HasTokens_InvalidViewError", "View is invalid");
+	static const FTextFormat MissingClassErrorFormat = LOCTEXT("HasTokens_MissingClassError", "Missing required token of class: '{0}'");
+
 	TArray<TSubclassOf<UFaerieItemToken>> TokenClassesCopy = TokenClasses;
 
-	for (auto&& Tokens = View.Item->GetTokens();
+	const UFaerieItem* Item = View.Item.Get();
+	if (!IsValid(Item))
+	{
+		Logger.Errors.Add(InvalidViewError);
+		return false;
+	}
+
+	for (auto&& Tokens = Item->GetOwnedTokens();
 		const TObjectPtr<UFaerieItemToken>& Token : Tokens)
 	{
 		if (!IsValid(Token)) continue;
@@ -229,7 +240,16 @@ bool UFilterRule_HasTokens::ExecWithLog(const FFaerieItemStackView View, Faerie:
 			});
 	}
 
-	static const FTextFormat ErrorFormat = LOCTEXT("HasTokens_MissingClassError", "Missing required token of class: '{0}'");
+	if (IncludeDefaultReferences)
+	{
+		for (auto It = TokenClassesCopy.CreateIterator(); It; ++It)
+		{
+			if (Faerie::GetReferencedToken(*Item, *It, Faerie::Tags::TokenReferenceDefaults))
+			{
+				It.RemoveCurrent();
+			}
+		}
+	}
 
 	for (auto&& MissingClass : TokenClassesCopy)
 	{
@@ -239,7 +259,7 @@ bool UFilterRule_HasTokens::ExecWithLog(const FFaerieItemStackView View, Faerie:
 #else
 		Args.Add(FText::FromString(MissingClass->GetName()));
 #endif
-		Logger.Errors.Add(FText::Format(ErrorFormat, Args));
+		Logger.Errors.Add(FText::Format(MissingClassErrorFormat, Args));
 	}
 
 	return TokenClassesCopy.IsEmpty();
@@ -249,7 +269,13 @@ bool UFilterRule_HasTokens::Exec(const FFaerieItemStackView View) const
 {
 	TArray<TSubclassOf<UFaerieItemToken>> TokenClassesCopy = TokenClasses;
 
-	for (auto&& Tokens = View.Item->GetTokens();
+	const UFaerieItem* Item = View.Item.Get();
+	if (!IsValid(Item))
+	{
+		return false;
+	}
+
+	for (auto&& Tokens = Item->GetOwnedTokens();
 		const TObjectPtr<UFaerieItemToken>& Token : Tokens)
 	{
 		if (!IsValid(Token)) continue;
@@ -258,6 +284,17 @@ bool UFilterRule_HasTokens::Exec(const FFaerieItemStackView View) const
 			{
 				return Token->IsA(TokenClass);
 			});
+	}
+
+	if (IncludeDefaultReferences)
+	{
+		for (auto It = TokenClassesCopy.CreateIterator(); It; ++It)
+		{
+			if (Faerie::GetReferencedToken(*Item, *It, Faerie::Tags::TokenReferenceDefaults))
+			{
+				It.RemoveCurrent();
+			}
+		}
 	}
 
 	return TokenClassesCopy.IsEmpty();

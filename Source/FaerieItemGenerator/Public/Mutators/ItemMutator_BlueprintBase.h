@@ -15,7 +15,7 @@ struct FFaerieItemMutator_Blueprint final : public FFaerieItemMutator
 	GENERATED_BODY()
 
 	virtual void GetRequiredAssets(TArray<TSoftObjectPtr<UObject>>& RequiredAssets) const override;
-	virtual bool Apply(FFaerieItemStack& Stack, USquirrel* Squirrel) const override;
+	virtual bool Apply(FFaerieItemStack& Stack, FFaerieItemMutatorContext* Context) const override;
 
 protected:
 	UPROPERTY()

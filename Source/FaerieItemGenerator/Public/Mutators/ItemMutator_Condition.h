@@ -6,6 +6,8 @@
 #include "StructUtils/InstancedStruct.h"
 #include "ItemMutator_Condition.generated.h"
 
+class UFaerieItemTemplate;
+
 /*
  * Wrapper mutator that checks an Item Filter.
  */
@@ -15,7 +17,7 @@ struct FFaerieItemMutator_TemplateCondition final : public FFaerieItemMutator
 	GENERATED_BODY()
 
 	virtual void GetRequiredAssets(TArray<TSoftObjectPtr<UObject>>& RequiredAssets) const override;
-	virtual bool Apply(FFaerieItemStack& Stack, USquirrel* Squirrel) const override;
+	virtual bool Apply(FFaerieItemStack& Stack, FFaerieItemMutatorContext* Context) const override;
 
 protected:
 	// The filter that selects valid entries that this mutator can apply to.

@@ -101,7 +101,7 @@ public:
 	// method to gain access to the non-const API of UFaerieItemToken.
 	[[nodiscard]] UFaerieItemToken* MutateCast() const;
 
-	template <Faerie::CItemToken T>
+	template <Faerie::CItemTokenImpl T>
 	T* MutateCast() const
 	{
 		return Cast<T>(MutateCast());
@@ -109,7 +109,7 @@ public:
 
 	void EditToken(const TFunctionRef<bool(UFaerieItemToken*)>& EditFunc);
 
-	template <Faerie::CItemToken T>
+	template <Faerie::CItemTokenImpl T>
 	void EditToken(const TFunctionRef<bool(T*)>& EditFunc)
 	{
 		EditToken(Type::Cast<TFunctionRef<bool(UFaerieItemToken*)>>(EditFunc));

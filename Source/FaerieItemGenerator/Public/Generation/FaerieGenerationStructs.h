@@ -208,7 +208,7 @@ struct FFaerieGeneratorAmount_Range final : public FFaerieGeneratorAmountBase
 
 	virtual int32 Resolve(USquirrel* Squirrel) const override;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Range Amount", meta = (ClampMin = "1"))
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Range Amount", meta = (ClampMin = "0"))
 	int32 AmountMin = 1;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Range Amount", meta = (ClampMin = "1"))

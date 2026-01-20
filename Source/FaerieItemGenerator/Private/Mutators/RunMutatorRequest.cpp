@@ -69,7 +69,9 @@ void FFaerieRunMutatorRequest::Execute(UFaerieCraftingRunner* Runner) const
 	FFaerieCraftingActionData& OutData = Runner->RequestStorage.GetMutable<FFaerieCraftingActionData>();
 
 	const FFaerieItemMutator& MutatorStruct = Mutator.View.Get<FFaerieItemMutator>();
-	USquirrel* SquirrelPin = Squirrel.Get();
+
+	FFaerieItemMutatorContext MutatorContext;
+	MutatorContext.Squirrel = Squirrel.Get();
 
 	OutData.ProcessStacks = ItemStacks;
 	for (auto&& ItemStack : OutData.ProcessStacks)
@@ -79,7 +81,7 @@ void FFaerieRunMutatorRequest::Execute(UFaerieCraftingRunner* Runner) const
 			continue;
 		}
 
-		MutatorStruct.Apply(ItemStack, SquirrelPin);
+		MutatorStruct.Apply(ItemStack, &MutatorContext);
 	}
 
 	Runner->Complete();

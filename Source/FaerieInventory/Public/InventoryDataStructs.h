@@ -209,7 +209,7 @@ private:
 	TArray<FInventoryEntry> Entries;
 
 	// Enables TBinarySearchOptimizedArray
-	TArray<FInventoryEntry>& GetArray() { return Entries; }
+	UE_REWRITE TArray<FInventoryEntry>& GetArray() { return Entries; }
 
 	/** Owning storage to send Fast Array callbacks to */
 	// UPROPERTY() Fast Arrays cannot have additional properties with Iris
@@ -243,20 +243,21 @@ public:
 
 	void Remove(FEntryKey Key);
 
-	bool IsEmpty() const { return Entries.IsEmpty(); }
+	UE_REWRITE bool IsEmpty() const { return Entries.IsEmpty(); }
 
-	int32 Num() const { return Entries.Num(); }
+	UE_REWRITE int32 Num() const { return Entries.Num(); }
 
 	// Low-level access to the WriteLock. Used to prevent added/removing data while iterating.
 	void LockWriteAccess() const;
 	void UnlockWriteAccess() const;
+	UE_REWRITE UFaerieItemStorage* GetOuterItemStorage() const { return ChangeListener; }
 
-	FInventoryEntry::FMutableAccess GetMutableEntry(const FEntryKey Key)
+	UE_REWRITE FInventoryEntry::FMutableAccess GetMutableEntry(const FEntryKey Key)
 	{
 		return FInventoryEntry::FMutableAccess(*this, Key);
 	}
 
-	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
+	UE_REWRITE bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
 	{
 		return Faerie::Hacks::FastArrayDeltaSerialize<FInventoryEntry, FInventoryContent>(Entries, DeltaParms, *this);
 	}

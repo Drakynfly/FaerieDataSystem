@@ -12,6 +12,7 @@
 #include "UObject/UObjectThreadContext.h"
 #endif
 
+#include "DebuggingFlags.h"
 #include "FaerieContainerFilter.h"
 #include "FaerieContainerFilterTypes.h"
 
@@ -110,6 +111,13 @@ FFaerieReplicatedSimMap::FValueWriteScope::FValueWriteScope(const FFaerieAddress
 
 FFaerieReplicatedSimMap::FValueWriteScope::~FValueWriteScope()
 {
+#if FAERIE_DEBUG
+	if (Faerie::Debug::CVarEnableWriteLockTracking.GetValueOnGameThread())
+	{
+		ensureAlways(Source.WriteLock > 0);
+	}
+#endif
+
 	Source.WriteLock--;
 
 	// Propagate change to client
@@ -151,6 +159,12 @@ FFaerieReplicatedSimMap::TRangedForConstIterator FFaerieReplicatedSimMap::begin(
 
 FFaerieReplicatedSimMap::TRangedForConstIterator FFaerieReplicatedSimMap::end() const
 {
+#if FAERIE_DEBUG
+	if (Faerie::Debug::CVarEnableWriteLockTracking.GetValueOnGameThread())
+	{
+		ensureAlways(WriteLock > 0);
+	}
+#endif
 	WriteLock--;
 	return TRangedForConstIterator(Entries.end());
 }

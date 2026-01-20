@@ -52,11 +52,20 @@ TInstancedStruct<FFaerieGeneratorAmountBase> UFaerieItemGenerationConfig::GetAmo
 
 void UFaerieItemGenerationConfig::Resolve(TArray<Faerie::FPendingItemGeneration>& Generations, USquirrel* Squirrel) const
 {
-	if (!ProcedureResolver.IsValid())
+	if (const FFaerieGenerationProcedureBase* Proc = ProcedureResolver.GetPtr())
 	{
-		return;
-	}
+		const int32 Amount = [&]() -> int32
+		{
+			if (const FFaerieGeneratorAmountBase* ResolverPtr = AmountResolver.GetPtr())
+			{
+				return ResolverPtr->Resolve(Squirrel);
+			}
+			return 1;
+		}();
 
-	const int32 Amount = AmountResolver.IsValid() ? AmountResolver.Get().Resolve(Squirrel) : 1;
-	ProcedureResolver.Get().Resolve(DropPool, Squirrel, Generations, Amount);
+		if (Amount > 0)
+		{
+			Proc->Resolve(DropPool, Squirrel, Generations, Amount);
+		}
+	}
 }

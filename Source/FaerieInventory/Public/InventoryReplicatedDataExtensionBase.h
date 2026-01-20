@@ -58,7 +58,7 @@ private:
 	TArray<FFaerieReplicatedValue> Entries;
 
 	// Enables TBinarySearchOptimizedArray
-	TArray<FFaerieReplicatedValue>& GetArray() { return Entries; }
+	UE_REWRITE TArray<FFaerieReplicatedValue>& GetArray() { return Entries; }
 
 	/** Owning wrapper to send Fast Array callbacks to */
 	// UPROPERTY() Fast Arrays cannot have additional properties with Iris

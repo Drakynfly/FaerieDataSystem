@@ -6,9 +6,9 @@
 #include "FaerieItemDataLog.h"
 #include "FaerieItemTokenFilter.h"
 #include "FaerieItemTokenFilterTypes.h"
-#include "Algo/Copy.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
+#include "Tokens/FaerieStaticReferenceToken.h"
 #include "UObject/ObjectSaveContext.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItem)
@@ -18,6 +18,8 @@ namespace Faerie::Tags
 	UE_DEFINE_GAMEPLAY_TAG(TokenAdd, "Fae.Token.Add")
 	UE_DEFINE_GAMEPLAY_TAG(TokenRemove, "Fae.Token.Remove")
 	UE_DEFINE_GAMEPLAY_TAG(TokenGenericPropertyEdit, "Fae.Token.GenericPropertyEdit")
+
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(TokenReferenceDefaults, "Fae.Reference.Defaults", "The reference item that stores defaults for items that use their own tokens as overrides.")
 }
 
 #if WITH_EDITOR
@@ -94,6 +96,69 @@ void UFaerieItem::GetReplicatedCustomConditionState(FCustomPropertyConditionStat
 		DOREPDYNAMICCONDITION_INITCONDITION_FAST(ThisClass, Tokens, COND_InitialOnly);
 		DOREPDYNAMICCONDITION_INITCONDITION_FAST(ThisClass, LastModified, COND_InitialOnly);
 	}
+}
+
+const UFaerieItemToken* UFaerieItem::GetTokenImpl(const TSubclassOf<UFaerieItemToken>& ValidatedClass, const FGameplayTag ReferenceTag) const
+{
+	// GetOwnedToken Logic
+	for (auto&& Token : Tokens)
+	{
+		if (IsValid(Token) && Token.IsA(ValidatedClass))
+		{
+			if (Token.IsA(ValidatedClass))
+			{
+				return Token;
+			}
+		}
+	}
+
+	// Fallback on trying to get a referenced token. Iterate in reverse for now (since static references are usually placed at the end.
+	// @todo control with a cvar or replace with order sorted tokens...
+	for (int32 i = Tokens.Num() - 1; i >= 0; --i)
+	{
+		if (const UFaerieStaticReferenceToken* ReferenceToken = Cast<UFaerieStaticReferenceToken>(Tokens[i]))
+		{
+			if (auto&& Reference = ReferenceToken->GetReferencedItem(ReferenceTag, false))
+			{
+				return Reference->GetOwnedToken(ValidatedClass);
+			}
+		}
+	}
+
+	return nullptr;
+}
+
+UFaerieItemToken* UFaerieItem::GetMutableTokenImpl(const TSubclassOf<UFaerieItemToken>& ValidatedClass)
+{
+	if (!IsDataMutable())
+	{
+		return nullptr;
+	}
+
+	for (auto&& Token : Tokens)
+	{
+		if (IsValid(Token) &&
+			Token.IsA(ValidatedClass) &&
+			Token->IsMutable())
+		{
+			return Token;
+		}
+	}
+
+	return nullptr;
+}
+
+const UFaerieItemToken* UFaerieItem::GetOwnedTokenImpl(const TSubclassOf<UFaerieItemToken>& ValidatedClass) const
+{
+	for (auto&& Token : Tokens)
+	{
+		if (IsValid(Token) && Token.IsA(ValidatedClass))
+		{
+			return Token;
+		}
+	}
+
+	return nullptr;
 }
 
 UFaerieItem* UFaerieItem::CreateNewInstance(const TConstArrayView<UFaerieItemToken*> Tokens, const EFaerieItemInstancingMutability Mutability)
@@ -198,10 +263,16 @@ UFaerieItem* UFaerieItem::CreateDuplicate(const EFaerieItemInstancingMutability 
 
 const UFaerieItemToken* UFaerieItem::GetTokenAtIndex(const int32 Index) const
 {
+	if (!Tokens.IsValidIndex(Index))
+	{
+		UE_LOG(LogFaerieItemData, Error, TEXT("Attempted access of invalid index '%i' of Tokens for Item '%s'"), Index, *GetPathName())
+		return nullptr;
+	}
+
 	return Tokens[Index];
 }
 
-const UFaerieItemToken* UFaerieItem::GetToken(const TSubclassOf<UFaerieItemToken>& Class) const
+const UFaerieItemToken* UFaerieItem::GetToken(const TSubclassOf<UFaerieItemToken>& Class, const FGameplayTag ReferenceTag) const
 {
 	if (!ensure(IsValid(Class)))
 	{
@@ -213,37 +284,37 @@ const UFaerieItemToken* UFaerieItem::GetToken(const TSubclassOf<UFaerieItemToken
 		return nullptr;
 	}
 
-	for (auto&& Token : Tokens)
+	return GetTokenImpl(Class, ReferenceTag);
+}
+
+const UFaerieItemToken* UFaerieItem::GetOwnedToken(const TSubclassOf<UFaerieItemToken>& Class) const
+{
+	if (!ensure(IsValid(Class)))
 	{
-		if (IsValid(Token) && Token.IsA(Class))
-		{
-			return Token;
-		}
+		return nullptr;
 	}
 
-	return nullptr;
+	if (!ensure(Class != UFaerieItemToken::StaticClass()))
+	{
+		return nullptr;
+	}
+
+	return GetOwnedTokenImpl(Class);
 }
 
 UFaerieItemToken* UFaerieItem::GetMutableToken(const TSubclassOf<UFaerieItemToken>& Class)
 {
-	if (!ensure(IsValid(Class)) ||
-		!ensure(Class != UFaerieItemToken::StaticClass()) ||
-		!IsDataMutable())
+	if (!ensure(IsValid(Class)))
 	{
-		return {};
+		return nullptr;
 	}
 
-	for (auto&& Token : Tokens)
+	if (!ensure(Class != UFaerieItemToken::StaticClass()))
 	{
-		if (IsValid(Token) &&
-			Token.IsA(Class) &&
-			Token->IsMutable())
-		{
-			return Token;
-		}
+		return nullptr;
 	}
 
-	return nullptr;
+	return GetMutableTokenImpl(Class);
 }
 
 bool UFaerieItem::Compare(const UFaerieItem* A, const UFaerieItem* B, const EFaerieItemComparisonFlags Flags)
@@ -396,7 +467,7 @@ bool UFaerieItem::AddToken(UFaerieItemToken* Token)
 	return true;
 }
 
-bool UFaerieItem::RemoveToken(UFaerieItemToken* Token)
+bool UFaerieItem::RemoveToken(const UFaerieItemToken* Token)
 {
 	if (!ensure(IsValid(Token)))
 	{
@@ -414,7 +485,7 @@ bool UFaerieItem::RemoveToken(UFaerieItemToken* Token)
 		return false;
 	}
 
-	if (!!Tokens.Remove(Token))
+	if (!!Tokens.Remove(ConstCast(ObjectPtrWrap(Token))))
 	{
 		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Tokens, this);
 
@@ -427,6 +498,63 @@ bool UFaerieItem::RemoveToken(UFaerieItemToken* Token)
 	}
 
 	return false;
+}
+
+bool UFaerieItem::ReplaceToken(const UFaerieItemToken* Old, UFaerieItemToken* New)
+{
+	if (!ensure(IsValid(Old)))
+	{
+		return false;
+	}
+
+	if (!ensure(IsValid(New)))
+	{
+		return false;
+	}
+
+	if (!ensure(CanMutate()))
+	{
+		return false;
+	}
+
+	if (!ensure(WriteLock == 0))
+	{
+		UE_LOG(LogFaerieItemData, Error, TEXT("Cannot ReplaceToken while iterating Tokens. Please correct code."))
+		return false;
+	}
+
+	const int32 Index = Tokens.IndexOfByKey(ConstCast(ObjectPtrWrap(Old)));
+	if (Index == INDEX_NONE)
+	{
+		return false;
+	}
+
+	// Mutable tokens have to be owned by us.
+	if (New->IsMutable())
+	{
+		// If this check fails, then whatever code tried to create the token used an outer other than us, and needs to
+		// either duplicate or rename the token with us as the outer.
+		check(New->GetOuter() == GetTransientPackage() || New->GetOuter() == this)
+		New->Rename(nullptr, this);
+	}
+	// Immutable tokens only get outer'd to us if they are currently transient, likely newly created.
+	else
+	{
+		if (New->GetOuter() == GetTransientPackage())
+		{
+			New->Rename(nullptr, this);
+		}
+	}
+
+	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, LastModified, this);
+	LastModified = FDateTime::UtcNow();
+
+	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Tokens, this);
+	Tokens[Index] = New;
+
+	(void)NotifyOwnerOfSelfMutation.ExecuteIfBound(this, Old, Tags::TokenRemove);
+	(void)NotifyOwnerOfSelfMutation.ExecuteIfBound(this, New, Tags::TokenAdd);
+	return true;
 }
 
 int32 UFaerieItem::RemoveTokensByClass(const TSubclassOf<UFaerieItemToken> Class)

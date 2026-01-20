@@ -12,10 +12,11 @@ void FFaerieItemMutator_Blueprint::GetRequiredAssets(TArray<TSoftObjectPtr<UObje
 	}
 }
 
-bool FFaerieItemMutator_Blueprint::Apply(FFaerieItemStack& Stack, USquirrel* Squirrel) const
+bool FFaerieItemMutator_Blueprint::Apply(FFaerieItemStack& Stack, FFaerieItemMutatorContext* Context) const
 {
 	if (IsValid(Blueprint))
 	{
+		USquirrel* Squirrel = Context ? Context->Squirrel : nullptr;
 		return Blueprint->NativeApply(Stack, Squirrel);
 	}
 	return false;

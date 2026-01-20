@@ -190,14 +190,14 @@ TOptional<FFaerieItemStack> UFaerieItemAsset::CreateItemStack(const FFaerieItemI
 		{
 			Copies = Context->CopiesOverride.GetValue();
 		}
-		return FFaerieItemStack(Item->CreateInstance(Context->Flags), Copies);
+		return FFaerieItemStack(Item->CreateInstance(Context->Mutability), Copies);
 	}
 	return FFaerieItemStack(Item->CreateInstance(), 1);
 }
 
 const UFaerieItem* UFaerieItemAsset::GetItemInstance(const EFaerieItemInstancingMutability Mutability) const
 {
-	if (!IsValidChecked(Item)) return nullptr;
+	if (!ensure(IsValid(Item))) return GetDefault<UFaerieItem>();
 	return Item->CreateInstance(Mutability);
 }
 

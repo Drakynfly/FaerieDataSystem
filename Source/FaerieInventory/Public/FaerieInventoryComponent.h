@@ -9,9 +9,9 @@
 
 enum class EFaerieAddressEventType : uint8;
 struct FFaerieAddress;
+class UFaerieItemStorage;
 class UItemContainerExtensionGroup;
 class UItemContainerExtensionBase;
-class UFaerieItemStorage;
 
 /**
  *	This is the core of the inventory system. The actual component added to actors to allow them to contain item data.
@@ -56,10 +56,10 @@ public:
 	/*	 VARIABLES	*/
 	/**-------------*/
 protected:
-	UPROPERTY(BlueprintReadOnly, Replicated, Instanced, Category = "ItemStorage")
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Replicated, Instanced, Category = "ItemStorage", meta = (ShowInnerProperties))
 	TObjectPtr<UFaerieItemStorage> ItemStorage;
 
-	// Subobjects responsible for adding or customizing Inventory behavior.
-	UPROPERTY(EditAnywhere, Instanced, NoClear, Category = "ItemStorage")
+	// @DEPRECATED: Use the extensions object in ItemStorage.
+	UPROPERTY(EditAnywhere, Instanced, NoClear, Category = "DEPRECATED")
 	TObjectPtr<UItemContainerExtensionGroup> Extensions;
 };

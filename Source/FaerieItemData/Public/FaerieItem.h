@@ -26,6 +26,8 @@ namespace Faerie
 		FAERIEITEMDATA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TokenAdd)
 		FAERIEITEMDATA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TokenRemove)
 		FAERIEITEMDATA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TokenGenericPropertyEdit)
+
+		FAERIEITEMDATA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TokenReferenceDefaults)
 	}
 
 	using FNotifyOwnerOfSelfMutation = TDelegate<void(const UFaerieItem*, const UFaerieItemToken*, FGameplayTag)>;
@@ -52,6 +54,12 @@ public:
 	virtual void GetReplicatedCustomConditionState(FCustomPropertyConditionState& OutActiveState) const override;
 	//~ Emd UObject interface
 
+private:
+	const UFaerieItemToken* GetTokenImpl(const TSubclassOf<UFaerieItemToken>& ValidatedClass, FGameplayTag ReferenceTag = Faerie::Tags::TokenReferenceDefaults) const;
+	const UFaerieItemToken* GetOwnedTokenImpl(const TSubclassOf<UFaerieItemToken>& ValidatedClass) const;
+	UFaerieItemToken* GetMutableTokenImpl(const TSubclassOf<UFaerieItemToken>& ValidatedClass);
+
+public:
 	// Creates a new faerie item object with the given tokens. These are instance-mutable by default.
 	static UFaerieItem* CreateNewInstance(TConstArrayView<UFaerieItemToken*> Tokens, EFaerieItemInstancingMutability Mutability = EFaerieItemInstancingMutability::Automatic);
 
@@ -61,30 +69,40 @@ public:
 	// Creates a new faerie item object using this instance as a template. Duplicates are instance-mutable by default.
 	UFaerieItem* CreateDuplicate(EFaerieItemInstancingMutability Mutability = EFaerieItemInstancingMutability::Automatic) const;
 
-	// Gets a view of all tokens in this item.
-	TConstArrayView<TObjectPtr<UFaerieItemToken>> GetTokens() const { return Tokens; }
+	// Gets a view of all owned tokens in this item.
+	TConstArrayView<TObjectPtr<UFaerieItemToken>> GetOwnedTokens() const { return Tokens; }
 
 	// Gets the token at a specified index. Low-level access for when you know what you are doing.
 	const UFaerieItemToken* GetTokenAtIndex(int32 Index) const;
 
-	// Gets the first token of the specified class.
-	const UFaerieItemToken* GetToken(const TSubclassOf<UFaerieItemToken>& Class) const;
+	// Gets the first token of the specified class that is either owned or referenced.
+	const UFaerieItemToken* GetToken(const TSubclassOf<UFaerieItemToken>& Class, FGameplayTag ReferenceTag = Faerie::Tags::TokenReferenceDefaults) const;
 
-	// Gets the first token of the specified class.
-	template <Faerie::CItemToken T>
-	const T* GetToken() const
+	// Gets the first token of the specified class that is either owned or referenced.
+	template <Faerie::CItemTokenImpl T>
+	const T* GetToken(FGameplayTag ReferenceTag = Faerie::Tags::TokenReferenceDefaults) const
 	{
-		return Cast<T>(GetToken(T::StaticClass()));
+		return Cast<T>(GetTokenImpl(T::StaticClass(), ReferenceTag));
 	}
 
-	// Gets mutable access to a token, if this item allows mutation.
+	// Gets the first owned token of the specified class.
+	const UFaerieItemToken* GetOwnedToken(const TSubclassOf<UFaerieItemToken>& Class) const;
+
+	// Gets the first owned token of the specified class. Templated version.
+	template <Faerie::CItemTokenImpl T>
+	const T* GetOwnedToken() const
+	{
+		return Cast<T>(GetOwnedTokenImpl(T::StaticClass()));
+	}
+
+	// Gets mutable access to an owned token, if this item allows mutation.
 	UFaerieItemToken* GetMutableToken(const TSubclassOf<UFaerieItemToken>& Class);
 
-	// Gets mutable access to a token, if this item allows mutation.
-	template <Faerie::CItemToken T>
+	// Gets mutable access to an owned token, if this item allows mutation. Templated version.
+	template <Faerie::CItemTokenImpl T>
 	T* GetMutableToken()
 	{
-		return Cast<T>(GetMutableToken(T::StaticClass()));
+		return Cast<T>(GetMutableTokenImpl(T::StaticClass()));
 	}
 
 	/*
@@ -101,12 +119,14 @@ public:
 	// method to gain access to the non-const API of UFaerieItem.
 	[[nodiscard]] UFaerieItem* MutateCast() const;
 	bool AddToken(UFaerieItemToken* Token);
-	bool RemoveToken(UFaerieItemToken* Token);
+	bool RemoveToken(const UFaerieItemToken* Token);
+	bool ReplaceToken(const UFaerieItemToken* Old, UFaerieItemToken* New);
 	int32 RemoveTokensByClass(TSubclassOf<UFaerieItemToken> Class);
 
 protected:
 	// While not returning const pointers, these are considered safe, as all mutating functions are locked being FFaerieItemEditHandle
 
+	// Gets all tokens owned by this item.
 	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "FaerieItem")
 	TArray<UFaerieItemToken*> GetAllTokens() const;
 
@@ -140,6 +160,10 @@ protected:
 public:
 	Faerie::FNotifyOwnerOfSelfMutation::RegistrationType& GetNotifyOwnerOfSelfMutation() { return NotifyOwnerOfSelfMutation; }
 
+private:
+	// Delegate for owners to bind to, for detecting when tokens are mutated outside their knowledge
+	Faerie::FNotifyOwnerOfSelfMutation NotifyOwnerOfSelfMutation;
+
 protected:
 	UPROPERTY(Replicated, VisibleInstanceOnly, Category = "FaerieItem")
 	TArray<TObjectPtr<UFaerieItemToken>> Tokens;
@@ -157,9 +181,6 @@ protected:
 	EFaerieItemMutabilityFlags MutabilityFlags;
 
 private:
-	// Delegate for owners to bind to, for detecting when tokens are mutated outside their knowledge
-	Faerie::FNotifyOwnerOfSelfMutation NotifyOwnerOfSelfMutation;
-
 	// Is writing to Tokens locked?
 	mutable uint32 WriteLock = 0;
 

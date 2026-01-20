@@ -175,25 +175,25 @@ FFaerieAssetInfo UFaerieItemPool::GetSourceInfo() const
 
 TOptional<FFaerieItemStack> UFaerieItemPool::CreateItemStack(const FFaerieItemInstancingContext* Context) const
 {
-	const FFaerieItemInstancingContext_Crafting* CraftingContent = Context->Cast<FFaerieItemInstancingContext_Crafting>();
-	if (!CraftingContent)
+	const FFaerieItemInstancingContext_Crafting* CraftingContext = Context->Cast<FFaerieItemInstancingContext_Crafting>();
+	if (!CraftingContext)
 	{
 		UE_LOG(LogItemGeneration, Error, TEXT("UFaerieItemPool requires a Content of type FItemInstancingContext_Crafting!"));
 		return NullOpt;
 	}
 
-	const FFaerieTableDrop* Drop = [this, CraftingContent]
+	const FFaerieTableDrop* Drop = [this, CraftingContext]
 	{
-		if (IsValid(CraftingContent->Squirrel))
+		if (IsValid(CraftingContext->Squirrel))
 		{
-			return GetDrop_Seeded(CraftingContent->Squirrel);
+			return GetDrop_Seeded(CraftingContext->Squirrel);
 		}
 		return GetDrop(FMath::FRand());
 	}();
 
 	if (Drop && Drop->IsValid())
 	{
-		return Drop->Resolve(*CraftingContent);
+		return Drop->Resolve(*CraftingContext);
 	}
 
 	return NullOpt;

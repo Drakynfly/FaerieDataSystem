@@ -1,6 +1,7 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieGridStructs.h"
+#include "DebuggingFlags.h"
 #include "Extensions/InventoryGridExtensionBase.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieGridStructs)
@@ -10,7 +11,7 @@ void FFaerieGridKeyedStack::PreReplicatedRemove(const FFaerieGridContent& InArra
 	InArraySerializer.PreStackReplicatedRemove(*this);
 }
 
-void FFaerieGridKeyedStack::PostReplicatedAdd(FFaerieGridContent& InArraySerializer)
+void FFaerieGridKeyedStack::PostReplicatedAdd(const FFaerieGridContent& InArraySerializer)
 {
 	InArraySerializer.PostStackReplicatedAdd(*this);
 }
@@ -29,6 +30,12 @@ FFaerieGridContent::FScopedStackHandle::FScopedStackHandle(const FFaerieAddress 
 
 FFaerieGridContent::FScopedStackHandle::~FScopedStackHandle()
 {
+#if FAERIE_DEBUG
+	if (Faerie::Debug::CVarEnableWriteLockTracking.GetValueOnGameThread())
+	{
+		ensureAlways(Source.WriteLock > 0);
+	}
+#endif
 	Source.WriteLock--;
 
 	// Propagate change to client
@@ -93,6 +100,12 @@ FFaerieGridContent::TRangedForConstIterator FFaerieGridContent::begin() const
 
 FFaerieGridContent::TRangedForConstIterator FFaerieGridContent::end() const
 {
+#if FAERIE_DEBUG
+	if (Faerie::Debug::CVarEnableWriteLockTracking.GetValueOnGameThread())
+	{
+		ensureAlways(WriteLock > 0);
+	}
+#endif
 	WriteLock--;
 	return TRangedForConstIterator(Items.end());
 }

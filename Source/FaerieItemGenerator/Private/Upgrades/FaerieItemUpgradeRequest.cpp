@@ -161,8 +161,11 @@ void FFaerieItemUpgradeRequest::Execute(UFaerieCraftingRunner* Runner) const
 		return Runner->Fail();
 	}
 
+	FFaerieItemMutatorContext Context;
+	Context.Squirrel = Squirrel.Get();
+
 	// Apply the mutator, and fail if it doesn't apply, when RequireMutatorToRun is enabled.
-	if (!Config->Mutator.Get().Apply(Stack, Squirrel.Get()) && Config->RequireMutatorToRun)
+	if (!Config->Mutator.Get().Apply(Stack, &Context) && Config->RequireMutatorToRun)
 	{
 		return Runner->Fail();
 	}

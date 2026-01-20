@@ -88,9 +88,9 @@ namespace Faerie::Storage
 			if (KeyBits.CountSetBits() == 0)
 			{
 				// No bits set, return invalid iterator.
-				return Container::TIterator<ResolveType, FIterator_MaskedEntries>(FIterator_MaskedEntries(Storage, {}));
+				return Container::TIterator<ResolveType, FIterator_MaskedEntries>(FIterator_MaskedEntries(*Storage, {}));
 			}
-			return Container::TIterator<ResolveType, FIterator_MaskedEntries>(FIterator_MaskedEntries(Storage, KeyBits));
+			return Container::TIterator<ResolveType, FIterator_MaskedEntries>(FIterator_MaskedEntries(*Storage, KeyBits));
 		}
 
 		[[nodiscard]] FORCEINLINE FKeyMask begin() const { return Range<FEntryKey>(); }

@@ -8,7 +8,6 @@
 
 #include "FaerieCardGenerateAsync.generated.h"
 
-class UFaerieItemCardToken;
 class UFaerieCardGenerator;
 class IFaerieCardGeneratorInterface;
 class UFaerieCardBase;

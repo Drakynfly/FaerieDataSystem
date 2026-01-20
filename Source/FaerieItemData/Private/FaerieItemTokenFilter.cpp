@@ -1,7 +1,9 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieItemTokenFilter.h"
+#include "DebuggingFlags.h"
 #include "FaerieItem.h"
+#include "FaerieItemDataLog.h"
 #include "FaerieItemToken.h"
 #include "TypeCastingUtils.h"
 
@@ -11,11 +13,24 @@ namespace Faerie::Token
 	{
 		void FIteratorAccess::AddWriteLock(const UFaerieItem* Item)
 		{
+#if FAERIE_DEBUG
+			if (Debug::CVarEnableWriteLockTracking.GetValueOnGameThread())
+			{
+				UE_LOG(LogFaerieItemData, Warning, TEXT("Item WriteLock++ '%u -> %u' (Faerie::Token::FIteratorAccess::AddWriteLock)"), Item->WriteLock, Item->WriteLock + 1)
+			}
+#endif
 			Item->WriteLock++;
 		}
 
 		void FIteratorAccess::RemoveWriteLock(const UFaerieItem* Item)
 		{
+#if FAERIE_DEBUG
+			if (Debug::CVarEnableWriteLockTracking.GetValueOnGameThread())
+			{
+				ensureAlways(Item->WriteLock > 0);
+				UE_LOG(LogFaerieItemData, Warning, TEXT("Item WriteLock-- '%u -> %u' (Faerie::Token::FIteratorAccess::RemoveWriteLock)"), Item->WriteLock, Item->WriteLock - 1)
+			}
+#endif
 			Item->WriteLock--;
 		}
 
@@ -36,7 +51,7 @@ namespace Faerie::Token
 		check(IsValid(Item))
 
 		// Initialize TokensBits with all tokens enabled.
-		TokenBits.Init(true, Item->GetTokens().Num());
+		TokenBits.Init(true, Item->GetOwnedTokens().Num());
 	}
 
 	template <typename Pred>
@@ -61,6 +76,19 @@ namespace Faerie::Token
 		FilterByPredicate(TokenBits, Item, [Class](const UFaerieItemToken* Token)
 			{
 				return Token->IsA(Class);
+			});
+
+		return *this;
+	}
+
+	IFilter& IFilter::ByInterface_Impl(const UClass* Class)
+	{
+		if (!IsValid(Class) ||
+			Class == UFaerieItemToken::StaticClass()) return *this;
+
+		FilterByPredicate(TokenBits, Item, [Class](const UFaerieItemToken* Token)
+			{
+				return Token->GetClass()->ImplementsInterface(Class);
 			});
 
 		return *this;

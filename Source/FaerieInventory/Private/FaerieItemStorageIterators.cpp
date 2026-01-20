@@ -22,8 +22,8 @@ namespace Faerie::Storage
 		return Snapshot;
 	}
 
-	FIterator_AllEntries::FIterator_AllEntries(const UFaerieItemStorage* Storage)
-	  : Content(&ReadInventoryContent(*Storage))
+	FIterator_AllEntries::FIterator_AllEntries(const UFaerieItemStorage& Storage)
+	  : Content(&ReadInventoryContent(Storage))
 	{
 		Content->LockWriteAccess();
 		AdvanceEntry();
@@ -39,7 +39,7 @@ namespace Faerie::Storage
 
 	Container::FVirtualIterator FIterator_AllEntries::ToInterface() const
 	{
-		return Container::FVirtualIterator(MakeUnique<FIterator_AllEntries_ForInterface>(*this));
+		return Container::FVirtualIterator(MakeUnique<FIterator_AllEntries_ForInterface>(*Content->GetOuterItemStorage()));
 	}
 
 	void FIterator_AllEntries::AdvanceEntry()
@@ -61,8 +61,8 @@ namespace Faerie::Storage
 		return Content->GetElementAt(EntryIndex).GetItem();
 	}
 
-	FIterator_AllAddresses::FIterator_AllAddresses(const UFaerieItemStorage* Storage)
-	  : Content(&ReadInventoryContent(*Storage))
+	FIterator_AllAddresses::FIterator_AllAddresses(const UFaerieItemStorage& Storage)
+	  : Content(&ReadInventoryContent(Storage))
 	{
 		Content->LockWriteAccess();
 		AdvanceEntry();
@@ -78,7 +78,7 @@ namespace Faerie::Storage
 
 	Container::FVirtualIterator FIterator_AllAddresses::ToInterface() const
 	{
-		return Container::FVirtualIterator(MakeUnique<FIterator_AllAddresses_ForInterface>(*this));
+		return Container::FVirtualIterator(MakeUnique<FIterator_AllAddresses_ForInterface>(*Content->GetOuterItemStorage()));
 	}
 
 	void FIterator_AllAddresses::AdvanceEntry()
@@ -130,8 +130,8 @@ namespace Faerie::Storage
 		}
 	}
 
-	FIterator_MaskedEntries::FIterator_MaskedEntries(const UFaerieItemStorage* Storage, const TBitArray<>& EntryMask)
-	  : Content(&ReadInventoryContent(*Storage)),
+	FIterator_MaskedEntries::FIterator_MaskedEntries(const UFaerieItemStorage& Storage, const TBitArray<>& EntryMask)
+	  : Content(&ReadInventoryContent(Storage)),
 		KeyMask(EntryMask),
 		BitIterator(this->KeyMask)
 	{
@@ -139,13 +139,13 @@ namespace Faerie::Storage
 		AdvanceEntry();
 	}
 
-	FIterator_MaskedEntries::FIterator_MaskedEntries(const FInventoryContent* Content,
+	FIterator_MaskedEntries::FIterator_MaskedEntries(const FInventoryContent& Content,
 		const TBitArray<>& EntryMask)
-	  : Content(Content),
+	  : Content(&Content),
 		KeyMask(EntryMask),
 		BitIterator(this->KeyMask)
 	{
-		Content->LockWriteAccess();
+		Content.LockWriteAccess();
 		AdvanceEntry();
 	}
 
@@ -169,7 +169,7 @@ namespace Faerie::Storage
 	Container::FVirtualIterator FIterator_MaskedEntries::ToInterface() const
 	{
 		return Container::FVirtualIterator(
-			MakeUnique<FIterator_MaskedEntries_ForInterface>(FIterator_MaskedEntries(Content, KeyMask)));
+			MakeUnique<FIterator_MaskedEntries_ForInterface>(FIterator_MaskedEntries(*Content, KeyMask)));
 	}
 
 	void FIterator_MaskedEntries::AdvanceEntry()

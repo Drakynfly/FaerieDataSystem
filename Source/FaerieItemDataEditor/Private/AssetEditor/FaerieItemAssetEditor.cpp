@@ -343,17 +343,11 @@ namespace Faerie::Ed
 	{
 		if (!IsValid(WidgetPreview))
 		{
-			WidgetPreview = NewObject<UFaerieWidgetPreview>();
-			WidgetPreview->InitFaerieWidgetPreview(ItemAsset);
 			FPreviewableWidgetVariant WidgetType;
 
-			for (auto&& Element : ItemAsset->GetEditorTokensView())
+			if (const UFaerieItemCardToken* CardToken = ItemAsset->GetItemInstance(EFaerieItemInstancingMutability::Immutable)->GetToken<UFaerieItemCardToken>())
 			{
-				if (const UFaerieItemCardToken* CardToken = Cast<UFaerieItemCardToken>(Element))
-				{
-					WidgetType.ObjectPath = CardToken->GetCardClass(CardType_Full).ToSoftObjectPath();
-					break;
-				}
+				WidgetType.ObjectPath = CardToken->GetCardClass(CardType_Full).ToSoftObjectPath();
 			}
 
 			if (WidgetType.ObjectPath.IsNull())
@@ -363,8 +357,14 @@ namespace Faerie::Ed
 				{
 					WidgetType.ObjectPath = Default->ToSoftObjectPath();
 				}
+				else
+				{
+					return nullptr;
+				}
 			}
 
+			WidgetPreview = NewObject<UFaerieWidgetPreview>();
+			WidgetPreview->InitFaerieWidgetPreview(ItemAsset);
 			WidgetPreview->SetWidgetType(WidgetType);
 		}
 
