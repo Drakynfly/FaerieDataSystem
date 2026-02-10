@@ -8,7 +8,7 @@ void FFaerieItemMutator_Blueprint::GetRequiredAssets(TArray<TSoftObjectPtr<UObje
 {
 	if (IsValid(Blueprint))
 	{
-		return Blueprint->NativeGetRequiredAssets(RequiredAssets);
+		return GetDefault<UFaerieItemMutator_BlueprintBase>(Blueprint)->NativeGetRequiredAssets(RequiredAssets);
 	}
 }
 
@@ -17,7 +17,7 @@ bool FFaerieItemMutator_Blueprint::Apply(FFaerieItemStack& Stack, FFaerieItemMut
 	if (IsValid(Blueprint))
 	{
 		USquirrel* Squirrel = Context ? Context->Squirrel : nullptr;
-		return Blueprint->NativeApply(Stack, Squirrel);
+		return GetDefault<UFaerieItemMutator_BlueprintBase>(Blueprint)->NativeApply(Stack, Squirrel);
 	}
 	return false;
 }

@@ -18,14 +18,14 @@ struct FFaerieItemMutator_Blueprint final : public FFaerieItemMutator
 	virtual bool Apply(FFaerieItemStack& Stack, FFaerieItemMutatorContext* Context) const override;
 
 protected:
-	UPROPERTY()
-	TObjectPtr<class UFaerieItemMutator_BlueprintBase> Blueprint;
+	UPROPERTY(EditAnywhere, Category = "Blueprint")
+	TSubclassOf<class UFaerieItemMutator_BlueprintBase> Blueprint;
 };
 
 /*
  * Base class for defining mutators in Blueprint.
  */
-UCLASS(Abstract, const)
+UCLASS(Abstract, Blueprintable, const)
 class FAERIEITEMGENERATOR_API UFaerieItemMutator_BlueprintBase : public UObject
 {
 	GENERATED_BODY()
