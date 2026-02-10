@@ -6,6 +6,8 @@
 #include "Misc/DataValidation.h"
 #endif
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieMeshToken)
+
 void UFaerieMeshTokenBase::GetMeshes(const FGameplayTagContainer& SearchPurposes,
 	TConstStructView<FFaerieStaticMeshData>& Static, TConstStructView<FFaerieSkeletalMeshData>& Skeletal) const
 {

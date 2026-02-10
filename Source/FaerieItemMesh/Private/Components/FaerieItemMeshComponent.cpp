@@ -17,6 +17,8 @@
 #include "Net/Core/PushModel/PushModel.h"
 #include "Tokens/FaerieMeshToken.h"
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemMeshComponent)
+
 UFaerieItemMeshComponent::UFaerieItemMeshComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;

@@ -5,6 +5,8 @@
 #include "Engine/StaticMesh.h"
 #include "Engine/SkeletalMesh.h"
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieDynamicMeshStructs)
+
 FFaerieDynamicStaticMesh::FFaerieDynamicStaticMesh(const FFaerieStaticMeshData& MeshData)
 {
 	if (!MeshData.StaticMesh.IsValid())

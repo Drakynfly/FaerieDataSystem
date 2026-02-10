@@ -17,6 +17,8 @@
 #include "GeometryScript/MeshBasicEditFunctions.h"
 #include "GeometryScript/MeshMaterialFunctions.h"
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemMeshLoader)
+
 namespace Faerie
 {
 	FFaerieItemMesh GetDynamicStaticMeshForData(const FFaerieDynamicStaticMesh& MeshData)
