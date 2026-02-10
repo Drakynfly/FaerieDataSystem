@@ -2,113 +2,142 @@
 
 #pragma once
 
-#include "FaerieItem.h"
 #include "FaerieItemContainerStructs.h"
+#include "FaerieItemDataViewBase.h"
 #include "LoopUtils.h"
-
-class UFaerieItem;
 
 namespace Faerie::Container
 {
-	class FVirtualIterator;
-
-	class IIterator
+	class IIterator : public ItemData::IViewBase
 	{
 	public:
-		virtual ~IIterator() = default;
-
-		virtual FVirtualIterator Copy() const = 0;
 		virtual FEntryKey ResolveKey() const = 0;
 		virtual FFaerieAddress ResolveAddress() const = 0;
-		virtual const UFaerieItem* ResolveItem() const = 0;
+
+		virtual TUniquePtr<IIterator> Copy() const = 0;
 		virtual void Advance() = 0;
-		virtual bool IsValid() const = 0;
 	};
 
-	class FVirtualIterator
+	namespace Private
 	{
-		template <typename ResolveType, typename ImplType> friend class TIterator;
-
-	public:
-		FVirtualIterator(TUniquePtr<IIterator>&& IteratorPtr) : IteratorPtr(MoveTemp(IteratorPtr)) {}
-		FVirtualIterator(const FVirtualIterator& Other)
-		  : IteratorPtr(Other.Copy().IteratorPtr) {}
-
-		FORCEINLINE explicit operator bool() const { return IsValid(); }
-
-		FORCEINLINE void operator++()
+		class FIteratorAccess
 		{
-			IteratorPtr->Advance();
-		}
+		public:
+			FAERIEINVENTORY_API static TUniquePtr<IIterator> CreateEntryIteratorImpl(const TNotNull<const UFaerieItemContainerBase*> Container);
+			FAERIEINVENTORY_API static TUniquePtr<IIterator> CreateAddressIteratorImpl(const TNotNull<const UFaerieItemContainerBase*> Container);
+			FAERIEINVENTORY_API static TUniquePtr<IIterator> CreateSingleEntryIteratorImpl(const TNotNull<const UFaerieItemContainerBase*> Container, const FEntryKey Key);
+		};
 
-		FVirtualIterator ToInterface() const
+		template <bool IterateAddresses>
+		TUniquePtr<IIterator> CreateIteratorImpl(const TNotNull<const UFaerieItemContainerBase*> Container)
 		{
-			return Copy();
-		}
-
-	private:
-		FORCEINLINE FVirtualIterator Copy() const
-		{
-			if (IteratorPtr.IsValid())
+			if constexpr (IterateAddresses)
 			{
-				return IteratorPtr->Copy();
+				return FIteratorAccess::CreateAddressIteratorImpl(Container);
 			}
-			return {nullptr};
+			else
+			{
+				return FIteratorAccess::CreateEntryIteratorImpl(Container);
+			}
 		}
-		FORCEINLINE FEntryKey GetKey() const { return IteratorPtr->ResolveKey(); }
-		FORCEINLINE FFaerieAddress GetAddress() const { return IteratorPtr->ResolveAddress(); }
-		FORCEINLINE const UFaerieItem* GetItem() const { return IteratorPtr->ResolveItem(); }
-		FORCEINLINE bool IsValid() const { return IteratorPtr.IsValid() && IteratorPtr->IsValid(); }
+	}
 
-		TUniquePtr<IIterator> IteratorPtr;
-	};
-
-	template <typename ResolveType, typename ImplType>
+	template <typename ResolveType, bool SkipToNextMutable>
 	class TIterator
 	{
 	public:
-		FORCEINLINE explicit TIterator(ImplType&& Impl)
-		  : IteratorImpl(MoveTemp(Impl))
+		UE_REWRITE TIterator(const TNotNull<const UFaerieItemContainerBase*> Container)
+		  : IteratorPtr(Private::CreateIteratorImpl<std::is_same_v<ResolveType, FFaerieAddress>>(Container))
+		{
+#if WITH_EDITOR
+			UE_LOG(LogTemp, Verbose, TEXT("TIterator::Ctor from Container"));
+#endif
+
+			// When in non-const mode, jump to next mutable item
+			if constexpr (SkipToNextMutable)
+			{
+				AdvanceWhileMutable();
+			}
+		}
+
+		UE_REWRITE TIterator(TIterator&& Other)
+		  : IteratorPtr(MoveTemp(Other.IteratorPtr))
 		{
 #if WITH_EDITOR
 			UE_LOG(LogTemp, Verbose, TEXT("TIterator::Move Ctor"));
 #endif
+
+			// When in non-const mode, jump to next mutable item
+			if constexpr (SkipToNextMutable)
+			{
+				AdvanceWhileMutable();
+			}
 		}
 
-		FORCEINLINE explicit TIterator(const ImplType& Impl)
-		  : IteratorImpl(Impl)
+		UE_REWRITE TIterator(TUniquePtr<IIterator>&& Iterator)
+		  : IteratorPtr(MoveTemp(Iterator))
+		{
+#if WITH_EDITOR
+			UE_LOG(LogTemp, Verbose, TEXT("TIterator::Move Ctor"));
+#endif
+
+			// When in non-const mode, jump to next mutable item
+			if constexpr (SkipToNextMutable)
+			{
+				AdvanceWhileMutable();
+			}
+		}
+
+		UE_REWRITE TIterator(const TIterator& Other)
+		  : IteratorPtr(Other.IteratorPtr ? Other.IteratorPtr->Copy() : TUniquePtr<IIterator>())
 		{
 #if WITH_EDITOR
 			UE_LOG(LogTemp, Verbose, TEXT("TIterator::Copy Ctor"));
 #endif
+
+			// When in non-const mode, jump to next mutable item
+			if constexpr (SkipToNextMutable)
+			{
+				AdvanceWhileMutable();
+			}
 		}
 
-		// Copies this iterator into a new iterator.
-		[[nodiscard]] TIterator<ResolveType, FVirtualIterator> Copy()
+		UE_REWRITE explicit TIterator(const TUniquePtr<IIterator>& Iterator)
+		  : IteratorPtr(Iterator ? Iterator->Copy() : TUniquePtr<IIterator>())
 		{
-			return TIterator<ResolveType, FVirtualIterator>(IteratorImpl.ToInterface());
+#if WITH_EDITOR
+			UE_LOG(LogTemp, Verbose, TEXT("TIterator::Copy Ctor"));
+#endif
+
+			// When in non-const mode, jump to next mutable item
+			if constexpr (SkipToNextMutable)
+			{
+				AdvanceWhileMutable();
+			}
 		}
 
-		[[nodiscard]] FORCEINLINE ResolveType operator*() const
+		const IIterator* GetPtr() const { return IteratorPtr.Get(); }
+
+		[[nodiscard]] UE_REWRITE ResolveType operator*() const
 		{
 #if WITH_EDITOR
 			UE_LOG(LogTemp, Verbose, TEXT("TIterator::operator*"));
 #endif
 			if constexpr (std::is_same_v<ResolveType, FEntryKey>)
 			{
-				return IteratorImpl.GetKey();
+				return IteratorPtr->ResolveKey();
 			}
 			else if constexpr (std::is_same_v<ResolveType, FFaerieAddress>)
 			{
-				return IteratorImpl.GetAddress();
+				return IteratorPtr->ResolveAddress();
 			}
 			else if constexpr (std::is_same_v<ResolveType, const UFaerieItem*>)
 			{
-				return IteratorImpl.GetItem();
+				return IteratorPtr->ResolveItem();
 			}
 			else if constexpr (std::is_same_v<ResolveType, UFaerieItem*>)
 			{
-				return IteratorImpl.GetItem()->MutateCast();
+				return IteratorPtr->ResolveItem()->MutateCast();
 			}
 			else
 			{
@@ -116,24 +145,43 @@ namespace Faerie::Container
 			}
 		}
 
-		FORCEINLINE void operator++()
+		void AdvanceWhileMutable()
+		{
+			while (static_cast<bool>(*this) && !IteratorPtr->ResolveItem()->CanMutate())
+			{
+				IteratorPtr->Advance();
+			}
+		}
+
+		[[nodiscard]] UE_REWRITE FEntryKey GetKey() const { return IteratorPtr->ResolveKey(); }
+		[[nodiscard]] UE_REWRITE FFaerieAddress GetAddress() const { return IteratorPtr->ResolveAddress(); }
+		[[nodiscard]] UE_REWRITE const UFaerieItem* GetItem() const { return IteratorPtr->ResolveItem(); }
+
+		UE_REWRITE void operator++()
 		{
 #if WITH_EDITOR
 			UE_LOG(LogTemp, Verbose, TEXT("TIterator::operator++"));
 #endif
-			++IteratorImpl;
+
+			IteratorPtr->Advance();
+
+			if constexpr (SkipToNextMutable)
+			{
+				// Then, when in non-const mode, jump to next mutable item
+				AdvanceWhileMutable();
+			}
 		}
 
-		FORCEINLINE explicit operator bool() const
+		UE_REWRITE explicit operator bool() const
 		{
 #if WITH_EDITOR
-			const bool Result = static_cast<bool>(IteratorImpl);
+			const bool Result = IteratorPtr && IteratorPtr->IsValid();
 			UE_LOG(LogTemp, Verbose, TEXT("TIterator::operator bool - returning '%hs'"), Result ? "true" : "false");
 #endif
-			return static_cast<bool>(IteratorImpl);
+			return IteratorPtr && IteratorPtr->IsValid();
 		}
 
-		[[nodiscard]] FORCEINLINE bool operator!=(EIteratorType) const
+		[[nodiscard]] UE_REWRITE bool operator!=(EIteratorType) const
 		{
 #if WITH_EDITOR
 			const bool Result = static_cast<bool>(*this);
@@ -143,30 +191,39 @@ namespace Faerie::Container
 			return static_cast<bool>(*this);
 		}
 
-		FFaerieAddress GetAddress() const { return IteratorImpl.ResolveAddress(); }
-		const UFaerieItem* GetItem() const { return IteratorImpl.ResolveItem(); }
-
-		[[nodiscard]] FORCEINLINE TIterator begin() const
+		[[nodiscard]] UE_REWRITE const TIterator& begin() const
 		{
-			return TIterator(IteratorImpl);
+			return *this;
 		}
-		[[nodiscard]] FORCEINLINE EIteratorType end () const { return End; }
+		[[nodiscard]] UE_REWRITE EIteratorType end() const { return End; }
 
 	private:
-		ImplType IteratorImpl;
+		TUniquePtr<IIterator> IteratorPtr;
 	};
 
-	using FVirtualKeyIterator = TIterator<FEntryKey, FVirtualIterator>;
-	using FVirtualAddressIterator = TIterator<FFaerieAddress, FVirtualIterator>;
-	using FVirtualItemIterator = TIterator<UFaerieItem*, FVirtualIterator>;
-	using FVirtualConstItemIterator = TIterator<const UFaerieItem*, FVirtualIterator>;
+	// Typedef for the rather ungainly parameter for filter predicates.
+	using FIteratorPtr = const TNotNull<const IIterator*>;
+
+	// Typedef for delegates that consume iterator predicate functions.
+	using FIteratorPredicate = TDelegate<bool(FIteratorPtr)>;
+
+	using FKeyIterator = TIterator<FEntryKey, false>;
+	using FAddressIterator = TIterator<FFaerieAddress, false>;
+	using FItemIterator = TIterator<UFaerieItem*, true>;
+	using FConstItemIterator = TIterator<const UFaerieItem*, false>;
 
 	// Enables ranged for-loops through each key in the container. Simple range with no filtering.
-	FAERIEINVENTORY_API FVirtualKeyIterator KeyRange(const UFaerieItemContainerBase* Container);
+	FAERIEINVENTORY_API FKeyIterator KeyRange(TNotNull<const UFaerieItemContainerBase*> Container);
 
 	// Enables ranged for-loops through each address in the container. Simple range with no filtering.
-	FAERIEINVENTORY_API FVirtualAddressIterator AddressRange(const UFaerieItemContainerBase* Container);
+	FAERIEINVENTORY_API FAddressIterator AddressRange(TNotNull<const UFaerieItemContainerBase*> Container);
+
+	// Enables ranged for-loops through each address in one entry. Simple range with no filtering.
+	FAERIEINVENTORY_API FAddressIterator SingleKeyRange(TNotNull<const UFaerieItemContainerBase*> Container, FEntryKey Key);
 
 	// Enables ranged for-loops through each item in the container. Simple range with no filtering.
-	FAERIEINVENTORY_API FVirtualConstItemIterator ItemRange(const UFaerieItemContainerBase* Container);
+	FAERIEINVENTORY_API FConstItemIterator ConstItemRange(TNotNull<const UFaerieItemContainerBase*> Container);
+
+	// Enables ranged for-loops through each mutable item in the container. Automatically filtered to only return mutable instances.
+	FAERIEINVENTORY_API FItemIterator ItemRange(TNotNull<const UFaerieItemContainerBase*> Container);
 }

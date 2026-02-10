@@ -6,10 +6,10 @@
 #include "LoggedInventoryEventLibrary.generated.h"
 
 struct FEntryKey;
+struct FFaerieAddress;
 struct FFaerieInventoryTag;
 struct FFaerieItemStackView;
 struct FLoggedInventoryEvent;
-struct FStackKey;
 
 UCLASS()
 class ULoggedInventoryEventLibrary : public UBlueprintFunctionLibrary
@@ -19,6 +19,6 @@ class ULoggedInventoryEventLibrary : public UBlueprintFunctionLibrary
 public:
 	UFUNCTION(BlueprintCallable, Category = "LoggedInventoryEventLibrary", meta = (NativeBreakFunc))
 	static void BreakLoggedInventoryEvent(const FLoggedInventoryEvent& LoggedEvent, FFaerieInventoryTag& Type, bool& Success,
-										  FDateTime& Timestamp, FEntryKey& EntryTouched, TArray<FStackKey>& StackKeys,
-										  FFaerieItemStackView& Stack, FString& ErrorMessage);
+										  FDateTime& Timestamp, FEntryKey& EntryTouched,
+										  TArray<FFaerieAddress>& AddressesTouched, FFaerieItemStackView& Stack, FString& ErrorMessage);
 };

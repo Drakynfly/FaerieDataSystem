@@ -2,11 +2,25 @@
 
 #pragma once
 
+#include "FaerieInventoryTag.h"
 #include "FaerieItemContainerBase.h"
+#include "TypedGameplayTags.h"
 #include "FaerieItemStackContainer.generated.h"
 
 class UFaerieItem;
 class UFaerieItemStackContainer;
+
+USTRUCT()
+struct FFaerieSimpleItemStackSaveData
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FFaerieItemStack ItemStack;
+
+	UPROPERTY()
+	FEntryKey StoredKey;
+};
 
 namespace Faerie
 {
@@ -49,15 +63,14 @@ public:
 
 private:
 	virtual int32 GetStack(FFaerieAddress Address) const override;
+	virtual const UFaerieItem* ViewItem(FEntryKey Key) const override;
 	virtual const UFaerieItem* ViewItem(FFaerieAddress Address) const override;
 	virtual FFaerieItemStackView ViewStack(FFaerieAddress Address) const override;
 	virtual FFaerieItemProxy Proxy(FFaerieAddress Address) const override;
 	virtual FFaerieItemStack Release(FFaerieAddress Address, int32 Copies) override;
-	virtual TUniquePtr<Faerie::Container::IIterator> CreateIterator(bool) const override;
-	virtual TUniquePtr<Faerie::Container::IFilter> CreateFilter(bool) const override;
-
-	virtual FEntryKey FILTER_GetBaseKey(FFaerieAddress Address) const override;
-	virtual TArray<FFaerieAddress> FILTER_GetKeyAddresses(FEntryKey Key) const override;
+	virtual TUniquePtr<Faerie::Container::IIterator> CreateEntryIterator() const override;
+	virtual TUniquePtr<Faerie::Container::IIterator> CreateAddressIterator() const override;
+	virtual TUniquePtr<Faerie::Container::IIterator> CreateSingleEntryIterator(FEntryKey Key) const override;
 
 public:
 	FFaerieItemStackView View() const;

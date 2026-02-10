@@ -70,8 +70,8 @@ namespace Faerie::Inventory
 		// The entry that this event pertained to.
 		FEntryKey EntryTouched;
 
-		// All stacks that were modified by this event.
-		TArray<FStackKey> StackKeys;
+		// All addresses that were modified by this event.
+		TArray<FFaerieAddress> AddressesTouched;
 
 		// The number of item copies added or removed.
 		int32 Amount = 0;
@@ -87,7 +87,7 @@ namespace Faerie::Inventory
 			return Ar << Val.Type
 					  << Val.Success
 					  << Val.EntryTouched
-					  << Val.StackKeys
+					  << Val.AddressesTouched
 					  << Val.Amount
 					  << Val.Item
 					  << Val.ErrorMessage

@@ -82,7 +82,10 @@ void UFaerieEquipmentSlot::LoadSlotData(const FFaerieEquipmentSlotSaveData& Slot
 			LoadedItemStack.Copies > 0)
 		{
 			// We do need to ClearOwnership here, as whatever loaded the data may have parented the items automatically.
-			Faerie::ClearOwnership(LoadedItemStack.Item);
+			if (auto Mutable = LoadedItemStack.Item->MutateCast())
+			{
+				Faerie::ClearOwnership(Mutable);
+			}
 			SetStoredItem_Impl(LoadedItemStack);
 		}
 		else

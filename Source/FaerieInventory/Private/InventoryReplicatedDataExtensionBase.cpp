@@ -13,8 +13,7 @@
 #endif
 
 #include "DebuggingFlags.h"
-#include "FaerieContainerFilter.h"
-#include "FaerieContainerFilterTypes.h"
+#include "FaerieContainerIterator.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventoryReplicatedDataExtensionBase)
 
@@ -345,18 +344,16 @@ void UInventoryReplicatedDataExtensionBase::PostRemoval(const UFaerieItemContain
 {
 	Super::PostRemoval(Container, Event);
 
-	using namespace Faerie::Container;
+	using namespace Faerie;
 
 	if (const TStructView<FFaerieReplicatedSimMap> ContainerData = FindFastArrayForContainer(Container);
 		ContainerData.IsValid())
 	{
 		FFaerieReplicatedSimMap& Ref = ContainerData.Get<FFaerieReplicatedSimMap>();
 
-		for (const FFaerieAddress Address : KeyFilter(Container)
-				.Run(FSingleKey(Event.EntryTouched))
-				.AddressRange())
+		for (const FFaerieAddress Address : Event.AddressesTouched)
 		{
-			// If the whole stack was removed, delete any data we have for the entry
+			// If the whole stack was removed, delete any data we have for the Address
 			if (!Container->Contains(Address))
 			{
 				Ref.RemoveValue(Address);
@@ -368,7 +365,7 @@ void UInventoryReplicatedDataExtensionBase::PostRemoval(const UFaerieItemContain
 FConstStructView UInventoryReplicatedDataExtensionBase::GetDataForHandle(const FFaerieAddressableHandle Handle) const
 {
 	if (const TConstStructView<FFaerieReplicatedSimMap> ContainerData = FindFastArrayForContainer(Handle.Container.Get());
-		ensure(ContainerData.IsValid()))
+		ContainerData.IsValid())
 	{
 		const FFaerieReplicatedSimMap& Ref = ContainerData.Get();
 

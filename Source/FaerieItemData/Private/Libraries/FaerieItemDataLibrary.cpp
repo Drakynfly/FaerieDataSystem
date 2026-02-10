@@ -3,6 +3,8 @@
 #include "FaerieItemDataLibrary.h"
 #include "FaerieItem.h"
 #include "FaerieItemAsset.h"
+#include "FaerieItemDataViewBase.h"
+#include "FaerieItemDataViewWrapper.h"
 #include "FaerieItemEditHandle.h"
 #include "FaerieItemStackView.h"
 #include "FaerieItemToken.h"
@@ -84,7 +86,7 @@ void UFaerieItemDataLibrary::FindTokensByClass(const UFaerieItem* Item, const TS
 {
 	using namespace Faerie::Token;
 	if (!IsValid(Item)) return;
-	FoundTokens = Filter(Item).ByClass(Class).BlueprintOnlyAccess();
+	FoundTokens = Filter().By<FIsClass>(Class).BlueprintOnlyAccess(Item);
 }
 
 TArray<UFaerieItemToken*> UFaerieItemDataLibrary::FindTokensByTag(const UFaerieItem* Item, const FGameplayTag& Tag,
@@ -92,7 +94,7 @@ TArray<UFaerieItemToken*> UFaerieItemDataLibrary::FindTokensByTag(const UFaerieI
 {
 	using namespace Faerie::Token;
 	if (!IsValid(Item)) return {};
-	return Filter(Item).By<FTagFilter>(Tag, Exact).BlueprintOnlyAccess();
+	return Filter().By<FTagFilter>(Tag, Exact).BlueprintOnlyAccess(Item);
 }
 
 TArray<UFaerieItemToken*> UFaerieItemDataLibrary::FindTokensByTags(const UFaerieItem* Item, const FGameplayTagContainer& Tags,
@@ -100,14 +102,14 @@ TArray<UFaerieItemToken*> UFaerieItemDataLibrary::FindTokensByTags(const UFaerie
 {
 	using namespace Faerie::Token;
 	if (!IsValid(Item)) return {};
-	return Filter(Item).By<FTagsFilter>(Tags, All, Exact).BlueprintOnlyAccess();
+	return Filter().By<FTagsFilter>(Tags, All, Exact).BlueprintOnlyAccess(Item);
 }
 
 TArray<UFaerieItemToken*> UFaerieItemDataLibrary::FindTokensByTagQuery(const UFaerieItem* Item, const FGameplayTagQuery& Query)
 {
 	using namespace Faerie::Token;
 	if (!IsValid(Item)) return {};
-	return Filter(Item).By<FTagQueryFilter>(Query).BlueprintOnlyAccess();
+	return Filter().By<FTagQueryFilter>(Query).BlueprintOnlyAccess(Item);
 }
 
 FFaerieItemStackView UFaerieItemDataLibrary::StackToView(const FFaerieItemStack& Stack)
@@ -115,15 +117,30 @@ FFaerieItemStackView UFaerieItemDataLibrary::StackToView(const FFaerieItemStack&
 	return Stack;
 }
 
-bool UFaerieItemDataLibrary::ItemLexicographicNameComparator(const UFaerieItem* A, const UFaerieItem* B)
+bool UFaerieItemDataLibrary::ItemIsMutablePredicate(const FFaerieItemDataViewWrapper& View)
 {
-	if (!(IsValid(A) && IsValid(B)))
+	return View.ViewPointer && View.ViewPointer->ResolveItem()->CanMutate();
+}
+
+bool UFaerieItemDataLibrary::ItemIsImmutablePredicate(const FFaerieItemDataViewWrapper& View)
+{
+	return View.ViewPointer && !View.ViewPointer->ResolveItem()->CanMutate();
+}
+
+bool UFaerieItemDataLibrary::ItemLexicographicNameComparator(const FFaerieItemDataViewWrapper& ViewA, const FFaerieItemDataViewWrapper& ViewB)
+{
+	if (!ViewA.ViewPointer || !ViewB.ViewPointer) return false;
+
+	const UFaerieItem* ItemA = ViewA.ViewPointer->ResolveItem();
+	const UFaerieItem* ItemB = ViewB.ViewPointer->ResolveItem();
+
+	if (!(IsValid(ItemA) && IsValid(ItemB)))
 	{
 		return false;
 	}
 
-	const UFaerieInfoToken* InfoA = A->GetToken<UFaerieInfoToken>();
-	const UFaerieInfoToken* InfoB = B->GetToken<UFaerieInfoToken>();
+	const UFaerieInfoToken* InfoA = ItemA->GetToken<UFaerieInfoToken>();
+	const UFaerieInfoToken* InfoB = ItemB->GetToken<UFaerieInfoToken>();
 
 	if (IsValid(InfoA) && IsValid(InfoB))
 	{
@@ -133,11 +150,17 @@ bool UFaerieItemDataLibrary::ItemLexicographicNameComparator(const UFaerieItem* 
 	return false;
 }
 
-bool UFaerieItemDataLibrary::ItemDateModifiedComparator(const UFaerieItem* A, const UFaerieItem* B)
+bool UFaerieItemDataLibrary::ItemDateModifiedComparator(const FFaerieItemDataViewWrapper& ViewA, const FFaerieItemDataViewWrapper& ViewB)
 {
-	if (IsValid(A) && IsValid(B))
+	if (!ViewA.ViewPointer || !ViewB.ViewPointer) return false;
+
+	const UFaerieItem* ItemA = ViewA.ViewPointer->ResolveItem();
+	const UFaerieItem* ItemB = ViewB.ViewPointer->ResolveItem();
+
+	if (!(IsValid(ItemA) && IsValid(ItemB)))
 	{
-		return A->GetLastModified() < B->GetLastModified();
+		return false;
 	}
-	return false;
+
+	return ItemA->GetLastModified() < ItemB->GetLastModified();
 }

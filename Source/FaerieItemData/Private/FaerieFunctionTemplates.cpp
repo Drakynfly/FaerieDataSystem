@@ -2,40 +2,18 @@
 
 #include "FaerieFunctionTemplates.h"
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieFunctionTemplates)
+
 #define FAERIE_GET_UFUNCTION(Function) UFaerieFunctionTemplates::StaticClass()->FindFunctionByName(UE_STRINGIZE(UE_JOIN(Function, __DelegateSignature)))
 
-UFunction* UFaerieFunctionTemplates::GetFaerieItemPredicateFunction()
+UFunction* UFaerieFunctionTemplates::GetFaerieViewPredicateFunction()
 {
-	static UFunction* const Function = FAERIE_GET_UFUNCTION(FaerieItemPredicate);
+	static UFunction* const Function = FAERIE_GET_UFUNCTION(FaerieViewPredicate);
 	return Function;
 }
 
-UFunction* UFaerieFunctionTemplates::GetFaerieStackPredicateFunction()
+UFunction* UFaerieFunctionTemplates::GetFaerieViewComparatorFunction()
 {
-	static UFunction* const Function = FAERIE_GET_UFUNCTION(FaerieStackPredicate);
-	return Function;
-}
-
-UFunction* UFaerieFunctionTemplates::GetFaerieSnapshotPredicateFunction()
-{
-	static UFunction* const Function = FAERIE_GET_UFUNCTION(FaerieSnapshotPredicate);
-	return Function;
-}
-
-UFunction* UFaerieFunctionTemplates::GetFaerieItemComparatorFunction()
-{
-	static UFunction* const Function = FAERIE_GET_UFUNCTION(FaerieItemComparator);
-	return Function;
-}
-
-UFunction* UFaerieFunctionTemplates::GetFaerieStackComparatorFunction()
-{
-	static UFunction* const Function = FAERIE_GET_UFUNCTION(FaerieStackComparator);
-	return Function;
-}
-
-UFunction* UFaerieFunctionTemplates::GetFaerieSnapshotComparatorFunction()
-{
-	static UFunction* const Function = FAERIE_GET_UFUNCTION(FaerieSnapshotComparator);
+	static UFunction* const Function = FAERIE_GET_UFUNCTION(FaerieViewComparator);
 	return Function;
 }

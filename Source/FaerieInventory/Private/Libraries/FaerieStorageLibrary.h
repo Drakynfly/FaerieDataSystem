@@ -7,10 +7,13 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "FaerieStorageLibrary.generated.h"
 
+struct FFaerieItemDataViewWrapper;
+class IFaerieItemOwnerInterface;
+class UFaerieItem;
 class UFaerieItemStorage;
 
 // We need to expose this delegate to the global namespace or UHT will cry.
-using FFaerieSnapshotPredicate = UFaerieFunctionTemplates::FFaerieSnapshotPredicate;
+using FFaerieViewPredicate = UFaerieFunctionTemplates::FFaerieViewPredicate;
 
 /**
  * 
@@ -21,7 +24,16 @@ class FAERIEINVENTORY_API UFaerieStorageLibrary : public UBlueprintFunctionLibra
 	GENERATED_BODY()
 
 public:
+	UFUNCTION(BlueprintPure, Category = "Faerie|Storage Library")
+	static const UFaerieItem* GetViewItem(const FFaerieItemDataViewWrapper& View);
+
+	UFUNCTION(BlueprintPure, Category = "Faerie|Storage Library")
+	static int32 GetViewCopies(const FFaerieItemDataViewWrapper& View);
+
+	UFUNCTION(BlueprintPure, Category = "Faerie|Storage Library")
+	static TScriptInterface<IFaerieItemOwnerInterface> GetViewOwner(const FFaerieItemDataViewWrapper& View);
+
 	// Query function to filter for the first matching entry.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|Storage Library")
-	static FFaerieAddress QueryFirst(UFaerieItemStorage* Storage, const UFaerieFunctionTemplates::FFaerieSnapshotPredicate& Filter);
+	static FFaerieAddress QueryFirst(UFaerieItemStorage* Storage, const UFaerieFunctionTemplates::FFaerieViewPredicate& Filter);
 };

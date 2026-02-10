@@ -1,6 +1,5 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
-// ReSharper disable CppMemberFunctionMayBeConst
 #include "InventoryDataStructs.h"
 #include "DebuggingFlags.h"
 #include "FaerieInventoryLog.h"
@@ -17,13 +16,13 @@ LLM_DEFINE_TAG(ItemStorage, NAME_None, NAME_None, GET_STATFNAME(STAT_StorageLLM)
 
 FEntryKey FEntryKey::InvalidKey;
 
-FInventoryEntry::FInventoryEntry(const UFaerieItem* InItem)
-	: ItemObject(InItem)
+// @TODO THIS IS A COPY OF ENCODE FROM FAERIEITEMSTORAGE.cpp fix at some point
+[[nodiscard]] UE_REWRITE FFaerieAddress Encode(const FEntryKey Entry, const FStackKey Stack)
 {
-	UpdateCachedStackLimit();
+	return FFaerieAddress((static_cast<int64>(Entry.Value()) << 32) | static_cast<int64>(Stack.Value()));
 }
 
-FInventoryEntry::FInventoryEntry(FFaerieItemStackView InStack, TArray<FStackKey>& OutAddedKeys)
+FInventoryEntry::FInventoryEntry(FFaerieItemStackView InStack, TArray<FFaerieAddress>& OutNewAddresses)
 {
 	ItemObject = InStack.Item.Get();
 
@@ -31,18 +30,21 @@ FInventoryEntry::FInventoryEntry(FFaerieItemStackView InStack, TArray<FStackKey>
 
 	if (Limit == Faerie::ItemData::UnlimitedStack)
 	{
-		const FStackKey NewKey = OutAddedKeys.Add_GetRef(KeyGen.NextKey());
+		const FStackKey NewKey = KeyGen.NextKey();
 		Stacks.Emplace(NewKey, InStack.Copies);
+		OutNewAddresses.Add(Encode(Key, NewKey));
 	}
 	else
 	{
 		// Split the incoming stack into as many more as are required
 		while (InStack.Copies > 0)
 		{
-			const FStackKey NewKey = OutAddedKeys.Add_GetRef(KeyGen.NextKey());
 			const int32 NewStack = FMath::Min(InStack.Copies, Limit);
 			InStack.Copies -= NewStack;
+
+			const FStackKey NewKey = KeyGen.NextKey();
 			Stacks.Emplace(NewKey, NewStack);
+			OutNewAddresses.Add(Encode(Key, NewKey));
 		}
 	}
 }
@@ -86,18 +88,22 @@ FStackKey FInventoryEntry::GetStackAt(const int32 Index) const
 	return Stacks[Index].Key;
 }
 
-TArray<FStackKey> FInventoryEntry::CopyKeys() const
+void FInventoryEntry::CopyKeys(TArray<FStackKey>& OutKeys) const
 {
-	TArray<FStackKey> Out;
-	Algo::Transform(Stacks, Out, &FKeyedStack::Key);
-	return Out;
+	Algo::Transform(Stacks, OutKeys, &FKeyedStack::Key);
 }
 
-TArray<int32> FInventoryEntry::CopyStacks() const
+void FInventoryEntry::CopyAddresses(TArray<FFaerieAddress>& OutAddresses) const
 {
-	TArray<int32> Out;
-	Algo::Transform(Stacks, Out, &FKeyedStack::Stack);
-	return Out;
+	for (auto&& Element : Stacks)
+	{
+		OutAddresses.Add(Encode(Key, Element.Key));
+	}
+}
+
+void FInventoryEntry::CopyStacks(TArray<int32>& OutStacks) const
+{
+	Algo::Transform(Stacks, OutStacks, &FKeyedStack::Stack);
 }
 
 int32 FInventoryEntry::StackSum() const
@@ -190,6 +196,20 @@ bool FInventoryEntry::IsEqualTo(const FInventoryEntry& A, const FInventoryEntry&
 	return true;
 }
 
+FInventoryEntry::FMutableAccess::FMutableAccess(FInventoryContent& Source, const FInventoryEntry& Entry)
+	: Handle(const_cast<FInventoryEntry&>(Entry)),
+	  Source(Source)
+{
+#if FAERIE_DEBUG
+	if (Faerie::Debug::CVarEnableWriteLockTracking.GetValueOnGameThread())
+	{
+		UE_LOG(LogFaerieInventory, Warning, TEXT("WriteLock++ (FMutableAccess ctor 1)"))
+	}
+#endif
+	Source.WriteLock++;
+	ChangeMask.Init(false, Handle.NumStacks());
+}
+
 FInventoryEntry::FMutableAccess::FMutableAccess(FInventoryContent& Source, const int32 Index)
   : Handle(Source.Entries[Index]),
 	Source(Source)
@@ -197,7 +217,7 @@ FInventoryEntry::FMutableAccess::FMutableAccess(FInventoryContent& Source, const
 #if FAERIE_DEBUG
 	if (Faerie::Debug::CVarEnableWriteLockTracking.GetValueOnGameThread())
 	{
-		UE_LOG(LogFaerieInventory, Warning, TEXT("WriteLock++ (FMutableAccess ctor 1)"))
+		UE_LOG(LogFaerieInventory, Warning, TEXT("WriteLock++ (FMutableAccess ctor 2)"))
 	}
 #endif
 	Source.WriteLock++;
@@ -211,7 +231,7 @@ FInventoryEntry::FMutableAccess::FMutableAccess(FInventoryContent& Source, const
 #if FAERIE_DEBUG
 	if (Faerie::Debug::CVarEnableWriteLockTracking.GetValueOnGameThread())
 	{
-		UE_LOG(LogFaerieInventory, Warning, TEXT("WriteLock++ (FMutableAccess ctor 2)"))
+		UE_LOG(LogFaerieInventory, Warning, TEXT("WriteLock++ (FMutableAccess ctor 3)"))
 	}
 #endif
 	Source.WriteLock++;
@@ -271,7 +291,7 @@ void FInventoryEntry::FMutableAccess::RemoveStack(const FStackKey InKey)
 	}
 }
 
-void FInventoryEntry::FMutableAccess::AddToAnyStack(int32 Amount, TArray<FStackKey>& OutAddedKeys)
+void FInventoryEntry::FMutableAccess::AddToAnyStack(int32 Amount, TArray<FFaerieAddress>& OutNewAddresses)
 {
 	// Fill existing stacks first
 	for (auto It(Handle.Stacks.CreateIterator()); It; ++It)
@@ -308,43 +328,46 @@ void FInventoryEntry::FMutableAccess::AddToAnyStack(int32 Amount, TArray<FStackK
 	// We have dispersed the incoming stack among existing ones. If there is stack remaining, create new stacks.
 	if (Amount > 0)
 	{
-		return AddToNewStacks(Amount, OutAddedKeys);
+		return AddToNewStacks(Amount, OutNewAddresses);
 	}
 }
 
-void FInventoryEntry::FMutableAccess::AddToNewStacks(int32 Amount, TArray<FStackKey>& OutAddedKeys)
+void FInventoryEntry::FMutableAccess::AddToNewStacks(int32 Amount, TArray<FFaerieAddress>& OutNewAddresses)
 {
-	if (Handle.Limit == Faerie::ItemData::UnlimitedStack)
+	auto AddStack = [this, Amount, &OutNewAddresses]()
 	{
-		const FStackKey NewKey = OutAddedKeys.Add_GetRef(Handle.KeyGen.NextKey());
+		const FStackKey NewKey = Handle.KeyGen.NextKey();
 		Handle.Stacks.Emplace(NewKey, Amount);
 		ChangeMask.Add(true);
+		OutNewAddresses.Add(Encode(Handle.Key, NewKey));
+	};
+
+	if (Handle.Limit == Faerie::ItemData::UnlimitedStack)
+	{
+		AddStack();
 	}
 	else
 	{
 		// Split the incoming stack into as many more as are required
 		while (Amount > 0)
 		{
-			const FStackKey NewKey = OutAddedKeys.Add_GetRef(Handle.KeyGen.NextKey());
 			const int32 NewStack = FMath::Min(Amount, Handle.Limit);
 			Amount -= NewStack;
-			Handle.Stacks.Emplace(NewKey, NewStack);
-			ChangeMask.Add(true);
+
+			AddStack();
 		}
 	}
 }
 
-int32 FInventoryEntry::FMutableAccess::RemoveFromAnyStack(int32 Amount, TArray<FStackKey>* OutAllModifiedKeys, TArray<FStackKey>* OutRemovedKeys)
+int32 FInventoryEntry::FMutableAccess::RemoveFromAnyStack(int32 Amount, TArray<FFaerieAddress>& OutAllModifiedAddresses)
 {
-	TArray<FStackKey> RemovedStacks;
-
 	// Remove from tail stack first
 	for (int32 i = Handle.Stacks.Num() - 1; i >= 0; --i)
 	{
 		if (FKeyedStack& KeyedStack = Handle.Stacks[i];
 			Amount >= KeyedStack.Stack)
 		{
-			RemovedStacks.Add(KeyedStack.Key);
+			OutAllModifiedAddresses.Add(Encode(Handle.Key, KeyedStack.Key));
 			Amount -= KeyedStack.Stack;
 			Handle.Stacks.RemoveAt(i); // Remove the stack
 			ChangeMask.RemoveAt(i); // Also remove the mask bit for this stack, so we don't get out of sync.
@@ -358,18 +381,9 @@ int32 FInventoryEntry::FMutableAccess::RemoveFromAnyStack(int32 Amount, TArray<F
 		{
 			KeyedStack.Stack -= Amount;
 			MarkStackDirty(i);
-			if (OutAllModifiedKeys)
-			{
-				OutAllModifiedKeys->Add(KeyedStack.Key);
-				OutAllModifiedKeys->Append(RemovedStacks);
-			}
+			OutAllModifiedAddresses.Add(Encode(Handle.Key, KeyedStack.Key));
 			break;
 		}
-	}
-
-	if (OutRemovedKeys)
-	{
-		*OutRemovedKeys = RemovedStacks;
 	}
 
 	return Amount; // Return the remainder if we didn't remove it all.
@@ -434,7 +448,7 @@ void FInventoryEntry::FMutableAccess::MarkAllStacksDirty()
 FKeyedStack* FInventoryEntry::FMutableAccess::GetStackPtr(const FStackKey InKey)
 {
 	if (const int32 StackIndex = Handle.GetStackIndex(InKey);
-	StackIndex != INDEX_NONE)
+		StackIndex != INDEX_NONE)
 	{
 		return &Handle.Stacks[StackIndex];
 	}

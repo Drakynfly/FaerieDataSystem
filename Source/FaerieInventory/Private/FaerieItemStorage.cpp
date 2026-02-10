@@ -4,7 +4,9 @@
 #include "FaerieInventoryLog.h"
 #include "FaerieInventorySettings.h"
 #include "FaerieItem.h"
+#include "FaerieItemStorageIterators.h"
 #include "FaerieItemStorageStatics.h"
+#include "FaerieSubObjectFilter.h"
 #include "InventoryStorageProxy.h"
 #include "ItemContainerExtensionBase.h"
 
@@ -15,10 +17,6 @@
 #if WITH_EDITOR
 #include "Engine/Engine.h"
 #endif
-
-#include "FaerieContainerFilter.h"
-#include "FaerieItemStorageIterators.h"
-#include "FaerieSubObjectFilter.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemStorage)
 
@@ -58,60 +56,6 @@ namespace Faerie::Storage
 			return Behavior == EFaerieStorageAddStackBehavior::OnlyNewStacks;
 		}
 	}
-
-	using namespace Container;
-
-	class FEntryFilter_ForInterface final : public IFilter
-	{
-	public:
-		FEntryFilter_ForInterface(const UFaerieItemStorage* Storage)
-		  : Impl(Storage) {}
-
-	protected:
-		//* IFilter
-		FORCEINLINE virtual void Run_Impl(IItemDataFilter&& Filter) override { Impl.Run(MoveTemp(Filter)); }
-		FORCEINLINE virtual void Run_Impl(IEntryKeyFilter&& Filter) override { Impl.Run(MoveTemp(Filter)); }
-		FORCEINLINE virtual void Run_Impl(IAddressFilter&& Filter) override { checkNoEntry(); }
-		FORCEINLINE virtual void Run_Impl(ISnapshotFilter&& Filter) override { Impl.Run(MoveTemp(Filter)); }
-		FORCEINLINE virtual void Invert_Impl() override { Impl.Invert(); }
-		FORCEINLINE virtual void Reset() override { Impl.Reset(); }
-		FORCEINLINE virtual int32 Num() const override { return Impl.Num(); }
-		FORCEINLINE virtual FVirtualKeyIterator KeyRange() const override { return Impl.Range<FEntryKey>().Copy(); }
-		FORCEINLINE virtual FVirtualAddressIterator AddressRange() const override { return Impl.Range<FFaerieAddress>().Copy(); }
-		FORCEINLINE virtual FVirtualItemIterator ItemRange() const override { return Impl.Range<UFaerieItem*>().Copy(); }
-		FORCEINLINE virtual FVirtualConstItemIterator ConstItemRange() const override { return Impl.Range<const UFaerieItem*>().Copy(); }
-		//* IFilter
-
-	private:
-		FEntryFilter Impl;
-	};
-
-	// @todo re-enable when this filter is implemented
-	/*
-	class FAddressFilter_ForInterface final : public IFilter
-	{
-	public:
-		FAddressFilter_ForInterface(const UFaerieItemStorage* Storage)
-		  : Impl(Storage) {}
-
-	protected:
-		//* IFilter
-		FORCEINLINE virtual void Run_Impl(IItemDataFilter&& Filter) override { Impl.Run(MoveTemp(Filter)); }
-		FORCEINLINE virtual void Run_Impl(IEntryKeyFilter&& Filter) override { Impl.Run(MoveTemp(Filter)); }
-		FORCEINLINE virtual void Run_Impl(ISnapshotFilter&& Filter) override { Impl.Run(MoveTemp(Filter)); }
-		FORCEINLINE virtual void Invert_Impl() override { Impl.Invert(); }
-		FORCEINLINE virtual void Reset() override { Impl.Reset(); }
-		FORCEINLINE virtual int32 Num() const override { return Impl.Num(); }
-		FORCEINLINE virtual FVirtualKeyIterator KeyRange() const override { return Impl.Range<FEntryKey>().Copy(); }
-		FORCEINLINE virtual FVirtualAddressIterator AddressRange() const override { return Impl.Range<FFaerieAddress>().Copy(); }
-		FORCEINLINE virtual FVirtualItemIterator ItemRange() const override { return Impl.Range<UFaerieItem*>().Copy(); }
-		FORCEINLINE virtual FVirtualConstItemIterator ConstItemRange() const override { return Impl.Range<const UFaerieItem*>().Copy(); }
-		//* IFilter
-
-	private:
-		FAddressFilter Impl;
-	};
-	*/
 }
 
 using namespace Faerie::Storage::Address;
@@ -276,6 +220,15 @@ int32 UFaerieItemStorage::GetStack(const FFaerieAddress Address) const
 	return 0;
 }
 
+const UFaerieItem* UFaerieItemStorage::ViewItem(const FEntryKey Key) const
+{
+	if (auto&& EntryPtr = GetEntrySafe(Key))
+	{
+		return EntryPtr->GetItem();
+	}
+	return nullptr;
+}
+
 const UFaerieItem* UFaerieItemStorage::ViewItem(const FFaerieAddress Address) const
 {
 	FEntryKey Entry;
@@ -318,45 +271,38 @@ FFaerieItemStack UFaerieItemStorage::Release(const FFaerieAddress Address, const
 	return FFaerieItemStack();
 }
 
-TUniquePtr<Faerie::Container::IIterator> UFaerieItemStorage::CreateIterator(const bool IterateByAddresses) const
+TUniquePtr<Faerie::Container::IIterator> UFaerieItemStorage::CreateEntryIterator() const
 {
 	// Don't provide an iterator if we are empty...
 	if (EntryMap.IsEmpty()) return nullptr;
+	return MakeUnique<Faerie::Storage::FIterator_AllEntries_ForInterface>(this);
+}
 
-	// Otherwise, use the full iterator.
-	if (IterateByAddresses)
+TUniquePtr<Faerie::Container::IIterator> UFaerieItemStorage::CreateAddressIterator() const
+{
+	// Don't provide an iterator if we are empty...
+	if (EntryMap.IsEmpty()) return nullptr;
+	return MakeUnique<Faerie::Storage::FIterator_AllAddresses_ForInterface>(this);
+}
+
+TUniquePtr<Faerie::Container::IIterator> UFaerieItemStorage::CreateSingleEntryIterator(const FEntryKey Key) const
+{
+	// Don't provide an iterator if the key is invalid...
+	if (const FInventoryEntry* Entry = EntryMap.Find(Key))
 	{
-		return MakeUnique<Faerie::Storage::FIterator_AllAddresses_ForInterface>(*this);
+		return MakeUnique<Faerie::Storage::FIterator_SingleEntry_ForInterface>(this, *Entry);
 	}
-	return MakeUnique<Faerie::Storage::FIterator_AllEntries_ForInterface>(*this);
-}
-
-TUniquePtr<Faerie::Container::IFilter> UFaerieItemStorage::CreateFilter(const bool FilterByAddresses) const
-{
-	if (FilterByAddresses)
-	{
-		unimplemented();
-		return nullptr;
-		//return MakeUnique<Faerie::FAddressFilter_ForInterface>(this);
-	}
-	return MakeUnique<Faerie::Storage::FEntryFilter_ForInterface>(this);
-}
-
-FEntryKey UFaerieItemStorage::FILTER_GetBaseKey(const FFaerieAddress Address) const
-{
-	FEntryKey Entry = FEntryKey::InvalidKey;
-	Decode_Entry(Address, Entry);
-	return Entry;
-}
-
-TArray<FFaerieAddress> UFaerieItemStorage::FILTER_GetKeyAddresses(const FEntryKey Key) const
-{
-	return GetAddressesForEntry(Key);
+	return nullptr;
 }
 
 FFaerieItemStack UFaerieItemStorage::Release(const FFaerieItemStackView Stack)
 {
-	const FEntryKey Key = FindItem(Stack.Item.Get(), EFaerieItemEqualsCheck::ComparePointers);
+	// This being set to ComparePointers means that the Stack must contain the *exact* same UFaerieItem pointer as the
+	// one contained in our entry. This ensures that the stack was reliably sourced, and is faster.
+	// @todo expose this to configuration somewhere???
+	static constexpr EFaerieItemEqualsCheck CheckLevelForStorageRelease = EFaerieItemEqualsCheck::ComparePointers;
+
+	const FEntryKey Key = FindItem(Stack.Item.Get(), CheckLevelForStorageRelease);
 	return Release(Key, Stack.Copies);
 }
 
@@ -381,14 +327,6 @@ void UFaerieItemStorage::OnItemMutated(const UFaerieItem* Item, const UFaerieIte
 			return;
 		}
 	}
-}
-
-TArray<FEntryKey> UFaerieItemStorage::GetAllEntries() const
-{
-	TArray<FEntryKey> Keys;
-	Keys.Reserve(EntryMap.Num());
-	Algo::Transform(EntryMap, Keys, &FInventoryEntry::Key);
-	return Keys;
 }
 
 void UFaerieItemStorage::PostContentAdded(const FInventoryEntry& Entry)
@@ -571,13 +509,48 @@ void UFaerieItemStorage::BroadcastAddressEventBulk(const EFaerieAddressEventType
 }
 
 
-/**------------------------------*/
+	/**------------------------------*/
 	/*	  INTERNAL IMPLEMENTATIONS	 */
 	/**------------------------------*/
+
+TArray<FEntryKey> UFaerieItemStorage::GetAllEntries() const
+{
+	TArray<FEntryKey> Keys;
+	Keys.Reserve(EntryMap.Num());
+	Algo::Transform(EntryMap, Keys, &FInventoryEntry::Key);
+	return Keys;
+}
 
 const FInventoryEntry* UFaerieItemStorage::GetEntrySafe(const FEntryKey Key) const
 {
 	return EntryMap.Find(Key);
+}
+
+const FInventoryEntry* UFaerieItemStorage::FindEntry(const TNotNull<const UFaerieItem*> Item, const EFaerieItemEqualsCheck Method) const
+{
+	switch (Method)
+	{
+	case EFaerieItemEqualsCheck::ComparePointers:
+		for (const FInventoryEntry& Entry : EntryMap)
+		{
+			if (Item == Entry.GetItem())
+			{
+				return &Entry;
+			}
+		}
+		break;
+	case EFaerieItemEqualsCheck::UseCompareWith:
+		for (const FInventoryEntry& Entry : EntryMap)
+		{
+			if (Item->CompareWith(Entry.GetItem(), EFaerieItemComparisonFlags::Default))
+			{
+				return &Entry;
+			}
+		}
+		break;
+	}
+
+	return nullptr;
 }
 
 UInventoryStackProxy* UFaerieItemStorage::GetStackProxyImpl(const FFaerieAddress Address) const
@@ -635,34 +608,45 @@ Faerie::Inventory::FEventLog UFaerieItemStorage::AddStackImpl(const FFaerieItemS
 	Event.Item = InStack.Item;
 	Event.Amount = InStack.Copies;
 
-	// Mutables cannot stack, due to, well, being mutable, meaning that each individual retains the ability to
-	// uniquely mutate from others.
-	if (!InStack.Item->CanMutate())
-	{
-		Event.EntryTouched = FindItem(InStack.Item, EFaerieItemEqualsCheck::UseCompareWith);
-	}
+	static constexpr EFaerieItemEqualsCheck CheckLevelForStorageAddition = EFaerieItemEqualsCheck::UseCompareWith;
 
 	// Execute PreAddition on all extensions
 	Extensions->PreAddition(this, {InStack.Item, Event.Amount });
 
-	// Try to fill up the stacks of existing entries first, before creating a new entry.
-	if (Event.EntryTouched.IsValid())
+	const FInventoryEntry* const ExistingEntry = [&]() -> const FInventoryEntry*
+		{
+			// Mutables cannot stack, due to, well, being mutable, meaning that each instance retains the ability to
+			// uniquely mutate from others.
+			if (!InStack.Item->CanMutate())
+			{
+				return FindEntry(InStack.Item, CheckLevelForStorageAddition);
+			}
+			return nullptr;
+		}();
+
+	if (ExistingEntry)
 	{
-		FInventoryEntry::FMutableAccess Entry = EntryMap.GetMutableEntry(Event.EntryTouched);
+		Event.EntryTouched = ExistingEntry->Key;
+
+		// Try to fill up the stacks of existing entries first, before creating a new entry.
+		FInventoryEntry::FMutableAccess Entry = ExistingEntry->GetMutableAccess(EntryMap);
 		if (ForceNewStack)
 		{
-			Entry.AddToNewStacks(Event.Amount, Event.StackKeys);
+			Entry.AddToNewStacks(Event.Amount, Event.AddressesTouched);
 		}
 		else
 		{
-			Entry.AddToAnyStack(Event.Amount, Event.StackKeys);
+			Entry.AddToAnyStack(Event.Amount, Event.AddressesTouched);
 		}
 	}
 	else
 	{
-		Faerie::TakeOwnership(this, InStack.Item);
+		if (UFaerieItem* Mutable = InStack.Item->MutateCast())
+		{
+			Faerie::TakeOwnership(this, Mutable);
+		}
 
-		FInventoryEntry NewEntry ( InStack, Event.StackKeys );
+		FInventoryEntry NewEntry ( InStack, Event.AddressesTouched );
 
 		// NextKey() is guaranteed to have a greater value than all currently existing keys, so simply appending is fine, and
 		// will keep the EntryMap sorted.
@@ -710,14 +694,17 @@ Faerie::Inventory::FEventLog UFaerieItemStorage::RemoveFromEntryImpl(const FEntr
 		if (Amount == Faerie::ItemData::EntireStack || Amount >= Sum) // Remove the entire entry
 		{
 			Event.Amount = Sum;
-			Event.StackKeys = Entry->CopyKeys();
-			Faerie::ReleaseOwnership(this, Entry->GetItem());
+			Entry->CopyAddresses(Event.AddressesTouched);
+			if (UFaerieItem* Mutable = Entry->GetItem()->MutateCast())
+			{
+				Faerie::ReleaseOwnership(this, Mutable);
+			}
 			RemoveEntry = true;
 		}
 		else // Remove part of the entry
 		{
 			Event.Amount = FMath::Clamp(Amount, 1, Sum-1);
-			Entry.RemoveFromAnyStack(Event.Amount, &Event.StackKeys);
+			Entry.RemoveFromAnyStack(Event.Amount, Event.AddressesTouched);
 		}
 	}
 	// Close Mutable scope
@@ -756,7 +743,7 @@ Faerie::Inventory::FEventLog UFaerieItemStorage::RemoveFromStackImpl(const FFaer
 	// Log for this event
 	Event.Type = Reason;
 	Event.EntryTouched = EntryKey;
-	Event.StackKeys.Add(StackKey);
+	Event.AddressesTouched.Add(Address);
 
 	bool RemoveEntry = false;
 
@@ -774,7 +761,10 @@ Faerie::Inventory::FEventLog UFaerieItemStorage::RemoveFromStackImpl(const FFaer
 			// If removing this stack would remove all reference to this item, release and exit so we can remove the entry.
 			if (Entry.IsOnlyStack(StackKey))
 			{
-				Faerie::ReleaseOwnership(this, Entry->GetItem());
+				if (UFaerieItem* Mutable = Entry->GetItem()->MutateCast())
+				{
+					Faerie::ReleaseOwnership(this, Mutable);
+				}
 				RemoveEntry = true;
 			}
 			else
@@ -852,27 +842,33 @@ bool UFaerieItemStorage::BreakAddressIntoKeys(const FFaerieAddress Address, FEnt
 
 TArray<FStackKey> UFaerieItemStorage::BreakEntryIntoKeys(const FEntryKey Key) const
 {
+	TArray<FStackKey> Out;
 	if (const FInventoryEntry* Entry = GetEntrySafe(Key))
 	{
-		return Entry->CopyKeys();
+		Entry->CopyKeys(Out);
 	}
-	return TArray<FStackKey>();
+	return Out;
 }
 
 TArray<int32> UFaerieItemStorage::GetStacksInEntry(const FEntryKey Key) const
 {
+	TArray<int32> Out;
 	if (const FInventoryEntry* Entry = GetEntrySafe(Key))
 	{
-		return Entry->CopyStacks();
+		Entry->CopyStacks(Out);
 	}
-	return TArray<int32>();
+	return Out;
 }
 
 void UFaerieItemStorage::GetAllAddresses(TArray<FFaerieAddress>& Addresses) const
 {
-	for (const FFaerieAddress Address : Faerie::Storage::FIterator_AllAddresses(*this))
+	Addresses.Reset(Algo::TransformAccumulate(EntryMap, &FInventoryEntry::NumStacks, 0));
+	for (auto&& Entry : EntryMap)
 	{
-		Addresses.Add(Address);
+		for (auto&& Stack : Entry.GetStacks())
+		{
+			Addresses.Add(Encode(Entry.Key, Stack.Key));
+		}
 	}
 }
 
@@ -921,7 +917,7 @@ bool UFaerieItemStorage::ContainsKey(const FEntryKey Key) const
 
 bool UFaerieItemStorage::ContainsItem(const UFaerieItem* Item, const EFaerieItemEqualsCheck Method) const
 {
-	return FindItem(Item, Method).IsValid();
+	return !!FindEntry(Item, Method);
 }
 
 FEntryKey UFaerieItemStorage::FindItem(const UFaerieItem* Item, const EFaerieItemEqualsCheck Method) const
@@ -931,26 +927,9 @@ FEntryKey UFaerieItemStorage::FindItem(const UFaerieItem* Item, const EFaerieIte
 		return FEntryKey();
 	}
 
-	switch (Method)
+	if (const FInventoryEntry* Entry = FindEntry(Item, Method))
 	{
-	case EFaerieItemEqualsCheck::ComparePointers:
-		for (const FInventoryEntry& Entry : EntryMap)
-		{
-			if (Item == Entry.GetItem())
-			{
-				return Entry.Key;
-			}
-		}
-		break;
-	case EFaerieItemEqualsCheck::UseCompareWith:
-		for (const FInventoryEntry& Entry : EntryMap)
-		{
-			if (Item->CompareWith(Entry.GetItem(), EFaerieItemComparisonFlags::Default))
-			{
-				return Entry.Key;
-			}
-		}
-		break;
+		return Entry->Key;
 	}
 
 	return FEntryKey();
@@ -970,23 +949,6 @@ const UFaerieItem* UFaerieItemStorage::GetEntryItem(const FEntryKey Key) const
 		return Entry->GetItem();
 	}
 	return nullptr;
-}
-
-FFaerieAddress UFaerieItemStorage::QueryFirst(const Faerie::Container::FAddressPredicate& Filter) const
-{
-	for (const FInventoryEntry& Item : EntryMap)
-	{
-		for (auto&& Stack : Item.GetStacks())
-		{
-			if (const FFaerieAddress Address = Encode(Item.Key, Stack.Key);
-				Filter(Address))
-			{
-				return Address;
-			}
-		}
-	}
-
-	return FFaerieAddress();
 }
 
 bool UFaerieItemStorage::CanAddStack(const FFaerieItemStackView Stack, const EFaerieStorageAddStackBehavior AddStackBehavior) const
@@ -1359,8 +1321,8 @@ bool UFaerieItemStorage::MergeStacks(const FEntryKey Entry, const FStackKey From
 	Event.Amount = AmountB; // Initially store the amount in stack B here.
 	Event.Item = EntryPtr->GetItem();
 	Event.EntryTouched = Entry;
-	Event.StackKeys.Add(FromStack);
-	Event.StackKeys.Add(ToStack);
+	Event.AddressesTouched.Add(FromAddress);
+	Event.AddressesTouched.Add(ToAddress);
 	Event.Type = Faerie::Inventory::Tags::Merge;
 	Event.Success = true;
 
@@ -1407,7 +1369,7 @@ bool UFaerieItemStorage::SplitStack(const FFaerieAddress Address, const int32 Am
 	Event.Item = EntryPtr->GetItem();
 	Event.Amount = Amount;
 	Event.EntryTouched = Entry;
-	Event.StackKeys.Add(Stack);
+	Event.AddressesTouched.Add(Address);
 	Event.Type = Faerie::Inventory::Tags::Split;
 	Event.Success = true;
 
@@ -1416,8 +1378,8 @@ bool UFaerieItemStorage::SplitStack(const FFaerieAddress Address, const int32 Am
 		FInventoryEntry::FMutableAccess Handle = EntryMap.GetMutableEntry(Entry);
 		const FStackKey SplitStack = Handle.SplitStack(Stack, Amount);
 
-		// Update event with final stack information
-		Event.StackKeys.Add(SplitStack);
+		// Update event with final Address information
+		Event.AddressesTouched.Add(Encode(Entry, SplitStack));
 	}
 
 	Extensions->PostEntryChanged(this, Event);

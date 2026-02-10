@@ -3,12 +3,17 @@
 #pragma once
 
 #include "UObject/Object.h"
+#include "FaerieItemDataViewBase.h"
 #include "FaerieItemFilterEnums.h"
 #include "FaerieItemStackView.h"
 #include "FaerieItemDataFilter.generated.h"
 
+struct FFaerieItemDataViewWrapper;
+
 namespace Faerie::ItemData
 {
+	class IViewBase;
+
 	class FFilterLogger
 	{
 	public:
@@ -32,8 +37,13 @@ public:
 	virtual EItemDataMutabilityStatus GetMutabilityStatus() const { return EItemDataMutabilityStatus::Unknown; }
 #endif
 
-	virtual bool ExecWithLog(const FFaerieItemStackView View, Faerie::ItemData::FFilterLogger& Logger) const;
-
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataFilter")
 	virtual bool Exec(FFaerieItemStackView View) const PURE_VIRTUAL(UFaerieItemDataFilter::Exec, return false; )
+
+	// Overload with ability to log errors. Used by editor validation to collect info about failures.
+	virtual bool ExecWithLog(const FFaerieItemStackView View, Faerie::ItemData::FFilterLogger& Logger) const;
+
+	// Overlord that accepts a ViewBase pointer, typically from an iterator. If children implement this, they also need
+	// to implement the struct version as well.
+	virtual bool ExecView(Faerie::ItemData::FViewPtr View) const;
 };

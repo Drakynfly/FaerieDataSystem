@@ -24,9 +24,9 @@ void UInventorySimpleGridExtension::PostAddition(const UFaerieItemContainerBase*
 {
 	// @todo don't add items for existing keys
 
-	for (const FStackKey StackKey : Event.StackKeys)
+	for (const FFaerieAddress Address : Event.AddressesTouched)
 	{
-		AddItemToGrid(UFaerieItemStorage::MakeAddress(Event.EntryTouched, StackKey), Event.Item.Get());
+		AddItemToGrid(Address, Event.Item.Get());
 	}
 }
 
@@ -38,16 +38,15 @@ void UInventorySimpleGridExtension::PostRemoval(const UFaerieItemContainerBase* 
 		// Create a temporary array to store keys that need to be removed
 		TArray<FFaerieAddress> AddressesToRemove;
 
-		for (const FStackKey StackKey : Event.StackKeys)
+		for (const FFaerieAddress Address : Event.AddressesTouched)
 		{
-			if (FFaerieAddress CurrentAddress = UFaerieItemStorage::MakeAddress(Event.EntryTouched, StackKey);
-				ItemStorage->Contains(CurrentAddress))
+			if (ItemStorage->Contains(Address))
 			{
-				PostStackChange({ CurrentAddress, GetStackPlacementData(CurrentAddress) });
+				PostStackChange({ Address, GetStackPlacementData(Address) });
 			}
 			else
 			{
-				AddressesToRemove.Add(CurrentAddress);
+				AddressesToRemove.Add(Address);
 			}
 		}
 		RemoveItemBatch(AddressesToRemove, Event.Item.Get());

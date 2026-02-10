@@ -305,7 +305,7 @@ void UEquipmentVisualizationUpdater::CreateVisualImpl(UEquipmentVisualizer* Visu
 	// Step 3: Recurse over children
 	if (UFaerieItem* Mutable = ItemObject->MutateCast())
 	{
-		for (auto SubContainer : Faerie::SubObject::Filter().ByClass<UFaerieEquipmentSlot>().Iterate(Mutable))
+		for (auto SubContainer : Faerie::Equipment::SlotFilter.Iterate(Mutable))
 		{
 			auto Key = SubContainer->GetCurrentKey();
 			if (Key.IsValid())
@@ -330,7 +330,7 @@ void UEquipmentVisualizationUpdater::RemoveVisualImpl(UEquipmentVisualizer* Visu
 
 	if (UFaerieItem* Mutable = Item->MutateCast())
 	{
-        for (UFaerieEquipmentSlot* SubContainer : Faerie::SubObject::Filter().ByClass<UFaerieEquipmentSlot>().Iterate(Mutable))
+        for (UFaerieEquipmentSlot* SubContainer : Faerie::Equipment::SlotFilter.Iterate(Mutable))
         {
         	auto Key = SubContainer->GetCurrentKey();
         	if (Key.IsValid())

@@ -323,7 +323,7 @@ bool UFaerieItem::Compare(const UFaerieItem* A, const UFaerieItem* B, const EFae
 	return A->CompareWith(B, Flags);
 }
 
-bool UFaerieItem::CompareWith(const UFaerieItem* Other, const EFaerieItemComparisonFlags Flags) const
+bool UFaerieItem::CompareWith(const TNotNull<const UFaerieItem*> Other, const EFaerieItemComparisonFlags Flags) const
 {
 	QUICK_SCOPE_CYCLE_COUNTER(UFaerieItem_CompareWith);
 
@@ -359,8 +359,8 @@ bool UFaerieItem::CompareWith(const UFaerieItem* Other, const EFaerieItemCompari
 	if (EnumHasAnyFlags(Flags, EFaerieItemComparisonFlags::Tokens_ComparePrimaryIdentifiers))
 	{
 		using namespace Faerie::Token;
-		return Filter(this).By<FTagFilter>(Tags::PrimaryIdentifierToken)
-			.CompareTokens(Filter(Other).By<FTagFilter>(Tags::PrimaryIdentifierToken));
+		return Filter().By<FTagFilter>(Tags::PrimaryIdentifierToken)
+			.CompareTokens(Filter().By<FTagFilter>(Tags::PrimaryIdentifierToken), this, Other);
 	}
 
 	// This already indicates they are not equal.

@@ -15,7 +15,6 @@
 class UFaerieItemStackContainer;
 class UFaerieEquipmentSlot;
 class UFaerieInventoryClient;
-class UFaerieItemContainerBase;
 class UItemContainerExtensionBase;
 class UItemContainerExtensionGroup;
 

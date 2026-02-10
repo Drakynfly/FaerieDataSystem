@@ -8,7 +8,6 @@
 #include "FaerieItemContainerBase.h"
 #include "FaerieItemToken.h"
 #include "FaerieItemTokenFilter.h"
-#include "FaerieItemTokenFilterTypes.h"
 #include "ItemContainerExtensionBase.h"
 #include "GameFramework/Actor.h"
 #include "Tokens/FaerieItemStorageToken.h"
@@ -48,7 +47,7 @@ namespace Faerie
 
 			if (UFaerieItemContainerToken* SubStorage = Cast<UFaerieItemContainerToken>(Token))
 			{
-				for (const UFaerieItem* SubItem : Container::ItemRange(SubStorage->GetItemContainer()))
+				for (const UFaerieItem* SubItem : Container::ConstItemRange(SubStorage->GetItemContainer()))
 				{
 #if WITH_EDITOR
 					if (RecursiveValidationTracker.Contains(SubItem))
@@ -70,62 +69,58 @@ namespace Faerie
 		return !HitError;
 	}
 
-	template <bool IsSubItem>
-	void ReleaseOwnership_Impl(UObject* Owner, const UFaerieItem* Item)
-	{
-		if (!ensure(IsValid(Item))) return;
+	static const auto MutableFilter = Token::Filter().ByMutable();
 
-		// When Items are potentially mutable, undo any modifications that rely on this owner.
-		if (UFaerieItem* MutableItem = Item->MutateCast())
+	template <bool IsSubItem>
+	void ReleaseOwnership_Impl(UObject* Owner, const TNotNull<UFaerieItem*> Item)
+	{
+		// @todo this logic could be moved to UFaerieItem::PostRename (if we enforce the RenameBehavior)
+		AActor* Actor = Owner->GetTypedOuter<AActor>();
+		const bool RegisteredWithActor = IsValid(Actor) && Actor->IsUsingRegisteredSubObjectList();
+		if (RegisteredWithActor)
 		{
-			// @todo this logic could be moved to UFaerieItem::PostRename (if we enforce the RenameBehavior)
-			AActor* Actor = Owner->GetTypedOuter<AActor>();
-			const bool RegisteredWithActor = IsValid(Actor) && Actor->IsUsingRegisteredSubObjectList();
+			Item->DeinitializeNetObject(Actor);
+			Actor->RemoveReplicatedSubObject(Item);
+		}
+
+		for (UFaerieItemToken* Token : MutableFilter.Iterate(Item))
+		{
 			if (RegisteredWithActor)
 			{
-				MutableItem->DeinitializeNetObject(Actor);
-				Actor->RemoveReplicatedSubObject(MutableItem);
+				Token->DeinitializeNetObject(Actor);
+				Actor->RemoveReplicatedSubObject(Token);
 			}
 
-			for (UFaerieItemToken* Token : Token::Filter(MutableItem).By<Token::FMutableFilter>())
+			// If the token has an extension group, clear its parent.
+			if (IFaerieContainerExtensionInterface* TokenWithExtension = Cast<IFaerieContainerExtensionInterface>(Token))
 			{
-				if (RegisteredWithActor)
-				{
-					Token->DeinitializeNetObject(Actor);
-					Actor->RemoveReplicatedSubObject(Token);
-				}
-
-				// If the token has an extension group, clear its parent.
-				if (IFaerieContainerExtensionInterface* TokenWithExtension = Cast<IFaerieContainerExtensionInterface>(Token))
-				{
-					TokenWithExtension->GetExtensionGroup()->SetParentGroup(nullptr);
-				}
-
-				// If the token contains nested items, release ownership recursively.
-				if (UFaerieItemContainerToken* ContainerToken = Cast<UFaerieItemContainerToken>(Token))
-				{
-					for (const UFaerieItem* ChildItem : Container::ItemRange(ContainerToken->GetItemContainer()))
-					{
-						ReleaseOwnership_Impl<true>(Owner, ChildItem);
-					}
-				}
+				TokenWithExtension->GetExtensionGroup()->SetParentGroup(nullptr);
 			}
 
-			if constexpr (!IsSubItem)
+			// If the token contains nested items, release ownership recursively.
+			if (UFaerieItemContainerToken* ContainerToken = Cast<UFaerieItemContainerToken>(Token))
 			{
-				// If we renamed the item to ourself when we took ownership of this item, then we need to release that now.
-				if (MutableItem->GetOuter() == Owner)
+				for (UFaerieItem* ChildItem : Container::ItemRange(ContainerToken->GetItemContainer()))
 				{
-					MutableItem->Rename(nullptr, GetTransientPackage(), REN_DontCreateRedirectors);
+					ReleaseOwnership_Impl<true>(Owner, ChildItem);
 				}
-
-				// Unbind from the mutation hook.
-				MutableItem->GetNotifyOwnerOfSelfMutation().Unbind();
 			}
+		}
+
+		if constexpr (!IsSubItem)
+		{
+			// If we renamed the item to ourself when we took ownership of this item, then we need to release that now.
+			if (Item->GetOuter() == Owner)
+			{
+				Item->Rename(nullptr, GetTransientPackage(), REN_DontCreateRedirectors);
+			}
+
+			// Unbind from the mutation hook.
+			Item->GetNotifyOwnerOfSelfMutation().Unbind();
 		}
 	}
 
-	void ClearOwnership(const UFaerieItem* Item)
+	void ClearOwnership(const TNotNull<UFaerieItem*> Item)
 	{
 		if (!ensure(IsValid(Item))) return;
 
@@ -139,89 +134,84 @@ namespace Faerie
 	}
 
 	template <bool IsSubItem>
-	void TakeOwnership_Impl(UObject* Owner, const UFaerieItem* Item)
+	void TakeOwnership_Impl(const TNotNull<UObject*> Owner, const TNotNull<UFaerieItem*> Item)
 	{
-		if (!ensure(IsValid(Item))) return;
+		checkfSlow(Item->GetOuter() != Owner, TEXT("TakeOwnership called on item we already own. Incorrect recursion likely the cause!"));
 
-		if (UFaerieItem* MutableItem = Item->MutateCast())
+		// Children of items that have already been moved to this owner will also own us, so skip the transient check, but perform the rest of this function.
+		if (!Item->IsInOuter(Owner))
 		{
-			checkfSlow(Item->GetOuter() != Owner, TEXT("TakeOwnership called on item we already own. Incorrect recursion likely the cause!"));
+			checkfSlow(Item->GetOuter() == GetTransientPackage(), TEXT("ReleaseOwnership was not called correctly on this item, before attempting to give ownership here!"));
+		}
 
-			// Children of items that have already been moved to this owner will also own us, so skip the transient check, but perform the rest of this function.
-			if (!Item->IsInOuter(Owner))
+		//UE_LOG(LogFaerieInventory, Verbose, TEXT("Assigning Ownership of %s to %s"), *Item->GetFullName(), *Owner->GetName())
+
+		// Children do not get renamed. They already belong to this outer chain if we are renamed.
+		// We also don't bind to the mutation hook if we are a subitem.
+		if constexpr (!IsSubItem)
+		{
+			if (GetDefault<UFaerieInventorySettings>()->ContainerMutableBehavior == EFaerieContainerOwnershipBehavior::Rename)
 			{
-				checkfSlow(Item->GetOuter() == GetTransientPackage(), TEXT("ReleaseOwnership was not called correctly on this item, before attempting to give ownership here!"));
+				Item->Rename(nullptr, Owner, REN_DontCreateRedirectors);
 			}
 
-			//UE_LOG(LogFaerieInventory, Verbose, TEXT("Assigning Ownership of %s to %s"), *Item->GetFullName(), *Owner->GetName())
+			checkfSlow(!Item->GetNotifyOwnerOfSelfMutation().IsBound(), TEXT("This should always have been unbound by the previous owner!"))
 
-			// Children do not get renamed. They already belong to this outer chain if we are renamed.
-			// We also don't bind to the mutation hook if we are a subitem.
-			if constexpr (!IsSubItem)
+			if (IFaerieItemOwnerInterface* OwnerInterface = Cast<IFaerieItemOwnerInterface>(Owner))
 			{
-				if (GetDefault<UFaerieInventorySettings>()->ContainerMutableBehavior == EFaerieContainerOwnershipBehavior::Rename)
-				{
-					MutableItem->Rename(nullptr, Owner, REN_DontCreateRedirectors);
-				}
-
-				checkfSlow(!MutableItem->GetNotifyOwnerOfSelfMutation().IsBound(), TEXT("This should always have been unbound by the previous owner!"))
-
-				if (IFaerieItemOwnerInterface* OwnerInterface = Cast<IFaerieItemOwnerInterface>(Owner))
-				{
-					MutableItem->GetNotifyOwnerOfSelfMutation().BindRaw(OwnerInterface, &IFaerieItemOwnerInterface::OnItemMutated);
-				}
+				Item->GetNotifyOwnerOfSelfMutation().BindRaw(OwnerInterface, &IFaerieItemOwnerInterface::OnItemMutated);
 			}
+		}
 
-			// @todo this logic could be moved to UFaerieItem::PostRename (if we enforce the RenameBehavior)
-			AActor* Actor = Owner->GetTypedOuter<AActor>();
-			const bool RegisterWithActor = IsValid(Actor) && Actor->IsUsingRegisteredSubObjectList();
+		// @todo this logic could be moved to UFaerieItem::PostRename (if we enforce the RenameBehavior)
+		AActor* Actor = Owner->GetTypedOuter<AActor>();
+		const bool RegisterWithActor = IsValid(Actor) && Actor->IsUsingRegisteredSubObjectList();
+		if (RegisterWithActor)
+		{
+			Actor->AddReplicatedSubObject(Item);
+			Item->InitializeNetObject(Actor);
+		}
+
+		UItemContainerExtensionGroup* OuterExtensions = nullptr;
+		if (IFaerieContainerExtensionInterface* OuterWithExtension = Cast<IFaerieContainerExtensionInterface>(Owner))
+		{
+			OuterExtensions = OuterWithExtension->GetExtensionGroup();
+		}
+
+		for (UFaerieItemToken* Token : MutableFilter.Iterate(Item))
+		{
 			if (RegisterWithActor)
 			{
-				Actor->AddReplicatedSubObject(MutableItem);
-				MutableItem->InitializeNetObject(Actor);
+				Actor->AddReplicatedSubObject(Token);
+				Token->InitializeNetObject(Actor);
 			}
 
-			UItemContainerExtensionGroup* OuterExtensions = nullptr;
-			if (IFaerieContainerExtensionInterface* OuterWithExtension = Cast<IFaerieContainerExtensionInterface>(Owner))
+			// If the token has an extension group, set its parent to ours.
+			if (IsValid(OuterExtensions))
 			{
-				OuterExtensions = OuterWithExtension->GetExtensionGroup();
+				if (IFaerieContainerExtensionInterface* TokenWithExtension = Cast<IFaerieContainerExtensionInterface>(Token))
+				{
+					TokenWithExtension->GetExtensionGroup()->SetParentGroup(OuterExtensions);
+				}
 			}
 
-			for (UFaerieItemToken* Token : Token::Filter(MutableItem).By<Token::FMutableFilter>())
+			// If the token contains nested items, take ownership recursively.
+			if (UFaerieItemContainerToken* ContainerToken = Cast<UFaerieItemContainerToken>(Token))
 			{
-				if (RegisterWithActor)
+				for (UFaerieItem* ChildItem : Container::ItemRange(ContainerToken->GetItemContainer()))
 				{
-					Actor->AddReplicatedSubObject(Token);
-					Token->InitializeNetObject(Actor);
-				}
-
-				// If the token has an extension group, set its parent to ours.
-				if (IsValid(OuterExtensions))
-				{
-					if (IFaerieContainerExtensionInterface* TokenWithExtension = Cast<IFaerieContainerExtensionInterface>(Token))
-					{
-						TokenWithExtension->GetExtensionGroup()->SetParentGroup(OuterExtensions);
-					}
-				}
-
-				// If the token contains nested items, take ownership recursively.
-				if (UFaerieItemContainerToken* ContainerToken = Cast<UFaerieItemContainerToken>(Token))
-				{
-					for (const UFaerieItem* ChildItem : Container::ItemRange(ContainerToken->GetItemContainer()))
-					{
-						TakeOwnership_Impl<true>(Owner, ChildItem);
-					}
+					TakeOwnership_Impl<true>(Owner, ChildItem);
 				}
 			}
 		}
 	}
 
-	void ReleaseOwnership(UObject* Owner, const UFaerieItem* Item)
+	void ReleaseOwnership(const TNotNull<UObject*> Owner, const TNotNull<UFaerieItem*> Item)
 	{
 		ReleaseOwnership_Impl<false>(Owner, Item);
 	}
 
-	void TakeOwnership(UObject* Owner, const UFaerieItem* Item)
+	void TakeOwnership(const TNotNull<UObject*> Owner, const TNotNull<UFaerieItem*> Item)
 	{
 		TakeOwnership_Impl<false>(Owner, Item);
 	}

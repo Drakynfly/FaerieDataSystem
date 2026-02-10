@@ -1,74 +1,68 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieSubObjectFilter.h"
-#include "FaerieContainerFilter.h"
-#include "FaerieContainerFilterTypes.h"
+#include "FaerieContainerIterator.h"
 #include "FaerieItem.h"
 #include "FaerieItemContainerBase.h"
 #include "FaerieItemTokenFilterTypes.h"
 
 namespace Faerie
 {
-	auto GetItemContainersFilter(UFaerieItem* Item)
+	auto GetItemContainersFilter()
 	{
-		return Token::Filter(Item).ByClass<UFaerieItemContainerToken>().By<Token::FMutableFilter>();
+		static const auto ContainerTokenFilter = Token::Filter().ByClass<UFaerieItemContainerToken>().ByMutable();
+		return ContainerTokenFilter;
 	}
 
-	void GetAllContainersInItem(UFaerieItem* Item, TArray<UFaerieItemContainerBase*>& OutContainers)
+	void GetAllContainersInItem(const TNotNull<UFaerieItem*> Item, TArray<UFaerieItemContainerBase*>& OutContainers)
 	{
-		if (!ensure(IsValid(Item))) return;
-
-		for (UFaerieItemContainerToken* Token : GetItemContainersFilter(Item))
+		for (UFaerieItemContainerToken* Token : GetItemContainersFilter().Iterate(Item))
 		{
 			OutContainers.Add(Token->GetItemContainer());
 		}
 	}
 
-	void GetAllContainersInItemRecursive(UFaerieItem* Item, TArray<UFaerieItemContainerBase*>& OutContainers)
+	void GetAllContainersInItemRecursive(const TNotNull<UFaerieItem*> Item, TArray<UFaerieItemContainerBase*>& OutContainers)
 	{
-		if (!ensure(IsValid(Item))) return;
-
 		TArray<UFaerieItemContainerBase*> Containers;
 		GetAllContainersInItem(Item, Containers);
 		OutContainers.Append(Containers);
 		for (UFaerieItemContainerBase* Container : Containers)
 		{
-			for (UFaerieItem* SubItem : Container::KeyFilter(Container).Run<Container::FMutableFilter>().Items())
+			for (UFaerieItem* SubItem : Container::ItemRange(Container))
 			{
 				GetAllContainersInItemRecursive(SubItem, OutContainers);
 			}
 		}
 	}
 
-	TArray<UFaerieItemContainerBase*> GetAllContainersInItem(UFaerieItem* Item)
+	TArray<UFaerieItemContainerBase*> GetAllContainersInItem(const TNotNull<UFaerieItem*> Item)
 	{
 		TArray<UFaerieItemContainerBase*> Containers;
 		GetAllContainersInItem(Item, Containers);
 		return Containers;
 	}
 
-	TArray<UFaerieItemContainerBase*> GetAllContainersInItemRecursive(UFaerieItem* Item)
+	TArray<UFaerieItemContainerBase*> GetAllContainersInItemRecursive(const TNotNull<UFaerieItem*> Item)
 	{
 		TArray<UFaerieItemContainerBase*> Containers;
 		GetAllContainersInItemRecursive(Item, Containers);
 		return Containers;
 	}
 
-	void GetChildrenInItem(UFaerieItem* Item, TArray<const UFaerieItem*>& OutChildren)
+	void GetChildrenInItem(const TNotNull<UFaerieItem*> Item, TArray<const UFaerieItem*>& OutChildren)
 	{
 		for (UFaerieItemContainerBase* Container : SubObject::Iterate(Item))
 		{
-			for (const UFaerieItem* Child : Container::ItemRange(Container))
+			for (const UFaerieItem* Child : Container::ConstItemRange(Container))
 			{
 				OutChildren.Add(Child);
 			}
 		}
 	}
 
-	void GetChildrenInItemRecursive(UFaerieItem* Item, TArray<const UFaerieItem*>& OutChildren)
+	void GetChildrenInItemRecursive(const TNotNull<UFaerieItem*> Item, TArray<const UFaerieItem*>& OutChildren)
 	{
-		if (!ensure(IsValid(Item))) return;
-
 		TArray<const UFaerieItem*> Children;
 		GetChildrenInItem(Item, OutChildren);
 		OutChildren.Append(OutChildren);
@@ -78,26 +72,23 @@ namespace Faerie
 			{
 				for (UFaerieItemContainerBase* Container : SubObject::Iterate(Mutable))
 				{
-					for (const UFaerieItem* SubChild : Container::ItemRange(Container))
+					for (UFaerieItem* SubChild : Container::ItemRange(Container))
 					{
-						if (UFaerieItem* SubMutable = SubChild->MutateCast())
-						{
-							GetChildrenInItemRecursive(SubMutable, OutChildren);
-						}
+						GetChildrenInItemRecursive(SubChild, OutChildren);
 					}
 				}
 			}
 		}
 	}
 
-	TArray<const UFaerieItem*> GetChildrenInItem(UFaerieItem* Item)
+	TArray<const UFaerieItem*> GetChildrenInItem(const TNotNull<UFaerieItem*> Item)
 	{
 		TArray<const UFaerieItem*> Items;
 		GetChildrenInItem(Item, Items);
 		return Items;
 	}
 
-	TArray<const UFaerieItem*> GetChildrenInItemRecursive(UFaerieItem* Item)
+	TArray<const UFaerieItem*> GetChildrenInItemRecursive(const TNotNull<UFaerieItem*> Item)
 	{
 		TArray<const UFaerieItem*> Items;
 		GetChildrenInItemRecursive(Item, Items);
@@ -106,22 +97,24 @@ namespace Faerie
 
 	namespace SubObject
 	{
-		namespace Filters
+		namespace StaticPredicates
 		{
-			void ByClass(TArray<UFaerieItemContainerBase*>& Containers, const TSubclassOf<UFaerieItemContainerBase>& Class)
+			bool ClassEquals(const UFaerieItemContainerBase* Container, const TSubclassOf<UFaerieItemContainerBase>& Class)
 			{
-				Containers.RemoveAll([Class](const UFaerieItemContainerBase* Container)
-				{
-					return Class != Container->GetClass();
-				});
+				return Class == Container->GetClass();
+			}
+
+			bool ClassEqualsOrChildOf(const UFaerieItemContainerBase* Container, const TSubclassOf<UFaerieItemContainerBase>& Class)
+			{
+				return Class->IsChildOf(Container->GetClass());
 			}
 		}
 
-		FArrayIterator::FArrayIterator(UFaerieItem* Item, const bool Recursive)
-		  : Containers(Recursive ? GetAllContainersInItemRecursive(Item) : GetAllContainersInItem(Item)),
-			Iterator(Containers.CreateIterator()) {}
+		FContainerIterator::FContainerIterator(const TNotNull<UFaerieItem*> Item)
+		  : Iterator(GetItemContainersFilter().Iterate(Item)) {}
 
-		FFilterIterator::FFilterIterator(UFaerieItem* Item)
-		  : Iterator(GetItemContainersFilter(Item).begin()) {}
+		FRecursiveContainerIterator::FRecursiveContainerIterator(const TNotNull<UFaerieItem*> Item)
+		  : Containers(GetAllContainersInItemRecursive(Item)),
+			Iterator(Containers.CreateIterator()) {}
 	}
 }

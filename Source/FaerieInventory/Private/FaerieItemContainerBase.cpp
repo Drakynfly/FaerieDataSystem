@@ -4,7 +4,6 @@
 #include "FaerieItemStorage.h"
 #include "AssetLoadFlagFixer.h"
 #include "FaerieContainerFilter.h"
-#include "FaerieContainerFilterTypes.h"
 #include "FaerieInventoryLog.h"
 #include "FaerieItemToken.h"
 #include "FaerieSubObjectFilter.h"
@@ -112,7 +111,7 @@ bool UFaerieItemContainerBase::AddExtension(UItemContainerExtensionBase* Extensi
 
 void UFaerieItemContainerBase::RavelExtensionData(TMap<FGuid, FInstancedStruct>& ExtensionData) const
 {
-	using namespace Faerie::Container;
+	using namespace Faerie;
 
 	auto ExtractSaveData = [&ExtensionData](const UFaerieItemContainerBase* Container)
 	{
@@ -135,9 +134,9 @@ void UFaerieItemContainerBase::RavelExtensionData(TMap<FGuid, FInstancedStruct>&
 
 	ExtractSaveData(this);
 
-	for (UFaerieItem* Item : KeyFilter(this).Run<FMutableFilter>().Items())
+	for (UFaerieItem* Item : Container::ItemRange(this))
 	{
-		for (UFaerieItemContainerBase* Container : SubObject::Filter().Recursive().Iterate(Item))
+		for (const UFaerieItemContainerBase* Container : SubObject::IterateRecursive(Item))
 		{
 			ExtractSaveData(Container);
 		}
@@ -146,7 +145,7 @@ void UFaerieItemContainerBase::RavelExtensionData(TMap<FGuid, FInstancedStruct>&
 
 void UFaerieItemContainerBase::UnravelExtensionData(UFaerieItemContainerExtensionData* ExtensionData)
 {
-	using namespace Faerie::Container;
+	using namespace Faerie;
 
 	UnclaimedExtensionData = ExtensionData;
 	if (!IsValid(UnclaimedExtensionData))
@@ -160,7 +159,7 @@ void UFaerieItemContainerBase::UnravelExtensionData(UFaerieItemContainerExtensio
 	}
 
 	TArray<UFaerieItemContainerBase*> SubContainers;
-	for (UFaerieItem* Item : KeyFilter(this).Run<FMutableFilter>().Items())
+	for (UFaerieItem* Item : Container::ItemRange(this))
 	{
 		SubContainers.Append(GetAllContainersInItem(Item));
 	}
@@ -189,9 +188,12 @@ void UFaerieItemContainerBase::TryApplyUnclaimedSaveData(UItemContainerExtension
 	}
 }
 
-// Note: Implementations for these PURE_VIRTUALS need to be here because TUniquePtr complains about their dtors if they are forward declared.
-TUniquePtr<Container::IIterator> UFaerieItemContainerBase::CreateIterator(bool IterateByAddresses) const
-PURE_VIRTUAL(UFaerieItemContainerBase::CreateIterator, return TUniquePtr<Faerie::Container::IIterator>(); )
+// Note: Implementations for these PURE_VIRTUAL need to be here because TUniquePtr complains about their dtors if they are forward declared.
+TUniquePtr<Container::IIterator> UFaerieItemContainerBase::CreateEntryIterator() const
+PURE_VIRTUAL(UFaerieItemContainerBase::CreateIterator, return nullptr; )
 
-TUniquePtr<Container::IFilter> UFaerieItemContainerBase::CreateFilter(bool FilterByAddresses) const
-PURE_VIRTUAL(UFaerieItemContainerBase::CreateFilter, return TUniquePtr<Faerie::Container::IFilter>(); )
+TUniquePtr<Container::IIterator> UFaerieItemContainerBase::CreateAddressIterator() const
+PURE_VIRTUAL(UFaerieItemContainerBase::CreateIterator, return nullptr; )
+
+TUniquePtr<Container::IIterator> UFaerieItemContainerBase::CreateSingleEntryIterator(FEntryKey Key) const
+PURE_VIRTUAL(UFaerieItemContainerBase::CreateIterator, return nullptr; )

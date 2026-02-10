@@ -6,6 +6,7 @@
 #include "TypeCastingUtils.h"
 #include "FaerieInventoryConcepts.h"
 #include "FaerieItemTokenFilter.h"
+#include "FaerieItemTokenFilterTypes.h"
 #include "Templates/SubclassOf.h"
 #include "Tokens/FaerieItemStorageToken.h"
 
@@ -15,59 +16,28 @@ class UFaerieItemContainerBase;
 namespace Faerie
 {
 	// Get all container objects from inside a FaerieItem.
-	FAERIEINVENTORY_API TArray<UFaerieItemContainerBase*> GetAllContainersInItem(UFaerieItem* Item);
-	FAERIEINVENTORY_API TArray<UFaerieItemContainerBase*> GetAllContainersInItemRecursive(UFaerieItem* Item);
+	FAERIEINVENTORY_API TArray<UFaerieItemContainerBase*> GetAllContainersInItem(const TNotNull<UFaerieItem*> Item);
+	FAERIEINVENTORY_API TArray<UFaerieItemContainerBase*> GetAllContainersInItemRecursive(const TNotNull<UFaerieItem*> Item);
 
-	FAERIEINVENTORY_API TArray<const UFaerieItem*> GetChildrenInItem(UFaerieItem* Item);
-	FAERIEINVENTORY_API TArray<const UFaerieItem*> GetChildrenInItemRecursive(UFaerieItem* Item);
+	FAERIEINVENTORY_API TArray<const UFaerieItem*> GetChildrenInItem(const TNotNull<UFaerieItem*> Item);
+	FAERIEINVENTORY_API TArray<const UFaerieItem*> GetChildrenInItemRecursive(const TNotNull<UFaerieItem*> Item);
 
 	namespace SubObject
 	{
-		namespace Filters
+		namespace StaticPredicates
 		{
-			FAERIEINVENTORY_API void ByClass(TArray<UFaerieItemContainerBase*>& Containers, const TSubclassOf<UFaerieItemContainerBase>& Class);
+			FAERIEINVENTORY_API bool ClassEquals(const UFaerieItemContainerBase* Container, const TSubclassOf<UFaerieItemContainerBase>& Class);
+			FAERIEINVENTORY_API bool ClassEqualsOrChildOf(const UFaerieItemContainerBase* Container, const TSubclassOf<UFaerieItemContainerBase>& Class);
 		}
 
-		class FArrayIterator
-		{
-			using FStorageType = TArray<UFaerieItemContainerBase*>;
-
-		public:
-			explicit FArrayIterator(FStorageType&& Array)
-			  : Containers(MoveTemp(Array)),
-				Iterator(Containers.CreateIterator()) {}
-
-			explicit FArrayIterator(const FStorageType& Array)
-			  : Containers(Array),
-				Iterator(Containers.CreateIterator()) {}
-
-			explicit FArrayIterator(UFaerieItem* Item, bool Recursive);
-
-			[[nodiscard]] UE_REWRITE UFaerieItemContainerBase* operator*() const { return Iterator.operator*(); }
-
-			UE_REWRITE explicit operator bool() const { return static_cast<bool>(Iterator); }
-
-			UE_REWRITE void operator++() { ++Iterator; }
-
-			[[nodiscard]] UE_REWRITE bool operator!=(EIteratorType) const
-			{
-				// As long as we are valid, then we have not ended.
-				return static_cast<bool>(*this);
-			}
-
-			[[nodiscard]] UE_REWRITE const FArrayIterator& begin() const { return *this; }
-			[[nodiscard]] UE_REWRITE EIteratorType end () const { return End; }
-
-		protected:
-			FStorageType Containers;
-			FStorageType::TIterator Iterator;
-		};
-
-		class FFilterIterator
+		/**
+		 * Iterates over all Item Containers in a Faerie Item that are directly owned
+		 */
+		class FContainerIterator
 		{
 		public:
-			explicit FFilterIterator(UFaerieItem* Item);
-			~FFilterIterator() {}
+			explicit FContainerIterator(const TNotNull<UFaerieItem*> Item);
+			~FContainerIterator() {}
 
 			[[nodiscard]] UE_REWRITE UFaerieItemContainerBase* operator*() const { return Iterator.operator*()->GetItemContainer(); }
 
@@ -81,17 +51,47 @@ namespace Faerie
 				return static_cast<bool>(*this);
 			}
 
-			[[nodiscard]] UE_REWRITE const FFilterIterator& begin() const { return *this; }
+			[[nodiscard]] UE_REWRITE const FContainerIterator& begin() const { return *this; }
 			[[nodiscard]] UE_REWRITE EIteratorType end () const { return End; }
 
 		protected:
-			Token::TIterator_Masked<UFaerieItemContainerToken, false> Iterator;
+			Token::TFilteringIterator_Move<UFaerieItemContainerToken, Token::EFilterFlags::MutableOnly> Iterator;
+		};
+
+		/**
+		 * Iterates over all Item Containers in a Faerie Item, and any found in sub-Items
+		 */
+		class FRecursiveContainerIterator
+		{
+			using FStorageType = TArray<UFaerieItemContainerBase*>;
+
+		public:
+			explicit FRecursiveContainerIterator(TNotNull<UFaerieItem*> Item);
+
+			[[nodiscard]] UE_REWRITE UFaerieItemContainerBase* operator*() const { return Iterator.operator*(); }
+
+			UE_REWRITE explicit operator bool() const { return static_cast<bool>(Iterator); }
+
+			UE_REWRITE void operator++() { ++Iterator; }
+
+			[[nodiscard]] UE_REWRITE bool operator!=(EIteratorType) const
+			{
+				// As long as we are valid, then we have not ended.
+				return static_cast<bool>(*this);
+			}
+
+			[[nodiscard]] UE_REWRITE const FRecursiveContainerIterator& begin() const { return *this; }
+			[[nodiscard]] UE_REWRITE EIteratorType end () const { return End; }
+
+		protected:
+			FStorageType Containers;
+			FStorageType::TIterator Iterator;
 		};
 
 		template <CItemContainerBase TClass>
 		class TFilteredArrayIterator
 		{
-			using FStorageType = TArray<UFaerieItemContainerBase*>;
+			using FStorageType = TArray<TClass*>;
 
 		public:
 			explicit TFilteredArrayIterator(FStorageType&& Array)
@@ -134,53 +134,35 @@ namespace Faerie
 		};
 		ENUM_CLASS_FLAGS(EFilterFlags)
 
-		template <typename... Filters>
-		struct TFilterStorage
-		{
-			TFilterStorage() = default;
-
-			TFilterStorage(TTuple<Filters...>&& InFilters)
-			  : FilterTuple(MoveTemp(InFilters)) {}
-
-			TFilterStorage(const TTuple<Filters...>& InFilters)
-			  : FilterTuple(InFilters) {}
-
-			template<typename NewFilter>
-			TFilterStorage<Filters..., NewFilter> AddFilter(NewFilter&& NextView)
-			{
-				return FilterTuple.ApplyBefore([](const Filters&... InViews, const NewFilter& InNextView)
-					{
-						return TTuple<Filters..., NewFilter>(InViews..., InNextView);
-					}, Forward<NewFilter>(NextView));
-			}
-
-			void Exec(TArray<UFaerieItemContainerBase*>& Containers) const
-			{
-				FilterTuple.ApplyBefore([&Containers](auto&... Filter)
-				{
-					(Filter.Exec(Containers), ...);
-				});
-			}
-
-			TTuple<Filters...> FilterTuple{};
-		};
-
 		struct FClassFilter
 		{
-			void Exec(TArray<UFaerieItemContainerBase*>& Containers) const
+			bool Exec(const UFaerieItemContainerBase* Container) const
 			{
-				Filters::ByClass(Containers, Class);
+				return StaticPredicates::ClassEqualsOrChildOf(Container, Class);
 			}
 			TSubclassOf<UFaerieItemContainerBase> Class;
 		};
 
-		template <CItemContainerBase TClass, EFilterFlags Flags, typename... TFilters>
+		struct FClassFilterExact
+		{
+			bool Exec(const UFaerieItemContainerBase* Container) const
+			{
+				return StaticPredicates::ClassEquals(Container, Class);
+			}
+			TSubclassOf<UFaerieItemContainerBase> Class;
+		};
+
+		template <CItemContainerBase TClass, EFilterFlags Flags, typename... TPredicates>
 		class TFilter
 		{
 		public:
 			TFilter() = default;
-			TFilter(TFilterStorage<TFilters...>&& FilterTuple)
-			 : FilterStorage(MoveTemp(FilterTuple)) {}
+
+			TFilter(const Utils::TPredicateTuple<TPredicates...>& PredicateTuple)
+			  : PredicateTuple(PredicateTuple) {}
+
+			TFilter(Utils::TPredicateTuple<TPredicates...>&& PredicateTuple)
+			  : PredicateTuple(MoveTemp(PredicateTuple)) {}
 
 			// Mark this filter as searching recursively through all children.
 			// @Note: The awkward template here is to prevent calling this on a filter that is already recursive.
@@ -188,31 +170,63 @@ namespace Faerie
 				EFilterFlags Flag = EFilterFlags::Recursive
 				UE_REQUIRES(Flag == EFilterFlags::Recursive && !EnumHasAnyFlags(Flags, EFilterFlags::Recursive))
 			>
-			[[nodiscard]] auto Recursive()
+			[[nodiscard]] auto Recursive() const &
 			{
-				return TFilter<TClass, Flags | EFilterFlags::Recursive>(MoveTemp(FilterStorage));
+				return TFilter<TClass, Flags | EFilterFlags::Recursive>(PredicateTuple);
 			}
 
-			[[nodiscard]] auto ByClass(const TSubclassOf<UFaerieItemContainerBase>& Class)
+			// Mark this filter as searching recursively through all children.
+			// @Note: The awkward template here is to prevent calling this on a filter that is already recursive.
+			template <
+				EFilterFlags Flag = EFilterFlags::Recursive
+				UE_REQUIRES(Flag == EFilterFlags::Recursive && !EnumHasAnyFlags(Flags, EFilterFlags::Recursive))
+			>
+			[[nodiscard]] auto Recursive() &&
 			{
-				FClassFilter NewFilter(Class);
-				return TFilter<UFaerieItemContainerBase, Flags, TFilters..., FClassFilter>(FilterStorage.template AddFilter<FClassFilter>(MoveTemp(NewFilter)));
+				return TFilter<TClass, Flags | EFilterFlags::Recursive>(MoveTemp(PredicateTuple));
 			}
 
 			template <typename T UE_REQUIRES(TIsDerivedFrom<T, TClass>::Value)>
-			[[nodiscard]] auto ByClass(const TSubclassOf<T>& Class)
+			[[nodiscard]] auto ByClass() const &
 			{
-				FClassFilter NewFilter(Class);
-				return TFilter<T, Flags, TFilters..., FClassFilter>(FilterStorage.AddFilter(MoveTemp(NewFilter)));
+				return TFilter<T, Flags, TPredicates...>(PredicateTuple);
 			}
 
 			template <typename T UE_REQUIRES(TIsDerivedFrom<T, TClass>::Value)>
-			[[nodiscard]] auto ByClass()
+			[[nodiscard]] auto ByClass() &&
 			{
-				return TFilter<T, Flags, TFilters...>(MoveTemp(FilterStorage));
+				return TFilter<T, Flags, TPredicates...>(MoveTemp(PredicateTuple));
 			}
 
-			[[nodiscard]] TArray<TClass*> Emit(UFaerieItem* Item) const
+			// @todo restrict TPredicate to only allow filter structs
+			template <typename TPredicate>
+			[[nodiscard]] auto By(TPredicate&& NewFilter) const &
+			{
+				return TFilter<UFaerieItemContainerBase, Flags, TPredicates..., TPredicate>(PredicateTuple.template AddPredicateAndCopy<TPredicate>(MoveTemp(NewFilter)));
+			}
+
+			// @todo restrict TPredicate to only allow filter structs
+			template <typename TPredicate, typename... TArgs>
+			[[nodiscard]] auto By(TArgs&&... Args) const &
+			{
+				return TFilter<UFaerieItemContainerBase, Flags, TPredicates..., TPredicate>(PredicateTuple.template AddPredicateAndCopy<TPredicate>(TPredicate(Args...)));
+			}
+
+			// @todo restrict TPredicate to only allow filter structs
+			template <typename TPredicate>
+			[[nodiscard]] auto By(TPredicate&& NewFilter) &&
+			{
+				return TFilter<UFaerieItemContainerBase, Flags, TPredicates..., TPredicate>(PredicateTuple.template AddPredicateAndMove<TPredicate>(MoveTemp(NewFilter)));
+			}
+
+			// @todo restrict TPredicate to only allow filter structs
+			template <typename TPredicate, typename... TArgs>
+			[[nodiscard]] auto By(TArgs&&... Args) &&
+			{
+				return TFilter<UFaerieItemContainerBase, Flags, TPredicates..., TPredicate>(PredicateTuple.template AddPredicateAndMove<TPredicate>(TPredicate(Args...)));
+			}
+
+			[[nodiscard]] TArray<TClass*> Emit(const TNotNull<UFaerieItem*> Item) const
 			{
 				TArray<UFaerieItemContainerBase*> Containers;
 				if constexpr (EnumHasAnyFlags(Flags, EFilterFlags::Recursive))
@@ -223,22 +237,36 @@ namespace Faerie
 				{
 					Containers = GetAllContainersInItem(Item);
 				}
-				if constexpr (!std::is_same_v<TClass, UFaerieItemContainerBase>)
+
+				for (auto It(Containers.CreateIterator()); It; ++It)
 				{
-					Filters::ByClass(Containers, TClass::StaticClass());
+					if constexpr (!std::is_same_v<TClass, UFaerieItemContainerBase>)
+					{
+						if (!StaticPredicates::ClassEqualsOrChildOf(*It, TClass::StaticClass()))
+						{
+							It.RemoveCurrent();
+							continue;
+						}
+					}
+
+					if (!PredicateTuple.TestAll(*It))
+					{
+						It.RemoveCurrent();
+					}
 				}
-				FilterStorage.Exec(Containers);
+
 				return Type::Cast<TArray<TClass*>>(Containers);
 			}
 
 			// Create an iterator from this filter.
-			[[nodiscard]] UE_REWRITE auto Iterate(UFaerieItem* Item) const
+			[[nodiscard]] UE_REWRITE auto Iterate(const TNotNull<UFaerieItem*> Item) const
 			{
-				return TFilteredArrayIterator<TClass>(Type::Cast<TArray<UFaerieItemContainerBase*>>(Emit(Item)));
+				// @TODO FIX THIS
+				return TFilteredArrayIterator<TClass>(Emit(Item));
 			}
 
 		private:
-			TFilterStorage<TFilters...> FilterStorage;
+			Utils::TPredicateTuple<TPredicates...> PredicateTuple;
 		};
 
 		// Forward declare the default parameters of the template
@@ -246,18 +274,18 @@ namespace Faerie
 		class TFilter;
 
 		// Iterate over the direct subobject containers in an item.
-		FAERIEINVENTORY_API UE_REWRITE FFilterIterator Iterate(UFaerieItem* Item)
+		UE_REWRITE FContainerIterator Iterate(const TNotNull<UFaerieItem*> Item)
 		{
-			return FFilterIterator(Item);
+			return FContainerIterator(Item);
 		}
 
 		// Iterate over the all subobject containers in an item recursively.
-		FAERIEINVENTORY_API UE_REWRITE FArrayIterator IterateRecursive(UFaerieItem* Item)
+		UE_REWRITE FRecursiveContainerIterator IterateRecursive(const TNotNull<UFaerieItem*> Item)
 		{
-			return FArrayIterator(Item, true);
+			return FRecursiveContainerIterator(Item);
 		}
 
-		FAERIEINVENTORY_API UE_REWRITE TFilter<UFaerieItemContainerBase> Filter()
+		UE_REWRITE TFilter<UFaerieItemContainerBase> Filter()
 		{
 			return TFilter<>();
 		}

@@ -2,8 +2,6 @@
 
 #include "FaerieHashStatics.h"
 #include "FaerieItem.h"
-#include "FaerieItemStackHashInstruction.h"
-#include "FaerieItemTokenFilter.h"
 #include "Squirrel.h"
 #include "Tokens/FaerieInfoToken.h"
 #include "UObject/TextProperty.h"
@@ -162,8 +160,7 @@ namespace Faerie::Hash
 		return HashProps(Obj, Obj->GetClass(), IncludeSuper);
 	}
 
-	FFaerieHash HashItemSet(const TSet<const UFaerieItem*>& Items,
-							const FItemHashFunction& Function)
+	FFaerieHash HashItemSet(const TSet<const UFaerieItem*>& Items, const FItemHashFunction& Function)
 	{
 		TArray<uint32> Hashes;
 
@@ -185,15 +182,5 @@ namespace Faerie::Hash
 		}
 
 		return 0;
-	}
-
-	uint32 HashItemByTokens(const Token::IFilter& Filter)
-	{
-		uint32 Hash = 0;
-		for (const UFaerieItemToken* Token : Filter)
-		{
-			Hash = Combine(Hash, Token->GetTokenHash());
-		}
-		return Hash;
 	}
 }

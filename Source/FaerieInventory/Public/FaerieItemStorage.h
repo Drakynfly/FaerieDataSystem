@@ -5,7 +5,6 @@
 #include "FaerieItemContainerBase.h"
 #include "ItemContainerEvent.h"
 #include "FaerieItemStack.h"
-#include "FaerieItemStorageFilter.h"
 #include "InventoryDataEnums.h"
 #include "InventoryDataStructs.h"
 
@@ -16,6 +15,11 @@ class UInventoryStackProxy;
 
 namespace Faerie
 {
+	namespace Storage
+	{
+		class FStorageDataAccess;
+	}
+
 	using FAddressEvent = TMulticastDelegate<void(UFaerieItemStorage*, EFaerieAddressEventType, TConstArrayView<FFaerieAddress>)>;
 }
 
@@ -59,17 +63,16 @@ public:
 
 	virtual bool Contains(FFaerieAddress Address) const override;
 	virtual int32 GetStack(FFaerieAddress Address) const override;
+	virtual const UFaerieItem* ViewItem(FEntryKey Key) const override;
 	virtual const UFaerieItem* ViewItem(FFaerieAddress Address) const override;
 	virtual FFaerieItemStackView ViewStack(FFaerieAddress Address) const override;
 	virtual FFaerieItemProxy Proxy(FFaerieAddress Address) const override;
 	virtual FFaerieItemStack Release(FFaerieAddress Address, int32 Copies) override;
 
 private:
-	virtual TUniquePtr<Faerie::Container::IIterator> CreateIterator(bool IterateByAddresses) const override;
-	virtual TUniquePtr<Faerie::Container::IFilter> CreateFilter(bool FilterByAddresses) const override;
-
-	virtual FEntryKey FILTER_GetBaseKey(FFaerieAddress Address) const override;
-	virtual TArray<FFaerieAddress> FILTER_GetKeyAddresses(FEntryKey Key) const override;
+	virtual TUniquePtr<Faerie::Container::IIterator> CreateEntryIterator() const override;
+	virtual TUniquePtr<Faerie::Container::IIterator> CreateAddressIterator() const override;
+	virtual TUniquePtr<Faerie::Container::IIterator> CreateSingleEntryIterator(FEntryKey Key) const override;
 	//~ UFaerieItemContainerBase
 
 public:
@@ -90,6 +93,8 @@ private:
 	TArray<FEntryKey> GetAllEntries() const;
 
 	const FInventoryEntry* GetEntrySafe(FEntryKey Key) const;
+
+	const FInventoryEntry* FindEntry(const TNotNull<const UFaerieItem*> Item, EFaerieItemEqualsCheck Method) const;
 
 	UInventoryStackProxy* GetStackProxyImpl(FFaerieAddress Address) const;
 
@@ -164,9 +169,6 @@ public:
 	// Gets the item stored at an entry.
 	UFUNCTION(BlueprintCallable, Category = "Storage|Key")
 	const UFaerieItem* GetEntryItem(FEntryKey Key) const;
-
-	// Query function to filter for the first matching address.
-	FFaerieAddress QueryFirst(const Faerie::Container::FAddressPredicate& Filter) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Storage|Permissions")
 	bool CanAddStack(FFaerieItemStackView Stack, EFaerieStorageAddStackBehavior AddStackBehavior) const;

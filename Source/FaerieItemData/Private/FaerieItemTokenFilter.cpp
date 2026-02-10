@@ -2,16 +2,31 @@
 
 #include "FaerieItemTokenFilter.h"
 #include "DebuggingFlags.h"
+#include "FaerieHashStatics.h"
 #include "FaerieItem.h"
 #include "FaerieItemDataLog.h"
 #include "FaerieItemToken.h"
-#include "TypeCastingUtils.h"
 
 namespace Faerie::Token
 {
 	namespace Private
 	{
-		void FIteratorAccess::AddWriteLock(const UFaerieItem* Item)
+		const TArray<TObjectPtr<UFaerieItemToken>>& FIteratorAccess::ReadTokenArray(const TNotNull<const UFaerieItem*> Item)
+		{
+			return Item->Tokens;
+		}
+
+		bool FIteratorAccess::StaticClassFilter(const TNotNull<const UFaerieItemToken*> Token, const TNotNull<UClass*> Class)
+		{
+			return Token->GetClass()->IsChildOf(Class);
+		}
+
+		bool FIteratorAccess::StaticIsMutableFilter(const TNotNull<const UFaerieItemToken*> Token)
+		{
+			return Token->IsMutable();
+		}
+
+		void FIteratorAccess::AddWriteLock(const TNotNull<const UFaerieItem*> Item)
 		{
 #if FAERIE_DEBUG
 			if (Debug::CVarEnableWriteLockTracking.GetValueOnGameThread())
@@ -22,7 +37,7 @@ namespace Faerie::Token
 			Item->WriteLock++;
 		}
 
-		void FIteratorAccess::RemoveWriteLock(const UFaerieItem* Item)
+		void FIteratorAccess::RemoveWriteLock(const TNotNull<const UFaerieItem*> Item)
 		{
 #if FAERIE_DEBUG
 			if (Debug::CVarEnableWriteLockTracking.GetValueOnGameThread())
@@ -34,133 +49,47 @@ namespace Faerie::Token
 			Item->WriteLock--;
 		}
 
-		UFaerieItemToken* FIteratorAccess::ResolveToken(const UFaerieItem* Item, const int32 Index)
+		void FIteratorAccess::HashCombineToken(const TNotNull<const UFaerieItemToken*> Token, uint32& Hash)
 		{
-			return Item->GetTokenAtIndex(Index)->MutateCast();
+			Hash = Hash::Combine(Hash, Token->GetTokenHash());
 		}
 
-		const UFaerieItemToken* FIteratorAccess::ConstResolveToken(const UFaerieItem* Item, const int32 Index)
+		bool FIteratorAccess::CompareTokenMasks(const TBitArray<>& MaskA, const TNotNull<const UFaerieItem*> ItemA,
+			const TBitArray<>& MaskB, const TNotNull<const UFaerieItem*> ItemB)
 		{
-			return Item->GetTokenAtIndex(Index);
-		}
-	}
-
-	IFilter::IFilter(const UFaerieItem* Item)
-	  : Item(Item)
-	{
-		check(IsValid(Item))
-
-		// Initialize TokensBits with all tokens enabled.
-		TokenBits.Init(true, Item->GetOwnedTokens().Num());
-	}
-
-	template <typename Pred>
-	void FilterByPredicate(TBitArray<>& TokenBits, const UFaerieItem* Item, Pred&& Func)
-	{
-		for (TConstSetBitIterator<> It(TokenBits); It; ++It)
-		{
-			const UFaerieItemToken* Token = Item->GetTokenAtIndex(It.GetIndex());
-			if (!ensureAlways(IsValid(Token))) continue;
-			if (!Func(Token))
+			// This already indicates they are not equal.
+			if (MaskA.Num() != MaskB.Num())
 			{
-				TokenBits.AccessCorrespondingBit(It) = false;
+				return false;
 			}
-		}
-	}
 
-	IFilter& IFilter::ByClass_Impl(const TSubclassOf<UFaerieItemToken>& Class)
-	{
-		if (!IsValid(Class) ||
-			Class == UFaerieItemToken::StaticClass()) return *this;
+			auto MaskBCopy = MaskB;
 
-		FilterByPredicate(TokenBits, Item, [Class](const UFaerieItemToken* Token)
+			for (TConstSetBitIterator<> ItA(MaskA); ItA; ++ItA)
 			{
-				return Token->IsA(Class);
-			});
+				const UFaerieItemToken* TokenA = ItemA->GetTokenAtIndex(ItA.GetIndex());
+				if (!ensureAlways(IsValid(TokenA))) continue;
 
-		return *this;
-	}
-
-	IFilter& IFilter::ByInterface_Impl(const UClass* Class)
-	{
-		if (!IsValid(Class) ||
-			Class == UFaerieItemToken::StaticClass()) return *this;
-
-		FilterByPredicate(TokenBits, Item, [Class](const UFaerieItemToken* Token)
-			{
-				return Token->GetClass()->ImplementsInterface(Class);
-			});
-
-		return *this;
-	}
-
-	IFilter& IFilter::ByVirtual_Impl(ITokenFilterType& Type)
-	{
-		FilterByPredicate(TokenBits, Item, [&](const UFaerieItemToken* Token)
-			{
-				return Type.Passes(Token);
-			});
-		return *this;
-	}
-
-	bool IFilter::CompareTokens(const IFilter& OtherFilter) const
-	{
-		// This already indicates they are not equal.
-		if (Num() != OtherFilter.Num())
-		{
-			return false;
-		}
-
-		// Copy bits so we can remove from them.
-		TBitArray<> OtherBits = OtherFilter.TokenBits;
-
-		for (TConstSetBitIterator<> ItA(TokenBits); ItA; ++ItA)
-		{
-			const UFaerieItemToken* TokenA = Item->GetTokenAtIndex(ItA.GetIndex());
-			if (!ensureAlways(IsValid(TokenA))) continue;
-
-			for (TConstSetBitIterator<> ItB(OtherBits); ItB; ++ItB)
-			{
-				const UFaerieItemToken* TokenB = Item->GetTokenAtIndex(ItB.GetIndex());
-				if (!ensureAlways(IsValid(TokenB))) continue;
-
-				if (TokenA->CompareWith(TokenB))
+				for (TConstSetBitIterator<> ItB(MaskBCopy); ItB; ++ItB)
 				{
-					// The token is a match! Remove token from B to prevent re-match, and continue to the next token in ItA.
-					OtherBits.AccessCorrespondingBit(ItB) = false;
-					break;
+					const UFaerieItemToken* TokenB = ItemB->GetTokenAtIndex(ItB.GetIndex());
+					if (!ensureAlways(IsValid(TokenB))) continue;
+
+					if (TokenA->CompareWith(TokenB))
+					{
+						// The token is a match! Remove token from B to prevent re-match, and continue to the next token in ItA.
+						MaskBCopy.AccessCorrespondingBit(ItB) = false;
+						break;
+					}
 				}
+
+				// No match was found for a token in ItA, exit as failure.
+				return false;
 			}
 
-			// No match was found for a token in ItA, exit as failure.
-			return false;
+			// All tokens in B should habe been matched. Check and exit as a success.
+			check(MaskBCopy.IsEmpty())
+			return true;
 		}
-
-		// All tokens in Other should habe been matched. Check and exit as a success.
-		check(OtherBits.IsEmpty())
-		return true;
-	}
-
-	TArray<const UFaerieItemToken*> IFilter::Emit() const
-	{
-		TArray<const UFaerieItemToken*> Tokens;
-		Tokens.Reserve(TokenBits.CountSetBits());
-		for (TConstSetBitIterator<> It(TokenBits); It; ++It)
-		{
-			const UFaerieItemToken* Token = Item->GetTokenAtIndex(It.GetIndex());
-			if (!ensureAlways(IsValid(Token))) continue;
-			Tokens.Add(Token);
-		}
-		return Tokens;
-	}
-
-	TArray<UFaerieItemToken*> IFilter::BlueprintOnlyAccess() const
-	{
-		return Type::Cast<TArray<UFaerieItemToken*>>(Emit());
-	}
-
-	TFilter<> Filter(const UFaerieItem* Item)
-	{
-		return TFilter<>(Item);
 	}
 }

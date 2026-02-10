@@ -1,6 +1,7 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "Extensions/InventoryItemLimitExtension.h"
+#include "FaerieContainerIterator.h"
 #include "FaerieInventoryContentLog.h"
 
 #include "FaerieItemStorage.h"

@@ -104,7 +104,7 @@ public:
 	template <Faerie::CItemTokenImpl T>
 	T* MutateCast() const
 	{
-		return Cast<T>(MutateCast());
+		return CastChecked<T>(MutateCast(), ECastCheckedType::NullAllowed);
 	}
 
 	void EditToken(const TFunctionRef<bool(UFaerieItemToken*)>& EditFunc);

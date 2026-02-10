@@ -5,6 +5,7 @@
 #include "FaerieEquipmentSlotStructs.h"
 #include "FaerieItemStackContainer.h"
 #include "FaerieSlotTag.h"
+#include "FaerieSubObjectFilter.h"
 #include "Actions/FaerieInventoryClient.h"
 #include "FaerieEquipmentSlot.generated.h"
 
@@ -49,3 +50,9 @@ protected:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Replicated, Category = "Config", meta = (ExposeOnSpawn = true))
 	FFaerieEquipmentSlotConfig Config;
 };
+
+namespace Faerie::Equipment
+{
+	static inline auto SlotFilter = SubObject::Filter().ByClass<UFaerieEquipmentSlot>();
+	static inline auto RecursiveSlotFilter = SubObject::Filter().Recursive().ByClass<UFaerieEquipmentSlot>();
+}

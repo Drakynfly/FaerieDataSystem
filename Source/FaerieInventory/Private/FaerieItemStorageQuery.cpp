@@ -1,12 +1,13 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieItemStorageQuery.h"
+#include "DelegateCommon.h"
+#include "FaerieContainerFilter.h"
 #include "FaerieContainerFilterTypes.h"
 #include "FaerieFunctionTemplates.h"
 #include "FaerieItemDataComparator.h"
 #include "FaerieItemDataFilter.h"
 #include "FaerieItemStorage.h"
-#include "FaerieItemStorageIterators.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemStorageQuery)
 
@@ -14,118 +15,46 @@ DECLARE_STATS_GROUP(TEXT("FaerieItemStorage"), STATGROUP_FaerieItemStorageQuery,
 DECLARE_CYCLE_STAT(TEXT("Query (First)"), STAT_Storage_QueryFirst, STATGROUP_FaerieItemStorageQuery);
 DECLARE_CYCLE_STAT(TEXT("Query (All)"), STAT_Storage_QueryAll, STATGROUP_FaerieItemStorageQuery);
 
+using namespace Faerie::ItemData;
+using namespace Faerie::Container;
+
 bool UFaerieItemStorageQuery::IsSortBound() const
 {
-	return SortFunction.GetIndex() != 0;
+	return SortFunction.IsBound();
 }
 
 bool UFaerieItemStorageQuery::IsFilterBound() const
 {
-	return FilterFunction.GetIndex() != 0;
+	return FilterFunction.IsBound();
 }
 
-void UFaerieItemStorageQuery::SetFilter(Faerie::Container::FItemPredicate&& Predicate, UObject* AssociatedUObject)
+void UFaerieItemStorageQuery::SetFilter(FViewPredicate&& Predicate, const UObject* AssociatedUObject)
 {
-	if (Predicate.IsSet())
+	if (Predicate.IsBound())
 	{
-		FilterFunction.Emplace<Faerie::Container::FItemPredicate>(MoveTemp(Predicate));
+		FilterFunction = MoveTemp(Predicate);
 		FilterObject = AssociatedUObject;
 		OnQueryChanged.Broadcast(this);
 	}
-	else if (IsSortBound())
+	else
 	{
-		FilterFunction.Emplace<FEmptyVariantState>(); // Reset Filter
-		FilterObject = nullptr;
-		OnQueryChanged.Broadcast(this);
+		ResetFilter();
 	}
 }
 
-void UFaerieItemStorageQuery::SetFilter(Faerie::Container::FStackPredicate&& Predicate, UObject* AssociatedUObject)
-{
-	if (Predicate.IsSet())
-	{
-		FilterFunction.Emplace<Faerie::Container::FStackPredicate>(MoveTemp(Predicate));
-		FilterObject = AssociatedUObject;
-		OnQueryChanged.Broadcast(this);
-	}
-	else if (IsSortBound())
-	{
-		FilterFunction.Emplace<FEmptyVariantState>(); // Reset Filter
-		FilterObject = nullptr;
-		OnQueryChanged.Broadcast(this);
-	}
-}
-
-void UFaerieItemStorageQuery::SetFilter(Faerie::Container::FSnapshotPredicate&& Predicate, UObject* AssociatedUObject)
-{
-	if (Predicate.IsSet())
-	{
-		FilterFunction.Emplace<Faerie::Container::FSnapshotPredicate>(MoveTemp(Predicate));
-		FilterObject = AssociatedUObject;
-		OnQueryChanged.Broadcast(this);
-	}
-	else if (IsSortBound())
-	{
-		FilterFunction.Emplace<FEmptyVariantState>(); // Reset Filter
-		FilterObject = nullptr;
-		OnQueryChanged.Broadcast(this);
-	}
-}
-
-void UFaerieItemStorageQuery::SetFilterByDelegate_Item(const FFaerieItemPredicate& Delegate)
+void UFaerieItemStorageQuery::SetFilterByDelegate(const FFaerieViewPredicate& Delegate)
 {
 	if (Delegate.IsBound())
 	{
-		FilterFunction.Emplace<Faerie::Container::FItemPredicate>([Delegate](const UFaerieItem* Item)
-			{
-				return Delegate.Execute(Item);
-			});
+		// This works by assuming that the 'const Faerie::ItemData::FViewPtr&' parameter of the filter function is
+		// invisible to the Delegate's parameter type of 'const FFaerieItemDataViewWrapper&'.
+		FilterFunction = DYNAMIC_TO_NATIVE(FViewPredicate, Delegate);
 		FilterObject = nullptr;
 		OnQueryChanged.Broadcast(this);
 	}
-	else if (IsFilterBound())
+	else
 	{
-		FilterFunction.Emplace<FEmptyVariantState>(); // Reset Filter
-		FilterObject = nullptr;
-		OnQueryChanged.Broadcast(this);
-	}
-}
-
-void UFaerieItemStorageQuery::SetFilterByDelegate_Stack(const FFaerieStackPredicate& Delegate)
-{
-	if (Delegate.IsBound())
-	{
-		FilterFunction.Emplace<Faerie::Container::FStackPredicate>([Delegate](const FFaerieItemStackView& Stack)
-			{
-				return Delegate.Execute(Stack);
-			});
-		FilterObject = nullptr;
-		OnQueryChanged.Broadcast(this);
-	}
-	else if (IsFilterBound())
-	{
-		FilterFunction.Emplace<FEmptyVariantState>(); // Reset Filter
-		FilterObject = nullptr;
-		OnQueryChanged.Broadcast(this);
-	}
-}
-
-void UFaerieItemStorageQuery::SetFilterByDelegate_Snapshot(const FFaerieSnapshotPredicate& Delegate)
-{
-	if (Delegate.IsBound())
-	{
-		FilterFunction.Emplace<Faerie::Container::FSnapshotPredicate>([Delegate](const FFaerieItemSnapshot& Snapshot)
-			{
-				return Delegate.Execute(Snapshot);
-			});
-		FilterObject = nullptr;
-		OnQueryChanged.Broadcast(this);
-	}
-	else if (IsFilterBound())
-	{
-		FilterFunction.Emplace<FEmptyVariantState>(); // Reset Filter
-		FilterObject = nullptr;
-		OnQueryChanged.Broadcast(this);
+		ResetFilter();
 	}
 }
 
@@ -133,125 +62,41 @@ void UFaerieItemStorageQuery::SetFilterByObject(const UFaerieItemDataFilter* Obj
 {
 	if (Object != FilterObject)
 	{
-		FilterFunction.Emplace<Faerie::Container::FSnapshotPredicate>([Object](const FFaerieItemSnapshot& Snapshot)
-			{
-				const FFaerieItemStackView View{Snapshot.ItemObject, Snapshot.Copies};
-				return Object->Exec(View);
-			});
+		FilterFunction = FViewPredicate::CreateUObject(Object, &UFaerieItemDataFilter::ExecView);
 		FilterObject = Object;
 		OnQueryChanged.Broadcast(this);
 	}
-	else if (IsFilterBound())
+	else
 	{
-		FilterFunction.Emplace<FEmptyVariantState>(); // Reset Filter
-		FilterObject = nullptr;
-		OnQueryChanged.Broadcast(this);
+		ResetFilter();
 	}
 }
 
-void UFaerieItemStorageQuery::SetSort(Faerie::Container::FItemComparator&& Comparator, UObject* AssociatedUObject)
+void UFaerieItemStorageQuery::SetSort(FViewComparator&& Comparator, const UObject* AssociatedUObject)
 {
-	if (Comparator.IsSet())
+	if (Comparator.IsBound())
 	{
-		SortFunction.Emplace<Faerie::Container::FItemComparator>(MoveTemp(Comparator));
+		SortFunction = MoveTemp(Comparator);
 		SortObject = AssociatedUObject;
 		OnQueryChanged.Broadcast(this);
 	}
-	else if (IsSortBound())
+	else
 	{
-		SortFunction.Emplace<FEmptyVariantState>(); // Reset Sort
-		SortObject = nullptr;
-		OnQueryChanged.Broadcast(this);
+		ResetSort();
 	}
 }
 
-void UFaerieItemStorageQuery::SetSort(Faerie::Container::FStackComparator&& Comparator, UObject* AssociatedUObject)
-{
-	if (Comparator.IsSet())
-	{
-		SortFunction.Emplace<Faerie::Container::FStackComparator>(MoveTemp(Comparator));
-		SortObject = AssociatedUObject;
-		OnQueryChanged.Broadcast(this);
-	}
-	else if (IsSortBound())
-	{
-		SortFunction.Emplace<FEmptyVariantState>(); // Reset Sort
-		SortObject = nullptr;
-		OnQueryChanged.Broadcast(this);
-	}
-}
-
-void UFaerieItemStorageQuery::SetSort(Faerie::Container::FSnapshotComparator&& Comparator, UObject* AssociatedUObject)
-{
-	if (Comparator.IsSet())
-	{
-		SortFunction.Emplace<Faerie::Container::FSnapshotComparator>(MoveTemp(Comparator));
-		SortObject = AssociatedUObject;
-		OnQueryChanged.Broadcast(this);
-	}
-	else if (IsSortBound())
-	{
-		SortFunction.Emplace<FEmptyVariantState>(); // Reset Sort
-		SortObject = nullptr;
-		OnQueryChanged.Broadcast(this);
-	}
-}
-
-void UFaerieItemStorageQuery::SetSortByDelegate_Item(const FFaerieItemComparator& Delegate)
+void UFaerieItemStorageQuery::SetSortByDelegate(const UFaerieFunctionTemplates::FFaerieViewComparator& Delegate)
 {
 	if (Delegate.IsBound())
 	{
-		SortFunction.Emplace<Faerie::Container::FItemComparator>(
-			[Delegate](const UFaerieItem* ItemA, const UFaerieItem* ItemB)
-			{
-				return Delegate.Execute(ItemA, ItemB);
-			});
+		SortFunction = DYNAMIC_TO_NATIVE(FViewComparator, Delegate);
 		SortObject = nullptr;
 		OnQueryChanged.Broadcast(this);
 	}
-	else if (IsSortBound())
+	else
 	{
-		SortFunction.Emplace<FEmptyVariantState>(); // Reset Sort
-		SortObject = nullptr;
-		OnQueryChanged.Broadcast(this);
-	}
-}
-
-void UFaerieItemStorageQuery::SetSortByDelegate_Stack(const FFaerieStackComparator& Delegate)
-{
-	if (Delegate.IsBound())
-	{
-		SortFunction.Emplace<Faerie::Container::FStackComparator>(
-			[Delegate](const FFaerieItemStackView& StackA, const FFaerieItemStackView& StackB)
-			{
-				return Delegate.Execute(StackA, StackB);
-			});
-		OnQueryChanged.Broadcast(this);
-	}
-	else if (IsSortBound())
-	{
-		SortFunction.Emplace<FEmptyVariantState>(); // Reset Sort
-		SortObject = nullptr;
-		OnQueryChanged.Broadcast(this);
-	}
-}
-
-void UFaerieItemStorageQuery::SetSortByDelegate_Snapshot(const FFaerieSnapshotComparator& Delegate)
-{
-	if (Delegate.IsBound())
-	{
-		SortFunction.Emplace<Faerie::Container::FSnapshotComparator>(
-			[Delegate](const FFaerieItemSnapshot& SnapshotA, const FFaerieItemSnapshot& SnapshotB)
-			{
-				return Delegate.Execute(SnapshotA, SnapshotB);
-			});
-		OnQueryChanged.Broadcast(this);
-	}
-	else if (IsSortBound())
-	{
-		SortFunction.Emplace<FEmptyVariantState>(); // Reset Sort
-		SortObject = nullptr;
-		OnQueryChanged.Broadcast(this);
+		ResetSort();
 	}
 }
 
@@ -260,18 +105,12 @@ void UFaerieItemStorageQuery::SetSortByObject(const UFaerieItemDataComparator* C
 	if (Comparator != SortObject)
 	{
 		SortObject = Comparator;
-		SortFunction.Emplace<Faerie::Container::FSnapshotComparator>(
-			[Comparator](const FFaerieItemSnapshot& SnapshotA, const FFaerieItemSnapshot& SnapshotB)
-			{
-				return Comparator->Exec(SnapshotA, SnapshotB);
-			});
+		SortFunction = FViewComparator::CreateUObject(Comparator, &UFaerieItemDataComparator::Exec);
 		OnQueryChanged.Broadcast(this);
 	}
-	else if (IsSortBound())
+	else
 	{
-		SortFunction.Emplace<FEmptyVariantState>(); // Reset Sort
-		SortObject = nullptr;
-		OnQueryChanged.Broadcast(this);
+		ResetSort();
 	}
 }
 
@@ -293,24 +132,51 @@ void UFaerieItemStorageQuery::SetInvertSort(const bool Invert)
 	}
 }
 
+void UFaerieItemStorageQuery::ResetFilter()
+{
+	if (IsFilterBound())
+	{
+		FilterFunction.Unbind();
+		FilterObject = nullptr;
+		OnQueryChanged.Broadcast(this);
+	}
+}
+
+void UFaerieItemStorageQuery::ResetSort()
+{
+	if (IsSortBound())
+	{
+		SortFunction.Unbind();
+		SortObject = nullptr;
+		OnQueryChanged.Broadcast(this);
+	}
+}
+
 FFaerieAddress UFaerieItemStorageQuery::QueryFirstAddress(const UFaerieItemStorage* Storage) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_Storage_QueryFirst);
 
+	if (!IsValid(Storage))
+	{
+		return {};
+	}
+
 	if (!IsFilterBound()) return {};
+
+	FCallbackFilter IteratorPredicate{
+		FIteratorPredicate::CreateUObject(this, &ThisClass::IsIteratorFiltered)};
 
 	if (InvertFilter)
 	{
-		return Storage->QueryFirst([this, Storage](const FFaerieAddress& Address)
-			{
-				return !IsAddressFiltered(Storage, Address);
-			});
+		return FAddressFilter()
+			.Invert()
+			.By(MoveTemp(IteratorPredicate))
+			.First(Storage);
 	}
 
-	return Storage->QueryFirst([this, Storage](const FFaerieAddress& Address)
-		{
-			return IsAddressFiltered(Storage, Address);
-		});
+	return FAddressFilter()
+		   .By(MoveTemp(IteratorPredicate))
+		   .First(Storage);
 }
 
 void UFaerieItemStorageQuery::QueryAllAddresses(const UFaerieItemStorage* Storage, TArray<FFaerieAddress>& OutAddresses) const
@@ -325,132 +191,95 @@ void UFaerieItemStorageQuery::QueryAllAddresses(const UFaerieItemStorage* Storag
 	// Ensure we are starting with a blank slate.
 	OutAddresses.Empty();
 
-	const bool HasFilter = IsFilterBound();
-	const bool HasSort = IsSortBound();
-
-	if (!HasFilter && !HasSort)
+	if (IsFilterBound())
 	{
-		if (!InvertFilter)
-		{
-			for (const FFaerieAddress Address : Faerie::Storage::FIterator_AllAddresses(*Storage))
-			{
-				OutAddresses.Add(Address);
-			}
-
-			if (InvertSort)
-			{
-				Algo::Reverse(OutAddresses);
-			}
-		}
-		return;
-	}
-
-	//Faerie::Storage::FItemFilter_Address Res(Storage);
-	Faerie::Storage::FItemFilter_Key Res(Storage);
-
-	if (HasFilter)
-	{
-		// @todo temporarily disabled filters, while Address filters don't work.
-		Faerie::Container::FAddressFilterCallback AddressFilter;
-		AddressFilter.Callback = [this, Storage](const FFaerieAddress Address)
-			{
-				return IsAddressFiltered(Storage, Address);
-			};
-		//Res.Run(MoveTemp(AddressFilter));
+		FCallbackFilter IteratorPredicate{
+			FIteratorPredicate::CreateUObject(this, &ThisClass::IsIteratorFiltered)};
 
 		if (InvertFilter)
 		{
-			Res.Invert();
-		}
-	}
-
-	if (HasSort)
-	{
-		if (InvertSort)
-		{
-			OutAddresses = Res.SortBy<Faerie::Container::ESortDirection::Backward>(SortFunction).EmitAddresses();
+			OutAddresses = FAddressFilter()
+				.Invert()
+				.By(MoveTemp(IteratorPredicate))
+				.Emit(Storage);
 		}
 		else
 		{
-			OutAddresses = Res.SortBy(SortFunction).EmitAddresses();
+			OutAddresses = FAddressFilter()
+				.By(MoveTemp(IteratorPredicate))
+				.Emit(Storage);
 		}
 	}
 	else
 	{
-		OutAddresses = Res.EmitAddresses();
+		// If we have no filter, dump all addresses into the output.
+		Storage->GetAllAddresses(OutAddresses);
+	}
+
+	if (IsSortBound())
+	{
+		Algo::Sort(OutAddresses,
+			[this, Storage](const FFaerieAddress A, const FFaerieAddress B)
+			{
+				return CompareAddresses(Storage, A, B);
+			});
 	}
 }
 
-FFaerieItemSnapshot MakeSnapshot(const UFaerieItemStorage* Storage, const FFaerieAddress Address)
+namespace
 {
-	const FFaerieItemStackView StorageA = Storage->ViewStack(Address);
+	struct FImmediateView final : public Faerie::ItemData::IViewBase
+	{
+		FImmediateView(const TNotNull<const IFaerieItemOwnerInterface*> Owner, const FFaerieItemStackView Stack)
+			: Owner(Owner), Stack(Stack) {}
 
-	FFaerieItemSnapshot Snap;
-	Snap.Owner = Storage;
-	Snap.ItemObject = StorageA.Item.Get();
-	Snap.Copies = StorageA.Copies;
-	return Snap;
+		virtual bool IsValid() const override { return Stack.IsValid(); }
+		virtual const UFaerieItem* ResolveItem() const override { return Stack.Item.Get(); }
+		virtual FFaerieItemStackView ResolveView() const override { return Stack; }
+		virtual const IFaerieItemOwnerInterface* ResolveOwner() const override { return Owner; }
+
+		const TNotNull<const IFaerieItemOwnerInterface*> Owner;
+		const FFaerieItemStackView Stack;
+	};
 }
 
 bool UFaerieItemStorageQuery::CompareAddresses(const UFaerieItemStorage* Storage, const FFaerieAddress AddressA, const FFaerieAddress AddressB) const
 {
-	switch (SortFunction.GetIndex())
+	if (!IsValid(Storage)) return false;
+
+	if (SortFunction.IsBound())
 	{
-	case 1:
-		// Compare Items
-		{
-			const UFaerieItem* ItemA = Storage->ViewItem(AddressA);
-			const UFaerieItem* ItemB = Storage->ViewItem(AddressB);
-			const bool Result = SortFunction.Get<Faerie::Container::FItemComparator>()(ItemA, ItemB);
-			return InvertSort ? !Result : Result;
-		}
-	case 2:
-		// Compare Stacks
-		{
-			const FFaerieItemStackView StackA = Storage->ViewStack(AddressA);
-			const FFaerieItemStackView StackB = Storage->ViewStack(AddressB);
-			const bool Result = SortFunction.Get<Faerie::Container::FStackComparator>()(StackA, StackB);
-			return InvertSort ? !Result : Result;
-		}
-	case 3:
-		// Compare Snapshots
-		{
-			const FFaerieItemSnapshot SnapA = MakeSnapshot(Storage, AddressA);
-			const FFaerieItemSnapshot SnapB = MakeSnapshot(Storage, AddressB);
-			const bool Result = SortFunction.Get<Faerie::Container::FSnapshotComparator>()(SnapA, SnapB);
-			return InvertSort ? !Result : Result;
-		}
-	default:
-		return false;
+		const FImmediateView ViewA(Storage, Storage->ViewStack(AddressA));
+		const FImmediateView ViewB(Storage, Storage->ViewStack(AddressB));
+		return SortFunction.Execute(&ViewA, &ViewB);
 	}
+
+	return false;
 }
 
 bool UFaerieItemStorageQuery::IsAddressFiltered(const UFaerieItemStorage* Storage, const FFaerieAddress Address) const
 {
-	switch (FilterFunction.GetIndex())
+	if (!IsValid(Storage)) return false;
+
+	if (FilterFunction.IsBound())
 	{
-	case 1:
-		// Filter Item
+		FImmediateView View(Storage, Storage->ViewStack(Address));
+
+		if (InvertFilter)
 		{
-			const UFaerieItem* Item = Storage->ViewItem(Address);
-			const bool Result = FilterFunction.Get<Faerie::Container::FItemPredicate>()(Item);
-			return InvertSort ? !Result : Result;
+			return !FilterFunction.Execute(&View);
 		}
-	case 2:
-		// Filter Stack
-		{
-			const FFaerieItemStackView Stack = Storage->ViewStack(Address);
-			const bool Result = FilterFunction.Get<Faerie::Container::FStackPredicate>()(Stack);
-			return InvertSort ? !Result : Result;
-		}
-	case 3:
-		// Filter Snapshot
-		{
-			const FFaerieItemSnapshot Snapshot = MakeSnapshot(Storage, Address);
-			const bool Result = FilterFunction.Get<Faerie::Container::FSnapshotPredicate>()(Snapshot);
-			return InvertFilter ? Result : !Result;
-		}
-	default:
-		return false;
+		return FilterFunction.Execute(&View);
 	}
+
+	return false;
+}
+
+bool UFaerieItemStorageQuery::IsIteratorFiltered(FIteratorPtr Iterator) const
+{
+	if (FilterFunction.IsBound())
+	{
+		return FilterFunction.Execute(Iterator);
+	}
+	return false;
 }

@@ -13,11 +13,11 @@ namespace Faerie
 	FAERIEINVENTORY_API [[nodiscard]] bool ValidateItemData(const UFaerieItem* Item);
 
 	// This function must be called to bind items to a new owner. Nested items are recursed over, so only call the root.
-	FAERIEINVENTORY_API void ReleaseOwnership(UObject* Owner, const UFaerieItem* Item);
+	FAERIEINVENTORY_API void ReleaseOwnership(TNotNull<UObject*> Owner, TNotNull<UFaerieItem*> Item);
 
 	// Finds the owner of an item, and calls ReleaseOwnership. WARNING: This is a low-level function: Use only if you know why.
-	FAERIEINVENTORY_API void ClearOwnership(const UFaerieItem* Item);
+	FAERIEINVENTORY_API void ClearOwnership(TNotNull<UFaerieItem*> Item);
 
 	// This function must be called to unbind items from an owner. Nested items are recursed over, so only call the root.
-	FAERIEINVENTORY_API void TakeOwnership(UObject* Owner, const UFaerieItem* Item);
+	FAERIEINVENTORY_API void TakeOwnership(TNotNull<UObject*> Owner, TNotNull<UFaerieItem*> Item);
 }

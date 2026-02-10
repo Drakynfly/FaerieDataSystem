@@ -2,73 +2,93 @@
 
 #pragma once
 
-#include "FaerieContainerFilter.h"
-
-class UFaerieItemDataFilter;
+#include "FaerieContainerIterator.h"
+#include "GameplayTagContainer.h"
 
 namespace Faerie::Container
 {
-	struct FAERIEINVENTORY_API FSingleKey final : IEntryKeyFilter
+	enum class EFilterFlags : uint32
 	{
-		FSingleKey() = default;
-		explicit FSingleKey(const FEntryKey EntryKey) : TestKey(EntryKey) {}
-		virtual bool Passes(FEntryKey Key) override;
-		FEntryKey TestKey;
+		None = 0,
+
+		// @todo not yet supported
+		ImmutableOnly = 1 << 0,
+
+		// This filter is restricted to emitting mutable items
+		MutableOnly = 1 << 1,
+
+		// @todo not yet supported
+		Static = 1 << 2,
+
+		Inverted = 1 << 3
+	};
+	ENUM_CLASS_FLAGS(EFilterFlags)
+
+	template <typename T>
+	struct TPredicateTraits
+	{
+		static constexpr EFilterFlags GrantFlags = EFilterFlags::None;
+		static constexpr EFilterFlags RemoveFlags = EFilterFlags::None;
 	};
 
-
-	struct FAERIEINVENTORY_API FKeySet final : IEntryKeyFilter
+	template <typename T, EFilterFlags Flags>
+	consteval EFilterFlags CombineFilterFlags()
 	{
-		virtual bool Passes(FEntryKey Key) override;
-		TSet<FEntryKey> TestKeys;
+		return (Flags & ~TPredicateTraits<T>::RemoveFlags) | TPredicateTraits<T>::GrantFlags;
+	}
+
+	template <typename TPredicate>
+	concept CFilterPredicate = requires(const TPredicate& Predicate, FIteratorPtr Iterator)
+	{
+		{ Predicate.Exec(Iterator) } -> UE::CSameAs<bool>;
 	};
 
-
-	struct FAERIEINVENTORY_API FMutableFilter final : IItemDataFilter
+	struct FAERIEINVENTORY_API FMutablePredicate
 	{
-		virtual bool Passes(const UFaerieItem* Item) override { return StaticPasses(Item); }
-		static bool StaticPasses(const UFaerieItem* Item);
+		static bool Exec(FIteratorPtr Iterator);
 	};
 
 	template <>
-	struct TFilterTraits<FMutableFilter>
+	struct TPredicateTraits<FMutablePredicate>
 	{
 		static constexpr EFilterFlags TypeFlags = EFilterFlags::Static;
 		static constexpr EFilterFlags GrantFlags = EFilterFlags::MutableOnly;
 		static constexpr EFilterFlags RemoveFlags = EFilterFlags::ImmutableOnly;
 	};
 
-
-	struct FAERIEINVENTORY_API FImmutableFilter final : IItemDataFilter
+	struct FAERIEINVENTORY_API FImmutablePredicate
 	{
-		virtual bool Passes(const UFaerieItem* Item) override { return StaticPasses(Item); }
-		static bool StaticPasses(const UFaerieItem* Item);
+		static bool Exec(FIteratorPtr Iterator);
 	};
 
 	template <>
-	struct TFilterTraits<FImmutableFilter>
+	struct TPredicateTraits<FImmutablePredicate>
 	{
 		static constexpr EFilterFlags TypeFlags = EFilterFlags::Static;
 		static constexpr EFilterFlags GrantFlags = EFilterFlags::ImmutableOnly;
 		static constexpr EFilterFlags RemoveFlags = EFilterFlags::MutableOnly;
 	};
 
-
-	struct FAERIEINVENTORY_API FSnapshotFilterObj : ISnapshotFilter
+	// Compare the test Item's name against an FText.
+	struct FAERIEINVENTORY_API FCompareName
 	{
-		virtual bool Passes(const FFaerieItemSnapshot& Snapshot) override;
-		UFaerieItemDataFilter* FilterObj;
+		bool Exec(FIteratorPtr Iterator) const;
+		FText CompareText;
+		ETextComparisonLevel::Type ComparisonType;
 	};
 
-	struct FAERIEINVENTORY_API FAddressFilterCallback : IAddressFilter
+	// Test for containing a gameplay tag.
+	struct FAERIEINVENTORY_API FHasTag
 	{
-		virtual bool Passes(FFaerieAddress Address) override;
-		FAddressPredicate Callback;
+		bool Exec(FIteratorPtr Iterator) const;
+		FGameplayTag Tag;
+		bool HasTagExact;
 	};
 
-	struct FAERIEINVENTORY_API FSnapshotFilterCallback : ISnapshotFilter
+	// Run a callback on the iterator, allowing user code to run arbitrary selection logic.
+	struct FAERIEINVENTORY_API FCallbackFilter
 	{
-		virtual bool Passes(const FFaerieItemSnapshot& Snapshot) override;
-		FSnapshotPredicate Callback;
+		bool Exec(FIteratorPtr Iterator) const;
+		FIteratorPredicate Callback;
 	};
 }

@@ -57,6 +57,6 @@ namespace Faerie
 	template <CItemTokenImpl T>
 	const T* GetReferencedToken(const UFaerieItem& Item, FGameplayTag ReferenceTag, bool MatchExact = false)
 	{
-		return Cast<T>(GetReferencedToken(Item, T::StaticClass(), ReferenceTag, MatchExact));
+		return CastChecked<T>(GetReferencedToken(Item, T::StaticClass(), ReferenceTag, MatchExact), ECastCheckedType::NullAllowed);
 	}
 }

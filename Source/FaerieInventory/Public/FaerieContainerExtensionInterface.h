@@ -73,11 +73,11 @@ protected:
 template <Faerie::CItemContainerExtension T>
 const T* GetExtension(const IFaerieContainerExtensionInterface* Interface, const bool RecursiveSearch)
 {
-	return Cast<T>(Interface->GetExtension(T::StaticClass(), RecursiveSearch));
+	return CastChecked<T>(Interface->GetExtension(T::StaticClass(), RecursiveSearch), ECastCheckedType::NullAllowed);
 }
 
 template <Faerie::CItemContainerExtension T>
 T* GetExtension(IFaerieContainerExtensionInterface* Interface, const bool RecursiveSearch)
 {
-	return Cast<T>(Interface->GetExtension(T::StaticClass(), RecursiveSearch));
+	return CastChecked<T>(Interface->GetExtension(T::StaticClass(), RecursiveSearch), ECastCheckedType::NullAllowed);
 }

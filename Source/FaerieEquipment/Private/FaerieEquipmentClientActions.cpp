@@ -10,15 +10,9 @@ bool FFaerieClientAction_SetItemInSlot::Server_Execute(const UFaerieInventoryCli
 {
 	if (!IsValid(Slot)) return false;
 	if (!Client->CanAccessContainer(Slot, StaticStruct()))  return false;
-	if (!Slot->CanSetInSlot(Stack)) return false;
 	if (!IsValid(Stack.Item)) return false;
 
-	if (Slot->CanSetInSlot(Stack))
-	{
-		Slot->SetItemInSlot(Stack);
-		return true;
-	}
-	return false;
+	return Slot->SetItemInSlot(Stack);
 }
 
 bool FFaerieClientAction_MoveFromSlot::IsValid(const UFaerieInventoryClient* Client) const

@@ -280,8 +280,9 @@ bool UFaerieEquipmentManager::TrySwapSlots(UFaerieEquipmentSlot* SlotA, UFaerieE
 	auto ContentA = SlotA->TakeItemFromSlot(Faerie::ItemData::EntireStack);
 	auto ContentB = SlotB->TakeItemFromSlot(Faerie::ItemData::EntireStack);
 
-	SlotA->SetItemInSlot(ContentA);
-	SlotA->SetItemInSlot(ContentB);
+	// Use Impl version to bypass redundant checks to CanSetInSlot
+	SlotB->SetStoredItem_Impl(ContentA);
+	SlotA->SetStoredItem_Impl(ContentB);
 
 	return true;
 }

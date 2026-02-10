@@ -2,7 +2,6 @@
 
 #include "FaerieItemStackContainer.h"
 
-#include "FaerieContainerFilter.h"
 #include "FaerieContainerIterator.h"
 #include "FaerieInventoryLog.h"
 #include "FaerieItem.h"
@@ -33,115 +32,25 @@ namespace Faerie::Container
 	class FStackContainerIteratorStub final : public IIterator
 	{
 	public:
-		explicit FStackContainerIteratorStub(const UFaerieItemStackContainer* Stack)
+		UE_REWRITE explicit FStackContainerIteratorStub(const UFaerieItemStackContainer* Stack)
 		  : Stack(Stack) {}
 
 		//~ Container::IIterator
-		virtual FVirtualIterator Copy() const override
+		UE_REWRITE virtual TUniquePtr<IIterator> Copy() const override
 		{
-			return FVirtualIterator(MakeUnique<FStackContainerIteratorStub>(Stack));
+			return TUniquePtr<IIterator>(MakeUnique<FStackContainerIteratorStub>(Stack));
 		}
-		FORCEINLINE virtual void Advance() override { Stack = nullptr; }
-		FORCEINLINE virtual FEntryKey ResolveKey() const override { return Stack->GetCurrentKey(); }
-		FORCEINLINE virtual FFaerieAddress ResolveAddress() const override { return Stack->GetCurrentAddress(); }
-		FORCEINLINE virtual const UFaerieItem* ResolveItem() const override { return Stack->GetItemObject(); }
-		FORCEINLINE virtual bool IsValid() const override { return ::IsValid(Stack) && Stack->IsFilled(); }
+		UE_REWRITE virtual void Advance() override { Stack = nullptr; }
+		UE_REWRITE virtual FEntryKey ResolveKey() const override { return Stack->GetCurrentKey(); }
+		UE_REWRITE virtual FFaerieAddress ResolveAddress() const override { return Stack->GetCurrentAddress(); }
+		UE_REWRITE virtual const UFaerieItem* ResolveItem() const override { return Stack->GetItemObject(); }
+		UE_REWRITE virtual FFaerieItemStackView ResolveView() const override { return Stack->View(); }
+		UE_REWRITE virtual const IFaerieItemOwnerInterface* ResolveOwner() const override { return Stack; }
+		UE_REWRITE virtual bool IsValid() const override { return ::IsValid(Stack) && Stack->IsFilled(); }
 		//~ Container::IIterator
 
 	private:
 		const UFaerieItemStackContainer* Stack;
-	};
-
-	class FStackContainerFilterStub final : public IFilter
-	{
-	public:
-		explicit FStackContainerFilterStub(const UFaerieItemStackContainer* Stack)
-		  : Stack(Stack)
-		{
-			Alive = Stack->IsFilled();
-		}
-
-	protected:
-		virtual void Run_Impl(IItemDataFilter&& Filter) override
-		{
-			if (Alive && !Filter.Passes(Stack->GetItemObject()))
-			{
-				Alive = false;
-			}
-		}
-		virtual void Run_Impl(IAddressFilter&& Filter) override
-		{
-			if (Alive && !Filter.Passes(Stack->GetCurrentAddress()))
-			{
-				Alive = false;
-			}
-		}
-		virtual void Run_Impl(IEntryKeyFilter&& Filter) override
-		{
-			if (Alive && !Filter.Passes(Stack->GetCurrentKey()))
-			{
-				Alive = false;
-			}
-		}
-		virtual void Run_Impl(ISnapshotFilter&& Filter) override
-		{
-			if (Alive)
-			{
-				FFaerieItemSnapshot Snapshot;
-				Snapshot.Owner = Stack;
-				Snapshot.ItemObject = Stack->GetItemObject();
-				Snapshot.Copies = Stack->GetCopies();
-
-				if (!Filter.Passes(Snapshot))
-				{
-					Alive = false;
-				}
-			}
-		}
-		virtual void Invert_Impl() override
-		{
-			Alive = !Alive;
-		}
-
-		virtual void Reset() override { Alive = true; }
-		virtual int32 Num() const override { return Stack->GetStack(); }
-
-		virtual FVirtualKeyIterator KeyRange() const override
-		{
-			if (Alive)
-			{
-				return FVirtualKeyIterator(FVirtualIterator(MakeUnique<FStackContainerIteratorStub>(Stack)));
-			}
-			return FVirtualKeyIterator{FVirtualIterator(nullptr)};
-		}
-		virtual FVirtualAddressIterator AddressRange() const override
-		{
-			if (Alive)
-			{
-				return FVirtualAddressIterator(FVirtualIterator(MakeUnique<FStackContainerIteratorStub>(Stack)));
-			}
-			return FVirtualAddressIterator{FVirtualIterator(nullptr)};
-		}
-		virtual FVirtualItemIterator ItemRange() const override
-		{
-			if (Alive)
-			{
-				return FVirtualItemIterator(FVirtualIterator(MakeUnique<FStackContainerIteratorStub>(Stack)));
-			}
-			return FVirtualItemIterator{FVirtualIterator(nullptr)};
-		}
-		virtual FVirtualConstItemIterator ConstItemRange() const override
-		{
-			if (Alive)
-			{
-				return FVirtualConstItemIterator(FVirtualIterator(MakeUnique<FStackContainerIteratorStub>(Stack)));
-			}
-			return FVirtualConstItemIterator(FVirtualIterator(nullptr));
-		}
-
-	private:
-		const UFaerieItemStackContainer* Stack;
-		bool Alive;
 	};
 }
 
@@ -159,13 +68,56 @@ void UFaerieItemStackContainer::GetLifetimeReplicatedProps(TArray<FLifetimePrope
 //~ UFaerieItemContainerBase
 FInstancedStruct UFaerieItemStackContainer::MakeSaveData(TMap<FGuid, FInstancedStruct>& ExtensionData) const
 {
-	unimplemented();
-	return FInstancedStruct();
+	RavelExtensionData(ExtensionData);
+
+	FFaerieSimpleItemStackSaveData SlotSaveData;
+	SlotSaveData.StoredKey = StoredKey;
+	if (StoredKey.IsValid())
+	{
+		SlotSaveData.ItemStack = ItemStack;
+	}
+	return FInstancedStruct::Make(SlotSaveData);
 }
 
 void UFaerieItemStackContainer::LoadSaveData(const FConstStructView ItemData, UFaerieItemContainerExtensionData* ExtensionData)
 {
-	unimplemented();
+	const FFaerieSimpleItemStackSaveData* SaveData = ItemData.GetPtr<const FFaerieSimpleItemStackSaveData>();
+	if (!SaveData)
+	{
+		return;
+	}
+
+	// Clear any current content.
+	if (IsFilled())
+	{
+		TakeItemFromSlot(Faerie::ItemData::EntireStack);
+	}
+
+	if (SaveData->StoredKey.IsValid())
+	{
+		KeyGen.SetPosition(SaveData->StoredKey);
+
+		const FFaerieItemStack& LoadedItemStack = SaveData->ItemStack;
+		if (Faerie::ValidateItemData(LoadedItemStack.Item) &&
+			LoadedItemStack.Copies > 0)
+		{
+			// We do need to ClearOwnership here, as whatever loaded the data may have parented the items automatically.
+			if (UFaerieItem* Mutable = LoadedItemStack.Item->MutateCast())
+			{
+				Faerie::ClearOwnership(Mutable);
+			}
+			SetStoredItem_Impl(LoadedItemStack);
+		}
+		else
+		{
+			// Reset key if stack is invalid.
+			UE_LOG(LogFaerieInventory, Error, TEXT("Loading content for stack container '%s' failed. Stored item has been reset!"), *GetPathName())
+			MARK_PROPERTY_DIRTY_FROM_NAME(UFaerieItemStackContainer, StoredKey, this);
+			StoredKey = FEntryKey();
+		}
+	}
+
+	UnravelExtensionData(ExtensionData);
 }
 
 bool UFaerieItemStackContainer::Contains(const FEntryKey Key) const
@@ -224,6 +176,15 @@ int32 UFaerieItemStackContainer::GetStack(const FFaerieAddress Address) const
 	return 0;
 }
 
+const UFaerieItem* UFaerieItemStackContainer::ViewItem(const FEntryKey Key) const
+{
+	if (Contains(Key))
+	{
+		return ItemStack.Item;
+	}
+	return nullptr;
+}
+
 const UFaerieItem* UFaerieItemStackContainer::ViewItem(const FFaerieAddress Address) const
 {
 	if (Contains(Address))
@@ -260,35 +221,24 @@ FFaerieItemStack UFaerieItemStackContainer::Release(const FFaerieAddress Address
 	return FFaerieItemStack();
 }
 
-TUniquePtr<Faerie::Container::IIterator> UFaerieItemStackContainer::CreateIterator(bool) const
+TUniquePtr<Faerie::Container::IIterator> UFaerieItemStackContainer::CreateEntryIterator() const
 {
 	// Don't provide an iterator if we are empty...
 	if (!IsFilled()) return nullptr;
-
 	return MakeUnique<Faerie::Container::FStackContainerIteratorStub>(this);
 }
 
-TUniquePtr<Faerie::Container::IFilter> UFaerieItemStackContainer::CreateFilter(bool) const
+TUniquePtr<Faerie::Container::IIterator> UFaerieItemStackContainer::CreateAddressIterator() const
 {
-	return MakeUnique<Faerie::Container::FStackContainerFilterStub>(this);
+	// Don't provide an iterator if we are empty...
+	if (!IsFilled()) return nullptr;
+	return MakeUnique<Faerie::Container::FStackContainerIteratorStub>(this);
 }
 
-FEntryKey UFaerieItemStackContainer::FILTER_GetBaseKey(const FFaerieAddress Address) const
+TUniquePtr<Faerie::Container::IIterator> UFaerieItemStackContainer::CreateSingleEntryIterator(const FEntryKey Key) const
 {
-	if (Address == GetCurrentAddress())
-	{
-		return StoredKey;
-	}
-	return FEntryKey::InvalidKey;
-}
-
-TArray<FFaerieAddress> UFaerieItemStackContainer::FILTER_GetKeyAddresses(const FEntryKey Key) const
-{
-	if (Key == StoredKey)
-	{
-		return { GetCurrentAddress() };
-	}
-	return {};
+	if (GetCurrentKey() != Key) return nullptr;
+	return MakeUnique<Faerie::Container::FStackContainerIteratorStub>(this);
 }
 
 int32 UFaerieItemStackContainer::GetStack() const
@@ -363,8 +313,11 @@ void UFaerieItemStackContainer::SetStoredItem_Impl(const FFaerieItemStack& Stack
 
 		ItemStack = Stack;
 
-		// Take ownership of the new item.
-		Faerie::TakeOwnership(this, ItemStack.Item);
+		// Take ownership of the new item if it's mutable
+		if (UFaerieItem* Mutable = ItemStack.Item->MutateCast())
+		{
+			Faerie::TakeOwnership(this, Mutable);
+		}
 	}
 	else
 	{
@@ -495,7 +448,10 @@ FFaerieItemStack UFaerieItemStackContainer::TakeItemFromSlot(int32 Copies)
 		ItemStack = FFaerieItemStack();
 
 		// Release ownership of this item.
-		Faerie::ReleaseOwnership(this, OutStack.Item);
+		if (UFaerieItem* Mutable = OutStack.Item->MutateCast())
+		{
+			Faerie::ReleaseOwnership(this, Mutable);
+		}
 	}
 	else
 	{

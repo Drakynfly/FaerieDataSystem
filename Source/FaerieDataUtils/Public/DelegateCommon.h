@@ -16,11 +16,13 @@ struct TAutoDelegate
 // Create a Blueprint delegate from a static function
 #define AUTO_DELEGATE_STATIC(Type, Class, Function) TAutoDelegate<Type>(GetMutableDefault<Class>(), GET_MEMBER_NAME_CHECKED(Class, Function)).Delegate
 
+#define DYNAMIC_TO_NATIVE(NativeType, Delegate) NativeType::CreateUFunction(const_cast<UObject*>(Delegate.GetUObject()), Delegate.GetFunctionName())
+
 // Convert a Blueprint delegate to a TScriptDelegate
 #define DYNAMIC_TO_SCRIPT(Callback) TAutoDelegate<TScriptDelegate<>>(const_cast<UObject*>(Callback.GetUObject()), Callback.GetFunctionName()).Delegate
 
-// Convert a Blueprint delegate to a native delegate
-#define DYNAMIC_TO_NATIVE(Function) [Dynamic_Delegate = Function](auto... Args)\
+// Convert a Blueprint delegate to a c++ lambda
+#define DYNAMIC_TO_LAMBDA(Function) [Dynamic_Delegate = Function](auto... Args)\
 	{\
 		return Dynamic_Delegate.Execute(Args...);\
 	}

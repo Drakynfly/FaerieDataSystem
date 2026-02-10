@@ -64,8 +64,7 @@ struct FInventoryEntry : public FFastArraySerializerItem
 	GENERATED_BODY()
 
 	FInventoryEntry() = default;
-	FInventoryEntry(const UFaerieItem* InItem);
-	FInventoryEntry(FFaerieItemStackView InStack, TArray<FStackKey>& OutAddedKeys);
+	FInventoryEntry(FFaerieItemStackView InStack, TArray<FFaerieAddress>& OutNewAddresses);
 
 	// Unique key to identify this entry.
 	UPROPERTY(VisibleAnywhere, Category = "InventoryEntry")
@@ -104,8 +103,9 @@ public:
 
 	FStackKey GetStackAt(int32 Index) const;
 
-	TArray<FStackKey> CopyKeys() const;
-	TArray<int32> CopyStacks() const;
+	void CopyKeys(TArray<FStackKey>& OutKeys) const;
+	void CopyAddresses(TArray<FFaerieAddress>& OutAddresses) const;
+	void CopyStacks(TArray<int32>& OutStacks) const;
 
 	int32 StackSum() const;
 
@@ -125,6 +125,7 @@ public:
 
 	struct FMutableAccess : FNoncopyable
 	{
+		FMutableAccess(FInventoryContent& Source, const FInventoryEntry& Entry);
 		FMutableAccess(FInventoryContent& Source, int32 Index);
 		FMutableAccess(FInventoryContent& Source, const FEntryKey Key);
 		~FMutableAccess();
@@ -138,17 +139,17 @@ public:
 		// Removes a stack.
 		void RemoveStack(FStackKey InKey);
 
-		// Add the Amount to the stacks, adding new stacks as needed. Can optionally return the list of added stacks.
+		// Add the Amount to the stacks, adding new stacks as needed.
 		// ReturnValue is 0 if Amount was successfully added, or the remainder, otherwise.
-		void AddToAnyStack(int32 Amount, TArray<FStackKey>& OutAddedKeys);
+		void AddToAnyStack(int32 Amount, TArray<FFaerieAddress>& OutNewAddresses);
 
-		// Add the Amount as new stacks. Can optionally return the list of added stacks.
+		// Add the Amount as new stacks.
 		// ReturnValue is 0 if Amount was successfully added, or the remainder, otherwise.
-		void AddToNewStacks(int32 Amount, TArray<FStackKey>& OutAddedKeys);
+		void AddToNewStacks(int32 Amount, TArray<FFaerieAddress>& OutNewAddresses);
 
-		// Remove the amount from any number of stacks. Can optionally return the list of modified stacks, and/or just the removed stacks
+		// Remove the amount from any number of stacks.
 		// ReturnValue is 0 if Amount was successfully removed, or the remainder, if not.
-		int32 RemoveFromAnyStack(int32 Amount, TArray<FStackKey>* OutAllModifiedKeys = nullptr, TArray<FStackKey>* OutRemovedKeys = nullptr);
+		int32 RemoveFromAnyStack(int32 Amount, TArray<FFaerieAddress>& OutAllModifiedAddresses);
 
 		// Move an amount from one stack to another.
 		// ReturnValue is 0 if Amount was successfully moved, or the remainder, otherwise.
@@ -174,6 +175,11 @@ public:
 		// Tracks the stacks that were changed (either added or had their value edited)
 		TBitArray<> ChangeMask;
 	};
+
+	FMutableAccess GetMutableAccess(FInventoryContent& EntryMap) const
+	{
+		return FMutableAccess(EntryMap, *this);
+	}
 };
 
 template<>

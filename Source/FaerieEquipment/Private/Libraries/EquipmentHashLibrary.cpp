@@ -14,7 +14,7 @@ FFaerieHash UFaerieEquipmentHashLibrary::HashEquipment(const UFaerieEquipmentMan
 		return FFaerieHash();
 	}
 
-	return Faerie::Hash::HashEquipment(Manager, Config.Slots, DYNAMIC_TO_NATIVE(Config.HashFunction));
+	return Faerie::Hash::HashEquipment(Manager, Config.Slots, DYNAMIC_TO_LAMBDA(Config.HashFunction));
 }
 
 bool UFaerieEquipmentHashLibrary::ExecuteHashInstructions(const UFaerieEquipmentManager* Manager, const UFaerieEquipmentHashAsset* Asset)

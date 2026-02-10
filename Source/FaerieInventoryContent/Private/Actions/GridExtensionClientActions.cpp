@@ -39,7 +39,7 @@ bool FFaerieClientAction_MoveToGrid::Possess(const FFaerieItemStack& Stack) cons
 		return false;
 	}
 
-	const FFaerieAddress TargetAddress = UFaerieItemStorage::MakeAddress(Log.EntryTouched, Log.StackKeys.Last());
+	const FFaerieAddress TargetAddress = Log.AddressesTouched.Last();
 
 	// Finally, move item to the cell client requested.
 	return GridExtension->MoveItem(TargetAddress, Position);

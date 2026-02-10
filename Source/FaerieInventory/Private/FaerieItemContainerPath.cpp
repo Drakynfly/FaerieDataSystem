@@ -1,23 +1,22 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieItemContainerPath.h"
-#include "FaerieContainerFilter.h"
-#include "FaerieContainerFilterTypes.h"
 #include "FaerieItemContainerBase.h"
+#include "FaerieContainerIterator.h"
 #include "FaerieSubObjectFilter.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemContainerPath)
 
 void BuildPath_Recurse(UFaerieItemContainerBase* Container, const FFaerieItemContainerPath& BasePath, TArray<FFaerieItemContainerPath>& OutPaths)
 {
-	using namespace Faerie::Container;
+	using namespace Faerie;
 
 	FFaerieItemContainerPath& NewPath = OutPaths.Emplace_GetRef(BasePath);
 	NewPath.Containers.Add(Container);
 
-	for (UFaerieItem* Item : KeyFilter(Container).Run<FMutableFilter>().Items())
+	for (UFaerieItem* Item : Container::ItemRange(Container))
 	{
-		for (UFaerieItemContainerBase* SubContainer : Faerie::SubObject::Iterate(Item))
+		for (UFaerieItemContainerBase* SubContainer : SubObject::Iterate(Item))
 		{
 			BuildPath_Recurse(SubContainer, NewPath, OutPaths);
 		}

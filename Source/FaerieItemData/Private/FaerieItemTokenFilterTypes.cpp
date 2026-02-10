@@ -5,17 +5,44 @@
 
 namespace Faerie::Token
 {
-	bool FMutableFilter::StaticPasses(const UFaerieItemToken* Token)
+	bool FMatchMutability::Exec(const TNotNull<const UFaerieItemToken*> Token) const
 	{
-		return Token->IsMutable();
+		return Token->IsMutable() == MutabilityToMatch;
 	}
 
-	bool FImmutableFilter::StaticPasses(const UFaerieItemToken* Token)
+	bool FIsClass::Exec(const TNotNull<const UFaerieItemToken*> Token) const
 	{
-		return !Token->IsMutable();
+		return Token->IsA(Class);
 	}
 
-	bool FTagFilter::Passes(const UFaerieItemToken* Token)
+	bool FHasInterface::Exec(const TNotNull<const UFaerieItemToken*> Token) const
+	{
+		return Token->IsA(Class);
+	}
+
+	bool FIsClassExact::Exec(const TNotNull<const UFaerieItemToken*> Token) const
+	{
+		return Token->GetClass() == Class;
+	}
+
+	bool FIsAnyClass::Exec(const TNotNull<const UFaerieItemToken*> Token) const
+	{
+		for (auto&& Element : Classes)
+		{
+			if (Token->IsA(Element))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	bool FIsAnyClassExact::Exec(const TNotNull<const UFaerieItemToken*> Token) const
+	{
+		return Classes.Contains(Token->GetClass());
+	}
+
+	bool FTagFilter::Exec(const TNotNull<const UFaerieItemToken*> Token) const
 	{
 		if (Exact)
 		{
@@ -24,7 +51,7 @@ namespace Faerie::Token
 		return Token->GetClassTags().HasTag(Tag);
 	}
 
-	bool FTagsFilter::Passes(const UFaerieItemToken* Token)
+	bool FTagsFilter::Exec(const TNotNull<const UFaerieItemToken*> Token) const
 	{
 		if (Exact)
 		{
@@ -42,7 +69,7 @@ namespace Faerie::Token
 		return Token->GetClassTags().HasAny(Tags);
 	}
 
-	bool FTagQueryFilter::Passes(const UFaerieItemToken* Token)
+	bool FTagQueryFilter::Exec(const TNotNull<const UFaerieItemToken*> Token) const
 	{
 		return Token->GetClassTags().MatchesQuery(Query);
 	}

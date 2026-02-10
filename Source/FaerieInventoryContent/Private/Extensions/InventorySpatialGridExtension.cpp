@@ -207,9 +207,9 @@ void UInventorySpatialGridExtension::PostAddition(const UFaerieItemContainerBase
 {
 	// @todo don't add items for existing keys
 
-	for (const FStackKey StackKey : Event.StackKeys)
+	for (const FFaerieAddress Address : Event.AddressesTouched)
 	{
-		AddItemToGrid(UFaerieItemStorage::MakeAddress(Event.EntryTouched, StackKey), Event.Item.Get());
+		AddItemToGrid(Address, Event.Item.Get());
 	}
 }
 
@@ -221,10 +221,9 @@ void UInventorySpatialGridExtension::PostRemoval(const UFaerieItemContainerBase*
 		// Create a temporary array to store keys that need to be removed
 		TArray<FFaerieAddress> AddressesToRemove;
 
-		for (const FStackKey StackKey : Event.StackKeys)
+		for (const FFaerieAddress Address : Event.AddressesTouched)
 		{
-			if (const FFaerieAddress Address = UFaerieItemStorage::MakeAddress(Event.EntryTouched, StackKey);
-				ItemStorage->Contains(Address))
+			if (ItemStorage->Contains(Address))
 			{
 				PostStackChange({ Address, GetStackPlacementData(Address) });
 			}
@@ -242,7 +241,7 @@ EEventExtensionResponse UInventorySpatialGridExtension::AllowsEdit(const UFaerie
 {
 	if (EditType == Faerie::Inventory::Tags::Split)
 	{
-		if (!CanAddItemToGrid(GetItemShape_Impl(Container->View(Key).Item.Get())))
+		if (!CanAddItemToGrid(GetItemShape_Impl(Container->ViewItem(Key))))
 		{
 			return EEventExtensionResponse::Disallowed;
 		}
@@ -257,23 +256,22 @@ void UInventorySpatialGridExtension::PostEntryChanged(const UFaerieItemContainer
 	TArray<FFaerieAddress> AddressesToRemove;
 
 	// get addresses to remove
-	for (const FStackKey AffectedKey : Event.StackKeys)
+	for (const FFaerieAddress Address : Event.AddressesTouched)
 	{
-		const FFaerieAddress CurrentAddress = UFaerieItemStorage::MakeAddress(Event.EntryTouched, AffectedKey);
 		if (const UFaerieItemStorage* Storage = Cast<UFaerieItemStorage>(InitializedContainer);
-			!Storage->Contains(CurrentAddress))
+			!Storage->Contains(Address))
 		{
-			AddressesToRemove.Add(CurrentAddress);
+			AddressesToRemove.Add(Address);
 		}
 		else
 		{
-			if (GridContent.Contains(CurrentAddress))
+			if (GridContent.Contains(Address))
 			{
-				BroadcastEvent(CurrentAddress, EFaerieGridEventType::ItemChanged);
+				BroadcastEvent(Address, EFaerieGridEventType::ItemChanged);
 			}
 			else
 			{
-				AddItemToGrid(CurrentAddress, Event.Item.Get());
+				AddItemToGrid(Address, Event.Item.Get());
 			}
 		}
 	}

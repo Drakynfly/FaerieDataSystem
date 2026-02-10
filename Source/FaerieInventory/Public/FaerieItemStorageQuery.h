@@ -2,8 +2,10 @@
 
 #pragma once
 
-#include "FaerieContainerFilter.h"
+#include "FaerieContainerFilterTypes.h"
 #include "FaerieFunctionTemplates.h"
+#include "FaerieItemContainerStructs.h"
+#include "FaerieItemDataViewBase.h"
 #include "UObject/Object.h"
 #include "FaerieItemStorageQuery.generated.h"
 
@@ -13,12 +15,8 @@ class UFaerieItemStorage;
 class UFaerieItemStorageQuery;
 
 // We need to expose these delegates to the global namespace or UHT will cry.
-using FFaerieItemPredicate = UFaerieFunctionTemplates::FFaerieItemPredicate;
-using FFaerieStackPredicate = UFaerieFunctionTemplates::FFaerieStackPredicate;
-using FFaerieSnapshotPredicate = UFaerieFunctionTemplates::FFaerieSnapshotPredicate;
-using FFaerieItemComparator = UFaerieFunctionTemplates::FFaerieItemComparator;
-using FFaerieStackComparator = UFaerieFunctionTemplates::FFaerieStackComparator;
-using FFaerieSnapshotComparator = UFaerieFunctionTemplates::FFaerieSnapshotComparator;
+using FFaerieViewPredicate = UFaerieFunctionTemplates::FFaerieViewPredicate;
+using FFaerieViewComparator = UFaerieFunctionTemplates::FFaerieViewComparator;
 
 namespace Faerie
 {
@@ -48,34 +46,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|Storage Query")
 	bool GetInvertSort() const { return InvertSort; }
 
-	void SetFilter(Faerie::Container::FItemPredicate&& Predicate, UObject* AssociatedUObject);
-	void SetFilter(Faerie::Container::FStackPredicate&& Predicate, UObject* AssociatedUObject);
-	void SetFilter(Faerie::Container::FSnapshotPredicate&& Predicate, UObject* AssociatedUObject);
+	void SetFilter(Faerie::ItemData::FViewPredicate&& Predicate, const UObject* AssociatedUObject);
 
-	UFUNCTION(BlueprintCallable, Category = "Faerie|Storage Query", DisplayName = "Set Filter by Item Delegate")
-	void SetFilterByDelegate_Item(const UFaerieFunctionTemplates::FFaerieItemPredicate& Delegate);
-
-	UFUNCTION(BlueprintCallable, Category = "Faerie|Storage Query", DisplayName = "Set Filter by Stack Delegate")
-	void SetFilterByDelegate_Stack(const UFaerieFunctionTemplates::FFaerieStackPredicate& Delegate);
-
-	UFUNCTION(BlueprintCallable, Category = "Faerie|Storage Query", DisplayName = "Set Filter by Snapshot Delegate")
-	void SetFilterByDelegate_Snapshot(const UFaerieFunctionTemplates::FFaerieSnapshotPredicate& Delegate);
+	UFUNCTION(BlueprintCallable, Category = "Faerie|Storage Query")
+	void SetFilterByDelegate(const UFaerieFunctionTemplates::FFaerieViewPredicate& Delegate);
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|Storage Query")
 	void SetFilterByObject(const UFaerieItemDataFilter* Object);
 
-	void SetSort(Faerie::Container::FItemComparator&& Comparator, UObject* AssociatedUObject);
-	void SetSort(Faerie::Container::FStackComparator&& Comparator, UObject* AssociatedUObject);
-	void SetSort(Faerie::Container::FSnapshotComparator&& Comparator, UObject* AssociatedUObject);
+	void SetSort(Faerie::ItemData::FViewComparator&& Comparator, const UObject* AssociatedUObject);
 
-	UFUNCTION(BlueprintCallable, Category = "Faerie|Storage Query", DisplayName = "Set Sort by Item Delegate")
-	void SetSortByDelegate_Item(const UFaerieFunctionTemplates::FFaerieItemComparator& Delegate);
-
-	UFUNCTION(BlueprintCallable, Category = "Faerie|Storage Query", DisplayName = "Set Sort by Stack Delegate")
-	void SetSortByDelegate_Stack(const UFaerieFunctionTemplates::FFaerieStackComparator& Delegate);
-
-	UFUNCTION(BlueprintCallable, Category = "Faerie|Storage Query", DisplayName = "Set Sort by Snapshot Delegate")
-	void SetSortByDelegate_Snapshot(const UFaerieFunctionTemplates::FFaerieSnapshotComparator& Delegate);
+	UFUNCTION(BlueprintCallable, Category = "Faerie|Storage Query")
+	void SetSortByDelegate(const UFaerieFunctionTemplates::FFaerieViewComparator& Delegate);
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|Storage Query")
 	void SetSortByObject(const UFaerieItemDataComparator* Comparator);
@@ -85,6 +67,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|Storage Query")
 	void SetInvertSort(bool Invert);
+
+	UFUNCTION(BlueprintCallable, Category = "Faerie|Storage Query")
+	void ResetFilter();
+
+	UFUNCTION(BlueprintCallable, Category = "Faerie|Storage Query")
+	void ResetSort();
 
 	// Query function to filter and sort for a subsection of contained entries.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|Storage Query")
@@ -99,6 +87,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|Storage Query")
 	bool IsAddressFiltered(const UFaerieItemStorage* Storage, const FFaerieAddress Address) const;
 
+	bool IsIteratorFiltered(Faerie::Container::FIteratorPtr Iterator) const;
+
 private:
 	// Filter object to keep alive.
 	UPROPERTY()
@@ -110,8 +100,8 @@ private:
 
 	Faerie::FItemStorageQueryEvent OnQueryChanged;
 
-	Faerie::Container::FVariantPredicate FilterFunction;
-	Faerie::Container::FVariantComparator SortFunction;
+	Faerie::ItemData::FViewPredicate FilterFunction;
+	Faerie::ItemData::FViewComparator SortFunction;
 
 	bool InvertFilter = false;
 	bool InvertSort = false;

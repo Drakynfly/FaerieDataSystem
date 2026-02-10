@@ -48,20 +48,6 @@ public:
 #endif
 };
 
-USTRUCT(BlueprintType)
-struct FAERIEITEMDATA_API FFaerieItemSnapshot
-{
-	GENERATED_BODY()
-
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Faerie|ItemSnapshot")
-	const UFaerieItem* ItemObject = nullptr;
-
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Faerie|ItemSnapshot")
-	int32 Copies = 0;
-
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Faerie|ItemSnapshot")
-	TScriptInterface<const IFaerieItemOwnerInterface> Owner;
-};
 
 // This struct contains a weak pointer to a proxy of a FaerieItem somewhere. This struct should never be
 // serialized, and will not keep the proxy it points to alive.

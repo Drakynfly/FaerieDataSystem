@@ -7,6 +7,7 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "FaerieItemDataLibrary.generated.h"
 
+struct FFaerieItemDataViewWrapper;
 struct FFaerieItemEditHandle;
 struct FFaerieItemStack;
 struct FFaerieItemStackView;
@@ -76,14 +77,26 @@ public:
 	static FFaerieItemStackView StackToView(const FFaerieItemStack& Stack);
 
 	/**
+	 * Test if an item is mutable
+	 */
+	UFUNCTION(/* Item Data Predicate */ meta = (DisplayName = "Is Mutable"))
+	static bool ItemIsMutablePredicate(const FFaerieItemDataViewWrapper& View);
+
+	/**
+	 * Test if an item is immutable
+	 */
+	UFUNCTION(/* Item Data Predicate */ meta = (DisplayName = "Is Immutable"))
+	static bool ItemIsImmutablePredicate(const FFaerieItemDataViewWrapper& View);
+
+	/**
 	 * Compares two items by their name (from info token)
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Faerie|Comparators")
-	static bool ItemLexicographicNameComparator(const UFaerieItem* A, const UFaerieItem* B);
+	UFUNCTION(/* Item Data Predicate */ meta = (DisplayName = "Lexographic Comparison"))
+	static bool ItemLexicographicNameComparator(const FFaerieItemDataViewWrapper& ViewA, const FFaerieItemDataViewWrapper& ViewB);
 
 	/**
 	 * Compares two items by their last modified date.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Faerie|Comparators")
-	static bool ItemDateModifiedComparator(const UFaerieItem* A, const UFaerieItem* B);
+	UFUNCTION(/* Item Data Predicate */ meta = (DisplayName = "Last Modified Comparison"))
+	static bool ItemDateModifiedComparator(const FFaerieItemDataViewWrapper& ViewA, const FFaerieItemDataViewWrapper& ViewB);
 };

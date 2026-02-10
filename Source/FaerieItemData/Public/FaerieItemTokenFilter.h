@@ -2,14 +2,18 @@
 
 #pragma once
 
-#include "FaerieItemDataConcepts.h"
-#include "LoopUtils.h"
 #include "Containers/BitArray.h"
-#include "Templates/Casts.h"
 
-class UFaerieItem;
+#include "FaerieItem.h"
+#include "FaerieItemDataConcepts.h"
+#include "FaerieItemToken.h"
+#include "FaerieItemTokenFilterFlags.h"
+#include "FaerieItemTokenFilterTypes.h"
+#include "LoopUtils.h"
+#include "PredicateTuple.h"
+#include "TypeCastingUtils.h"
+
 class UFaerieItemDataLibrary;
-class UFaerieItemToken;
 
 namespace Faerie::Token
 {
@@ -18,62 +22,36 @@ namespace Faerie::Token
 		class FAERIEITEMDATA_API FIteratorAccess
 		{
 		protected:
-			static void AddWriteLock(const UFaerieItem* Item);
-			static void RemoveWriteLock(const UFaerieItem* Item);
+			static const TArray<TObjectPtr<UFaerieItemToken>>& ReadTokenArray(TNotNull<const UFaerieItem*> Item);
 
-			static UFaerieItemToken* ResolveToken(const UFaerieItem* Item, int32 Index);
-			static const UFaerieItemToken* ConstResolveToken(const UFaerieItem* Item, int32 Index);
+			static bool StaticClassFilter(TNotNull<const UFaerieItemToken*> Token, TNotNull<UClass*> Class);
+			static bool StaticIsMutableFilter(TNotNull<const UFaerieItemToken*> Token);
+
+			static void AddWriteLock(TNotNull<const UFaerieItem*> Item);
+			static void RemoveWriteLock(TNotNull<const UFaerieItem*> Item);
+
+			static void HashCombineToken(TNotNull<const UFaerieItemToken*> Token, uint32& Hash);
+
+			static bool CompareTokenMasks(const TBitArray<>& MaskA, TNotNull<const UFaerieItem*> ItemA, const TBitArray<>& MaskB, TNotNull<const UFaerieItem*> ItemB);
 		};
 	}
 
-	class IFilter;
-
-	template <CItemTokenBase FilterClass, bool Const>
-	class TIterator_Masked : Private::FIteratorAccess
+	class FTokenIterator : Private::FIteratorAccess
 	{
-		friend IFilter;
-
-		using ElementType = std::conditional_t<Const, const FilterClass, FilterClass>;
-
 	public:
-		TIterator_Masked(const UFaerieItem* Item, const TBitArray<>& TokenBits)
-		  : Item(Item), TokenBits(TokenBits), Iterator(this->TokenBits)
+		FTokenIterator(const TNotNull<const UFaerieItem*> Item)
+		  : Iterator(ReadTokenArray(Item).CreateConstIterator()) {}
+
+		[[nodiscard]] UE_REWRITE auto operator*() const
 		{
-			AddWriteLock(Item);
+			return Iterator.operator*();
 		}
 
-		TIterator_Masked(const TIterator_Masked& Other)
-		  : Item(Other.Item), TokenBits(Other.TokenBits), Iterator(this->TokenBits)
-		{
-			AddWriteLock(Item);
-		}
+		UE_REWRITE explicit operator bool() const { return static_cast<bool>(Iterator); }
 
-		~TIterator_Masked()
-		{
-			RemoveWriteLock(Item);
-		}
-
-		[[nodiscard]] ElementType* operator*() const
-		{
-			if constexpr (Const)
-			{
-				return CastChecked<FilterClass>(ConstResolveToken(Item, Iterator.GetIndex()));
-			}
-			else
-			{
-				return CastChecked<FilterClass>(ResolveToken(Item, Iterator.GetIndex()));
-			}
-		}
-
-		UE_REWRITE TIterator_Masked& operator++()
+		UE_REWRITE void operator++()
 		{
 			++Iterator;
-			return *this;
-		}
-
-		UE_REWRITE explicit operator bool() const
-		{
-			return static_cast<bool>(Iterator);
 		}
 
 		[[nodiscard]] UE_REWRITE bool operator!=(EIteratorType) const
@@ -82,262 +60,349 @@ namespace Faerie::Token
 			return static_cast<bool>(*this);
 		}
 
-	protected:
-		const UFaerieItem* Item;
-		const TBitArray<> TokenBits;
-		TConstSetBitIterator<> Iterator;
+		[[nodiscard]] UE_REWRITE const FTokenIterator& begin() const { return *this; }
+		[[nodiscard]] UE_REWRITE EIteratorType end () const { return End; }
+
+	private:
+		TArray<TObjectPtr<UFaerieItemToken>>::TConstIterator Iterator;
 	};
 
-	struct ITokenFilterType
+	template <typename TTokenClass, EFilterFlags Flags, typename... TPredicates>
+	class TFilteringIterator_Move : Private::FIteratorAccess
 	{
-		virtual ~ITokenFilterType() = default;
-		virtual bool Passes(const UFaerieItemToken* Token) = 0;
+	public:
+		TFilteringIterator_Move(Utils::TPredicateTuple<TPredicates...>&& PredicateTuple, const TNotNull<const UFaerieItem*> Item)
+		  : PredicateTuple(MoveTemp(PredicateTuple)), Iterator(Item)
+		{
+			SkipInvalid();
+		}
+
+		[[nodiscard]] UE_REWRITE TTokenClass* operator*() const { return CastChecked<TTokenClass>(Iterator.operator*(), ECastCheckedType::NullAllowed); }
+
+		UE_REWRITE explicit operator bool() const { return static_cast<bool>(Iterator); }
+
+		UE_REWRITE void operator++()
+		{
+			++Iterator;
+			SkipInvalid();
+		}
+
+		// Advance to the next that we allow
+		void SkipInvalid()
+		{
+			auto TestIterator = [&]() -> bool
+			{
+				if constexpr (!std::is_same_v<TTokenClass, UFaerieItemToken>)
+				{
+					if (!StaticClassFilter(*Iterator, TTokenClass::StaticClass()))
+					{
+						return false;
+					}
+				}
+
+				if constexpr (EnumHasAnyFlags(Flags, EFilterFlags::MutableOnly))
+				{
+					if (!StaticIsMutableFilter(*Iterator))
+					{
+						return false;
+					}
+				}
+
+				if constexpr (EnumHasAnyFlags(Flags, EFilterFlags::ImmutableOnly))
+				{
+					if (StaticIsMutableFilter(*Iterator))
+					{
+						return false;
+					}
+				}
+
+				if constexpr (EnumHasAnyFlags(Flags, EFilterFlags::Inverted))
+				{
+					// Test for not passing the predicates
+					return !PredicateTuple.TestAll(*Iterator);
+				}
+				else
+				{
+					// Test for passing the predicates
+					return PredicateTuple.TestAll(*Iterator);
+				}
+			};
+
+			// Advance while we are valid and failing the iterator tests
+			while (static_cast<bool>(*this) &&
+				!TestIterator())
+			{
+				++Iterator;
+			}
+		}
+
+		[[nodiscard]] UE_REWRITE bool operator!=(EIteratorType) const
+		{
+			// As long as we are valid, then we have not ended.
+			return static_cast<bool>(*this);
+		}
+
+		[[nodiscard]] UE_REWRITE const TFilteringIterator_Move& begin() const { return *this; }
+		[[nodiscard]] UE_REWRITE EIteratorType end () const { return End; }
+
+	private:
+		Utils::TPredicateTuple<TPredicates...> PredicateTuple;
+		FTokenIterator Iterator;
 	};
 
-	template <typename T>
-	concept CTokenFilterType = TIsDerivedFrom<typename TRemoveReference<T>::Type, ITokenFilterType>::Value;
-
-	enum class EFilterFlags : uint32
+	template <typename TTokenClass, EFilterFlags Flags, typename... TPredicates>
+	class TFilteringIterator_Ref : Private::FIteratorAccess
 	{
-		None = 0,
+	public:
+		TFilteringIterator_Ref(const Utils::TPredicateTuple<TPredicates...>& PredicateTuple, const TNotNull<const UFaerieItem*> Item)
+		  : PredicateTuple(PredicateTuple), Iterator(Item)
+		{
+			AdvanceToNext();
+		}
 
-		// @todo not yet supported
-		ImmutableOnly = 1 << 0,
+		[[nodiscard]] UE_REWRITE TTokenClass* operator*() const { return CastChecked<TTokenClass>(Iterator.operator*(), ECastCheckedType::NullAllowed); }
 
-		// This filter is restricted to emitting mutable tokens
-		MutableOnly = 1 << 1,
+		UE_REWRITE explicit operator bool() const { return static_cast<bool>(Iterator); }
 
-		// This filter can be invoked statically
-		Static = 1 << 2
+		UE_REWRITE void operator++()
+		{
+			++Iterator;
+			AdvanceToNext();
+		}
+
+		void AdvanceToNext()
+		{
+			auto TestIterator = [&]() -> bool
+			{
+				if constexpr (!std::is_same_v<TTokenClass, UFaerieItemToken>)
+				{
+					if (!StaticClassFilter(*Iterator, TTokenClass::StaticClass()))
+					{
+						return false;
+					}
+				}
+
+				if constexpr (EnumHasAnyFlags(Flags, EFilterFlags::MutableOnly))
+				{
+					if (!StaticIsMutableFilter(*Iterator))
+					{
+						return false;
+					}
+				}
+
+				if constexpr (EnumHasAnyFlags(Flags, EFilterFlags::ImmutableOnly))
+				{
+					if (StaticIsMutableFilter(*Iterator))
+					{
+						return false;
+					}
+				}
+
+				if constexpr (EnumHasAnyFlags(Flags, EFilterFlags::Inverted))
+				{
+					// Test for not passing the predicates
+					return !PredicateTuple.TestAll(*Iterator);
+				}
+				else
+				{
+					// Test for passing the predicates
+					return PredicateTuple.TestAll(*Iterator);
+				}
+			};
+
+			// Advance while we are valid and failing the iterator tests
+			while (static_cast<bool>(*this) &&
+				!TestIterator())
+			{
+				++Iterator;
+			}
+		}
+
+		[[nodiscard]] UE_REWRITE bool operator!=(EIteratorType) const
+		{
+			// As long as we are valid, then we have not ended.
+			return static_cast<bool>(*this);
+		}
+
+		[[nodiscard]] UE_REWRITE const TFilteringIterator_Ref& begin() const { return *this; }
+		[[nodiscard]] UE_REWRITE EIteratorType end () const { return End; }
+
+	private:
+		const Utils::TPredicateTuple<TPredicates...>& PredicateTuple;
+		FTokenIterator Iterator;
 	};
-	ENUM_CLASS_FLAGS(EFilterFlags)
 
-	template <typename T>
-	struct TFilterTraits
+	template <typename TPredicate>
+	concept CTokenFilterType = requires(const TPredicate& Predicate, TNotNull<const UFaerieItemToken*> Token)
 	{
-		static constexpr EFilterFlags GrantFlags = EFilterFlags::None;
-		static constexpr EFilterFlags RemoveFlags = EFilterFlags::None;
+		{ Predicate.Exec(Token) } -> UE::CSameAs<bool>;
 	};
 
-	template <typename T, EFilterFlags Flags>
-	consteval EFilterFlags CombineFilterFlags()
-	{
-		return (Flags & ~TFilterTraits<T>::RemoveFlags) | TFilterTraits<T>::GrantFlags;
-	}
-
-	class IFilter : Private::FIteratorAccess
+	template <CItemTokenBase FilterClass, EFilterFlags Flags, typename... TPredicates>
+	class TFilter : Private::FIteratorAccess
 	{
 		// Let this library use BlueprintOnlyAccess;
 		friend UFaerieItemDataLibrary;
 
 	public:
-		FAERIEITEMDATA_API IFilter(const UFaerieItem* Item);
-
-		// Construct with an existing bit array.
-		IFilter(const UFaerieItem* Item, const TBitArray<>& TokenBits)
-		  : Item(Item), TokenBits(TokenBits) {}
-
-	protected:
-		IFilter& Invert_Impl()
-		{
-			TokenBits.BitwiseNOT();
-			return *this;
-		}
-
-		// Removes tokens from filter not of the given class.
-		FAERIEITEMDATA_API IFilter& ByClass_Impl(const TSubclassOf<UFaerieItemToken>& Class);
-		FAERIEITEMDATA_API IFilter& ByInterface_Impl(const UClass* Class);
-
-		// Run a filter type by its virtual Passes implementation.
-		IFilter& ByVirtual_Impl(ITokenFilterType& Type);
-
-		// Run a filter type by directly calling the Passes implementation on a typed instance.
-		template <CTokenFilterType T>
-		IFilter& ByTemplate_Impl(T& Type)
-		{
-			for (TConstSetBitIterator<> It(TokenBits); It; ++It)
-			{
-				const UFaerieItemToken* Token = ConstResolveToken(Item, It.GetIndex());
-				//if (!ensureAlways(IsValid(Token))) continue;
-				if (!Type.T::Passes(Token))
-				{
-					TokenBits.AccessCorrespondingBit(It) = false;
-				}
-			}
-			return *this;
-		}
-
-		// Run a filter type by invoking the static version of its Passes Implementation
-		template <CTokenFilterType T>
-		IFilter& ByStatic_Impl()
-		{
-			for (TConstSetBitIterator<> It(TokenBits); It; ++It)
-			{
-				const UFaerieItemToken* Token = ConstResolveToken(Item, It.GetIndex());
-				//if (!ensureAlways(IsValid(Token))) continue;
-				if (!T::StaticPasses(Token))
-				{
-					TokenBits.AccessCorrespondingBit(It) = false;
-				}
-			}
-			return *this;
-		}
-
-	public:
-		bool CompareTokens(const IFilter& OtherFilter) const;
-
-		UE_REWRITE bool IsEmpty() const { return TokenBits.IsEmpty(); }
-		UE_REWRITE int32 Num() const { return TokenBits.CountSetBits(); }
-
-		// Create an array with the filters set of tokens.
-		FAERIEITEMDATA_API TArray<const UFaerieItemToken*> Emit() const;
-
-		// Create an array with the filters set of tokens.
-		[[nodiscard]] UE_REWRITE TArray<const UFaerieItemToken*> operator*() const { return Emit(); }
-
-		[[nodiscard]] UE_REWRITE auto begin() const { return TIterator_Masked<UFaerieItemToken, true>(Item, TokenBits); }
-		[[nodiscard]] UE_REWRITE EIteratorType end () const { return End; }
-
-	private:
-		TArray<UFaerieItemToken*> BlueprintOnlyAccess() const;
-
-	protected:
-		const UFaerieItem* Item;
-		TBitArray<> TokenBits;
-	};
-
-	template <CItemTokenBase FilterClass, EFilterFlags Flags>
-	class TFilter : public IFilter
-	{
-	public:
 		static constexpr bool Const = !EnumHasAnyFlags(Flags, EFilterFlags::MutableOnly);
-		using ElementType = std::conditional_t<Const, const FilterClass, FilterClass>;
+		using FElementType = std::conditional_t<Const, const FilterClass, FilterClass>;
 
-		template <typename T> using TReturnType_CombineFlags =
-			std::conditional_t<
-				CombineFilterFlags<T, Flags>() == Flags,
-				TFilter&,
-				TFilter<FilterClass, CombineFilterFlags<T, Flags>()>>;
+		TFilter() = default;
 
-		template <typename T> using TReturnType_FilterClass =
-			std::conditional_t<
-				std::is_same_v<FilterClass, T>,
-				TFilter&,
-				TFilter<T, Flags>>;
+		TFilter(const Utils::TPredicateTuple<TPredicates...>&& PredicateTuple)
+		 : PredicateTuple(PredicateTuple) {}
 
-		using IFilter::IFilter;
+		TFilter(Utils::TPredicateTuple<TPredicates...>&& PredicateTuple)
+		 : PredicateTuple(MoveTemp(PredicateTuple)) {}
 
-		UE_REWRITE TFilter& Invert()
+		[[nodiscard]] UE_REWRITE auto Invert() &&
 		{
-			Invert_Impl();
-			return *this;
+			if constexpr (EnumHasAllFlags(Flags, EFilterFlags::Inverted))
+			{
+				return TFilter<FilterClass, Flags & ~EFilterFlags::Inverted, TPredicates...>(MoveTemp(PredicateTuple));
+			}
+			else
+			{
+				return TFilter<FilterClass, Flags | EFilterFlags::Inverted, TPredicates...>(MoveTemp(PredicateTuple));
+			}
 		}
 
-		// Removes tokens from filter of the given class.
-		// Only allows running the filter if it is more specific than the class we are already filtered by.
+		[[nodiscard]] auto ByImmutable() const &
+		{
+			return TFilter<FilterClass, FlagImmutableOnly<Flags>(), TPredicates...>(PredicateTuple);
+		}
+
+		[[nodiscard]] auto ByImmutable() &&
+		{
+			return TFilter<FilterClass, FlagImmutableOnly<Flags>(), TPredicates...>(MoveTemp(PredicateTuple));
+		}
+
+		[[nodiscard]] auto ByMutable() const &
+		{
+			return TFilter<FilterClass, FlagMutableOnly<Flags>(), TPredicates...>(PredicateTuple);
+		}
+
+		[[nodiscard]] auto ByMutable() &&
+		{
+			return TFilter<FilterClass, FlagMutableOnly<Flags>(), TPredicates...>(MoveTemp(PredicateTuple));
+		}
+
 		template<
 			CItemTokenImpl T
-			UE_REQUIRES(TIsDerivedFrom<T, FilterClass>::Value)
+			UE_REQUIRES(TIsDerivedFrom<T, FilterClass>::Value && !std::is_same_v<FilterClass, T>)
 		>
-		[[nodiscard]] auto ByClass()
+		[[nodiscard]] auto ByClass() const &
 		{
-			ByClass_Impl(T::StaticClass());
-			return TFilter<T, Flags>(Item, TokenBits);
+			return TFilter<T, Flags, TPredicates...>(PredicateTuple);
 		}
 
 		template<
-			typename TClass
+			CItemTokenImpl T
+			UE_REQUIRES(TIsDerivedFrom<T, FilterClass>::Value && !std::is_same_v<FilterClass, T>)
 		>
-		[[nodiscard]] TFilter& ByInterface()
+		[[nodiscard]] auto ByClass() &&
 		{
-			ByClass_Impl(TClass::StaticClass());
-			return *this;
+			return TFilter<T, Flags, TPredicates...>(MoveTemp(PredicateTuple));
 		}
 
-		// Removes tokens from filter of the given class.
-		// Only allows running the filter if it is more specific than the class we are already filtered by.
-		template<
-			CItemTokenBase T
-			UE_REQUIRES(TIsDerivedFrom<T, FilterClass>::Value)
-		>
-		[[nodiscard]] TReturnType_FilterClass<T> ByClass(const TSubclassOf<T>& Class)
-		{
-			ByClass_Impl(Class);
-
-			if constexpr (std::is_same_v<FilterClass, T>)
-			{
-				return *this;
-			}
-			else
-			{
-				return TFilter<T, Flags>(Item, TokenBits);
-			}
-		}
-
-		ElementType* At(const int32 Index) const
-		{
-			if constexpr (Const)
-			{
-				return CastChecked<FilterClass>(Private::FIteratorAccess::ConstResolveToken(Item, Index));
-			}
-			else
-			{
-				return CastChecked<FilterClass>(Private::FIteratorAccess::ResolveToken(Item, Index));
-			}
-		}
-
-		// Removes tokens from filter that fail the Filter Type
 		template <CTokenFilterType T>
-		[[nodiscard]] TReturnType_CombineFlags<T> By()
+		[[nodiscard]] auto By(T&& Predicate) const &
 		{
-			if constexpr (EnumHasAnyFlags(TFilterTraits<T>::TypeFlags, EFilterFlags::Static))
-			{
-				ByStatic_Impl<T>();
-			}
-			else
-			{
-				T TypeStruct;
-				ByTemplate_Impl(TypeStruct);
-			}
-
-			if constexpr (CombineFilterFlags<T, Flags>() == Flags)
-			{
-				return *this;
-			}
-			else
-			{
-				return TFilter<FilterClass, CombineFilterFlags<T, Flags>()>(Item, TokenBits);
-			}
+			return TFilter<FilterClass, Flags, TPredicates..., T>(PredicateTuple.template AddPredicateAndCopy<T>(MoveTemp(Predicate)));
 		}
 
-
-		// Removes tokens from filter that fail the Filter Type
 		template <CTokenFilterType T, typename... TArgs>
-		[[nodiscard]] TReturnType_CombineFlags<T> By(TArgs&&... Args)
+		[[nodiscard]] auto By(TArgs&&... Args) const &
 		{
-			T TypeStruct(Args...);
-			ByTemplate_Impl(TypeStruct);
-
-			if constexpr (CombineFilterFlags<T, Flags>() == Flags)
-			{
-				return *this;
-			}
-			else
-			{
-				return TFilter<FilterClass, CombineFilterFlags<T, Flags>()>(Item, TokenBits);
-			}
+			return TFilter<FilterClass, Flags, TPredicates..., T>(PredicateTuple.template AddPredicateAndCopy<T>(T(Args...)));
 		}
 
-		UE_REWRITE auto begin() const
+		template <CTokenFilterType T>
+		[[nodiscard]] auto By(T&& Predicate) &&
 		{
-			return TIterator_Masked<FilterClass, Const>(Item, TokenBits);
+			return TFilter<FilterClass, Flags, TPredicates..., T>(PredicateTuple.template AddPredicateAndMove<T>(MoveTemp(Predicate)));
 		}
+
+		template <CTokenFilterType T, typename... TArgs>
+		[[nodiscard]] auto By(TArgs&&... Args) &&
+		{
+			return TFilter<FilterClass, Flags, TPredicates..., T>(PredicateTuple.template AddPredicateAndMove<T>(T(Args...)));
+		}
+
+		[[nodiscard]] auto Iterate(const TNotNull<const UFaerieItem*> Item) const &
+		{
+			return TFilteringIterator_Ref<FilterClass, Flags, TPredicates...>(PredicateTuple, Item);
+		}
+
+		[[nodiscard]] auto Iterate(const TNotNull<const UFaerieItem*> Item) &&
+		{
+			return TFilteringIterator_Move<FilterClass, Flags, TPredicates...>(MoveTemp(PredicateTuple), Item);
+		}
+
+		[[nodiscard]] auto First(const TNotNull<const UFaerieItem*> Item) const
+		{
+			for (auto&& Token : Iterate(Item))
+			{
+				return Token;
+			}
+			return nullptr;
+		}
+
+		[[nodiscard]] TArray<FElementType*> Emit(const TNotNull<const UFaerieItem*> Item) const
+		{
+			TArray<FElementType*> Out;
+			for (auto&& Token : Iterate(Item))
+			{
+				Out.Add(Token);
+			}
+			return Out;
+		}
+
+		[[nodiscard]] uint32 Hash(const TNotNull<const UFaerieItem*> Item) const
+		{
+			uint32 Hash = 0;
+			for (auto&& Token : Iterate(Item))
+			{
+				HashCombineToken(Token, Hash);
+			}
+			return Hash;
+		}
+
+		// Create a bitmask representing which tokens pass the predicates.
+		[[nodiscard]] TBitArray<> Mask(const TNotNull<const UFaerieItem*> Item) const
+		{
+			TBitArray<> Mask;
+			Mask.Init(false, Item->GetOwnedTokens().Num());
+			for (int32 i = 0; i < Item->GetOwnedTokens().Num(); ++i)
+			{
+				if (PredicateTuple.TestAll(Item->GetTokenAtIndex(i)))
+				{
+					Mask[i] = true;
+				}
+			}
+			return Mask;
+		}
+
+		template <typename TOther>
+		[[nodiscard]] bool CompareTokens(const TOther& OtherFilter, const TNotNull<const UFaerieItem*> ItemA, TNotNull<const UFaerieItem*> ItemB) const
+		{
+			return CompareTokenMasks(Mask(ItemA), ItemA, OtherFilter.Mask(ItemB), ItemB);
+		}
+
+	private:
+		[[nodiscard]] TArray<UFaerieItemToken*> BlueprintOnlyAccess(const TNotNull<const UFaerieItem*> Item) const
+		{
+			return Type::Cast<TArray<UFaerieItemToken*>>(Emit(Item));
+		}
+
+		Utils::TPredicateTuple<TPredicates...> PredicateTuple;
 	};
 
 	// Forward declare the default parameters of the template
-	template <CItemTokenBase FilterClass = UFaerieItemToken, EFilterFlags Flags = EFilterFlags::None>
+	template <CItemTokenBase FilterClass = UFaerieItemToken, EFilterFlags Flags = EFilterFlags::None, typename... TPredicates>
 	class TFilter;
 
-	// Create a filter to select tokens from an Item
-	FAERIEITEMDATA_API TFilter<> Filter(const UFaerieItem* Item);
+	// Create a new token filter
+	[[nodiscard]] UE_REWRITE TFilter<> Filter() { return TFilter<>(); }
 }

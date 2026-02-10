@@ -2,72 +2,106 @@
 
 #pragma once
 
-#include "FaerieItemTokenFilter.h"
 #include "GameplayTagContainer.h"
+
+class UFaerieItemToken;
 
 namespace Faerie::Token
 {
-	struct FAERIEITEMDATA_API FMutableFilter final : ITokenFilterType
+	struct FAERIEITEMDATA_API FMatchMutability
 	{
-		virtual bool Passes(const UFaerieItemToken* Token) override { return StaticPasses(Token); }
-		static bool StaticPasses(const UFaerieItemToken* Token);
+		bool Exec(const TNotNull<const UFaerieItemToken*> Token) const;
+		bool MutabilityToMatch;
 	};
 
-	template <>
-	struct TFilterTraits<FMutableFilter>
+	struct FAERIEITEMDATA_API FIsClass
 	{
-		static constexpr EFilterFlags TypeFlags = EFilterFlags::Static;
-		static constexpr EFilterFlags GrantFlags = EFilterFlags::MutableOnly;
-		static constexpr EFilterFlags RemoveFlags = EFilterFlags::ImmutableOnly;
+		FIsClass(const TSubclassOf<UFaerieItemToken>& Class)
+		  : Class(Class) {}
+
+		bool Exec(TNotNull<const UFaerieItemToken*> Token) const;
+
+	protected:
+		TSubclassOf<UFaerieItemToken> Class;
 	};
 
-	struct FAERIEITEMDATA_API FImmutableFilter final : ITokenFilterType
+	struct FAERIEITEMDATA_API FHasInterface
 	{
-		virtual bool Passes(const UFaerieItemToken* Token) override { return StaticPasses(Token); }
-		static bool StaticPasses(const UFaerieItemToken* Token);
+		FHasInterface(const TSubclassOf<UInterface>& Class)
+		  : Class(Class) {}
+
+		bool Exec(TNotNull<const UFaerieItemToken*> Token) const;
+
+	protected:
+		TSubclassOf<UInterface> Class;
 	};
 
-	template <>
-	struct TFilterTraits<FImmutableFilter>
+	struct FAERIEITEMDATA_API FIsClassExact
 	{
-		static constexpr EFilterFlags FilterFlags = EFilterFlags::Static;
-		static constexpr EFilterFlags GrantFlags = EFilterFlags::ImmutableOnly;
-		static constexpr EFilterFlags RemoveFlags = EFilterFlags::MutableOnly;
+		FIsClassExact(const TSubclassOf<UFaerieItemToken>& Class)
+		  : Class(Class) {}
+
+		bool Exec(TNotNull<const UFaerieItemToken*> Token) const;
+
+	protected:
+		TSubclassOf<UFaerieItemToken> Class;
 	};
 
-	struct FAERIEITEMDATA_API FTagFilter final : ITokenFilterType
+	struct FAERIEITEMDATA_API FIsAnyClass
+	{
+		FIsAnyClass(const TConstArrayView<TSubclassOf<UFaerieItemToken>> Classes)
+		  : Classes(Classes) {}
+
+		bool Exec(TNotNull<const UFaerieItemToken*> Token) const;
+
+	protected:
+		TArray<TSubclassOf<UFaerieItemToken>> Classes;
+	};
+
+	struct FAERIEITEMDATA_API FIsAnyClassExact
+	{
+		FIsAnyClassExact(const TConstArrayView<TSubclassOf<UFaerieItemToken>> Classes)
+		  : Classes(Classes) {}
+
+		bool Exec(TNotNull<const UFaerieItemToken*> Token) const;
+
+	protected:
+		TArray<TSubclassOf<UFaerieItemToken>> Classes;
+	};
+
+	struct FAERIEITEMDATA_API FTagFilter
 	{
 		FTagFilter(const FGameplayTag& Tag, const bool Exact = false)
 		  : Tag(Tag), Exact(Exact) {}
 
-		virtual bool Passes(const UFaerieItemToken* Token) override;
+		bool Exec(TNotNull<const UFaerieItemToken*> Token) const;
 
 	protected:
-		const FGameplayTag Tag;
-		const bool Exact;
+		FGameplayTag Tag;
+		bool Exact;
 	};
 
-	struct FAERIEITEMDATA_API FTagsFilter final : ITokenFilterType
+	struct FAERIEITEMDATA_API FTagsFilter
 	{
 		FTagsFilter(const FGameplayTagContainer& Tags, const bool All = false, const bool Exact = false)
 		  : Tags(Tags), All(All), Exact(Exact) {}
 
-		virtual bool Passes(const UFaerieItemToken* Token) override;
+		bool Exec(TNotNull<const UFaerieItemToken*> Token) const;
 
 	protected:
-		const FGameplayTagContainer Tags;
-		const bool All;
-		const bool Exact;
+		FGameplayTagContainer Tags;
+		bool All;
+		bool Exact;
 	};
 
-	struct FAERIEITEMDATA_API FTagQueryFilter final : ITokenFilterType
+	struct FAERIEITEMDATA_API FTagQueryFilter
 	{
 		FTagQueryFilter(const FGameplayTagQuery& Query)
 		  : Query(Query) {}
 
-		virtual bool Passes(const UFaerieItemToken* Token) override;
+		bool Exec(TNotNull<const UFaerieItemToken*> Token) const;
 
 	protected:
-		const FGameplayTagQuery Query;
+		FGameplayTagQuery Query;
 	};
 }

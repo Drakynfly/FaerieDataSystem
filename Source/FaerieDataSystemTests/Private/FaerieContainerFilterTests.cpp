@@ -5,13 +5,14 @@
 #include "Misc/AutomationTest.h"
 #include "FaerieContainerFilter.h"
 #include "FaerieItemStorage.h"
-#include "FaerieItemStorageIterators.h"
 #include "Tokens/FaerieInfoToken.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FaerieContainerFilterTests, "FDS.FaerieContainerFilterTests", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FaerieContainerFilterTests::RunTest(const FString& Parameters)
 {
+	using namespace Faerie::Container;
+
 	static FFaerieAssetInfo TestInfo{
 		FText::FromString(TEXT("TestObjectName")),
 		FText::FromString(TEXT("TestObjectShortDescription")),
@@ -52,58 +53,29 @@ bool FaerieContainerFilterTests::RunTest(const FString& Parameters)
 
 	FObjectKey TestItem1Key(TestItem1);
 
-	AddInfo("Running Direct Tests...");
-
-	// Test Direct Filter
-	{
-		Faerie::Storage::FItemFilter_Key KeyFilter(Storage);
-
-		TestTrue("(Direct) FilterNumIsExpected", KeyFilter.Num() == ExpectedEntries);
-
-		KeyFilter.Invert();
-
-		TestTrue("(Direct) FilterNumIs0", KeyFilter.Num() == 0);
-
-		KeyFilter.Invert();
-
-		TestTrue("(Direct) FilterNumIsExpectedAgain", KeyFilter.Num() == ExpectedEntries);
-
-		FObjectKey ItemFromFilter = KeyFilter.Items().operator*();
-		TestTrue("(Direct) IteratorItem resolved to item", ItemFromFilter == TestItem1Key);
-
-		int32 RangeCount = 0;
-		for (auto Element : KeyFilter.Items())
-		{
-			TestTrue("(Direct) Iteration element is valid", IsValid(Element));
-			++RangeCount;
-		}
-		if (!TestTrue("(Direct) Range count matched Entries", RangeCount == ExpectedEntries))
-		{
-			AddInfo("RangeCount: " + LexToString(RangeCount) + ", Expected: " + LexToString(ExpectedEntries));
-		}
-	}
-
 	AddInfo("Running Interface Tests...");
 
 	// Test Interface Filter
 	{
-		Faerie::Container::FKeyFilter KeyFilter = Faerie::Container::KeyFilter(Storage);
+		auto ItemFilter = FItemFilter();
 
-		TestTrue("(Interface) FilterNumIsExpected", KeyFilter.Num() == ExpectedEntries);
+		TestTrue("(Interface) FilterNumIsExpected", ItemFilter.Count(Storage) == ExpectedEntries);
 
-		KeyFilter.Invert();
+		{
+			TFilter<EFilterFlags::Inverted, const UFaerieItem*> InvertedFilter = ItemFilter.Invert();
 
-		TestTrue("(Interface) FilterNumIs0", KeyFilter.Num() == 0);
+			TestTrue("(Interface) FilterNumIs0", InvertedFilter.Count(Storage) == 0);
 
-		KeyFilter.Invert();
+			TFilter<EFilterFlags::None, const UFaerieItem*> DoubleInvertedFilter = InvertedFilter.Invert();
 
-		TestTrue("(Interface) FilterNumIsExpectedAgain", KeyFilter.Num() == ExpectedEntries);
+			TestTrue("(Interface) FilterNumIsExpectedAgain", DoubleInvertedFilter.Count(Storage) == ExpectedEntries);
+		}
 
-		FObjectKey ItemFromFilter = KeyFilter.Items().operator*();
+		FObjectKey ItemFromFilter = ItemFilter.First(Storage);
 		TestTrue("(Interface) IteratorItem resolved to item", ItemFromFilter == TestItem1Key);
 
 		int32 RangeCount = 0;
-		for (auto Element : KeyFilter.Items())
+		for (auto Element : ItemFilter.Iterate(Storage))
 		{
 			TestTrue("(Interface) Iteration element is valid", IsValid(Element));
 			++RangeCount;

@@ -6,7 +6,6 @@
 #include "FaerieItemContainerStructs.generated.h"
 
 // Typesafe wrapper around an FFaerieItemKeyBase used for keying entries in a UFaerieItemContainerBase.
-// @todo address-refactor, remove API export of this type
 USTRUCT(BlueprintType)
 struct FAERIEINVENTORY_API FEntryKey : public FFaerieItemKeyBase
 {

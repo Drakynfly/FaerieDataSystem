@@ -82,7 +82,7 @@ public:
 	template <Faerie::CItemTokenImpl T>
 	const T* GetToken(FGameplayTag ReferenceTag = Faerie::Tags::TokenReferenceDefaults) const
 	{
-		return Cast<T>(GetTokenImpl(T::StaticClass(), ReferenceTag));
+		return CastChecked<T>(GetTokenImpl(T::StaticClass(), ReferenceTag), ECastCheckedType::NullAllowed);
 	}
 
 	// Gets the first owned token of the specified class.
@@ -92,7 +92,7 @@ public:
 	template <Faerie::CItemTokenImpl T>
 	const T* GetOwnedToken() const
 	{
-		return Cast<T>(GetOwnedTokenImpl(T::StaticClass()));
+		return CastChecked<T>(GetOwnedTokenImpl(T::StaticClass()), ECastCheckedType::NullAllowed);
 	}
 
 	// Gets mutable access to an owned token, if this item allows mutation.
@@ -102,7 +102,7 @@ public:
 	template <Faerie::CItemTokenImpl T>
 	T* GetMutableToken()
 	{
-		return Cast<T>(GetMutableTokenImpl(T::StaticClass()));
+		return CastChecked<T>(GetMutableTokenImpl(T::StaticClass()), ECastCheckedType::NullAllowed);
 	}
 
 	/*
@@ -110,7 +110,7 @@ public:
 	 * FDS. See EFaerieItemComparisonFlags for descriptions of the Flags.
 	 */
 	static bool Compare(const UFaerieItem* A, const UFaerieItem* B, const EFaerieItemComparisonFlags Flags);
-	bool CompareWith(const UFaerieItem* Other, const EFaerieItemComparisonFlags Flags) const;
+	bool CompareWith(TNotNull<const UFaerieItem*> Other, const EFaerieItemComparisonFlags Flags) const;
 
 
 	//~		C++ Item Mutation		~//
