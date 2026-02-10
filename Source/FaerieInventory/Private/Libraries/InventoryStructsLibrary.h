@@ -39,6 +39,22 @@ public:
 	static bool EqualEqual_Address(const FFaerieAddress A, const FFaerieAddress B) { return A == B; }
 
 	/* Returns true if inventory keys are equal */
+	UFUNCTION(BlueprintPure, Category = "Faerie|Inventory|Utils", meta = (DisplayName = "Not Equal (Faerie Address)", CompactNodeTitle = "!=", Keywords = "!= not equal compare", ScriptOperator = "!="))
+	static bool NotEqual_Address(const FFaerieAddress A, const FFaerieAddress B) { return A != B; }
+
+	/* Returns true if stack keys are equal */
 	UFUNCTION(BlueprintPure, Category = "Faerie|Inventory|Utils", meta = (DisplayName = "Equal (Stack Key)", CompactNodeTitle = "==", Keywords = "== equal compare", ScriptOperator = "=="))
-	static bool EqualEqual_StackKey(FStackKey A, FStackKey B);
+	static bool EqualEqual_StackKey(const FStackKey A, const FStackKey B) { return A == B; }
+
+	/* Returns true if stack keys are equal */
+	UFUNCTION(BlueprintPure, Category = "Faerie|Inventory|Utils", meta = (DisplayName = "Not Equal (Stack Key)", CompactNodeTitle = "!=", Keywords = "!= not equal compare", ScriptOperator = "!="))
+	static bool NotEqual_StackKey(const FStackKey A, const FStackKey B) { return A != B; }
+
+	/* Returns true if entry keys are equal */
+	UFUNCTION(BlueprintPure, Category = "Faerie|Inventory|Utils", meta = (DisplayName = "Equal (Entry Key)", CompactNodeTitle = "==", Keywords = "== equal compare", ScriptOperator = "=="))
+	static bool EqualEqual_EntryKey(const FEntryKey A, const FEntryKey B) { return A == B; }
+
+	/* Returns true if entry keys are equal */
+	UFUNCTION(BlueprintPure, Category = "Faerie|Inventory|Utils", meta = (DisplayName = "Not Equal (Entry Key)", CompactNodeTitle = "!=", Keywords = "!= not equal compare", ScriptOperator = "!="))
+	static bool NotEqual_EntryKey(const FEntryKey A, const FEntryKey B) { return A != B; }
 };
