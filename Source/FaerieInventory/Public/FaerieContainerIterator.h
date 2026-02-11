@@ -5,9 +5,19 @@
 #include "FaerieItemContainerStructs.h"
 #include "FaerieItemDataViewBase.h"
 #include "LoopUtils.h"
+#include "DebuggingFlags.h"
 
 namespace Faerie::Container
 {
+#if FAERIE_DEBUG
+	constexpr bool EnableDebugLogs = false;
+#define LOG_ITERATOR_MESSAGE(Message) if constexpr (EnableDebugLogs) { UE_LOG(LogTemp, Warning, TEXT(Message)); }
+#define LOG_ITERATOR_MESSAGE_FMT(Message, ...) if constexpr (EnableDebugLogs) { UE_LOG(LogTemp, Warning, TEXT(Message), __VA_ARGS__); }
+#else
+#define LOG_ITERATOR_MESSAGE(Message)
+#define LOG_ITERATOR_MESSAGE_FMT(Message, ...)
+#endif
+
 	class IIterator : public ItemData::IViewBase
 	{
 	public:
@@ -49,70 +59,60 @@ namespace Faerie::Container
 		UE_REWRITE TIterator(const TNotNull<const UFaerieItemContainerBase*> Container)
 		  : IteratorPtr(Private::CreateIteratorImpl<std::is_same_v<ResolveType, FFaerieAddress>>(Container))
 		{
-#if WITH_EDITOR
-			UE_LOG(LogTemp, Verbose, TEXT("TIterator::Ctor from Container"));
-#endif
+			LOG_ITERATOR_MESSAGE("TIterator::Ctor from Container")
 
 			// When in non-const mode, jump to next mutable item
 			if constexpr (SkipToNextMutable)
 			{
-				AdvanceWhileMutable();
+				SkipInvalid();
 			}
 		}
 
 		UE_REWRITE TIterator(TIterator&& Other)
 		  : IteratorPtr(MoveTemp(Other.IteratorPtr))
 		{
-#if WITH_EDITOR
-			UE_LOG(LogTemp, Verbose, TEXT("TIterator::Move Ctor"));
-#endif
+			LOG_ITERATOR_MESSAGE("TIterator::Move Ctor");
 
 			// When in non-const mode, jump to next mutable item
 			if constexpr (SkipToNextMutable)
 			{
-				AdvanceWhileMutable();
+				SkipInvalid();
 			}
 		}
 
 		UE_REWRITE TIterator(TUniquePtr<IIterator>&& Iterator)
 		  : IteratorPtr(MoveTemp(Iterator))
 		{
-#if WITH_EDITOR
-			UE_LOG(LogTemp, Verbose, TEXT("TIterator::Move Ctor"));
-#endif
+			LOG_ITERATOR_MESSAGE("TIterator::Move Ctor");
 
 			// When in non-const mode, jump to next mutable item
 			if constexpr (SkipToNextMutable)
 			{
-				AdvanceWhileMutable();
+				SkipInvalid();
 			}
 		}
 
 		UE_REWRITE TIterator(const TIterator& Other)
 		  : IteratorPtr(Other.IteratorPtr ? Other.IteratorPtr->Copy() : TUniquePtr<IIterator>())
 		{
-#if WITH_EDITOR
-			UE_LOG(LogTemp, Verbose, TEXT("TIterator::Copy Ctor"));
-#endif
+			LOG_ITERATOR_MESSAGE("TIterator::Copy Ctor");
 
 			// When in non-const mode, jump to next mutable item
 			if constexpr (SkipToNextMutable)
 			{
-				AdvanceWhileMutable();
+				SkipInvalid();
 			}
 		}
 
 		UE_REWRITE explicit TIterator(const TUniquePtr<IIterator>& Iterator)
 		  : IteratorPtr(Iterator ? Iterator->Copy() : TUniquePtr<IIterator>())
 		{
-#if WITH_EDITOR
-			UE_LOG(LogTemp, Verbose, TEXT("TIterator::Copy Ctor"));
-#endif
+			LOG_ITERATOR_MESSAGE("TIterator::Copy Ctor");
 
 			// When in non-const mode, jump to next mutable item
 			if constexpr (SkipToNextMutable)
 			{
-				AdvanceWhileMutable();
+				SkipInvalid();
 			}
 		}
 
@@ -120,9 +120,8 @@ namespace Faerie::Container
 
 		[[nodiscard]] UE_REWRITE ResolveType operator*() const
 		{
-#if WITH_EDITOR
-			UE_LOG(LogTemp, Verbose, TEXT("TIterator::operator*"));
-#endif
+			LOG_ITERATOR_MESSAGE("TIterator::operator*");
+
 			if constexpr (std::is_same_v<ResolveType, FEntryKey>)
 			{
 				return IteratorPtr->ResolveKey();
@@ -145,7 +144,7 @@ namespace Faerie::Container
 			}
 		}
 
-		void AdvanceWhileMutable()
+		void SkipInvalid()
 		{
 			while (static_cast<bool>(*this) && !IteratorPtr->ResolveItem()->CanMutate())
 			{
@@ -159,42 +158,32 @@ namespace Faerie::Container
 
 		UE_REWRITE void operator++()
 		{
-#if WITH_EDITOR
-			UE_LOG(LogTemp, Verbose, TEXT("TIterator::operator++"));
-#endif
+			LOG_ITERATOR_MESSAGE("TIterator::operator++");
 
 			IteratorPtr->Advance();
 
 			if constexpr (SkipToNextMutable)
 			{
 				// Then, when in non-const mode, jump to next mutable item
-				AdvanceWhileMutable();
+				SkipInvalid();
 			}
 		}
 
 		UE_REWRITE explicit operator bool() const
 		{
-#if WITH_EDITOR
-			const bool Result = IteratorPtr && IteratorPtr->IsValid();
-			UE_LOG(LogTemp, Verbose, TEXT("TIterator::operator bool - returning '%hs'"), Result ? "true" : "false");
-#endif
+			LOG_ITERATOR_MESSAGE_FMT("TIterator::operator bool - returning '%hs'", IteratorPtr && IteratorPtr->IsValid() ? "true" : "false")
 			return IteratorPtr && IteratorPtr->IsValid();
 		}
 
 		[[nodiscard]] UE_REWRITE bool operator!=(EIteratorType) const
 		{
-#if WITH_EDITOR
-			const bool Result = static_cast<bool>(*this);
-			UE_LOG(LogTemp, Verbose, TEXT("TIterator::operator!= (EIteratorType) - returning '%hs'"), Result ? "true" : "false");
-#endif
+			LOG_ITERATOR_MESSAGE_FMT("TIterator::operator!= (EIteratorType) - returning '%hs'", IteratorPtr && IteratorPtr->IsValid() ? "true" : "false")
+
 			// As long as we are valid, then we have not ended.
 			return static_cast<bool>(*this);
 		}
 
-		[[nodiscard]] UE_REWRITE const TIterator& begin() const
-		{
-			return *this;
-		}
+		[[nodiscard]] UE_REWRITE const TIterator& begin() const { return *this; }
 		[[nodiscard]] UE_REWRITE EIteratorType end() const { return End; }
 
 	private:

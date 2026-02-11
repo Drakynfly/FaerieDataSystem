@@ -176,7 +176,7 @@ namespace Faerie::Storage
 
 	TUniquePtr<Container::IIterator> FIterator_AllEntries_ForInterface::Copy() const
 	{
-		return TUniquePtr<IIterator>(MakeUnique<FIterator_AllEntries_ForInterface>(Storage));
+		return TUniquePtr<IIterator>(MakeUnique<FIterator_AllEntries_ForInterface>(Storage, Inner));
 	}
 
 	const IFaerieItemOwnerInterface* FIterator_AllEntries_ForInterface::ResolveOwner() const
@@ -186,7 +186,7 @@ namespace Faerie::Storage
 
 	TUniquePtr<Container::IIterator> FIterator_AllAddresses_ForInterface::Copy() const
 	{
-		return TUniquePtr<IIterator>(MakeUnique<FIterator_AllAddresses_ForInterface>(Storage));
+		return TUniquePtr<IIterator>(MakeUnique<FIterator_AllAddresses_ForInterface>(Storage, Inner));
 	}
 
 	const IFaerieItemOwnerInterface* FIterator_AllAddresses_ForInterface::ResolveOwner() const
@@ -196,7 +196,7 @@ namespace Faerie::Storage
 
 	TUniquePtr<Container::IIterator> FIterator_SingleEntry_ForInterface::Copy() const
 	{
-		return TUniquePtr<IIterator>(MakeUnique<FIterator_SingleEntry_ForInterface>(Storage, Inner.GetKey()));
+		return TUniquePtr<IIterator>(MakeUnique<FIterator_SingleEntry_ForInterface>(Storage, Inner));
 	}
 
 	const IFaerieItemOwnerInterface* FIterator_SingleEntry_ForInterface::ResolveOwner() const

@@ -8,7 +8,6 @@
 #include "FaerieItemDataConcepts.h"
 #include "FaerieItemToken.h"
 #include "FaerieItemTokenFilterFlags.h"
-#include "FaerieItemTokenFilterTypes.h"
 #include "LoopUtils.h"
 #include "PredicateTuple.h"
 #include "TypeCastingUtils.h"
@@ -61,18 +60,27 @@ namespace Faerie::Token
 		}
 
 		[[nodiscard]] UE_REWRITE const FTokenIterator& begin() const { return *this; }
-		[[nodiscard]] UE_REWRITE EIteratorType end () const { return End; }
+		[[nodiscard]] UE_REWRITE EIteratorType end() const { return End; }
 
 	private:
 		TArray<TObjectPtr<UFaerieItemToken>>::TConstIterator Iterator;
 	};
 
-	template <typename TTokenClass, EFilterFlags Flags, typename... TPredicates>
-	class TFilteringIterator_Move : Private::FIteratorAccess
+	template <typename TPredicate>
+	concept CTokenPredicate = requires(const TPredicate& Predicate, TNotNull<const UFaerieItemToken*> Token)
 	{
+		{ Predicate.Exec(Token) } -> UE::CSameAs<bool>;
+	};
+
+	template <bool View, typename TTokenClass, EFilterFlags Flags, CTokenPredicate... TPredicates>
+	class TFilteringIterator : Private::FIteratorAccess
+	{
+		using InputType = std::conditional_t<View, const Utils::TPredicateTuple<TPredicates...>&, Utils::TPredicateTuple<TPredicates...>&&>;
+		using FieldType = std::conditional_t<View, const Utils::TPredicateTuple<TPredicates...>&, Utils::TPredicateTuple<TPredicates...>>;
+
 	public:
-		TFilteringIterator_Move(Utils::TPredicateTuple<TPredicates...>&& PredicateTuple, const TNotNull<const UFaerieItem*> Item)
-		  : PredicateTuple(MoveTemp(PredicateTuple)), Iterator(Item)
+		TFilteringIterator(InputType&& PredicateTuple, const TNotNull<const UFaerieItem*> Item)
+		  : PredicateTuple(MoveTempIfPossible(PredicateTuple)), Iterator(Item)
 		{
 			SkipInvalid();
 		}
@@ -129,8 +137,7 @@ namespace Faerie::Token
 			};
 
 			// Advance while we are valid and failing the iterator tests
-			while (static_cast<bool>(*this) &&
-				!TestIterator())
+			while (static_cast<bool>(*this) && !TestIterator())
 			{
 				++Iterator;
 			}
@@ -142,103 +149,15 @@ namespace Faerie::Token
 			return static_cast<bool>(*this);
 		}
 
-		[[nodiscard]] UE_REWRITE const TFilteringIterator_Move& begin() const { return *this; }
-		[[nodiscard]] UE_REWRITE EIteratorType end () const { return End; }
+		[[nodiscard]] UE_REWRITE const TFilteringIterator& begin() const { return *this; }
+		[[nodiscard]] UE_REWRITE EIteratorType end() const { return End; }
 
 	private:
-		Utils::TPredicateTuple<TPredicates...> PredicateTuple;
+		FieldType PredicateTuple;
 		FTokenIterator Iterator;
 	};
 
-	template <typename TTokenClass, EFilterFlags Flags, typename... TPredicates>
-	class TFilteringIterator_Ref : Private::FIteratorAccess
-	{
-	public:
-		TFilteringIterator_Ref(const Utils::TPredicateTuple<TPredicates...>& PredicateTuple, const TNotNull<const UFaerieItem*> Item)
-		  : PredicateTuple(PredicateTuple), Iterator(Item)
-		{
-			AdvanceToNext();
-		}
-
-		[[nodiscard]] UE_REWRITE TTokenClass* operator*() const { return CastChecked<TTokenClass>(Iterator.operator*(), ECastCheckedType::NullAllowed); }
-
-		UE_REWRITE explicit operator bool() const { return static_cast<bool>(Iterator); }
-
-		UE_REWRITE void operator++()
-		{
-			++Iterator;
-			AdvanceToNext();
-		}
-
-		void AdvanceToNext()
-		{
-			auto TestIterator = [&]() -> bool
-			{
-				if constexpr (!std::is_same_v<TTokenClass, UFaerieItemToken>)
-				{
-					if (!StaticClassFilter(*Iterator, TTokenClass::StaticClass()))
-					{
-						return false;
-					}
-				}
-
-				if constexpr (EnumHasAnyFlags(Flags, EFilterFlags::MutableOnly))
-				{
-					if (!StaticIsMutableFilter(*Iterator))
-					{
-						return false;
-					}
-				}
-
-				if constexpr (EnumHasAnyFlags(Flags, EFilterFlags::ImmutableOnly))
-				{
-					if (StaticIsMutableFilter(*Iterator))
-					{
-						return false;
-					}
-				}
-
-				if constexpr (EnumHasAnyFlags(Flags, EFilterFlags::Inverted))
-				{
-					// Test for not passing the predicates
-					return !PredicateTuple.TestAll(*Iterator);
-				}
-				else
-				{
-					// Test for passing the predicates
-					return PredicateTuple.TestAll(*Iterator);
-				}
-			};
-
-			// Advance while we are valid and failing the iterator tests
-			while (static_cast<bool>(*this) &&
-				!TestIterator())
-			{
-				++Iterator;
-			}
-		}
-
-		[[nodiscard]] UE_REWRITE bool operator!=(EIteratorType) const
-		{
-			// As long as we are valid, then we have not ended.
-			return static_cast<bool>(*this);
-		}
-
-		[[nodiscard]] UE_REWRITE const TFilteringIterator_Ref& begin() const { return *this; }
-		[[nodiscard]] UE_REWRITE EIteratorType end () const { return End; }
-
-	private:
-		const Utils::TPredicateTuple<TPredicates...>& PredicateTuple;
-		FTokenIterator Iterator;
-	};
-
-	template <typename TPredicate>
-	concept CTokenFilterType = requires(const TPredicate& Predicate, TNotNull<const UFaerieItemToken*> Token)
-	{
-		{ Predicate.Exec(Token) } -> UE::CSameAs<bool>;
-	};
-
-	template <CItemTokenBase FilterClass, EFilterFlags Flags, typename... TPredicates>
+	template <CItemTokenBase FilterClass, EFilterFlags Flags, CTokenPredicate... TPredicates>
 	class TFilter : Private::FIteratorAccess
 	{
 		// Let this library use BlueprintOnlyAccess;
@@ -306,25 +225,25 @@ namespace Faerie::Token
 			return TFilter<T, Flags, TPredicates...>(MoveTemp(PredicateTuple));
 		}
 
-		template <CTokenFilterType T>
+		template <CTokenPredicate T>
 		[[nodiscard]] auto By(T&& Predicate) const &
 		{
 			return TFilter<FilterClass, Flags, TPredicates..., T>(PredicateTuple.template AddPredicateAndCopy<T>(MoveTemp(Predicate)));
 		}
 
-		template <CTokenFilterType T, typename... TArgs>
+		template <CTokenPredicate T, typename... TArgs>
 		[[nodiscard]] auto By(TArgs&&... Args) const &
 		{
 			return TFilter<FilterClass, Flags, TPredicates..., T>(PredicateTuple.template AddPredicateAndCopy<T>(T(Args...)));
 		}
 
-		template <CTokenFilterType T>
+		template <CTokenPredicate T>
 		[[nodiscard]] auto By(T&& Predicate) &&
 		{
 			return TFilter<FilterClass, Flags, TPredicates..., T>(PredicateTuple.template AddPredicateAndMove<T>(MoveTemp(Predicate)));
 		}
 
-		template <CTokenFilterType T, typename... TArgs>
+		template <CTokenPredicate T, typename... TArgs>
 		[[nodiscard]] auto By(TArgs&&... Args) &&
 		{
 			return TFilter<FilterClass, Flags, TPredicates..., T>(PredicateTuple.template AddPredicateAndMove<T>(T(Args...)));
@@ -332,12 +251,12 @@ namespace Faerie::Token
 
 		[[nodiscard]] auto Iterate(const TNotNull<const UFaerieItem*> Item) const &
 		{
-			return TFilteringIterator_Ref<FilterClass, Flags, TPredicates...>(PredicateTuple, Item);
+			return TFilteringIterator<true, FilterClass, Flags, TPredicates...>(PredicateTuple, Item);
 		}
 
 		[[nodiscard]] auto Iterate(const TNotNull<const UFaerieItem*> Item) &&
 		{
-			return TFilteringIterator_Move<FilterClass, Flags, TPredicates...>(MoveTemp(PredicateTuple), Item);
+			return TFilteringIterator<false, FilterClass, Flags, TPredicates...>(MoveTemp(PredicateTuple), Item);
 		}
 
 		[[nodiscard]] auto First(const TNotNull<const UFaerieItem*> Item) const
@@ -357,6 +276,16 @@ namespace Faerie::Token
 				Out.Add(Token);
 			}
 			return Out;
+		}
+
+		[[nodiscard]] int32 Count(const TNotNull<const UFaerieItem*> Item) const
+		{
+			int32 OutCount = 0;
+			for (auto&& Token : Iterate(Item))
+			{
+				OutCount++;
+			}
+			return OutCount;
 		}
 
 		[[nodiscard]] uint32 Hash(const TNotNull<const UFaerieItem*> Item) const
@@ -400,7 +329,7 @@ namespace Faerie::Token
 	};
 
 	// Forward declare the default parameters of the template
-	template <CItemTokenBase FilterClass = UFaerieItemToken, EFilterFlags Flags = EFilterFlags::None, typename... TPredicates>
+	template <CItemTokenBase FilterClass = UFaerieItemToken, EFilterFlags Flags = EFilterFlags::None, CTokenPredicate... TPredicates>
 	class TFilter;
 
 	// Create a new token filter

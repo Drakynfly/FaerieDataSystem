@@ -53,6 +53,6 @@ protected:
 
 namespace Faerie::Equipment
 {
-	static inline auto SlotFilter = SubObject::Filter().ByClass<UFaerieEquipmentSlot>();
-	static inline auto RecursiveSlotFilter = SubObject::Filter().Recursive().ByClass<UFaerieEquipmentSlot>();
+	static inline const auto SlotFilter = SubObject::Filter().ByClass<UFaerieEquipmentSlot>();
+	static inline const auto RecursiveSlotFilter = SubObject::Filter().Recursive().ByClass<UFaerieEquipmentSlot>();
 }

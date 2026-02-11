@@ -6,7 +6,6 @@
 #include "TypeCastingUtils.h"
 #include "FaerieInventoryConcepts.h"
 #include "FaerieItemTokenFilter.h"
-#include "FaerieItemTokenFilterTypes.h"
 #include "Templates/SubclassOf.h"
 #include "Tokens/FaerieItemStorageToken.h"
 
@@ -52,10 +51,10 @@ namespace Faerie
 			}
 
 			[[nodiscard]] UE_REWRITE const FContainerIterator& begin() const { return *this; }
-			[[nodiscard]] UE_REWRITE EIteratorType end () const { return End; }
+			[[nodiscard]] UE_REWRITE EIteratorType end() const { return End; }
 
 		protected:
-			Token::TFilteringIterator_Move<UFaerieItemContainerToken, Token::EFilterFlags::MutableOnly> Iterator;
+			Token::TFilteringIterator<false, UFaerieItemContainerToken, Token::EFilterFlags::MutableOnly> Iterator;
 		};
 
 		/**
@@ -81,7 +80,7 @@ namespace Faerie
 			}
 
 			[[nodiscard]] UE_REWRITE const FRecursiveContainerIterator& begin() const { return *this; }
-			[[nodiscard]] UE_REWRITE EIteratorType end () const { return End; }
+			[[nodiscard]] UE_REWRITE EIteratorType end() const { return End; }
 
 		protected:
 			FStorageType Containers;
@@ -118,8 +117,8 @@ namespace Faerie
 				return static_cast<bool>(*this);
 			}
 
-			[[nodiscard]] UE_REWRITE const TFilteredArrayIterator& begin() { return *this; }
-			[[nodiscard]] UE_REWRITE EIteratorType end () const { return End; }
+			[[nodiscard]] UE_REWRITE const TFilteredArrayIterator& begin() const { return *this; }
+			[[nodiscard]] UE_REWRITE EIteratorType end() const { return End; }
 
 		protected:
 			FStorageType Containers;
@@ -259,7 +258,14 @@ namespace Faerie
 			}
 
 			// Create an iterator from this filter.
-			[[nodiscard]] UE_REWRITE auto Iterate(const TNotNull<UFaerieItem*> Item) const
+			[[nodiscard]] UE_REWRITE auto Iterate(const TNotNull<UFaerieItem*> Item) const &
+			{
+				// @TODO FIX THIS
+				return TFilteredArrayIterator<TClass>(Emit(Item));
+			}
+
+			// Create an iterator from this filter.
+			[[nodiscard]] UE_REWRITE auto Iterate(const TNotNull<UFaerieItem*> Item) &&
 			{
 				// @TODO FIX THIS
 				return TFilteredArrayIterator<TClass>(Emit(Item));

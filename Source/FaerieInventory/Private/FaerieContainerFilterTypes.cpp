@@ -8,14 +8,9 @@
 
 namespace Faerie::Container
 {
-	bool FMutablePredicate::Exec(FIteratorPtr Iterator)
+	bool FMatchItemMutable::Exec(FIteratorPtr Iterator) const
 	{
-		return Iterator->ResolveItem()->CanMutate();
-	}
-
-	bool FImmutablePredicate::Exec(FIteratorPtr Iterator)
-	{
-		return !Iterator->ResolveItem()->CanMutate();
+		return Iterator->ResolveItem()->CanMutate() == MutabilityToMatch;
 	}
 
 	bool FCompareName::Exec(FIteratorPtr Iterator) const

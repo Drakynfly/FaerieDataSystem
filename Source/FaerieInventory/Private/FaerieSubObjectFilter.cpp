@@ -4,7 +4,6 @@
 #include "FaerieContainerIterator.h"
 #include "FaerieItem.h"
 #include "FaerieItemContainerBase.h"
-#include "FaerieItemTokenFilterTypes.h"
 
 namespace Faerie
 {

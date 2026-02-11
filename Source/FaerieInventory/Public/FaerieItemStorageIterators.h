@@ -53,7 +53,7 @@ namespace Faerie::Storage
 		}
 
 		[[nodiscard]] UE_REWRITE const FIterator_AllEntries& begin() const { return *this; }
-		[[nodiscard]] UE_REWRITE EIteratorType end () const { return End; }
+		[[nodiscard]] UE_REWRITE EIteratorType end() const { return End; }
 
 	private:
 		// Entry iteration
@@ -137,7 +137,7 @@ namespace Faerie::Storage
 		}
 
 		[[nodiscard]] UE_REWRITE const FIterator_SingleEntry& begin() const { return *this; }
-		[[nodiscard]] UE_REWRITE EIteratorType end () const { return End; }
+		[[nodiscard]] UE_REWRITE EIteratorType end() const { return End; }
 
 	private:
 		TNotNull<const FInventoryEntry*> EntryPtr;
@@ -148,7 +148,11 @@ namespace Faerie::Storage
 	class FAERIEINVENTORY_API FIterator_AllEntries_ForInterface final : public Container::IIterator
 	{
 	public:
-		FIterator_AllEntries_ForInterface(const TNotNull<const UFaerieItemStorage*> Storage) : Storage(Storage), Inner(Storage) {}
+		FIterator_AllEntries_ForInterface(const TNotNull<const UFaerieItemStorage*> Storage)
+		  : Storage(Storage), Inner(Storage) {}
+
+		FIterator_AllEntries_ForInterface(const TNotNull<const UFaerieItemStorage*> Storage, const FIterator_AllEntries& Other)
+		  : Storage(Storage), Inner(Other) {}
 
 		//~ Container::IIterator
 		virtual TUniquePtr<IIterator> Copy() const override;
@@ -169,7 +173,11 @@ namespace Faerie::Storage
 	class FAERIEINVENTORY_API FIterator_AllAddresses_ForInterface final : public Container::IIterator
 	{
 	public:
-		FIterator_AllAddresses_ForInterface(const TNotNull<const UFaerieItemStorage*> Storage) : Storage(Storage), Inner(Storage) {}
+		FIterator_AllAddresses_ForInterface(const TNotNull<const UFaerieItemStorage*> Storage)
+		  : Storage(Storage), Inner(Storage) {}
+
+		FIterator_AllAddresses_ForInterface(const TNotNull<const UFaerieItemStorage*> Storage, const FIterator_AllAddresses& Other)
+		  : Storage(Storage), Inner(Other) {}
 
 		//~ Container::IIterator
 		virtual TUniquePtr<IIterator> Copy() const override;
@@ -193,8 +201,8 @@ namespace Faerie::Storage
 		FIterator_SingleEntry_ForInterface(const TNotNull<const UFaerieItemStorage*> Storage, const FInventoryEntry& Entry)
 		  : Storage(Storage), Inner(Entry) {}
 
-		FIterator_SingleEntry_ForInterface(const TNotNull<const UFaerieItemStorage*> Storage, const FEntryKey Key)
-		  : Storage(Storage), Inner(Storage, Key) {}
+		FIterator_SingleEntry_ForInterface(const TNotNull<const UFaerieItemStorage*> Storage, const FIterator_SingleEntry& Other)
+		  : Storage(Storage), Inner(Other) {}
 
 		//~ Container::IIterator
 		virtual TUniquePtr<IIterator> Copy() const override;

@@ -87,6 +87,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|Storage Query")
 	bool IsAddressFiltered(const UFaerieItemStorage* Storage, const FFaerieAddress Address) const;
 
+protected:
+	bool CompareAddresses_Impl(TNotNull<const UFaerieItemStorage*> Storage, const FFaerieAddress AddressA, const FFaerieAddress AddressB) const;
 	bool IsIteratorFiltered(Faerie::Container::FIteratorPtr Iterator) const;
 
 private:

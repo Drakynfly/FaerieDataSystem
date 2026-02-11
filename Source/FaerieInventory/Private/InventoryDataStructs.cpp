@@ -17,9 +17,12 @@ LLM_DEFINE_TAG(ItemStorage, NAME_None, NAME_None, GET_STATFNAME(STAT_StorageLLM)
 FEntryKey FEntryKey::InvalidKey;
 
 // @TODO THIS IS A COPY OF ENCODE FROM FAERIEITEMSTORAGE.cpp fix at some point
-[[nodiscard]] UE_REWRITE FFaerieAddress Encode(const FEntryKey Entry, const FStackKey Stack)
+namespace LocalCopy
 {
-	return FFaerieAddress((static_cast<int64>(Entry.Value()) << 32) | static_cast<int64>(Stack.Value()));
+	[[nodiscard]] UE_REWRITE FFaerieAddress Encode(const FEntryKey Entry, const FStackKey Stack)
+	{
+		return FFaerieAddress((static_cast<int64>(Entry.Value()) << 32) | static_cast<int64>(Stack.Value()));
+	}
 }
 
 FInventoryEntry::FInventoryEntry(FFaerieItemStackView InStack, TArray<FFaerieAddress>& OutNewAddresses)
@@ -32,7 +35,7 @@ FInventoryEntry::FInventoryEntry(FFaerieItemStackView InStack, TArray<FFaerieAdd
 	{
 		const FStackKey NewKey = KeyGen.NextKey();
 		Stacks.Emplace(NewKey, InStack.Copies);
-		OutNewAddresses.Add(Encode(Key, NewKey));
+		OutNewAddresses.Add(LocalCopy::Encode(Key, NewKey));
 	}
 	else
 	{
@@ -44,7 +47,7 @@ FInventoryEntry::FInventoryEntry(FFaerieItemStackView InStack, TArray<FFaerieAdd
 
 			const FStackKey NewKey = KeyGen.NextKey();
 			Stacks.Emplace(NewKey, NewStack);
-			OutNewAddresses.Add(Encode(Key, NewKey));
+			OutNewAddresses.Add(LocalCopy::Encode(Key, NewKey));
 		}
 	}
 }
@@ -97,7 +100,7 @@ void FInventoryEntry::CopyAddresses(TArray<FFaerieAddress>& OutAddresses) const
 {
 	for (auto&& Element : Stacks)
 	{
-		OutAddresses.Add(Encode(Key, Element.Key));
+		OutAddresses.Add(LocalCopy::Encode(Key, Element.Key));
 	}
 }
 
@@ -339,7 +342,7 @@ void FInventoryEntry::FMutableAccess::AddToNewStacks(int32 Amount, TArray<FFaeri
 		const FStackKey NewKey = Handle.KeyGen.NextKey();
 		Handle.Stacks.Emplace(NewKey, Amount);
 		ChangeMask.Add(true);
-		OutNewAddresses.Add(Encode(Handle.Key, NewKey));
+		OutNewAddresses.Add(LocalCopy::Encode(Handle.Key, NewKey));
 	};
 
 	if (Handle.Limit == Faerie::ItemData::UnlimitedStack)
@@ -367,7 +370,7 @@ int32 FInventoryEntry::FMutableAccess::RemoveFromAnyStack(int32 Amount, TArray<F
 		if (FKeyedStack& KeyedStack = Handle.Stacks[i];
 			Amount >= KeyedStack.Stack)
 		{
-			OutAllModifiedAddresses.Add(Encode(Handle.Key, KeyedStack.Key));
+			OutAllModifiedAddresses.Add(LocalCopy::Encode(Handle.Key, KeyedStack.Key));
 			Amount -= KeyedStack.Stack;
 			Handle.Stacks.RemoveAt(i); // Remove the stack
 			ChangeMask.RemoveAt(i); // Also remove the mask bit for this stack, so we don't get out of sync.
@@ -381,7 +384,7 @@ int32 FInventoryEntry::FMutableAccess::RemoveFromAnyStack(int32 Amount, TArray<F
 		{
 			KeyedStack.Stack -= Amount;
 			MarkStackDirty(i);
-			OutAllModifiedAddresses.Add(Encode(Handle.Key, KeyedStack.Key));
+			OutAllModifiedAddresses.Add(LocalCopy::Encode(Handle.Key, KeyedStack.Key));
 			break;
 		}
 	}

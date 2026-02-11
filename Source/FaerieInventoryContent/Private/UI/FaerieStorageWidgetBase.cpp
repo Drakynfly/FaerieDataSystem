@@ -50,10 +50,7 @@ void UFaerieStorageWidgetBase::NativeTick(const FGeometry& MyGeometry, const flo
 
 	if (NeedsResort)
 	{
-		if (ItemStorage.IsValid())
-		{
-			StorageQuery->QueryAllAddresses(ItemStorage.Get(), SortedAndFilteredAddresses);
-		}
+		StorageQuery->QueryAllAddresses(ItemStorage.Get(), SortedAndFilteredAddresses);
 		NeedsReconstructEntries = true;
 		NeedsResort = false;
 	}

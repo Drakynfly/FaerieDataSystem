@@ -3,6 +3,7 @@
 #include "FaerieStorageLibrary.h"
 #include "DelegateCommon.h"
 #include "FaerieContainerFilter.h"
+#include "FaerieContainerFilterTypes.h"
 #include "FaerieItemDataViewWrapper.h"
 #include "FaerieItemStorage.h"
 

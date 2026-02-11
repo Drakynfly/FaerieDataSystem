@@ -221,7 +221,7 @@ void UFaerieItemStorageQuery::QueryAllAddresses(const UFaerieItemStorage* Storag
 		Algo::Sort(OutAddresses,
 			[this, Storage](const FFaerieAddress A, const FFaerieAddress B)
 			{
-				return CompareAddresses(Storage, A, B);
+				return CompareAddresses_Impl(Storage, A, B);
 			});
 	}
 }
@@ -249,9 +249,7 @@ bool UFaerieItemStorageQuery::CompareAddresses(const UFaerieItemStorage* Storage
 
 	if (SortFunction.IsBound())
 	{
-		const FImmediateView ViewA(Storage, Storage->ViewStack(AddressA));
-		const FImmediateView ViewB(Storage, Storage->ViewStack(AddressB));
-		return SortFunction.Execute(&ViewA, &ViewB);
+		return CompareAddresses_Impl(Storage, AddressA, AddressB);
 	}
 
 	return false;
@@ -275,11 +273,21 @@ bool UFaerieItemStorageQuery::IsAddressFiltered(const UFaerieItemStorage* Storag
 	return false;
 }
 
+bool UFaerieItemStorageQuery::CompareAddresses_Impl(const TNotNull<const UFaerieItemStorage*> Storage,
+													const FFaerieAddress AddressA, const FFaerieAddress AddressB) const
+{
+	const FImmediateView ViewA(Storage, Storage->ViewStack(AddressA));
+	const FImmediateView ViewB(Storage, Storage->ViewStack(AddressB));
+
+	if (InvertSort)
+	{
+		return !SortFunction.Execute(&ViewA, &ViewB);
+	}
+
+	return SortFunction.Execute(&ViewA, &ViewB);
+}
+
 bool UFaerieItemStorageQuery::IsIteratorFiltered(FIteratorPtr Iterator) const
 {
-	if (FilterFunction.IsBound())
-	{
-		return FilterFunction.Execute(Iterator);
-	}
-	return false;
+	return FilterFunction.Execute(Iterator);
 }
