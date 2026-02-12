@@ -131,15 +131,10 @@ struct FWeightAndVolume
 		return GramWeight == 0 && Volume == 0;
 	}
 
-	friend bool operator==(const FWeightAndVolume& Lhs, const FWeightAndVolume& Rhs)
+	[[nodiscard]] UE_REWRITE bool UEOpEquals(const FWeightAndVolume& Other) const
 	{
-		return Lhs.GramWeight == Rhs.GramWeight
-			   && Lhs.Volume == Rhs.Volume;
-	}
-
-	friend bool operator!=(const FWeightAndVolume& Lhs, const FWeightAndVolume& Rhs)
-	{
-		return !(Lhs == Rhs);
+		return GramWeight == Other.GramWeight
+			&& Volume == Other.Volume;
 	}
 
 	FWeightAndVolume& operator+=(const FWeightAndVolume& Other)

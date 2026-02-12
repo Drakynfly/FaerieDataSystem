@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "FaerieDefinitions.h"
+#include "FaerieFastArraySerializer.h"
 #include "BinarySearchOptimizedArray.h"
 #include "FaerieFastArraySerializerHack.h"
 #include "FaerieItemContainerStructs.h"
@@ -35,20 +35,9 @@ struct FKeyedStack
 	UPROPERTY(VisibleAnywhere, Category = "KeyedStack")
 	int32 Stack = 0;
 
-	friend bool operator==(const FKeyedStack& Lhs, const FStackKey Rhs)
+	[[nodiscard]] UE_REWRITE bool UEOpEquals(const FKeyedStack& Other) const
 	{
-		return Lhs.Key == Rhs;
-	}
-
-	friend bool operator==(const FKeyedStack& Lhs, const FKeyedStack& Rhs)
-	{
-		return Lhs.Key == Rhs.Key
-			&& Lhs.Stack == Rhs.Stack;
-	}
-
-	friend bool operator!=(const FKeyedStack& Lhs, const FKeyedStack& Rhs)
-	{
-		return !(Lhs == Rhs);
+		return Key == Other.Key && Stack == Other.Stack;
 	}
 };
 
@@ -90,12 +79,12 @@ private:
 	void UpdateCachedStackLimit();
 
 public:
-	FORCEINLINE const UFaerieItem* GetItem() const { return ItemObject; }
-	FORCEINLINE TConstArrayView<FKeyedStack> GetStacks() const { return Stacks; }
+	UE_REWRITE const UFaerieItem* GetItem() const { return ItemObject; }
+	UE_REWRITE TConstArrayView<FKeyedStack> GetStacks() const { return Stacks; }
 
-	FORCEINLINE int32 NumStacks() const { return Stacks.Num(); }
+	UE_REWRITE int32 NumStacks() const { return Stacks.Num(); }
 
-	int32 GetCachedStackLimit() const { return Limit; }
+	UE_REWRITE int32 GetCachedStackLimit() const { return Limit; }
 
 	bool Contains(FStackKey Key) const;
 

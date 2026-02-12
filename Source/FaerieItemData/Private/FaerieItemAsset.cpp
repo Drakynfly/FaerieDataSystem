@@ -9,6 +9,7 @@
 #include "Tokens/FaerieInfoToken.h"
 
 #include "UObject/ObjectSaveContext.h"
+#include "EngineUpgradeNotice.h"
 
 #if WITH_EDITOR
 #include "ThumbnailRendering/SceneThumbnailInfo.h"
@@ -123,7 +124,8 @@ EDataValidationResult UFaerieItemAsset::IsDataValid(FDataValidationContext& Cont
 	}
 	else
 	{
-		Result = CombineDataValidationResults(Result, Item->IsDataValid(Context));
+		ENGINE_UPGRADE_NOTICE(8, "Remove const cast after upgrade")
+		Result = CombineDataValidationResults(Result, const_cast<const UFaerieItem*>(Item.Get())->IsDataValid(Context));
 	}
 
 	if (!IsValid(Template))
@@ -133,7 +135,8 @@ EDataValidationResult UFaerieItemAsset::IsDataValid(FDataValidationContext& Cont
 
 	for (auto&& Token : Tokens)
 	{
-		Result = CombineDataValidationResults(Result, Token->IsDataValid(Context));
+		ENGINE_UPGRADE_NOTICE(8, "Remove const cast after upgrade")
+		Result = CombineDataValidationResults(Result, const_cast<const UFaerieItemToken*>(Token.Get())->IsDataValid(Context));
 	}
 
 	if (IsValid(Item) && IsValid(Template))

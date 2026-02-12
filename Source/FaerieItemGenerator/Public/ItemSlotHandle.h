@@ -30,17 +30,12 @@ public:
 		return InternalHandle.ToString();
 	}
 
-	friend bool operator==(const FFaerieItemSlotHandle& Lhs, const FFaerieItemSlotHandle& Rhs)
+	[[nodiscard]] UE_REWRITE bool UEOpEquals(const FFaerieItemSlotHandle& Other) const
 	{
-		return Lhs.InternalHandle == Rhs.InternalHandle;
+		return InternalHandle == Other.InternalHandle;
 	}
 
-	friend bool operator!=(const FFaerieItemSlotHandle& Lhs, const FFaerieItemSlotHandle& Rhs)
-	{
-		return !(Lhs == Rhs);
-	}
-
-	FORCEINLINE friend uint32 GetTypeHash(const FFaerieItemSlotHandle& Key)
+	friend [[nodiscard]] UE_REWRITE uint32 GetTypeHash(const FFaerieItemSlotHandle& Key)
 	{
 		return GetTypeHash(Key.InternalHandle);
 	}

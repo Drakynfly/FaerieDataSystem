@@ -4,7 +4,7 @@
 
 #include "BinarySearchOptimizedArray.h"
 #include "FaerieGridEnums.h"
-#include "FaerieDefinitions.h"
+#include "FaerieFastArraySerializer.h"
 #include "FaerieFastArraySerializerHack.h"
 #include "FaerieItemContainerStructs.h"
 

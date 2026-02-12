@@ -421,16 +421,16 @@ FFaerieGridShape FFaerieGridShape::Normalize() const
 	return NewShape;
 }
 
-bool operator==(const FFaerieGridShape& Lhs, const FFaerieGridShape& Rhs)
+bool FFaerieGridShape::UEOpEquals(const FFaerieGridShape& Other) const
 {
 	// Mismatching point numbers; auto-fail
-	if (Lhs.Points.Num() != Rhs.Points.Num()) return false;
+	if (Points.Num() != Other.Points.Num()) return false;
 
 	// @todo points have to be found individually, instead of just comparing the arrays, because the same points are not guaranteed to be in the same order.
 	// to fix this, Points would have to be sorted. until then, this is really slow!!
-	for (auto&& Point : Lhs.Points)
+	for (auto&& Point : Points)
 	{
-		if (!Rhs.Points.Contains(Point)) return false;
+		if (!Other.Points.Contains(Point)) return false;
 	}
 
 	return true;
@@ -707,16 +707,16 @@ FFaerieGridShapeView FFaerieGridShapeView::Normalize() const
 	return NewShape;
 }
 
-bool operator==(const FFaerieGridShapeView& Lhs, const FFaerieGridShapeView& Rhs)
+bool FFaerieGridShapeView::UEOpEquals(const FFaerieGridShapeView& Other) const
 {
 	// Mismatching point numbers; auto-fail
-	if (Lhs.Points.Num() != Rhs.Points.Num()) return false;
+	if (Points.Num() != Other.Points.Num()) return false;
 
 	// @todo points have to be found individually, instead of just comparing the arrays, because the same points are not guaranteed to be in the same order.
 	// to fix this, Points would have to be sorted. until then, this is really slow!!
-	for (auto&& Point : Lhs.Points)
+	for (auto&& Point : Points)
 	{
-		if (!Rhs.Points.Contains(Point)) return false;
+		if (!Other.Points.Contains(Point)) return false;
 	}
 
 	return true;
@@ -827,16 +827,16 @@ FFaerieGridShape FFaerieGridShapeConstView::Copy() const
 	return FFaerieGridShape{TArray<FIntPoint>(Points)};
 }
 
-bool operator==(const FFaerieGridShapeConstView& Lhs, const FFaerieGridShapeConstView& Rhs)
+bool FFaerieGridShapeConstView::UEOpEquals(const FFaerieGridShapeConstView& Other) const
 {
 	// Mismatching point numbers; auto-fail
-	if (Lhs.Points.Num() != Rhs.Points.Num()) return false;
+	if (Points.Num() != Other.Points.Num()) return false;
 
 	// @todo points have to be found individually, instead of just comparing the arrays, because the same points are not guaranteed to be in the same order.
 	// to fix this, Points would have to be sorted. until then, this is really slow!!
-	for (auto&& Point : Lhs.Points)
+	for (auto&& Point : Points)
 	{
-		if (!Rhs.Points.Contains(Point)) return false;
+		if (!Other.Points.Contains(Point)) return false;
 	}
 
 	return true;

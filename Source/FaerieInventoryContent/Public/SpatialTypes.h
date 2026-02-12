@@ -60,8 +60,7 @@ struct FAERIEINVENTORYCONTENT_API FFaerieGridShape
 	void NormalizeInline();
 	[[nodiscard]] FFaerieGridShape Normalize() const;
 
-	friend bool operator==(const FFaerieGridShape& Lhs, const FFaerieGridShape& Rhs);
-	friend bool operator!=(const FFaerieGridShape& Lhs, const FFaerieGridShape& Rhs) { return !(Lhs == Rhs); }
+	[[nodiscard]] bool UEOpEquals(const FFaerieGridShape& Other) const;
 
 	// A single cell.
 	static FFaerieGridShape Square1;
@@ -109,8 +108,7 @@ struct FAERIEINVENTORYCONTENT_API FFaerieGridShapeView
 	void NormalizeInline();
 	[[nodiscard]] FFaerieGridShapeView Normalize() const;
 
-	friend bool operator==(const FFaerieGridShapeView& Lhs, const FFaerieGridShapeView& Rhs);
-	friend bool operator!=(const FFaerieGridShapeView& Lhs, const FFaerieGridShapeView& Rhs) { return !(Lhs == Rhs); }
+	[[nodiscard]] bool UEOpEquals(const FFaerieGridShapeView& Other) const;
 };
 
 /*
@@ -134,8 +132,7 @@ struct FAERIEINVENTORYCONTENT_API FFaerieGridShapeConstView
 	bool Contains(const FIntPoint& Position) const;
 	bool Overlaps(const FFaerieGridShapeConstView& Other) const;
 
-	FFaerieGridShape Copy() const;
+	[[nodiscard]] FFaerieGridShape Copy() const;
 
-	friend bool operator==(const FFaerieGridShapeConstView& Lhs, const FFaerieGridShapeConstView& Rhs);
-	friend bool operator!=(const FFaerieGridShapeConstView& Lhs, const FFaerieGridShapeConstView& Rhs) { return !(Lhs == Rhs); }
+	[[nodiscard]] bool UEOpEquals(const FFaerieGridShapeConstView& Other) const;
 };

@@ -50,14 +50,9 @@ namespace Faerie::Inventory
 		const FGuid& GetEventID() const { return EventID; }
 		const FDateTime& GetTimestamp() const { return Timestamp; }
 
-		friend bool operator==(const FEventLog& Lhs, const FEventLog& Rhs)
+		[[nodiscard]] UE_REWRITE bool UEOpEquals(const FEventLog& Other) const
 		{
-			return Lhs.EventID == Rhs.EventID;
-		}
-
-		friend bool operator!=(const FEventLog& Lhs, const FEventLog& Rhs)
-		{
-			return !(Lhs == Rhs);
+			return EventID == Other.EventID;
 		}
 
 	public:
@@ -116,14 +111,9 @@ struct FAERIEINVENTORY_API FLoggedInventoryEvent
 	// The logged event
 	Faerie::Inventory::FEventLog Event;
 
-	friend bool operator==(const FLoggedInventoryEvent& Lhs, const FLoggedInventoryEvent& Rhs)
+	[[nodiscard]] UE_REWRITE bool UEOpEquals(const FLoggedInventoryEvent& Other) const
 	{
-		return Lhs.Container == Rhs.Container && Lhs.Event == Rhs.Event;
-	}
-
-	friend bool operator!=(const FLoggedInventoryEvent& Lhs, const FLoggedInventoryEvent& Rhs)
-	{
-		return !(Lhs == Rhs);
+		return Container == Other.Container && Event == Other.Event;
 	}
 
 	friend FArchive& operator<<(FArchive& Ar, FLoggedInventoryEvent& Val)

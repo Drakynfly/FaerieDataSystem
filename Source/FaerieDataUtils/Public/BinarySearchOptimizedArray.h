@@ -26,8 +26,8 @@ struct TBinarySearchOptimizedArray
 	using KeyType = decltype(TElementType::Key);
 
 private:
-	FORCEINLINE const TArray<TElementType>& GetArray_Internal() const { return const_cast<TArrayType*>(static_cast<const TArrayType*>(this))->GetArray(); }
-	FORCEINLINE TArray<TElementType>& GetArray_Internal() { return static_cast<TArrayType*>(this)->GetArray(); }
+	UE_REWRITE const TArray<TElementType>& GetArray_Internal() const { return const_cast<TArrayType*>(static_cast<const TArrayType*>(this))->GetArray(); }
+	UE_REWRITE TArray<TElementType>& GetArray_Internal() { return static_cast<TArrayType*>(this)->GetArray(); }
 
 public:
 	int32 IndexOf(const KeyType Key) const
@@ -38,7 +38,7 @@ public:
 		return Algo::BinarySearchBy(GetArray_Internal(), Key, &TElementType::Key);
 	}
 
-	FORCEINLINE bool Contains(KeyType Key) const
+	UE_REWRITE bool Contains(KeyType Key) const
 	{
 		return IndexOf(Key) != INDEX_NONE;
 	}
@@ -59,22 +59,22 @@ public:
 		return GetArray_Internal()[IndexOf(Key)];
 	}
 
-	FORCEINLINE TElementType& operator[](const KeyType Key)
+	UE_REWRITE TElementType& operator[](const KeyType Key)
 	{
 		return GetArray_Internal()[IndexOf(Key)];
 	}
 
-	FORCEINLINE const TElementType& operator[](const KeyType Key) const
+	UE_REWRITE const TElementType& operator[](const KeyType Key) const
 	{
 		return GetArray_Internal()[IndexOf(Key)];
 	}
 
-	FORCEINLINE KeyType GetKeyAt(int32 Index) const
+	UE_REWRITE KeyType GetKeyAt(int32 Index) const
 	{
 		return GetArray_Internal()[Index].Key;
 	}
 
-	FORCEINLINE const TElementType& GetElementAt(int32 Index) const
+	UE_REWRITE const TElementType& GetElementAt(int32 Index) const
 	{
 		return GetArray_Internal()[Index];
 	}

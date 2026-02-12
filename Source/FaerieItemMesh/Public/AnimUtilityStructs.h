@@ -36,19 +36,14 @@ struct FAERIEITEMMESH_API FSkeletonAndAnimation
 	UPROPERTY(NoClear, BlueprintReadWrite, EditAnywhere, Category = "SkeletonAndAnimation")
 	TObjectPtr<UAnimationAsset> AnimationAsset = nullptr;
 
-	friend bool operator==(const FSkeletonAndAnimation& Lhs, const FSkeletonAndAnimation& Rhs)
+	[[nodiscard]] UE_REWRITE bool UEOpEquals(const FSkeletonAndAnimation& Other) const
 	{
-		return Lhs.Mesh == Rhs.Mesh
-			&& Lhs.AnimClass == Rhs.AnimClass
-			&& Lhs.AnimationAsset == Rhs.AnimationAsset;
+		return Mesh == Other.Mesh
+			&& AnimClass == Other.AnimClass
+			&& AnimationAsset == Other.AnimationAsset;
 	}
 
-	friend bool operator!=(const FSkeletonAndAnimation& Lhs, const FSkeletonAndAnimation& Rhs)
-	{
-		return !(Lhs == Rhs);
-	}
-
-	FORCEINLINE friend uint32 GetTypeHash(const FSkeletonAndAnimation& Thing)
+	friend [[nodiscard]] UE_REWRITE uint32 GetTypeHash(const FSkeletonAndAnimation& Thing)
 	{
 		return FCrc::MemCrc32(&Thing, sizeof(FSkeletonAndAnimation));
 	}
@@ -71,21 +66,16 @@ struct FAERIEITEMMESH_API FSoftSkeletonAndAnimation
 	UPROPERTY(NoClear, BlueprintReadWrite, EditAnywhere, Category = "SoftSkeletonAndAnimation")
 	TSoftObjectPtr<UAnimationAsset> AnimationAsset = nullptr;
 
-	friend bool operator==(const FSoftSkeletonAndAnimation& Lhs, const FSoftSkeletonAndAnimation& Rhs)
-	{
-		return Lhs.Mesh == Rhs.Mesh
-			&& Lhs.AnimClass == Rhs.AnimClass
-			&& Lhs.AnimationAsset == Rhs.AnimationAsset;
-	}
-
-	friend bool operator!=(const FSoftSkeletonAndAnimation& Lhs, const FSoftSkeletonAndAnimation& Rhs)
-	{
-		return !(Lhs == Rhs);
-	}
-
 	FSkeletonAndAnimation LoadSynchronous() const;
 
-	FORCEINLINE friend uint32 GetTypeHash(const FSoftSkeletonAndAnimation& Thing)
+	[[nodiscard]] UE_REWRITE bool UEOpEquals(const FSoftSkeletonAndAnimation& Other) const
+	{
+		return Mesh == Other.Mesh
+			&& AnimClass == Other.AnimClass
+			&& AnimationAsset == Other.AnimationAsset;
+	}
+
+	friend [[nodiscard]] UE_REWRITE uint32 GetTypeHash(const FSoftSkeletonAndAnimation& Thing)
 	{
 		return FCrc::MemCrc32(&Thing, sizeof(FSoftSkeletonAndAnimation));
 	}

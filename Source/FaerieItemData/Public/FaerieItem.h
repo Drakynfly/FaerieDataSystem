@@ -30,7 +30,7 @@ namespace Faerie
 		FAERIEITEMDATA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TokenReferenceDefaults)
 	}
 
-	using FNotifyOwnerOfSelfMutation = TDelegate<void(const UFaerieItem*, const UFaerieItemToken*, FGameplayTag)>;
+	using FNotifyOwnerOfSelfMutation = TDelegate<void(TNotNull<const UFaerieItem*>, TNotNull<const UFaerieItemToken*>, FGameplayTag)>;
 }
 
 /**

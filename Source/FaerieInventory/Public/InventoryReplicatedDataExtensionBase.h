@@ -3,7 +3,7 @@
 #pragma once
 
 #include "BinarySearchOptimizedArray.h"
-#include "FaerieDefinitions.h"
+#include "FaerieFastArraySerializer.h"
 #include "FaerieFastArraySerializerHack.h"
 #include "ItemContainerExtensionBase.h"
 #include "StructUtils/InstancedStruct.h"

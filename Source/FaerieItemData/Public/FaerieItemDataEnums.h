@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Misc/EnumClassFlags.h"
 #include "FaerieItemDataEnums.generated.h"
 
 UENUM(Flags, Meta = (Bitflags, UseEnumValuesAsMaskValuesInEditor = "true"))
@@ -45,14 +46,17 @@ enum class EFaerieItemInstancingMutability : uint8
 	Immutable,
 };
 
-FORCEINLINE EFaerieItemMutabilityFlags ToFlags(const EFaerieItemInstancingMutability Mutability)
+namespace Faerie
 {
-	switch (Mutability)
+	UE_REWRITE EFaerieItemMutabilityFlags ToFlags(const EFaerieItemInstancingMutability Mutability)
 	{
-	case EFaerieItemInstancingMutability::Mutable: return EFaerieItemMutabilityFlags::AlwaysTokenMutable;
-	case EFaerieItemInstancingMutability::Immutable: return EFaerieItemMutabilityFlags::ForbidTokenMutability;
-	case EFaerieItemInstancingMutability::Automatic:
+		switch (Mutability)
+		{
+		case EFaerieItemInstancingMutability::Mutable: return EFaerieItemMutabilityFlags::AlwaysTokenMutable;
+		case EFaerieItemInstancingMutability::Immutable: return EFaerieItemMutabilityFlags::ForbidTokenMutability;
+		case EFaerieItemInstancingMutability::Automatic:
 		default: return EFaerieItemMutabilityFlags::None;
+		}
 	}
 }
 
@@ -75,7 +79,6 @@ enum class EFaerieItemComparisonFlags : uint8
 
 	// When enabled, compare all tokens by their hash
 	Tokens_CompareAll = 1 << 4,
-
 
 	Default = Mutability_TreatAsUnequivocable | Tokens_ComparePrimaryIdentifiers,
 	CheckTokensOnly = Mutability_Ignore | Tokens_CompareAll,

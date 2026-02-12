@@ -38,14 +38,9 @@ struct FAERIEITEMDATA_API FFaerieItemStackView
 		return Item.IsValid() && Faerie::ItemData::IsValidStackAmount(Copies);
 	}
 
-	friend bool operator==(const FFaerieItemStackView Lhs, const FFaerieItemStackView Rhs)
+	[[nodiscard]] UE_REWRITE bool UEOpEquals(const FFaerieItemStackView& Other) const
 	{
-		return Lhs.Item == Rhs.Item
-			   && Lhs.Copies == Rhs.Copies;
-	}
-
-	friend bool operator!=(const FFaerieItemStackView Lhs, const FFaerieItemStackView Rhs)
-	{
-		return !(Lhs == Rhs);
+		return Item == Other.Item
+			   && Copies == Other.Copies;
 	}
 };

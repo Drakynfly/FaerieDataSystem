@@ -92,18 +92,13 @@ struct FFaerieCachedMeshKey
 		return Token.IsValid();
 	}
 
-	friend bool operator==(const FFaerieCachedMeshKey& Lhs, const FFaerieCachedMeshKey& Rhs)
+	[[nodiscard]] UE_REWRITE bool UEOpEquals(const FFaerieCachedMeshKey& Other) const
 	{
-		return Lhs.Token == Rhs.Token &&
-			   Lhs.Purpose == Rhs.Purpose;
+		return Token == Other.Token &&
+			   Purpose == Other.Purpose;
 	}
 
-	friend bool operator!=(const FFaerieCachedMeshKey& Lhs, const FFaerieCachedMeshKey& Rhs)
-	{
-		return !(Lhs == Rhs);
-	}
-
-	FORCEINLINE friend uint32 GetTypeHash(const FFaerieCachedMeshKey& Key)
+	friend [[nodiscard]] UE_REWRITE uint32 GetTypeHash(const FFaerieCachedMeshKey& Key)
 	{
 		return HashCombineFast(GetTypeHash(Key.Token), GetTypeHash(Key.Purpose));
 	}

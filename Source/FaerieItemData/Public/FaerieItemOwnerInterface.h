@@ -38,5 +38,5 @@ public:
 //protected:
 	// Note: this should be protected, not public, but i don't have a workaround for this yet.
 	// This is an optional function to override to add logic when an item mutates while owned by this.
-	virtual void OnItemMutated(const UFaerieItem* Item, const UFaerieItemToken* Token, FGameplayTag EditTag) {}
+	virtual void OnItemMutated(TNotNull<const UFaerieItem*> Item, TNotNull<const UFaerieItemToken*> Token, FGameplayTag EditTag) {}
 };

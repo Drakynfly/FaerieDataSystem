@@ -23,28 +23,30 @@ struct FAERIEINVENTORY_API FFaerieAddress
 	UPROPERTY()
 	int64 Address = 0;
 
-	FORCEINLINE bool IsValid() const
+	UE_REWRITE bool IsValid() const
 	{
 		return Address != 0;
 	}
 
-	friend bool operator==(const FFaerieAddress& Lhs, const FFaerieAddress& Rhs) { return Lhs.Address == Rhs.Address; }
-	friend bool operator!=(const FFaerieAddress& Lhs, const FFaerieAddress& Rhs) { return !(Lhs == Rhs); }
+	[[nodiscard]] UE_REWRITE bool UEOpEquals(const FFaerieAddress& Other) const
+	{
+		return Address == Other.Address;
+	}
 
 	// Comparison operator for sorting, when this type is used as a Key.
-	friend bool operator<(const FFaerieAddress& Lhs, const FFaerieAddress& Rhs)
+	[[nodiscard]] UE_REWRITE bool UEOpLessThan(const FFaerieAddress& Other) const
 	{
-		return Lhs.Address < Rhs.Address;
+		return Address < Other.Address;
 	}
 
-	friend FArchive& operator<<(FArchive& Ar, FFaerieAddress& Val)
+	friend [[nodiscard]] UE_REWRITE uint32 GetTypeHash(const FFaerieAddress& Value)
 	{
-		return Ar << Val.Address;
+		return GetTypeHash(Value.Address);
 	}
 
-	FORCEINLINE friend uint32 GetTypeHash(const FFaerieAddress& FaerieAddress)
+	friend FArchive& operator<<(FArchive& Ar, FFaerieAddress& Value)
 	{
-		return GetTypeHash(FaerieAddress.Address);
+		return Ar << Value.Address;
 	}
 };
 

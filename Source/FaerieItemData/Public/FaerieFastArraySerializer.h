@@ -4,7 +4,7 @@
 
 #include "Iris/ReplicationState/IrisFastArraySerializer.h"
 
-#include "FaerieDefinitions.generated.h"
+#include "FaerieFastArraySerializer.generated.h"
 
 USTRUCT()
 struct FAERIEITEMDATA_API FFaerieFastArraySerializer : public FIrisFastArraySerializer

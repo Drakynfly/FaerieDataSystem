@@ -90,17 +90,12 @@ struct FAERIEITEMDATA_API FFaerieItemSourceObject
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowedClasses = "/Script/FaerieItemData.FaerieItemSource"))
 	TSoftObjectPtr<UObject> Object;
 
-	friend bool operator==(const FFaerieItemSourceObject& Lhs, const FFaerieItemSourceObject& Rhs)
+	[[nodiscard]] UE_REWRITE bool UEOpEquals(const FFaerieItemSourceObject& Other) const
 	{
-		return Lhs.Object == Rhs.Object;
+		return Object == Other.Object;
 	}
 
-	friend bool operator!=(const FFaerieItemSourceObject& Lhs, const FFaerieItemSourceObject& Rhs)
-	{
-		return !(Lhs == Rhs);
-	}
-
-	FORCEINLINE friend uint32 GetTypeHash(const FFaerieItemSourceObject& Value)
+	friend [[nodiscard]] UE_REWRITE uint32 GetTypeHash(const FFaerieItemSourceObject& Value)
 	{
 		return GetTypeHash(Value.Object);
 	}

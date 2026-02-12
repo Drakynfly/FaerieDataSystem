@@ -81,7 +81,7 @@ public:
 	virtual bool Possess(FFaerieItemStack Stack) override;
 
 protected:
-	virtual void OnItemMutated(const UFaerieItem* Item, const UFaerieItemToken* Token, FGameplayTag EditTag) override;
+	virtual void OnItemMutated(TNotNull<const UFaerieItem*> Item, TNotNull<const UFaerieItemToken*> Token, FGameplayTag EditTag) override;
 	//~ IFaerieItemOwnerInterface
 
 

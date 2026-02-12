@@ -18,12 +18,10 @@ struct FAERIEITEMDATA_API FFaerieHash
 	UPROPERTY(EditAnywhere, Category = "FaerieHash")
 	uint32 Hash = 0;
 
-	friend bool operator==(const FFaerieHash& Lhs, const FFaerieHash& Rhs)
+	[[nodiscard]] UE_REWRITE bool UEOpEquals(const FFaerieHash& Other) const
 	{
-		return Lhs.Hash == Rhs.Hash;
+		return Hash == Other.Hash;
 	}
 
-	friend bool operator!=(const FFaerieHash& Lhs, const FFaerieHash& Rhs) { return !(Lhs == Rhs); }
-
-	FORCEINLINE friend uint32 GetTypeHash(const FFaerieHash& Arg) { return GetTypeHash(Arg.Hash); }
+	friend [[nodiscard]] UE_REWRITE uint32 GetTypeHash(const FFaerieHash& Value) { return GetTypeHash(Value.Hash); }
 };

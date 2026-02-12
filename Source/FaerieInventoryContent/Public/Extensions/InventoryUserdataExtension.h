@@ -37,14 +37,9 @@ struct FInventoryEntryUserdata
 	UPROPERTY(EditAnywhere, Category = "InventoryEntryUserdata", meta = (Categories = "Fae.Inventory.Public"))
 	FGameplayTagContainer Tags;
 
-	friend bool operator==(const FInventoryEntryUserdata& Lhs, const FInventoryEntryUserdata& Rhs)
+	[[nodiscard]] UE_REWRITE bool UEOpEquals(const FInventoryEntryUserdata& Other) const
 	{
-		return Lhs.Tags == Rhs.Tags;
-	}
-
-	friend bool operator!=(const FInventoryEntryUserdata& Lhs, const FInventoryEntryUserdata& Rhs)
-	{
-		return !(Lhs == Rhs);
+		return Tags == Other.Tags;
 	}
 };
 

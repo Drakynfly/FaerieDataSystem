@@ -314,7 +314,7 @@ bool UFaerieItemStorage::Possess(const FFaerieItemStack Stack)
 	return AddStackImpl(Stack, false).Success;
 }
 
-void UFaerieItemStorage::OnItemMutated(const UFaerieItem* Item, const UFaerieItemToken* Token, const FGameplayTag EditTag)
+void UFaerieItemStorage::OnItemMutated(const TNotNull<const UFaerieItem*> Item, const TNotNull<const UFaerieItemToken*> Token, const FGameplayTag EditTag)
 {
 	Super::OnItemMutated(Item, Token, EditTag);
 

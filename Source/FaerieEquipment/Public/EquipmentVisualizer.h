@@ -17,15 +17,14 @@ struct FFaerieVisualKey
 
 	FFaerieItemProxy Proxy;
 
-	bool IsValid() const
+	[[nodiscard]] UE_REWRITE bool IsValid() const
 	{
 		return Proxy.IsValid();
 	}
 
-	friend bool operator==(const FFaerieVisualKey& Lhs, const FFaerieVisualKey& Rhs) { return Lhs.Proxy == Rhs.Proxy; }
-	friend bool operator!=(const FFaerieVisualKey& Lhs, const FFaerieVisualKey& Rhs) { return !(Lhs == Rhs); }
+	[[nodiscard]] UE_REWRITE bool UEOpEquals(const FFaerieVisualKey& Other) const { return Proxy == Other.Proxy; }
 
-	FORCEINLINE friend uint32 GetTypeHash(const FFaerieVisualKey& VisualKey)
+	friend [[nodiscard]] UE_REWRITE uint32 GetTypeHash(const FFaerieVisualKey& VisualKey)
 	{
 		return GetTypeHash(VisualKey.Proxy.GetObject());
 	}

@@ -30,14 +30,9 @@ struct FAERIEITEMGENERATOR_API FFaerieTableDrop
 	}
 
 	// Only checks if asset is the same, ignores mutators.
-	friend bool operator==(const FFaerieTableDrop& Lhs, const FFaerieTableDrop& Rhs)
+	[[nodiscard]] UE_REWRITE bool UEOpEquals(const FFaerieTableDrop& Other) const
 	{
-		return Lhs.Asset.Object == Rhs.Asset.Object;
-	}
-
-	friend bool operator!=(const FFaerieTableDrop& Lhs, const FFaerieTableDrop& Rhs)
-	{
-		return !(Lhs == Rhs);
+		return Asset.Object == Other.Asset.Object;
 	}
 };
 
@@ -64,14 +59,9 @@ struct FAERIEITEMGENERATOR_API FFaerieWeightedDrop
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FFaerieTableDrop Drop;
 
-	friend bool operator==(const FFaerieWeightedDrop& Lhs, const FFaerieWeightedDrop& Rhs)
+	[[nodiscard]] UE_REWRITE bool UEOpEquals(const FFaerieWeightedDrop& Other) const
 	{
-		return Lhs.Drop == Rhs.Drop;
-	}
-
-	friend bool operator!=(const FFaerieWeightedDrop& Lhs, const FFaerieWeightedDrop& Rhs)
-	{
-		return !(Lhs == Rhs);
+		return Drop == Other.Drop;
 	}
 };
 

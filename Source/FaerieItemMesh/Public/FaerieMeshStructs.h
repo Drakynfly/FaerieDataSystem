@@ -27,17 +27,12 @@ struct FAERIEITEMMESH_API FFaerieItemSoftMaterial
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FaerieItemSoftMaterial")
 	TSoftObjectPtr<UMaterialInterface> Material = nullptr;
 
-	friend bool operator==(const FFaerieItemSoftMaterial& Lhs, const FFaerieItemSoftMaterial& Rhs)
+	[[nodiscard]] UE_REWRITE bool UEOpEquals(const FFaerieItemSoftMaterial& Other) const
 	{
-		return Lhs.Material == Rhs.Material;
+		return Material == Other.Material;
 	}
 
-	friend bool operator!=(const FFaerieItemSoftMaterial& Lhs, const FFaerieItemSoftMaterial& Rhs)
-	{
-		return !(Lhs == Rhs);
-	}
-
-	FORCEINLINE friend uint32 GetTypeHash(const FFaerieItemSoftMaterial& FaerieItemSoftMaterial)
+	friend [[nodiscard]] UE_REWRITE uint32 GetTypeHash(const FFaerieItemSoftMaterial& FaerieItemSoftMaterial)
 	{
 		return GetTypeHash(FaerieItemSoftMaterial.Material);
 	}
@@ -54,17 +49,12 @@ struct FAERIEITEMMESH_API FFaerieItemMaterial
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FaerieItemMaterial")
 	TObjectPtr<UMaterialInterface> Material = nullptr;
 
-	friend bool operator==(const FFaerieItemMaterial& Lhs, const FFaerieItemMaterial& Rhs)
+	[[nodiscard]] UE_REWRITE bool UEOpEquals(const FFaerieItemMaterial& Other) const
 	{
-		return Lhs.Material == Rhs.Material;
+		return Material == Other.Material;
 	}
 
-	friend bool operator!=(const FFaerieItemMaterial& Lhs, const FFaerieItemMaterial& Rhs)
-	{
-		return !(Lhs == Rhs);
-	}
-
-	FORCEINLINE friend uint32 GetTypeHash(const FFaerieItemMaterial& FaerieItemMaterial)
+	friend [[nodiscard]] UE_REWRITE uint32 GetTypeHash(const FFaerieItemMaterial& FaerieItemMaterial)
 	{
 		return GetTypeHash(FaerieItemMaterial.Material);
 	}
@@ -86,11 +76,6 @@ struct FAERIEITEMMESH_API FFaerieStaticMeshData
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Categories = "MeshPurpose"), Category = "FaerieMesh")
 	FGameplayTagContainer Purpose;
-
-	FORCEINLINE friend uint32 GetTypeHash(const FFaerieStaticMeshData& FaerieStaticMeshData)
-	{
-		return FCrc::MemCrc32(&FaerieStaticMeshData, sizeof(FFaerieStaticMeshData));
-	}
 };
 
 /**
@@ -109,11 +94,6 @@ struct FAERIEITEMMESH_API FFaerieSkeletalMeshData
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Categories = "MeshPurpose"), Category = "SkeletalMeshData")
 	FGameplayTagContainer Purpose;
-
-	FORCEINLINE friend uint32 GetTypeHash(const FFaerieSkeletalMeshData& FaerieSkeletalMeshData)
-	{
-		return FCrc::MemCrc32(&FaerieSkeletalMeshData, sizeof(FFaerieSkeletalMeshData));
-	}
 };
 
 
@@ -211,16 +191,11 @@ public:
 		SkeletonAndAnimation = Mesh;
 	}
 
-	friend bool operator==(const FFaerieItemMesh& Lhs, const FFaerieItemMesh& Rhs)
+	[[nodiscard]] UE_REWRITE bool UEOpEquals(const FFaerieItemMesh& Other) const
 	{
-		return Lhs.StaticMesh == Rhs.StaticMesh
-			&& Lhs.DynamicStaticMesh == Rhs.DynamicStaticMesh
-			&& Lhs.SkeletonAndAnimation == Rhs.SkeletonAndAnimation
-			&& Lhs.Materials == Rhs.Materials;
-	}
-
-	friend bool operator!=(const FFaerieItemMesh& Lhs, const FFaerieItemMesh& Rhs)
-	{
-		return !(Lhs == Rhs);
+		return StaticMesh == Other.StaticMesh
+			&& DynamicStaticMesh == Other.DynamicStaticMesh
+			&& SkeletonAndAnimation == Other.SkeletonAndAnimation
+			&& Materials == Other.Materials;
 	}
 };

@@ -92,6 +92,8 @@ public:
 
 	explicit operator FFaerieItemStackView() const;
 
-	friend bool operator==(const FFaerieItemProxy& Lhs, const FFaerieItemProxy& Rhs) { return Lhs.Proxy == Rhs.Proxy; }
-	friend bool operator!=(const FFaerieItemProxy& Lhs, const FFaerieItemProxy& Rhs) { return !(Lhs == Rhs); }
+	[[nodiscard]] UE_REWRITE bool UEOpEquals(const FFaerieItemProxy& Other) const
+	{
+		return Proxy == Other.Proxy;
+	}
 };

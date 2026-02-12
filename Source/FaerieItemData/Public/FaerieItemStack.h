@@ -42,19 +42,13 @@ struct FAERIEITEMDATA_API FFaerieItemStack
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FaerieItemStack")
 	int32 Copies = 0;
 
-	bool IsValid() const
+	[[nodiscard]] UE_REWRITE bool IsValid() const
 	{
 		return (!!Item) && Faerie::ItemData::IsValidStackAmount(Copies);
 	}
 
-	friend bool operator==(const FFaerieItemStack& Lhs, const FFaerieItemStack& Rhs)
+	[[nodiscard]] UE_REWRITE bool UEOpEquals(const FFaerieItemStack& Other) const
 	{
-		return Lhs.Item == Rhs.Item
-			   && Lhs.Copies == Rhs.Copies;
-	}
-
-	friend bool operator!=(const FFaerieItemStack& Lhs, const FFaerieItemStack& Rhs)
-	{
-		return !(Lhs == Rhs);
+		return Item == Other.Item && Copies == Other.Copies;
 	}
 };

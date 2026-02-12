@@ -62,7 +62,7 @@ bool UFaerieItemContainerBase::Possess(FFaerieItemStack Stack)
 	return false;
 }
 
-void UFaerieItemContainerBase::OnItemMutated(const UFaerieItem* Item, const UFaerieItemToken* Token, const FGameplayTag EditTag)
+void UFaerieItemContainerBase::OnItemMutated(const TNotNull<const UFaerieItem*> Item, const TNotNull<const UFaerieItemToken*> Token, const FGameplayTag EditTag)
 {
 	// @todo more logic from the TakeOwnership protocol might belong here, in which case, maybe just move most of this there.
 	if (EditTag == Tags::TokenAdd)

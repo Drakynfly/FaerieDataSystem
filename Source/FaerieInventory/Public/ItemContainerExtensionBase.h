@@ -147,23 +147,23 @@ namespace Faerie::Extension
 			operator++();
 		}
 
-		FORCEINLINE ElementType* operator*() const { return Current; }
+		UE_REWRITE ElementType* operator*() const { return Current; }
 
 		void operator++();
 
-		FORCEINLINE explicit operator bool() const
+		UE_REWRITE explicit operator bool() const
 		{
 			return Group && Current;
 		}
 
-		[[nodiscard]] FORCEINLINE bool operator!=(EIteratorType) const
+		[[nodiscard]] UE_REWRITE bool operator!=(EIteratorType) const
 		{
 			// As long as we are valid, then we have not ended.
 			return static_cast<bool>(*this);
 		}
 
-		[[nodiscard]] FORCEINLINE const TExtensionIterator& begin() const { return *this; }
-		[[nodiscard]] FORCEINLINE EIteratorType end() const { return End; }
+		[[nodiscard]] UE_REWRITE const TExtensionIterator& begin() const { return *this; }
+		[[nodiscard]] UE_REWRITE EIteratorType end() const { return End; }
 
 	private:
 		GroupType* Group;
@@ -193,26 +193,26 @@ namespace Faerie::Extension
 
 		static auto GetAllExtensions(GroupType* Group) -> TArray<ElementType*>;
 
-		FORCEINLINE ElementType* operator*() const { return *Iterator; }
+		UE_REWRITE ElementType* operator*() const { return *Iterator; }
 
-		FORCEINLINE void operator++()
+		UE_REWRITE void operator++()
 		{
 			++Iterator;
 		}
 
-		FORCEINLINE explicit operator bool() const
+		UE_REWRITE explicit operator bool() const
 		{
 			return static_cast<bool>(Iterator);
 		}
 
-		[[nodiscard]] FORCEINLINE bool operator!=(EIteratorType) const
+		[[nodiscard]] UE_REWRITE bool operator!=(EIteratorType) const
 		{
 			// As long as we are valid, then we have not ended.
 			return static_cast<bool>(*this);
 		}
 
-		[[nodiscard]] FORCEINLINE const TRecursiveExtensionIterator& begin() const { return *this; }
-		[[nodiscard]] FORCEINLINE EIteratorType end() const { return End; }
+		[[nodiscard]] UE_REWRITE const TRecursiveExtensionIterator& begin() const { return *this; }
+		[[nodiscard]] UE_REWRITE EIteratorType end() const { return End; }
 
 	private:
 		TArray<ElementType*> Extensions;

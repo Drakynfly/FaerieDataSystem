@@ -279,7 +279,7 @@ bool UFaerieItemStackContainer::Possess(const FFaerieItemStack Stack)
 	return SetItemInSlot(Stack);
 }
 
-void UFaerieItemStackContainer::OnItemMutated(const UFaerieItem* Item, const UFaerieItemToken* Token, const FGameplayTag EditTag)
+void UFaerieItemStackContainer::OnItemMutated(const TNotNull<const UFaerieItem*> Item, const TNotNull<const UFaerieItemToken*> Token, const FGameplayTag EditTag)
 {
 	Super::OnItemMutated(Item, Token, EditTag);
 	check(ItemStack.Item == Item);

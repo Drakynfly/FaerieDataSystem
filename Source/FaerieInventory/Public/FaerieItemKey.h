@@ -24,43 +24,34 @@ private:
 	int32 KeyValue = INDEX_NONE;
 
 public:
-	bool IsValid() const
+	UE_REWRITE int32 Value() const { return KeyValue; }
+
+	/** Get internal value as string for debugging */
+	UE_REWRITE FString ToString() const { return FString::FromInt(KeyValue); }
+
+	[[nodiscard]] UE_REWRITE bool IsValid() const
 	{
 		return KeyValue > INDEX_NONE;
 	}
 
-	friend bool operator==(const FFaerieItemKeyBase& Lhs, const FFaerieItemKeyBase& Rhs)
+	[[nodiscard]] UE_REWRITE bool UEOpEquals(const FFaerieItemKeyBase& Other) const
 	{
-		return Lhs.KeyValue == Rhs.KeyValue;
+		return KeyValue == Other.KeyValue;
 	}
 
-	friend bool operator!=(const FFaerieItemKeyBase& Lhs, const FFaerieItemKeyBase& Rhs)
+	[[nodiscard]] UE_REWRITE bool UEOpLessThan(const FFaerieItemKeyBase& Other) const
 	{
-		return !(Lhs == Rhs);
+		return KeyValue < Other.KeyValue;
 	}
 
-	FORCEINLINE friend uint32 GetTypeHash(const FFaerieItemKeyBase& Key)
+	[[nodiscard]] UE_REWRITE friend uint32 GetTypeHash(const FFaerieItemKeyBase& Value)
 	{
-		return Key.KeyValue;
+		return Value.KeyValue;
 	}
 
-	friend bool operator<(const FFaerieItemKeyBase& Lhs, const FFaerieItemKeyBase& Rhs)
+	friend FArchive& operator<<(FArchive& Ar, FFaerieItemKeyBase& Value)
 	{
-		return Lhs.KeyValue < Rhs.KeyValue;
-	}
-
-	friend bool operator<=(const FFaerieItemKeyBase& Lhs, const FFaerieItemKeyBase& Rhs) { return Rhs >= Lhs; }
-	friend bool operator>(const FFaerieItemKeyBase& Lhs, const FFaerieItemKeyBase& Rhs) { return Rhs < Lhs; }
-	friend bool operator>=(const FFaerieItemKeyBase& Lhs, const FFaerieItemKeyBase& Rhs) { return !(Lhs < Rhs); }
-
-	FORCEINLINE int32 Value() const { return KeyValue; }
-
-	/** Get internal value as string for debugging */
-	FString ToString() const { return FString::FromInt(KeyValue); }
-
-	friend FArchive& operator<<(FArchive& Ar, FFaerieItemKeyBase& Val)
-	{
-		return Ar << Val.KeyValue;
+		return Ar << Value.KeyValue;
 	}
 };
 
@@ -75,7 +66,7 @@ namespace Faerie
 	{
 	public:
 		// Creates the next unique key for an entry.
-		TKey NextKey()
+		[[nodiscard]] TKey NextKey()
 		{
 			return TKey(++PreviousKey);
 		}
