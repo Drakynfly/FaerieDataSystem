@@ -37,7 +37,7 @@ public:
 	const TArray<FLoggedInventoryEvent>& GetAllEvents() const { return EventLog; }
 
 	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "LoggerExtension")
-	TArray<FLoggedInventoryEvent> GetRecentEvents(int32 NumEvents) const;
+	TArray<FLoggedInventoryEvent> GetRecentEvents(int32 NumEvents, int32 Offset = 0) const;
 
 protected:
 	UFUNCTION(/* Replication */)

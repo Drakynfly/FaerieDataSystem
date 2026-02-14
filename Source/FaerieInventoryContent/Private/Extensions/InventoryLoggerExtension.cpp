@@ -40,19 +40,9 @@ void UInventoryLoggerExtension::HandleNewEvent(const FLoggedInventoryEvent& Even
 	OnInventoryEventLogged.Broadcast(Event);
 }
 
-TArray<FLoggedInventoryEvent> UInventoryLoggerExtension::GetRecentEvents(const int32 NumEvents) const
+TArray<FLoggedInventoryEvent> UInventoryLoggerExtension::GetRecentEvents(const int32 NumEvents, const int32 Offset) const
 {
-	if (NumEvents >= EventLog.Num())
-	{
-		return EventLog;
-	}
-
-	TArray<FLoggedInventoryEvent> OutEvents;
-	for (int32 i = EventLog.Num() - NumEvents; i < EventLog.Num(); ++i)
-	{
-		OutEvents.Add(EventLog[i]);
-	}
-	return OutEvents;
+	return TArray<FLoggedInventoryEvent>(MakeConstArrayView(EventLog).Mid(EventLog.Num() - Offset - NumEvents, NumEvents));
 }
 
 void UInventoryLoggerExtension::OnRep_EventLog()
@@ -61,7 +51,7 @@ void UInventoryLoggerExtension::OnRep_EventLog()
 	const int32 BehindCount = EventLog.Num() - LocalEventLogCount;
 	LocalEventLogCount = EventLog.Num();
 
-	for (auto&& RecentLogs = TConstArrayView<FLoggedInventoryEvent>(EventLog).Right(BehindCount);
+	for (auto&& RecentLogs = MakeConstArrayView(EventLog).Right(BehindCount);
 		auto&& RecentLog : RecentLogs)
 	{
 		OnInventoryEventLogged.Broadcast(RecentLog);
