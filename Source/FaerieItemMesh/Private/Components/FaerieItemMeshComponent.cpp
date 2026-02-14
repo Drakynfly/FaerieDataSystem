@@ -10,6 +10,7 @@
 #include "ConversionUtils/SceneComponentToDynamicMesh.h"
 #include "Engine/SkeletalMesh.h"
 #include "Engine/StaticMesh.h"
+#include "Engine/StreamableManager.h"
 #include "Engine/World.h"
 #include "GeometryScript/MeshQueryFunctions.h"
 #include "Libraries/FaerieMeshStructsLibrary.h"
@@ -52,19 +53,25 @@ void UFaerieItemMeshComponent::DestroyComponent(const bool bPromoteChildren)
 
 void UFaerieItemMeshComponent::UpdateCachedBounds()
 {
+	static constexpr UE::Conversion::FToMeshOptions StaticToMeshOptions = []()
+	{
+		UE::Conversion::FToMeshOptions ToMeshOptions;
+		ToMeshOptions.LODType = UE::Conversion::EMeshLODType::RenderData;
+		ToMeshOptions.bUseClosestLOD = false;
+		return ToMeshOptions;
+	}();
+
+	constexpr bool bTransformToWorld = false;
+	static FTransform LocalToWorld;
+	static FText ErrorMessage;
+
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_UBoundsCachingSkeletalMeshComponent_UpdateCachedBounds)
 
 	// Make sure skeletal mesh has its animation initialized.
 	Cast<USkeletalMeshComponent>(MeshComponent)->RefreshBoneTransforms();
 
-	UE::Conversion::FToMeshOptions ToMeshOptions;
-	ToMeshOptions.bUseClosestLOD = false;
-	ToMeshOptions.LODType = UE::Conversion::EMeshLODType::RenderData;
-	constexpr bool bTransformToWorld = false;
 	UE::Geometry::FDynamicMesh3 NewMesh;
-	FTransform LocalToWorld;
-	FText ErrorMessage;
-	if (UE::Conversion::SceneComponentToDynamicMesh(MeshComponent, ToMeshOptions, bTransformToWorld, NewMesh, LocalToWorld, ErrorMessage))
+	if (UE::Conversion::SceneComponentToDynamicMesh(MeshComponent, StaticToMeshOptions, bTransformToWorld, NewMesh, LocalToWorld, ErrorMessage))
 	{
 		CachedBounds = static_cast<FBox>(NewMesh.GetBounds(true));
 	}
@@ -81,6 +88,12 @@ void UFaerieItemMeshComponent::LoadMeshFromToken(const bool Async)
 		return;
 	}
 
+	if (AsyncMeshLoadingHandle.IsValid())
+	{
+		AsyncMeshLoadingHandle->CancelHandle();
+		AsyncMeshLoadingHandle.Reset();
+	}
+
 	UFaerieMeshSubsystem* MeshSubsystem = GetWorld()->GetSubsystem<UFaerieMeshSubsystem>();
 	if (!IsValid(MeshSubsystem))
 	{
@@ -89,7 +102,7 @@ void UFaerieItemMeshComponent::LoadMeshFromToken(const bool Async)
 		auto Loader = GetMutableDefault<UFaerieItemMeshLoader>();
 		if (Async)
 		{
-			Loader->LoadMeshFromTokenAsynchronous(SourceMeshToken, PreferredTag,
+			AsyncMeshLoadingHandle = Loader->LoadMeshFromTokenAsynchronous(SourceMeshToken, PreferredTag,
 				Faerie::FItemMeshAsyncLoadResult::CreateUObject(this, &ThisClass::AsyncLoadMeshReturn));
 		}
 		else
@@ -103,7 +116,7 @@ void UFaerieItemMeshComponent::LoadMeshFromToken(const bool Async)
 
 	if (Async)
 	{
-		MeshSubsystem->LoadMeshFromTokenAsynchronous(SourceMeshToken, PreferredTag,
+		AsyncMeshLoadingHandle = MeshSubsystem->LoadMeshFromTokenAsynchronous(SourceMeshToken, PreferredTag,
 			Faerie::FItemMeshAsyncLoadResult::CreateUObject(this, &ThisClass::AsyncLoadMeshReturn));
 	}
 	else
@@ -123,6 +136,12 @@ void UFaerieItemMeshComponent::AsyncLoadMeshReturn(const bool Success, FFaerieIt
 	else
 	{
 		ClearItemMesh();
+	}
+
+	if (AsyncMeshLoadingHandle.IsValid())
+	{
+		AsyncMeshLoadingHandle->CancelHandle();
+		AsyncMeshLoadingHandle.Reset();
 	}
 }
 
@@ -361,6 +380,12 @@ void UFaerieItemMeshComponent::SetSkeletalMeshLeaderPoseComponent(USkinnedMeshCo
 
 void UFaerieItemMeshComponent::ClearItemMesh()
 {
+	if (AsyncMeshLoadingHandle.IsValid())
+	{
+		AsyncMeshLoadingHandle->CancelHandle();
+		AsyncMeshLoadingHandle.Reset();
+	}
+
 	ActualType = EItemMeshType::None;
 	MeshData = FFaerieItemMesh();
 

@@ -115,14 +115,8 @@ namespace Faerie
 		return FFaerieItemMesh::MakeSkeletal(OutSkeletonAndAnimation, Materials);
 	}
 
-	bool LoadMeshFromTokenSynchronous(const UFaerieMeshTokenBase* Token, const FGameplayTag Purpose, FFaerieItemMesh& Mesh)
+	bool LoadMeshFromTokenSynchronous(const TNotNull<const UFaerieMeshTokenBase*> Token, const FGameplayTag Purpose, FFaerieItemMesh& Mesh)
 	{
-		if (!IsValid(Token))
-		{
-			UE_LOG(LogFaerieItemMesh, Warning, TEXT("%hs: No MeshToken on entry"), __FUNCTION__)
-			return false;
-		}
-
 		FGameplayTagContainer PurposeHierarchy;
 		if (Purpose != ItemMesh::Tags::MeshPurpose_Default)
 		{
@@ -183,8 +177,7 @@ namespace Faerie
 			return false;
 		}
 
-		auto Item = Proxy->GetItemObject();
-
+		const UFaerieItem* Item = Proxy->GetItemObject();
 		if (!IsValid(Item))
 		{
 			UE_LOG(LogFaerieItemMesh, Error, TEXT("%hs: Invalid item object!"), __FUNCTION__)
@@ -209,7 +202,7 @@ FFaerieItemMesh UFaerieItemMeshLoader::GetDynamicSkeletalMeshForData(const FFaer
 	return Faerie::GetDynamicSkeletalMeshForData(MeshData);
 }
 
-bool UFaerieItemMeshLoader::LoadMeshFromTokenSynchronous(const UFaerieMeshTokenBase* Token, const FGameplayTag Purpose,
+bool UFaerieItemMeshLoader::LoadMeshFromTokenSynchronous(const TNotNull<const UFaerieMeshTokenBase*> Token, const FGameplayTag Purpose,
 														 FFaerieItemMesh& Mesh)
 {
 	return Faerie::LoadMeshFromTokenSynchronous(Token, Purpose, Mesh);
@@ -221,15 +214,9 @@ bool UFaerieItemMeshLoader::LoadMeshFromProxySynchronous(const FFaerieItemProxy 
 	return Faerie::LoadMeshFromProxySynchronous(Proxy, Purpose, Mesh);
 }
 
-void UFaerieItemMeshLoader::LoadMeshFromTokenAsynchronous(const UFaerieMeshTokenBase* Token, const FGameplayTag Purpose,
-	Faerie::FItemMeshAsyncLoadResult Callback)
+TSharedPtr<FStreamableHandle> UFaerieItemMeshLoader::LoadMeshFromTokenAsynchronous(const TNotNull<const UFaerieMeshTokenBase*> Token,
+	const FGameplayTag Purpose, Faerie::FItemMeshAsyncLoadResult Callback)
 {
-	if (!IsValid(Token))
-	{
-		UE_LOG(LogFaerieItemMesh, Warning, TEXT("%hs: No MeshToken on entry"), __FUNCTION__)
-		(void)Callback.ExecuteIfBound(false, {});
-	}
-
 	Faerie::FAsyncLoadRequest LoadRequest;
 	LoadRequest.Token = Token;
 	LoadRequest.Purpose = Purpose;
@@ -280,10 +267,10 @@ void UFaerieItemMeshLoader::LoadMeshFromTokenAsynchronous(const UFaerieMeshToken
 			}
 			else
 			{
-				UAssetManager::GetStreamableManager().RequestAsyncLoad(MoveTemp(AssetsToLoad),
+				return UAssetManager::GetStreamableManager().RequestAsyncLoad(MoveTemp(AssetsToLoad),
 					FStreamableDelegate::CreateUObject(this, &ThisClass::OnAsyncDynamicSkeletalMeshLoaded, SkeletalMesh, LoadRequest));
 			}
-			return;
+			return nullptr;
 		}
 
 		if (auto&& StaticMesh = DynamicMeshToken->GetDynamicStaticItemMesh(PurposeHierarchy);
@@ -313,10 +300,10 @@ void UFaerieItemMeshLoader::LoadMeshFromTokenAsynchronous(const UFaerieMeshToken
 			}
 			else
 			{
-				UAssetManager::GetStreamableManager().RequestAsyncLoad(MoveTemp(AssetsToLoad),
+				return UAssetManager::GetStreamableManager().RequestAsyncLoad(MoveTemp(AssetsToLoad),
 					FStreamableDelegate::CreateUObject(this, &ThisClass::OnAsyncDynamicStaticMeshLoaded, StaticMesh, LoadRequest));
 			}
-			return;
+			return nullptr;
 		}
 	}
 
@@ -349,10 +336,10 @@ void UFaerieItemMeshLoader::LoadMeshFromTokenAsynchronous(const UFaerieMeshToken
 		}
 		else
 		{
-			UAssetManager::GetStreamableManager().RequestAsyncLoad(MoveTemp(AssetsToLoad),
+			return UAssetManager::GetStreamableManager().RequestAsyncLoad(MoveTemp(AssetsToLoad),
 				FStreamableDelegate::CreateUObject(this, &ThisClass::OnAsyncSkeletalMeshLoaded, SkelMeshData, LoadRequest));
 		}
-		return;
+		return nullptr;
 	}
 
 	if (const TConstStructView<FFaerieStaticMeshData> StaticMeshData = Token->GetStaticItemMesh(PurposeHierarchy);
@@ -378,37 +365,42 @@ void UFaerieItemMeshLoader::LoadMeshFromTokenAsynchronous(const UFaerieMeshToken
 		}
 		else
 		{
-			UAssetManager::GetStreamableManager().RequestAsyncLoad(MoveTemp(AssetsToLoad),
+			return UAssetManager::GetStreamableManager().RequestAsyncLoad(MoveTemp(AssetsToLoad),
 				FStreamableDelegate::CreateUObject(this, &ThisClass::OnAsyncStaticMeshLoaded, StaticMeshData, LoadRequest));
 		}
-		return;
+		return nullptr;
 	}
 
 	UE_LOG(LogFaerieItemMesh, Error, TEXT("%hs: Asset does not contain a mesh suitable for the purpose."), __FUNCTION__)
 	(void)Callback.ExecuteIfBound(false, {});
+	return nullptr;
 }
 
-void UFaerieItemMeshLoader::LoadMeshFromProxyAsynchronous(const FFaerieItemProxy Proxy, const FGameplayTag Purpose,
+TSharedPtr<FStreamableHandle> UFaerieItemMeshLoader::LoadMeshFromProxyAsynchronous(const FFaerieItemProxy Proxy, const FGameplayTag Purpose,
 														  Faerie::FItemMeshAsyncLoadResult Callback)
 {
 	if (!ensure(Proxy.IsValid()))
 	{
 		UE_LOG(LogFaerieItemMesh, Warning, TEXT("%hs: Invalid proxy!"), __FUNCTION__)
 		(void)Callback.ExecuteIfBound(false, {});
+		return nullptr;
 	}
 
-	auto Item = Proxy->GetItemObject();
+	const UFaerieItem* Item = Proxy->GetItemObject();
 
 	if (!IsValid(Item))
 	{
 		UE_LOG(LogFaerieItemMesh, Error, TEXT("%hs: Invalid item object!"), __FUNCTION__)
 		(void)Callback.ExecuteIfBound(false, {});
+		return nullptr;
 	}
 
 	if (auto&& MeshToken = Item->GetToken<UFaerieMeshTokenBase>())
 	{
 		return LoadMeshFromTokenAsynchronous(MeshToken, Purpose, MoveTemp(Callback));
 	}
+
+	return nullptr;
 }
 
 void UFaerieItemMeshLoader::OnAsyncStaticMeshLoaded(const TConstStructView<FFaerieStaticMeshData> MeshData,
@@ -444,7 +436,7 @@ void UFaerieItemMeshLoader::HandleAsyncLoadResult(FFaerieItemMesh&& Mesh, Faerie
 	(void)Request.Callback.ExecuteIfBound(true, MoveTemp(Mesh));
 }
 
-bool UFaerieItemMeshLoader_Cached::LoadMeshFromTokenSynchronous(const UFaerieMeshTokenBase* Token, const FGameplayTag Purpose, FFaerieItemMesh& Mesh)
+bool UFaerieItemMeshLoader_Cached::LoadMeshFromTokenSynchronous(const TNotNull<const UFaerieMeshTokenBase*> Token, const FGameplayTag Purpose, FFaerieItemMesh& Mesh)
 {
 	const FFaerieCachedMeshKey Key = {Token, Purpose};
 

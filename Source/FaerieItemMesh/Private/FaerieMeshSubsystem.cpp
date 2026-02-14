@@ -3,6 +3,7 @@
 #include "FaerieMeshSubsystem.h"
 #include "FaerieItemMeshLoader.h"
 #include "FaerieMeshSettings.h"
+#include "Tokens/FaerieMeshToken.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieMeshSubsystem)
 
@@ -57,7 +58,12 @@ void UFaerieMeshSubsystem::LoadMeshFromTokenAsynchronous(const UFaerieMeshTokenB
 		Purpose = GetDefault<UFaerieMeshSettings>()->FallbackPurpose;
 	}
 
-	Loader->LoadMeshFromTokenAsynchronous(Token, Purpose,
+	if (!IsValid(Token))
+	{
+		return;
+	}
+
+	(void)Loader->LoadMeshFromTokenAsynchronous(Token, Purpose,
 		Faerie::FItemMeshAsyncLoadResult::CreateLambda(
 			[Callback](const bool Success, FFaerieItemMesh&& Mesh)
 			{
@@ -65,15 +71,15 @@ void UFaerieMeshSubsystem::LoadMeshFromTokenAsynchronous(const UFaerieMeshTokenB
 			}));
 }
 
-void UFaerieMeshSubsystem::LoadMeshFromTokenAsynchronous(const UFaerieMeshTokenBase* Token, FGameplayTag Purpose,
-	const Faerie::FItemMeshAsyncLoadResult& Callback)
+TSharedPtr<FStreamableHandle> UFaerieMeshSubsystem::LoadMeshFromTokenAsynchronous(const TNotNull<const UFaerieMeshTokenBase*> Token,
+	FGameplayTag Purpose, const Faerie::FItemMeshAsyncLoadResult& Callback)
 {
 	if (!Purpose.IsValid())
 	{
 		Purpose = GetDefault<UFaerieMeshSettings>()->FallbackPurpose;
 	}
 
-	Loader->LoadMeshFromTokenAsynchronous(Token, Purpose, Callback);
+	return Loader->LoadMeshFromTokenAsynchronous(Token, Purpose, Callback);
 }
 
 void UFaerieMeshSubsystem::LoadMeshFromProxyAsynchronous(const FFaerieItemProxy Proxy, FGameplayTag Purpose,
@@ -84,7 +90,7 @@ void UFaerieMeshSubsystem::LoadMeshFromProxyAsynchronous(const FFaerieItemProxy 
 		Purpose = GetDefault<UFaerieMeshSettings>()->FallbackPurpose;
 	}
 
-	Loader->LoadMeshFromProxyAsynchronous(Proxy, Purpose,
+	(void)Loader->LoadMeshFromProxyAsynchronous(Proxy, Purpose,
 		Faerie::FItemMeshAsyncLoadResult::CreateLambda(
 			[Callback](const bool Success, FFaerieItemMesh&& Mesh)
 			{
@@ -92,7 +98,7 @@ void UFaerieMeshSubsystem::LoadMeshFromProxyAsynchronous(const FFaerieItemProxy 
 			}));
 }
 
-void UFaerieMeshSubsystem::LoadMeshFromProxyAsynchronous(const FFaerieItemProxy Proxy, FGameplayTag Purpose,
+TSharedPtr<FStreamableHandle> UFaerieMeshSubsystem::LoadMeshFromProxyAsynchronous(const FFaerieItemProxy Proxy, FGameplayTag Purpose,
 	const Faerie::FItemMeshAsyncLoadResult& Callback)
 {
 	if (!Purpose.IsValid())
@@ -100,5 +106,5 @@ void UFaerieMeshSubsystem::LoadMeshFromProxyAsynchronous(const FFaerieItemProxy 
 		Purpose = GetDefault<UFaerieMeshSettings>()->FallbackPurpose;
 	}
 
-	Loader->LoadMeshFromProxyAsynchronous(Proxy, Purpose, Callback);
+	return Loader->LoadMeshFromProxyAsynchronous(Proxy, Purpose, Callback);
 }

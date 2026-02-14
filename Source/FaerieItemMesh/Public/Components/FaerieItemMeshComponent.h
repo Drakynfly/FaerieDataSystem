@@ -136,4 +136,7 @@ protected:
 
 	// The last cached bounds. Used for SkeletalMeshes when CacheSkeletalBoundsInPose is true.
 	TOptional<FBoxSphereBounds> CachedBounds;
+
+	// Handle for async stream of new mesh.
+	TSharedPtr<FStreamableHandle> AsyncMeshLoadingHandle;
 };

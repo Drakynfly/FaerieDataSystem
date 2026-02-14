@@ -28,7 +28,7 @@ namespace Faerie
 	FAERIEITEMMESH_API FFaerieItemMesh GetDynamicSkeletalMeshForData(const FFaerieDynamicSkeletalMesh& MeshData);
 
 	// WARNING: This can cause a hitch if the mesh is not cached, and it requires a lengthy load or assembly.
-	FAERIEITEMMESH_API bool LoadMeshFromTokenSynchronous(const UFaerieMeshTokenBase* Token, FGameplayTag Purpose, FFaerieItemMesh& Mesh);
+	FAERIEITEMMESH_API bool LoadMeshFromTokenSynchronous(TNotNull<const UFaerieMeshTokenBase*> Token, FGameplayTag Purpose, FFaerieItemMesh& Mesh);
 
 	// Immediately retrieves the mesh for an item.
 	// WARNING: This can cause a hitch if the mesh is not cached, and it requires a lengthy load or assembly.
@@ -52,17 +52,17 @@ public:
 
 	// Immediately retrieves the mesh for an item.
 	// WARNING: This can cause a hitch if the mesh is not cached, and it requires a lengthy load or assembly.
-	virtual bool LoadMeshFromTokenSynchronous(const UFaerieMeshTokenBase* Token, FGameplayTag Purpose, FFaerieItemMesh& Mesh);
+	virtual bool LoadMeshFromTokenSynchronous(TNotNull<const UFaerieMeshTokenBase*> Token, FGameplayTag Purpose, FFaerieItemMesh& Mesh);
 
 	// Immediately retrieves the mesh for an item.
 	// WARNING: This can cause a hitch if the mesh is not cached, and it requires a lengthy load or assembly.
 	virtual bool LoadMeshFromProxySynchronous(FFaerieItemProxy Proxy, FGameplayTag Purpose, FFaerieItemMesh& Mesh);
 
 	// Asynchronously load the mesh and materials for an item.
-	void LoadMeshFromTokenAsynchronous(const UFaerieMeshTokenBase* Token, FGameplayTag Purpose, Faerie::FItemMeshAsyncLoadResult Callback);
+	[[nodiscard]] TSharedPtr<FStreamableHandle> LoadMeshFromTokenAsynchronous(TNotNull<const UFaerieMeshTokenBase*> Token, FGameplayTag Purpose, Faerie::FItemMeshAsyncLoadResult Callback);
 
 	// Asynchronously load the mesh and materials for an item.
-	void LoadMeshFromProxyAsynchronous(FFaerieItemProxy Proxy, FGameplayTag Purpose, Faerie::FItemMeshAsyncLoadResult Callback);
+	[[nodiscard]] TSharedPtr<FStreamableHandle> LoadMeshFromProxyAsynchronous(FFaerieItemProxy Proxy, FGameplayTag Purpose, Faerie::FItemMeshAsyncLoadResult Callback);
 
 protected:
 	void OnAsyncStaticMeshLoaded(TConstStructView<FFaerieStaticMeshData> MeshData, Faerie::FAsyncLoadRequest Request);
@@ -114,7 +114,7 @@ class FAERIEITEMMESH_API UFaerieItemMeshLoader_Cached : public UFaerieItemMeshLo
 
 public:
 	//~ UFaerieItemMeshLoader
-	virtual bool LoadMeshFromTokenSynchronous(const UFaerieMeshTokenBase* Token, const FGameplayTag Purpose, FFaerieItemMesh& Mesh) override;
+	virtual bool LoadMeshFromTokenSynchronous(TNotNull<const UFaerieMeshTokenBase*> Token, const FGameplayTag Purpose, FFaerieItemMesh& Mesh) override;
 	//virtual bool LoadMeshFromProxySynchronous(FFaerieItemProxy Proxy, const FGameplayTag Purpose, FFaerieItemMesh& Mesh) override;
 
 protected:
