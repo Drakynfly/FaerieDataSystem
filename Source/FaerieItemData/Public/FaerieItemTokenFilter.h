@@ -100,9 +100,15 @@ namespace Faerie::Token
 		{
 			auto TestIterator = [&]() -> bool
 			{
+				TObjectPtr<UFaerieItemToken> Token = *Iterator;
+				if (!IsValid(Token))
+				{
+					return false;
+				}
+
 				if constexpr (!std::is_same_v<TTokenClass, UFaerieItemToken>)
 				{
-					if (!StaticClassFilter(*Iterator, TTokenClass::StaticClass()))
+					if (!StaticClassFilter(Token, TTokenClass::StaticClass()))
 					{
 						return false;
 					}
@@ -110,7 +116,7 @@ namespace Faerie::Token
 
 				if constexpr (EnumHasAnyFlags(Flags, EFilterFlags::MutableOnly))
 				{
-					if (!StaticIsMutableFilter(*Iterator))
+					if (!StaticIsMutableFilter(Token))
 					{
 						return false;
 					}
@@ -118,7 +124,7 @@ namespace Faerie::Token
 
 				if constexpr (EnumHasAnyFlags(Flags, EFilterFlags::ImmutableOnly))
 				{
-					if (StaticIsMutableFilter(*Iterator))
+					if (StaticIsMutableFilter(Token))
 					{
 						return false;
 					}
@@ -127,12 +133,12 @@ namespace Faerie::Token
 				if constexpr (EnumHasAnyFlags(Flags, EFilterFlags::Inverted))
 				{
 					// Test for not passing the predicates
-					return !PredicateTuple.TestAll(*Iterator);
+					return !PredicateTuple.TestAll(Token);
 				}
 				else
 				{
 					// Test for passing the predicates
-					return PredicateTuple.TestAll(*Iterator);
+					return PredicateTuple.TestAll(Token);
 				}
 			};
 

@@ -8,6 +8,7 @@
 #include "FaerieItemContainerBase.h"
 #include "FaerieItemToken.h"
 #include "FaerieItemTokenFilter.h"
+#include "FaerieItemTokenFilterTypes.h"
 #include "ItemContainerExtensionBase.h"
 #include "GameFramework/Actor.h"
 #include "Tokens/FaerieItemStorageToken.h"
@@ -69,10 +70,8 @@ namespace Faerie
 		return !HitError;
 	}
 
-	static const auto MutableFilter = Token::Filter().ByMutable();
-
 	template <bool IsSubItem>
-	void ReleaseOwnership_Impl(UObject* Owner, const TNotNull<UFaerieItem*> Item)
+	void ReleaseOwnership_Impl(const TNotNull<UObject*> Owner, const TNotNull<UFaerieItem*> Item)
 	{
 		// @todo this logic could be moved to UFaerieItem::PostRename (if we enforce the RenameBehavior)
 		AActor* Actor = Owner->GetTypedOuter<AActor>();
@@ -83,7 +82,7 @@ namespace Faerie
 			Actor->RemoveReplicatedSubObject(Item);
 		}
 
-		for (UFaerieItemToken* Token : MutableFilter.Iterate(Item))
+		for (UFaerieItemToken* Token : Token::Filter().By<Token::FIsOwned>(Item).Iterate(Item))
 		{
 			if (RegisteredWithActor)
 			{
@@ -176,7 +175,7 @@ namespace Faerie
 			OuterExtensions = OuterWithExtension->GetExtensionGroup();
 		}
 
-		for (UFaerieItemToken* Token : MutableFilter.Iterate(Item))
+		for (UFaerieItemToken* Token : Token::Filter().By<Token::FIsOwned>(Item).Iterate(Item))
 		{
 			if (RegisterWithActor)
 			{

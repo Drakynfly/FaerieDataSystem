@@ -4,6 +4,7 @@
 
 #include "GameplayTagContainer.h"
 
+class UFaerieItem;
 class UFaerieItemToken;
 
 namespace Faerie::Token
@@ -12,6 +13,17 @@ namespace Faerie::Token
 	{
 		bool Exec(const TNotNull<const UFaerieItemToken*> Token) const;
 		bool MutabilityToMatch;
+	};
+
+	struct FAERIEITEMDATA_API FIsOwned
+	{
+		FIsOwned(const TNotNull<UFaerieItem*> Item)
+		  : Item(Item) {}
+
+		bool Exec(TNotNull<const UFaerieItemToken*> Token) const;
+
+	protected:
+		TNotNull<UFaerieItem*> Item;
 	};
 
 	struct FAERIEITEMDATA_API FIsClass

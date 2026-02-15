@@ -10,6 +10,11 @@ namespace Faerie::Token
 		return Token->IsMutable() == MutabilityToMatch;
 	}
 
+	bool FIsOwned::Exec(const TNotNull<const UFaerieItemToken*> Token) const
+	{
+		return Token->GetOuterItem() == Item;
+	}
+
 	bool FIsClass::Exec(const TNotNull<const UFaerieItemToken*> Token) const
 	{
 		return Token->IsA(Class);
