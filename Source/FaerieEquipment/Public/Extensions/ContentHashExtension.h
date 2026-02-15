@@ -34,16 +34,14 @@ public:
 	//~ UObject
 
 	//~ UItemContainerExtensionBase
-	virtual void InitializeExtension(const UFaerieItemContainerBase* Container) override;
-	virtual void DeinitializeExtension(const UFaerieItemContainerBase* Container) override;
-	virtual void LoadSaveData(const UFaerieItemContainerBase* Container, const FInstancedStruct& SaveData) override;
-	virtual void PostRemoval(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event) override;
-	virtual void PostEntryChanged(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event) override;
-	virtual void PostAddition(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event) override;
+	virtual void InitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
+	virtual void DeinitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
+	virtual void LoadSaveData(TNotNull<const UFaerieItemContainerBase*> Container, const FInstancedStruct& SaveData) override;
+	virtual void PostEventBatch(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Inventory::FEventLogBatch& Events) override;
 	//~ UItemContainerExtensionBase
 
 protected:
-	void RecalcContainerHash(const UFaerieItemContainerBase* Container);
+	void RecalcContainerHash(TNotNull<const UFaerieItemContainerBase*> Container);
 	void RecalcLocalChecksum();
 
 	void CheckLocalChecksum();

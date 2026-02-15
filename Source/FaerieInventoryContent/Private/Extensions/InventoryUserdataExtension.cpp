@@ -84,7 +84,7 @@ bool FFaerieClientAction_MarkStackWithTag::Server_Execute(const UFaerieInventory
 	if (!IsValid(Container)) return false;
 	if (!Client->CanAccessContainer(Container, StaticStruct())) return false;
 
-	if (auto&& Userdata = GetExtension<UInventoryUserdataExtension>(Container, true))
+	if (auto&& Userdata = Faerie::GetExtension<UInventoryUserdataExtension>(Container, true))
 	{
 		return Userdata->MarkStackWithTag(Handle, Tag);
 	}
@@ -97,7 +97,7 @@ bool FFaerieClientAction_ClearTagFromStack::Server_Execute(const UFaerieInventor
 	if (!IsValid(Storage)) return false;
 	if (!Client->CanAccessContainer(Storage, StaticStruct())) return false;
 
-	if (auto&& Userdata = GetExtension<UInventoryUserdataExtension>(Storage, true))
+	if (auto&& Userdata = Faerie::GetExtension<UInventoryUserdataExtension>(Storage, true))
 	{
 		return Userdata->ClearTagFromStack(Handle, Tag);
 	}

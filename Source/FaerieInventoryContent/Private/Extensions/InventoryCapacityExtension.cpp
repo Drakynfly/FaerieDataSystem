@@ -48,10 +48,8 @@ void UInventoryCapacityExtension::PostEditChangeChainProperty(FPropertyChangedCh
 }
 #endif
 
-void UInventoryCapacityExtension::InitializeExtension(const UFaerieItemContainerBase* Container)
+void UInventoryCapacityExtension::InitializeExtension(const TNotNull<const UFaerieItemContainerBase*> Container)
 {
-	if (!ensure(IsValid(Container))) return;
-
 	for (const FEntryKey Key : Faerie::Container::KeyRange(Container))
 	{
 		UpdateCacheForEntry(Container, Key);
@@ -60,10 +58,8 @@ void UInventoryCapacityExtension::InitializeExtension(const UFaerieItemContainer
 	HandleStateChanged();
 }
 
-void UInventoryCapacityExtension::DeinitializeExtension(const UFaerieItemContainerBase* Container)
+void UInventoryCapacityExtension::DeinitializeExtension(const TNotNull<const UFaerieItemContainerBase*> Container)
 {
-	if (!ensure(IsValid(Container))) return;
-
 	if (!ServerCapacityCache.Contains(Container)) return;
 
 	for (auto&& Cache = ServerCapacityCache[Container];
@@ -78,7 +74,7 @@ void UInventoryCapacityExtension::DeinitializeExtension(const UFaerieItemContain
 	HandleStateChanged();
 }
 
-EEventExtensionResponse UInventoryCapacityExtension::AllowsAddition(const UFaerieItemContainerBase* Container,
+EEventExtensionResponse UInventoryCapacityExtension::AllowsAddition(const TNotNull<const UFaerieItemContainerBase*> Container,
 																	const TConstArrayView<FFaerieItemStackView> Views,
 																	const FFaerieExtensionAllowsAdditionArgs Args) const
 {
@@ -128,25 +124,16 @@ EEventExtensionResponse UInventoryCapacityExtension::AllowsAddition(const UFaeri
 	return EEventExtensionResponse::NoExplicitResponse;
 }
 
-void UInventoryCapacityExtension::PostAddition(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event)
+void UInventoryCapacityExtension::PostEventBatch(const TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Inventory::FEventLogBatch& Events)
 {
-	UpdateCacheForEntry(Container, Event.EntryTouched);
+	for (auto&& Event : Events.Data)
+	{
+		UpdateCacheForEntry(Container, Event.EntryTouched);
+	}
 	HandleStateChanged();
 }
 
-void UInventoryCapacityExtension::PostRemoval(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event)
-{
-	UpdateCacheForEntry(Container, Event.EntryTouched);
-	HandleStateChanged();
-}
-
-void UInventoryCapacityExtension::PostEntryChanged(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event)
-{
-	UpdateCacheForEntry(Container, Event.EntryTouched);
-	HandleStateChanged();
-}
-
-FWeightAndVolume UInventoryCapacityExtension::GetEntryWeightAndVolume(const UFaerieItemContainerBase* Container, const FEntryKey Key)
+FWeightAndVolume UInventoryCapacityExtension::GetEntryWeightAndVolume(const TNotNull<const UFaerieItemContainerBase*> Container, const FEntryKey Key)
 {
 	FWeightAndVolume Out;
 
@@ -183,10 +170,8 @@ FWeightAndVolume UInventoryCapacityExtension::GetEntryWeightAndVolume(const UFae
 	return Out;
 }
 
-void UInventoryCapacityExtension::UpdateCacheForEntry(const UFaerieItemContainerBase* Container, const FEntryKey Key)
+void UInventoryCapacityExtension::UpdateCacheForEntry(const TNotNull<const UFaerieItemContainerBase*> Container, const FEntryKey Key)
 {
-	if (!ensure(IsValid(Container))) return;
-
 	auto&& ContainerCache = ServerCapacityCache.FindOrAdd(Container);
 	auto&& PrevCache = ContainerCache.Find(Key);
 

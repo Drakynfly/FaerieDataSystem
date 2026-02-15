@@ -20,7 +20,7 @@ namespace Faerie::Inventory::Tags
 		"Fae.Inventory.Meta.CannotSplit", "Denies permission to split a stack. Typically used to mark required quest item stacks.")
 }
 
-EEventExtensionResponse UInventoryMetadataExtension::AllowsRemoval(const UFaerieItemContainerBase* Container,
+EEventExtensionResponse UInventoryMetadataExtension::AllowsRemoval(const TNotNull<const UFaerieItemContainerBase*> Container,
 	const FFaerieAddress Address, const FFaerieInventoryTag Reason) const
 {
 	// Tags that always deny removal.
@@ -45,7 +45,7 @@ EEventExtensionResponse UInventoryMetadataExtension::AllowsRemoval(const UFaerie
 	}
 
 	FFaerieAddressableHandle Handle;
-	Handle.Container = ConstCast(ObjectPtrWrap(Container));
+	Handle.Container = ConstCast(ObjectPtrWrap(Container.operator->()));
 	Handle.Address = Address;
 
 	if (const FConstStructView DataView = GetDataForHandle(Handle);

@@ -68,7 +68,7 @@ void UFaerieEquipmentSlot::LoadSlotData(const FFaerieEquipmentSlotSaveData& Slot
 	// Clear any current content.
 	if (IsFilled())
 	{
-		TakeItemFromSlot(Faerie::ItemData::EntireStack);
+		TakeItemFromSlot(Faerie::ItemData::EntireStack, Faerie::Inventory::Tags::RemovalDeletion);
 	}
 
 	// Cannot change Config here, as it only replicates once!

@@ -18,7 +18,7 @@ namespace Faerie::Inventory::Tags
 		"Fae.Inventory.Removal.Ejection", "Remove an item and eject it from the inventory as a pickup/visual")
 }
 
-EEventExtensionResponse UInventoryEjectionHandlerExtension::AllowsRemoval(const UFaerieItemContainerBase* Container, const FFaerieAddress Address,
+EEventExtensionResponse UInventoryEjectionHandlerExtension::AllowsRemoval(TNotNull<const UFaerieItemContainerBase*> Container, const FFaerieAddress Address,
                                                                           const FFaerieInventoryTag Reason) const
 {
 	if (Reason == Faerie::Inventory::Tags::RemovalEject)
@@ -29,21 +29,24 @@ EEventExtensionResponse UInventoryEjectionHandlerExtension::AllowsRemoval(const 
 	return EEventExtensionResponse::NoExplicitResponse;
 }
 
-void UInventoryEjectionHandlerExtension::PostRemoval(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event)
+void UInventoryEjectionHandlerExtension::PostEventBatch(const TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Inventory::FEventLogBatch& Events)
 {
 	// This extension only listens to Ejection removals
-	if (Event.Type != Faerie::Inventory::Tags::RemovalEject) return;
+    if (Events.Type != Faerie::Inventory::Tags::RemovalEject) return;
 
-	// Cannot eject null item
-	if (!Event.Item.IsValid()) return;
-
-	if (Event.Item->CanMutate())
+	for (auto&& Event : Events.Data)
 	{
-		check(Event.Amount == 1);
-	}
+		// Cannot eject null item
+		if (!Event.Item.IsValid()) continue;
 
-	const FFaerieItemStack Stack { Event.Item.Get(), Event.Amount };
-	Enqueue(Stack);
+		if (Event.Item->CanMutate())
+		{
+			check(Event.Amount == 1);
+		}
+
+		const FFaerieItemStack Stack { Event.Item.Get(), Event.Amount };
+		Enqueue(Stack);
+	}
 }
 
 void UInventoryEjectionHandlerExtension::Enqueue(const FFaerieItemStack& Stack)
@@ -148,7 +151,7 @@ bool FFaerieClientAction_EjectViaRelease::Server_Execute(const UFaerieInventoryC
 	if (!Handle.IsValid()) return false;
 	if (!Client->CanAccessContainer(Handle.Container.Get(), StaticStruct())) return false;
 
-	UInventoryEjectionHandlerExtension* Ejector = GetExtension<UInventoryEjectionHandlerExtension>(Handle.Container.Get(), true);
+	UInventoryEjectionHandlerExtension* Ejector = Faerie::GetExtension<UInventoryEjectionHandlerExtension>(Handle.Container.Get(), true);
 	if (!IsValid(Ejector))
 	{
 		return false;

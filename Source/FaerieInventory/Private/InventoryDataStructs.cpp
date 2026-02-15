@@ -25,9 +25,10 @@ namespace LocalCopy
 	}
 }
 
-FInventoryEntry::FInventoryEntry(FFaerieItemStackView InStack, TArray<FFaerieAddress>& OutNewAddresses)
+FInventoryEntry::FInventoryEntry(FFaerieItemStackView InStack, const FEntryKey EntryKey, TArray<FFaerieAddress>& OutNewAddresses)
 {
 	ItemObject = InStack.Item.Get();
+	Key = EntryKey;
 
 	UpdateCachedStackLimit();
 
@@ -207,34 +208,6 @@ FInventoryEntry::FMutableAccess::FMutableAccess(FInventoryContent& Source, const
 	if (Faerie::Debug::CVarEnableWriteLockTracking.GetValueOnGameThread())
 	{
 		UE_LOG(LogFaerieInventory, Warning, TEXT("WriteLock++ (FMutableAccess ctor 1)"))
-	}
-#endif
-	Source.WriteLock++;
-	ChangeMask.Init(false, Handle.NumStacks());
-}
-
-FInventoryEntry::FMutableAccess::FMutableAccess(FInventoryContent& Source, const int32 Index)
-  : Handle(Source.Entries[Index]),
-	Source(Source)
-{
-#if FAERIE_DEBUG
-	if (Faerie::Debug::CVarEnableWriteLockTracking.GetValueOnGameThread())
-	{
-		UE_LOG(LogFaerieInventory, Warning, TEXT("WriteLock++ (FMutableAccess ctor 2)"))
-	}
-#endif
-	Source.WriteLock++;
-	ChangeMask.Init(false, Handle.NumStacks());
-}
-
-FInventoryEntry::FMutableAccess::FMutableAccess(FInventoryContent& Source, const FEntryKey Key)
-  : Handle(Source.Entries[Source.IndexOf(Key)]),
-	Source(Source)
-{
-#if FAERIE_DEBUG
-	if (Faerie::Debug::CVarEnableWriteLockTracking.GetValueOnGameThread())
-	{
-		UE_LOG(LogFaerieInventory, Warning, TEXT("WriteLock++ (FMutableAccess ctor 3)"))
 	}
 #endif
 	Source.WriteLock++;

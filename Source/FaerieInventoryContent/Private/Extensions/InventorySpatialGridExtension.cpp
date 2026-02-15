@@ -153,7 +153,7 @@ namespace Faerie
 	}
 }
 
-EEventExtensionResponse UInventorySpatialGridExtension::AllowsAddition(const UFaerieItemContainerBase* Container,
+EEventExtensionResponse UInventorySpatialGridExtension::AllowsAddition(const TNotNull<const UFaerieItemContainerBase*> Container,
 																	   const TConstArrayView<FFaerieItemStackView> Views,
 																	   const FFaerieExtensionAllowsAdditionArgs Args) const
 {
@@ -202,41 +202,7 @@ EEventExtensionResponse UInventorySpatialGridExtension::AllowsAddition(const UFa
 	return EEventExtensionResponse::NoExplicitResponse;
 }
 
-void UInventorySpatialGridExtension::PostAddition(const UFaerieItemContainerBase* Container,
-												const Faerie::Inventory::FEventLog& Event)
-{
-	// @todo don't add items for existing keys
-
-	for (const FFaerieAddress Address : Event.AddressesTouched)
-	{
-		AddItemToGrid(Address, Event.Item.Get());
-	}
-}
-
-void UInventorySpatialGridExtension::PostRemoval(const UFaerieItemContainerBase* Container,
-												 const Faerie::Inventory::FEventLog& Event)
-{
-	if (const UFaerieItemStorage* ItemStorage = Cast<UFaerieItemStorage>(Container))
-	{
-		// Create a temporary array to store keys that need to be removed
-		TArray<FFaerieAddress> AddressesToRemove;
-
-		for (const FFaerieAddress Address : Event.AddressesTouched)
-		{
-			if (ItemStorage->Contains(Address))
-			{
-				PostStackChange({ Address, GetStackPlacementData(Address) });
-			}
-			else
-			{
-				AddressesToRemove.Add(Address);
-			}
-		}
-		RemoveItemBatch(AddressesToRemove, Event.Item.Get());
-	}
-}
-
-EEventExtensionResponse UInventorySpatialGridExtension::AllowsEdit(const UFaerieItemContainerBase* Container,
+EEventExtensionResponse UInventorySpatialGridExtension::AllowsEdit(const TNotNull<const UFaerieItemContainerBase*> Container,
 																	const FEntryKey Key, const FFaerieInventoryTag EditType) const
 {
 	if (EditType == Faerie::Inventory::Tags::Split)
@@ -250,34 +216,78 @@ EEventExtensionResponse UInventorySpatialGridExtension::AllowsEdit(const UFaerie
 	return EEventExtensionResponse::NoExplicitResponse;
 }
 
-void UInventorySpatialGridExtension::PostEntryChanged(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event)
+void UInventorySpatialGridExtension::PostEventBatch(const TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Inventory::FEventLogBatch& Events)
 {
-	// Create a temporary array to store keys that need to be removed
-	TArray<FFaerieAddress> AddressesToRemove;
-
-	// get addresses to remove
-	for (const FFaerieAddress Address : Event.AddressesTouched)
+	if (Events.IsAdditionEvent())
 	{
-		if (const UFaerieItemStorage* Storage = Cast<UFaerieItemStorage>(InitializedContainer);
-			!Storage->Contains(Address))
+		for (auto&& Event : Events.Data)
 		{
-			AddressesToRemove.Add(Address);
-		}
-		else
-		{
-			if (GridContent.Contains(Address))
-			{
-				BroadcastEvent(Address, EFaerieGridEventType::ItemChanged);
-			}
-			else
-			{
-				AddItemToGrid(Address, Event.Item.Get());
-			}
+			// @todo don't add items for existing keys
+
+            for (const FFaerieAddress Address : Event.AddressesTouched)
+            {
+                AddItemToGrid(Address, Event.Item.Get());
+            }
 		}
 	}
+	else if (Events.IsRemovalEvent())
+	{
+		for (auto&& Event : Events.Data)
+		{
+			if (const UFaerieItemStorage* ItemStorage = Cast<UFaerieItemStorage>(Container))
+            {
+                // Create a temporary array to store keys that need to be removed
+                TArray<FFaerieAddress> AddressesToRemove;
 
-	// remove the stored keys
-	RemoveItemBatch(AddressesToRemove, Event.Item.Get());
+                for (const FFaerieAddress Address : Event.AddressesTouched)
+                {
+                	if (ItemStorage->Contains(Address))
+                	{
+                		PostStackChange({ Address, GetStackPlacementData(Address) });
+                	}
+                	else
+                	{
+                		AddressesToRemove.Add(Address);
+                	}
+                }
+                RemoveItemBatch(AddressesToRemove, Event.Item.Get());
+            }
+		}
+	}
+	else
+	{
+		check(Events.IsEditEvent())
+
+		for (auto&& Event : Events.Data)
+		{
+			// Create a temporary array to store keys that need to be removed
+			TArray<FFaerieAddress> AddressesToRemove;
+
+			// get addresses to remove
+            for (const FFaerieAddress Address : Event.AddressesTouched)
+            {
+                if (const UFaerieItemStorage* Storage = Cast<UFaerieItemStorage>(InitializedContainer);
+                	!Storage->Contains(Address))
+                {
+                	AddressesToRemove.Add(Address);
+                }
+                else
+                {
+                	if (GridContent.Contains(Address))
+                	{
+                		BroadcastEvent(Address, EFaerieGridEventType::ItemChanged);
+                	}
+                	else
+                	{
+                		AddItemToGrid(Address, Event.Item.Get());
+                	}
+                }
+            }
+
+			// remove the stored keys
+			RemoveItemBatch(AddressesToRemove, Event.Item.Get());
+		}
+	}
 }
 
 void UInventorySpatialGridExtension::PreStackRemove_Client(const FFaerieGridKeyedStack& Stack)

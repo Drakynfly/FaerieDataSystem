@@ -14,6 +14,8 @@ namespace Faerie::Inventory::Tags
 		"Fae.Inventory.Removal.Deletion", "Remove an item by deleting it entirely")
 	UE_DEFINE_GAMEPLAY_TAG_TYPED_COMMENT(FFaerieInventoryTag, RemovalMoving,
 		"Fae.Inventory.Removal.Moving", "Remove an item for the purpose of moving it elsewhere")
+	UE_DEFINE_GAMEPLAY_TAG_TYPED_COMMENT(FFaerieInventoryTag, EditBase,
+		"Fae.Inventory.Edit", "Inventory item data changed event")
 	UE_DEFINE_GAMEPLAY_TAG_TYPED_COMMENT(FFaerieInventoryTag, Merge,
 		"Fae.Inventory.Edit.Merge", "An entry was edited to merge two stacks")
 	UE_DEFINE_GAMEPLAY_TAG_TYPED_COMMENT(FFaerieInventoryTag, Split,

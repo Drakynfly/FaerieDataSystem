@@ -129,10 +129,10 @@ void UInventoryGridExtensionBase::PostInitProperties()
 	GridContent.ChangeListener = this;
 }
 
-void UInventoryGridExtensionBase::InitializeExtension(const UFaerieItemContainerBase* Container)
+void UInventoryGridExtensionBase::InitializeExtension(const TNotNull<const UFaerieItemContainerBase*> Container)
 {
 	checkf(!IsValid(InitializedContainer), TEXT("UInventoryGridExtensionBase doesn't support multi-initialization!"))
-	InitializedContainer = const_cast<UFaerieItemContainerBase*>(Container);
+	InitializedContainer = const_cast<UFaerieItemContainerBase*>(Container.operator->());
 	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, InitializedContainer, this);
 
 	// Add all existing items to the grid on startup.
@@ -155,7 +155,7 @@ void UInventoryGridExtensionBase::InitializeExtension(const UFaerieItemContainer
 	}
 }
 
-void UInventoryGridExtensionBase::DeinitializeExtension(const UFaerieItemContainerBase* Container)
+void UInventoryGridExtensionBase::DeinitializeExtension(const TNotNull<const UFaerieItemContainerBase*> Container)
 {
 	// Remove all entries for this container on shutdown
 	// @todo its only okay to reset these because we don't suppose multi-container! revisit later

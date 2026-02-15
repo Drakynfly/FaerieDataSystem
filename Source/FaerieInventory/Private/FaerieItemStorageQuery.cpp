@@ -228,7 +228,7 @@ void UFaerieItemStorageQuery::QueryAllAddresses(const UFaerieItemStorage* Storag
 
 namespace
 {
-	struct FImmediateView final : public Faerie::ItemData::IViewBase
+	struct FImmediateView final : public IViewBase
 	{
 		FImmediateView(const TNotNull<const IFaerieItemOwnerInterface*> Owner, const FFaerieItemStackView Stack)
 			: Owner(Owner), Stack(Stack) {}

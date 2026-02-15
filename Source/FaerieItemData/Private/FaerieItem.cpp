@@ -173,14 +173,14 @@ UFaerieItem* UFaerieItem::CreateNewInstance(const TConstArrayView<UFaerieItemTok
 		if (Token->IsMutable())
 		{
 			check(Token->GetOuter() == GetTransientPackage())
-			Token->Rename(nullptr, Instance);
+			Token->Rename(nullptr, Instance, REN_DontCreateRedirectors);
 		}
 		// Immutable tokens only get outer'd to us if they are currently transient, likely newly created.
 		else
 		{
 			if (Token->GetOuter() == GetTransientPackage())
 			{
-				Token->Rename(nullptr, Instance);
+				Token->Rename(nullptr, Instance, REN_DontCreateRedirectors);
 			}
 		}
 
@@ -446,14 +446,14 @@ bool UFaerieItem::AddToken(UFaerieItemToken* Token)
 		// If this check fails, then whatever code tried to create the token used an outer other than us, and needs to
 		// either duplicate or rename the token with us as the outer.
 		check(Token->GetOuter() == GetTransientPackage() || Token->GetOuter() == this)
-		Token->Rename(nullptr, this);
+		Token->Rename(nullptr, this, REN_DontCreateRedirectors);
 	}
 	// Immutable tokens only get outer'd to us if they are currently transient, likely newly created.
 	else
 	{
 		if (Token->GetOuter() == GetTransientPackage())
 		{
-			Token->Rename(nullptr, this);
+			Token->Rename(nullptr, this, REN_DontCreateRedirectors);
 		}
 	}
 
@@ -535,14 +535,14 @@ bool UFaerieItem::ReplaceToken(const UFaerieItemToken* Old, UFaerieItemToken* Ne
 		// If this check fails, then whatever code tried to create the token used an outer other than us, and needs to
 		// either duplicate or rename the token with us as the outer.
 		check(New->GetOuter() == GetTransientPackage() || New->GetOuter() == this)
-		New->Rename(nullptr, this);
+		New->Rename(nullptr, this, REN_DontCreateRedirectors);
 	}
 	// Immutable tokens only get outer'd to us if they are currently transient, likely newly created.
 	else
 	{
 		if (New->GetOuter() == GetTransientPackage())
 		{
-			New->Rename(nullptr, this);
+			New->Rename(nullptr, this, REN_DontCreateRedirectors);
 		}
 	}
 

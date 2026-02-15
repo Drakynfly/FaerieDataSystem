@@ -143,12 +143,12 @@ namespace Faerie::Storage
 
 	FEntryKey FIterator_SingleEntry::GetKey() const
 	{
-		return EntryPtr->Key;
+		return EntryPtr->GetKey();
 	}
 
 	FFaerieAddress FIterator_SingleEntry::GetAddress() const
 	{
-		return UFaerieItemStorage::MakeAddress(EntryPtr->Key, StackPtr->Key);
+		return UFaerieItemStorage::MakeAddress(EntryPtr->GetKey(), StackPtr->Key);
 	}
 
 	const UFaerieItem* FIterator_SingleEntry::GetItem() const

@@ -8,7 +8,7 @@
 
 /* static */ int32 UFaerieStackLimiterToken::GetItemStackLimit(const UFaerieItem* Item)
 {
-	if (!ensure(IsValid(Item)))
+	if (!IsValid(Item))
 	{
 		return 0;
 	}

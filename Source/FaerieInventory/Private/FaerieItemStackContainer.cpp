@@ -17,8 +17,6 @@
 
 namespace Faerie::Inventory::Tags
 {
-	UE_DEFINE_GAMEPLAY_TAG_TYPED_COMMENT(FFaerieInventoryTag, SlotSet, "Fae.Inventory.Set", "Event tag when item data is added to a container")
-	UE_DEFINE_GAMEPLAY_TAG_TYPED_COMMENT(FFaerieInventoryTag, SlotTake, "Fae.Inventory.Take", "Event tag when item data is removed from a container")
 	UE_DEFINE_GAMEPLAY_TAG_TYPED_COMMENT(FFaerieInventoryTag, SlotItemMutated, "Fae.Inventory.SlotItemMutated", "Event tag when the item in a container mutates")
 	UE_DEFINE_GAMEPLAY_TAG_TYPED_COMMENT(FFaerieInventoryTag, SlotClientReplication, "Fae.Inventory.ClientReplication", "Event tag when item data is replicated to the client. Could have been caused by a Set/Take/Mutate from the server.")
 }
@@ -90,7 +88,7 @@ void UFaerieItemStackContainer::LoadSaveData(const FConstStructView ItemData, UF
 	// Clear any current content.
 	if (IsFilled())
 	{
-		TakeItemFromSlot(Faerie::ItemData::EntireStack);
+		TakeItemFromSlot(Faerie::ItemData::EntireStack, Faerie::Inventory::Tags::RemovalDeletion);
 	}
 
 	if (SaveData->StoredKey.IsValid())
@@ -143,7 +141,7 @@ FFaerieItemStack UFaerieItemStackContainer::Release(const FEntryKey Key, const i
 {
 	if (Key == StoredKey)
 	{
-		return TakeItemFromSlot(Copies);
+		return TakeItemFromSlot(Copies, Faerie::Inventory::Tags::RemovalMoving);
 	}
 	return FFaerieItemStack();
 }
@@ -216,7 +214,7 @@ FFaerieItemStack UFaerieItemStackContainer::Release(const FFaerieAddress Address
 {
 	if (Contains(Address))
 	{
-		return TakeItemFromSlot(Copies);
+		return TakeItemFromSlot(Copies, Faerie::Inventory::Tags::RemovalMoving);
 	}
 	return FFaerieItemStack();
 }
@@ -269,7 +267,7 @@ FFaerieItemStack UFaerieItemStackContainer::Release(const FFaerieItemStackView S
 {
 	if (Stack.Item == ItemStack.Item)
 	{
-		return TakeItemFromSlot(Stack.Copies);
+		return TakeItemFromSlot(Stack.Copies, Faerie::Inventory::Tags::RemovalMoving);
 	}
 	return FFaerieItemStack();
 }
@@ -298,11 +296,9 @@ void UFaerieItemStackContainer::SetStoredItem_Impl(const FFaerieItemStack& Stack
 {
 	Extensions->PreAddition(this, Stack);
 
-	Faerie::Inventory::FEventLog Event;
+	Faerie::Inventory::FEventData Event;
 	Event.Item = Stack.Item;
 	Event.Amount = Stack.Copies;
-	Event.Success = true;
-	Event.Type = Faerie::Inventory::Tags::SlotSet;
 
 	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, ItemStack, this);
 	if (Stack.Item != ItemStack.Item)
@@ -326,9 +322,9 @@ void UFaerieItemStackContainer::SetStoredItem_Impl(const FFaerieItemStack& Stack
 
 	Event.EntryTouched = StoredKey;
 
-	Extensions->PostAddition(this, Event);
+	Extensions->PostEvent(this, Event, Faerie::Inventory::Tags::Addition);
 
-	BroadcastChange(Faerie::Inventory::Tags::SlotSet);
+	BroadcastChange(Faerie::Inventory::Tags::Addition);
 }
 
 bool UFaerieItemStackContainer::CouldSetInSlot(const FFaerieItemStackView View) const
@@ -365,7 +361,7 @@ bool UFaerieItemStackContainer::CanSetInSlot(const FFaerieItemStackView View) co
 
 	static constexpr FFaerieExtensionAllowsAdditionArgs Args = { EFaerieStorageAddStackBehavior::OnlyNewStacks };
 
-	if (Extensions->AllowsAddition(this, MakeArrayView(&View, 1), Args) == EEventExtensionResponse::Disallowed)
+	if (Extensions->AllowsAddition(this, MakeConstArrayView(&View, 1), Args) == EEventExtensionResponse::Disallowed)
 	{
 		return false;
 	}
@@ -373,7 +369,7 @@ bool UFaerieItemStackContainer::CanSetInSlot(const FFaerieItemStackView View) co
 	return true;
 }
 
-bool UFaerieItemStackContainer::CanTakeFromSlot(const int32 Copies) const
+bool UFaerieItemStackContainer::CanTakeFromSlot(const int32 Copies, const FFaerieInventoryTag Reason) const
 {
 	if (!ItemStack.IsValid()) return false;
 
@@ -383,7 +379,7 @@ bool UFaerieItemStackContainer::CanTakeFromSlot(const int32 Copies) const
 		return false;
 	}
 
-	if (Extensions->AllowsRemoval(this, GetCurrentAddress(), Faerie::Inventory::Tags::SlotTake) == EEventExtensionResponse::Disallowed)
+	if (Extensions->AllowsRemoval(this, GetCurrentAddress(), Reason) == EEventExtensionResponse::Disallowed)
 	{
 		return false;
 	}
@@ -405,9 +401,9 @@ bool UFaerieItemStackContainer::SetItemInSlot(const FFaerieItemStack Stack)
 	return true;
 }
 
-FFaerieItemStack UFaerieItemStackContainer::TakeItemFromSlot(int32 Copies)
+FFaerieItemStack UFaerieItemStackContainer::TakeItemFromSlot(int32 Copies, const FFaerieInventoryTag Reason)
 {
-	if (!CanTakeFromSlot(Copies))
+	if (!CanTakeFromSlot(Copies, Reason))
 	{
 		UE_LOG(LogFaerieInventory, Warning,
 			TEXT("Invalid request to take item from container '%s'!"), *GetPathName())
@@ -429,11 +425,9 @@ FFaerieItemStack UFaerieItemStackContainer::TakeItemFromSlot(int32 Copies)
 
 	Extensions->PreRemoval(this, StoredKey, Copies);
 
-	Faerie::Inventory::FEventLog Event;
+	Faerie::Inventory::FEventData Event;
 	Event.Item = ItemStack.Item;
 	Event.Amount = Copies;
-	Event.Success = true;
-	Event.Type = Faerie::Inventory::Tags::SlotTake;
 	Event.EntryTouched = StoredKey;
 
 	const FFaerieItemStack OutStack{ItemStack.Item, Copies};
@@ -458,9 +452,9 @@ FFaerieItemStack UFaerieItemStackContainer::TakeItemFromSlot(int32 Copies)
 		ItemStack.Copies -= Copies;
 	}
 
-	Extensions->PostRemoval(this, Event);
+	Extensions->PostEvent(this, Event, Reason);
 
-	BroadcastChange(Faerie::Inventory::Tags::SlotTake);
+	BroadcastChange(Reason);
 
 	return OutStack;
 }

@@ -27,7 +27,8 @@ public:
 
 protected:
 	virtual void Reset();
-	virtual void HandleAddressEvent(UFaerieItemStorage* Storage, const EFaerieAddressEventType Type, TConstArrayView<FFaerieAddress> Addresses);
+
+	void OnPostEventBatch(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Inventory::FEventLogBatch& Events);
 
 public:
 	// Set the inventory that will be used when this widget is constructed.
@@ -44,11 +45,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|StorageWidget")
 	void InitWithInventory(UFaerieItemStorage* Storage);
 
+	// Adds an item to the SortedAndFilteredAddresses list. Returns the index it was added at, or INDEX_NONE if it wasn't added.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|StorageWidget")
-	void AddToSortOrder(FFaerieAddress Address, bool WarnIfAlreadyExists);
+	int32 AddToSortOrder(FFaerieAddress Address, bool WarnIfAlreadyExists);
 
+	// Flag this widget to re-query its content next frame.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|StorageWidget")
-	void RequestResort();
+	void RequestQuery();
 
 protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Faerie|StorageWidget")
@@ -61,13 +64,13 @@ protected:
 	void OnReset();
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Faerie|StorageWidget")
-	void OnAddressAdded(FFaerieAddress Address);
+	void OnAddressAdded(FFaerieAddress Address, int32 IndexInDisplay);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Faerie|StorageWidget")
-	void OnAddressUpdated(FFaerieAddress Address);
+	void OnAddressUpdated(FFaerieAddress Address, int32 IndexInDisplay);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Faerie|StorageWidget")
-	void OnAddressRemoved(FFaerieAddress Address);
+	void OnAddressRemoved(FFaerieAddress Address, int32 IndexInDisplay);
 
 
 	/// ***		SETUP		*** ///
@@ -75,10 +78,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Instanced, Category = "Config")
 	TObjectPtr<UInventoryUIActionContainer> ActionContainer;
 
-	// By default, all newly added items are sorted into the display order. Disable this when customizing order or filter
-	// with OnEntryAdded.
+	// When enabled, this widget will attempt to bind to an events extension to update live with changes to the storage.
+	// Disable this if this widget binds to a storage object without dynamic updates.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Config")
-	bool bAlwaysAddNewToSortOrder = true;
+	bool EnableUpdateEvents = true;
 
 
 	/// ***		RUNTIME		*** ///
@@ -94,6 +97,6 @@ protected:
 	TWeakObjectPtr<UFaerieItemStorage> ItemStorage;
 
 private:
-	bool NeedsResort = false;
-	bool NeedsReconstructEntries = false;
+	bool NeedsNewQuery = false;
+	bool NeedsReDisplay = false;
 };

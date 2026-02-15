@@ -98,12 +98,12 @@ namespace Faerie
 	{
 		namespace StaticPredicates
 		{
-			bool ClassEquals(const UFaerieItemContainerBase* Container, const TSubclassOf<UFaerieItemContainerBase>& Class)
+			bool ClassEquals(const TNotNull<const UFaerieItemContainerBase*> Container, const TSubclassOf<UFaerieItemContainerBase>& Class)
 			{
 				return Class == Container->GetClass();
 			}
 
-			bool ClassEqualsOrChildOf(const UFaerieItemContainerBase* Container, const TSubclassOf<UFaerieItemContainerBase>& Class)
+			bool ClassEqualsOrChildOf(const TNotNull<const UFaerieItemContainerBase*> Container, const TSubclassOf<UFaerieItemContainerBase>& Class)
 			{
 				return Class->IsChildOf(Container->GetClass());
 			}

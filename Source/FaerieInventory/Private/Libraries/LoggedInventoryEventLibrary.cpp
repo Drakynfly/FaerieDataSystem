@@ -6,16 +6,14 @@
 #include UE_INLINE_GENERATED_CPP_BY_NAME(LoggedInventoryEventLibrary)
 
 void ULoggedInventoryEventLibrary::BreakLoggedInventoryEvent(const FLoggedInventoryEvent& LoggedEvent, FFaerieInventoryTag& Type,
-															 bool& Success, FDateTime& Timestamp, FEntryKey& EntryTouched,
+															 FDateTime& Timestamp, FEntryKey& EntryTouched,
 															 TArray<FFaerieAddress>& AddressesTouched,
-															 FFaerieItemStackView& Stack, FString& ErrorMessage)
+															 FFaerieItemStackView& Stack)
 {
 	Type = LoggedEvent.Event.Type;
-	Success = LoggedEvent.Event.Success;
 	Timestamp = LoggedEvent.Event.GetTimestamp();
-	EntryTouched = LoggedEvent.Event.EntryTouched;
-	AddressesTouched = LoggedEvent.Event.AddressesTouched;
-	Stack.Copies = LoggedEvent.Event.Amount;
-	Stack.Item = LoggedEvent.Event.Item.IsValid() ? LoggedEvent.Event.Item.Get() : nullptr;
-	ErrorMessage = LoggedEvent.Event.ErrorMessage;
+	EntryTouched = LoggedEvent.Event.Data.EntryTouched;
+	AddressesTouched = LoggedEvent.Event.Data.AddressesTouched;
+	Stack.Copies = LoggedEvent.Event.Data.Amount;
+	Stack.Item = LoggedEvent.Event.Data.Item.IsValid() ? LoggedEvent.Event.Data.Item.Get() : nullptr;
 }

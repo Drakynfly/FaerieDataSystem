@@ -28,8 +28,6 @@ namespace Faerie
 
 	namespace Inventory::Tags
 	{
-		FAERIEINVENTORY_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, SlotSet)
-		FAERIEINVENTORY_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, SlotTake)
 		FAERIEINVENTORY_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, SlotItemMutated)
 		FAERIEINVENTORY_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, SlotClientReplication)
 	}
@@ -112,13 +110,13 @@ public:
 
 	// Use to check beforehand if a removal will go through.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemStackContainer")
-	bool CanTakeFromSlot(int32 Copies) const;
+	bool CanTakeFromSlot(int32 Copies, UPARAM(meta = (Categories = "Fae.Inventory.Removal")) FFaerieInventoryTag Reason) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemStackContainer")
 	bool SetItemInSlot(FFaerieItemStack Stack);
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemStackContainer")
-	FFaerieItemStack TakeItemFromSlot(int32 Copies);
+	FFaerieItemStack TakeItemFromSlot(int32 Copies, UPARAM(meta = (Categories = "Fae.Inventory.Removal")) FFaerieInventoryTag Reason);
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemStackContainer")
 	FEntryKey GetCurrentKey() const;

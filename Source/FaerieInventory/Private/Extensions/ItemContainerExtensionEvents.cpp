@@ -4,37 +4,27 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ItemContainerExtensionEvents)
 
-void UItemContainerExtensionEvents::InitializeExtension(const UFaerieItemContainerBase* Container)
+void UItemContainerExtensionEvents::InitializeExtension(const TNotNull<const UFaerieItemContainerBase*> Container)
 {
 	ExtensionEvent.Broadcast(Container, Faerie::Initialization);
 }
 
-void UItemContainerExtensionEvents::DeinitializeExtension(const UFaerieItemContainerBase* Container)
+void UItemContainerExtensionEvents::DeinitializeExtension(const TNotNull<const UFaerieItemContainerBase*> Container)
 {
 	ExtensionEvent.Broadcast(Container, Faerie::Deinitialization);
 }
 
-void UItemContainerExtensionEvents::PreAddition(const UFaerieItemContainerBase* Container, const FFaerieItemStackView Stack)
+void UItemContainerExtensionEvents::PreAddition(const TNotNull<const UFaerieItemContainerBase*> Container, const FFaerieItemStackView Stack)
 {
 	PreAdditionEvent.Broadcast(Container, Stack);
 }
 
-void UItemContainerExtensionEvents::PostAddition(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event)
-{
-	PostAdditionEvent.Broadcast(Container, Event);
-}
-
-void UItemContainerExtensionEvents::PreRemoval(const UFaerieItemContainerBase* Container, const FEntryKey Key, const int32 Removal)
+void UItemContainerExtensionEvents::PreRemoval(const TNotNull<const UFaerieItemContainerBase*> Container, const FEntryKey Key, const int32 Removal)
 {
 	PreRemovalEvent.Broadcast(Container, Key, Removal);
 }
 
-void UItemContainerExtensionEvents::PostRemoval(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event)
+void UItemContainerExtensionEvents::PostEventBatch(const TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Inventory::FEventLogBatch& Events)
 {
-	PostRemovalEvent.Broadcast(Container, Event);
-}
-
-void UItemContainerExtensionEvents::PostEntryChanged(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event)
-{
-	PostEntryChangedEvent.Broadcast(Container, Event);
+	OnPostEventBatch.Broadcast(Container, Events);
 }

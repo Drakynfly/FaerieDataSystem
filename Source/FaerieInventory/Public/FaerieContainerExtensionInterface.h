@@ -69,15 +69,18 @@ protected:
     	UItemContainerExtensionBase*& Extension, bool RecursiveSearch = true) const;
 };
 
-// Outside IFaerieContainerExtensionInterface because it won't compile there
-template <Faerie::CItemContainerExtension T>
-const T* GetExtension(const IFaerieContainerExtensionInterface* Interface, const bool RecursiveSearch)
+namespace Faerie
 {
-	return CastChecked<T>(Interface->GetExtension(T::StaticClass(), RecursiveSearch), ECastCheckedType::NullAllowed);
-}
+	// Outside IFaerieContainerExtensionInterface because it won't compile there
+	template <CItemContainerExtension T>
+	const T* GetExtension(const IFaerieContainerExtensionInterface* Interface, const bool RecursiveSearch)
+	{
+		return CastChecked<T>(Interface->GetExtension(T::StaticClass(), RecursiveSearch), ECastCheckedType::NullAllowed);
+	}
 
-template <Faerie::CItemContainerExtension T>
-T* GetExtension(IFaerieContainerExtensionInterface* Interface, const bool RecursiveSearch)
-{
-	return CastChecked<T>(Interface->GetExtension(T::StaticClass(), RecursiveSearch), ECastCheckedType::NullAllowed);
+	template <CItemContainerExtension T>
+	T* GetExtension(IFaerieContainerExtensionInterface* Interface, const bool RecursiveSearch)
+	{
+		return CastChecked<T>(Interface->GetExtension(T::StaticClass(), RecursiveSearch), ECastCheckedType::NullAllowed);
+	}
 }

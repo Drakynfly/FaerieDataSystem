@@ -277,8 +277,8 @@ bool UFaerieEquipmentManager::TrySwapSlots(UFaerieEquipmentSlot* SlotA, UFaerieE
 	if (SlotB->IsFilled() && !SlotA->CouldSetInSlot(SlotB->ItemStack)) return false;
 	if (SlotA->IsFilled() && !SlotB->CouldSetInSlot(SlotA->ItemStack)) return false;
 
-	auto ContentA = SlotA->TakeItemFromSlot(Faerie::ItemData::EntireStack);
-	auto ContentB = SlotB->TakeItemFromSlot(Faerie::ItemData::EntireStack);
+	auto ContentA = SlotA->TakeItemFromSlot(Faerie::ItemData::EntireStack, Faerie::Inventory::Tags::RemovalMoving);
+	auto ContentB = SlotB->TakeItemFromSlot(Faerie::ItemData::EntireStack, Faerie::Inventory::Tags::RemovalMoving);
 
 	// Use Impl version to bypass redundant checks to CanSetInSlot
 	SlotB->SetStoredItem_Impl(ContentA);

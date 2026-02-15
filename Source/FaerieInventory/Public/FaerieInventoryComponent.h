@@ -29,7 +29,6 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	//~ UActorComponent
-	virtual void PostInitProperties() override;
 	virtual void ReadyForReplication() override;
 	//~ UActorComponent
 
@@ -38,9 +37,6 @@ public:
 	virtual bool AddExtension(UItemContainerExtensionBase* Extension) override;
 	virtual bool RemoveExtension(UItemContainerExtensionBase* Extension) override;
 	//~ IFaerieContainerExtensionInterface
-
-protected:
-	virtual void HandleAddressEvent(UFaerieItemStorage* Storage, EFaerieAddressEventType Type, TConstArrayView<FFaerieAddress> Addresses);
 
 
 	/**------------------------------*/

@@ -14,7 +14,7 @@ UFaerieInventoryClient::UFaerieInventoryClient()
 	SetIsReplicatedByDefault(true);
 }
 
-bool UFaerieInventoryClient::CanAccessContainer(const UFaerieItemContainerBase* Container, const UScriptStruct* RequestType) const
+bool UFaerieInventoryClient::CanAccessContainer(const TNotNull<const UFaerieItemContainerBase*> Container, const UScriptStruct* RequestType) const
 {
 	// @todo implement
 	/*

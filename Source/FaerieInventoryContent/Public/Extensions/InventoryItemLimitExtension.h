@@ -15,12 +15,10 @@ class FAERIEINVENTORYCONTENT_API UInventoryItemLimitExtension : public UItemCont
 
 protected:
 	//~ UItemContainerExtensionBase
-	virtual void InitializeExtension(const UFaerieItemContainerBase* Container) override;
-	virtual void DeinitializeExtension(const UFaerieItemContainerBase* Container) override;
-	virtual EEventExtensionResponse AllowsAddition(const UFaerieItemContainerBase* Container, TConstArrayView<FFaerieItemStackView> Views, FFaerieExtensionAllowsAdditionArgs Args) const override;
-	virtual void PostAddition(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event) override;
-	virtual void PostRemoval(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event) override;
-	virtual void PostEntryChanged(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event) override;
+	virtual void InitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
+	virtual void DeinitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
+	virtual EEventExtensionResponse AllowsAddition(TNotNull<const UFaerieItemContainerBase*> Container, TConstArrayView<FFaerieItemStackView> Views, FFaerieExtensionAllowsAdditionArgs Args) const override;
+	virtual void PostEventBatch(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Inventory::FEventLogBatch& Events) override;
 	//~ UItemContainerExtensionBase
 
 public:
@@ -39,7 +37,7 @@ public:
 private:
 	bool CanContain(const int32 Count) const;
 
-	void UpdateCacheForEntry(const UFaerieItemContainerBase* Container, FEntryKey Key);
+	void UpdateCacheForEntry(TNotNull<const UFaerieItemContainerBase*> Container, FEntryKey Key);
 
 protected:
 	// Maximum number of entries the storage can contain. A value of zero doesn't apply any limit.

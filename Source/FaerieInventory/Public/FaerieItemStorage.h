@@ -19,12 +19,7 @@ namespace Faerie
 	{
 		class FStorageDataAccess;
 	}
-
-	using FAddressEvent = TMulticastDelegate<void(UFaerieItemStorage*, EFaerieAddressEventType, TConstArrayView<FFaerieAddress>)>;
 }
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FEntryKeyEvent, UFaerieItemStorage*, Storage, FEntryKey, Key);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FFaerieAddressEvent, UFaerieItemStorage*, Storage, EFaerieAddressEventType, Type, FFaerieAddress, Key);
 
 /**
  *
@@ -89,36 +84,34 @@ protected:
 	/*	  INTERNAL IMPLEMENTATIONS	 */
 	/**------------------------------*/
 private:
-	// Gets all entries in this storage. They will be sorted.
-	TArray<FEntryKey> GetAllEntries() const;
+	[[nodiscard]] TArray<FEntryKey> CopyEntryKeys() const;
 
-	const FInventoryEntry* GetEntrySafe(FEntryKey Key) const;
+	[[nodiscard]] const FInventoryEntry* GetEntrySafe(FEntryKey Key) const;
 
-	const FInventoryEntry* FindEntry(const TNotNull<const UFaerieItem*> Item, EFaerieItemEqualsCheck Method) const;
+	[[nodiscard]] const FInventoryEntry* FindEntry(const TNotNull<const UFaerieItem*> Item, EFaerieItemEqualsCheck Method) const;
 
-	UInventoryStackProxy* GetStackProxyImpl(FFaerieAddress Address) const;
+	[[nodiscard]] UInventoryStackProxy* GetStackProxyImpl(FFaerieAddress Address) const;
 
 	// Internal implementation for adding items.
-	Faerie::Inventory::FEventLog AddStackImpl(const FFaerieItemStack& InStack, bool ForceNewStack);
+	[[nodiscard]] Faerie::Inventory::FEventData AddStackImplNoBroadcast(const FFaerieItemStack& InStack, bool ForceNewStack);
+	[[nodiscard]] Faerie::Inventory::FEventData AddStackImpl(const FFaerieItemStack& InStack, bool ForceNewStack);
 
 	// Internal implementations for removing items, specifying an amount.
-	Faerie::Inventory::FEventLog RemoveFromEntryImpl(FEntryKey Key, int32 Amount, FFaerieInventoryTag Reason);
-	Faerie::Inventory::FEventLog RemoveFromStackImpl(FFaerieAddress Address, int32 Amount, FFaerieInventoryTag Reason);
+	[[nodiscard]] Faerie::Inventory::FEventData RemoveFromEntryImplNoBroadcast(const FInventoryEntry& Entry, int32 Amount);
+	[[nodiscard]] Faerie::Inventory::FEventData RemoveFromEntryImpl(const FInventoryEntry& Entry, int32 Amount, FFaerieInventoryTag Reason);
+	[[nodiscard]] Faerie::Inventory::FEventData RemoveFromStackImpl(FFaerieAddress Address, int32 Amount, FFaerieInventoryTag Reason);
+
+	bool CanRemoveEntryImpl(const FInventoryEntry& Entry, FFaerieInventoryTag Reason) const;
 
 	void PostContentAdded(const FInventoryEntry& Entry);
 	void PreContentRemoved(const FInventoryEntry& Entry);
-	void PostContentChanged(const FInventoryEntry& Entry, FInventoryContent::EChangeType ChangeType, const TBitArray<>* ChangeMask);
-
-	void BroadcastAddressEvent(EFaerieAddressEventType Type, FFaerieAddress Address);
-	void BroadcastAddressEventBulk(EFaerieAddressEventType Type, TConstArrayView<FFaerieAddress> Address);
+	void PostContentChanged(const FInventoryEntry& Entry, FInventoryContent::EChangeType ChangeType, const TBitArray<>* EntryChangeMask);
 
 
 	/**------------------------------*/
 	/*	  STORAGE API - ALL USERS    */
 	/**------------------------------*/
 public:
-	Faerie::FAddressEvent::RegistrationType& GetOnAddressEvent() { return OnAddressEventCallback; }
-
 	static FFaerieAddress MakeAddress(FEntryKey Entry, FStackKey Stack);
 	static FEntryKey GetAddressEntry(FFaerieAddress Address);
 	static FStackKey GetAddressStack(FFaerieAddress Address);
@@ -141,7 +134,7 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Storage|Key")
 	TArray<FFaerieAddress> GetAddressesForEntry(FEntryKey Key) const;
 
-	// Gets all entry keys contained in this storage.
+	// Gets all entry keys contained in this storage. They are in sorted order.
 	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Storage|Key")
 	void GetAllKeys(TArray<FEntryKey>& Keys) const;
 
@@ -204,12 +197,18 @@ public:
 	bool AddItemStack(const FFaerieItemStack& ItemStack, EFaerieStorageAddStackBehavior AddStackBehavior);
 
 	// Add an item stack into storage, and return the full data about the change.
-	void AddItemStack(const FFaerieItemStack& ItemStack, EFaerieStorageAddStackBehavior AddStackBehavior, Faerie::Inventory::FEventLog& OutLog);
+	void AddItemStack(const FFaerieItemStack& ItemStack, EFaerieStorageAddStackBehavior AddStackBehavior, TValueOrError<Faerie::Inventory::FEventData, FText>& OutResult);
+
+	void AddItemStacks(TConstArrayView<FFaerieItemStack> ItemStacks, EFaerieStorageAddStackBehavior AddStackBehavior);
 
 protected:
+	// Add an item stack into storage.
+	UFUNCTION(BlueprintCallable, Category = "Storage")
+	void AddItemStackBulk(const TArray<FFaerieItemStack>& ItemStacks, EFaerieStorageAddStackBehavior AddStackBehavior);
+
 	// Add an item stack into storage, and return the full data about the change. Blueprint callable version that returns a wrapped event log.
 	UFUNCTION(BlueprintCallable, Category = "Storage", DisplayName = "Add Item Stack (with Log)")
-	FLoggedInventoryEvent AddItemStackWithLog(const FFaerieItemStack& ItemStack, EFaerieStorageAddStackBehavior AddStackBehavior);
+	bool AddItemStackWithLog(const FFaerieItemStack& ItemStack, EFaerieStorageAddStackBehavior AddStackBehavior, FLoggedInventoryEvent& Event);
 
 public:
 	/**
@@ -270,29 +269,6 @@ public:
 	/** Call MoveEntry on all entries in this storage. */
 	UFUNCTION(BlueprintCallable, Category = "Storage")
 	void Dump(UFaerieItemStorage* ToStorage);
-
-
-	/**-------------*/
-	/*	 DELEGATES	*/
-	/**-------------*/
-protected:
-	Faerie::FAddressEvent OnAddressEventCallback;
-
-	// Broadcast whenever an entry is added, or a stack amount is increased.
-	UPROPERTY(BlueprintAssignable, Transient, Category = "Events")
-	FFaerieAddressEvent OnAddressEvent;
-
-	// Broadcast whenever an entry is added, or a stack amount is increased.
-	UPROPERTY(BlueprintAssignable, Transient, Category = "Events")
-	FEntryKeyEvent OnKeyAdded;
-
-	// Broadcast whenever data for a key is changed.
-	UPROPERTY(BlueprintAssignable, Transient, Category = "Events")
-	FEntryKeyEvent OnKeyUpdated;
-
-	// Broadcast whenever an entry is removed entirely, or a stack amount is decreased.
-	UPROPERTY(BlueprintAssignable, Transient, Category = "Events")
-	FEntryKeyEvent OnKeyRemoved;
 
 
 	/**-------------*/

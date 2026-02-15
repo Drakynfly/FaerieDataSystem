@@ -115,7 +115,7 @@ void UFaerieItemContainerBase::RavelExtensionData(TMap<FGuid, FInstancedStruct>&
 
 	auto ExtractSaveData = [&ExtensionData](const UFaerieItemContainerBase* Container)
 	{
-		for (auto Extension : Extension::FRecursiveConstExtensionIterator(Container->Extensions))
+		for (auto&& Extension : Extension::FRecursiveConstExtensionIterator(Container->Extensions))
 		{
 			const FGuid Identifier = Extension->GetIdentifier();
 			if (!ensure(Identifier.IsValid())) return;

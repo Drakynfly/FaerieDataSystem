@@ -30,13 +30,6 @@ void UFaerieInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimePrope
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, ItemStorage, SharedParams)
 }
 
-void UFaerieInventoryComponent::PostInitProperties()
-{
-	Super::PostInitProperties();
-
-	ItemStorage->GetOnAddressEvent().AddUObject(this, &ThisClass::HandleAddressEvent);
-}
-
 void UFaerieInventoryComponent::ReadyForReplication()
 {
 	Super::ReadyForReplication();
@@ -96,44 +89,4 @@ bool UFaerieInventoryComponent::RemoveExtension(UItemContainerExtensionBase* Ext
 	Extension->DeinitializeNetObject(GetOwner());
 	RemoveReplicatedSubObject(Extension);
 	return ItemStorage->RemoveExtension(Extension);
-}
-
-void UFaerieInventoryComponent::HandleAddressEvent(UFaerieItemStorage* Storage, const EFaerieAddressEventType Type,
-	TConstArrayView<FFaerieAddress> Addresses)
-{
-#if WITH_EDITOR
-	switch (Type)
-	{
-	case EFaerieAddressEventType::PostAdd:
-		if (GetNetMode() == NM_Client)
-		{
-			UE_LOG(LogFaerieInventory, Log, TEXT("Client Received PostContentAdded"))
-		}
-		else
-		{
-			UE_LOG(LogFaerieInventory, Log, TEXT("Server Received PostContentAdded"))
-		}
-		break;
-	case EFaerieAddressEventType::PreRemove:
-		if (GetNetMode() == NM_Client)
-		{
-			UE_LOG(LogFaerieInventory, Log, TEXT("Client Received PreContentRemoved"))
-		}
-		else
-		{
-			UE_LOG(LogFaerieInventory, Log, TEXT("Server Received PreContentRemoved"))
-		}
-		break;
-	case EFaerieAddressEventType::Edit:
-		if (GetNetMode() == NM_Client)
-		{
-			UE_LOG(LogFaerieInventory, Log, TEXT("Client Received PostContentChanged"))
-		}
-		else
-		{
-			UE_LOG(LogFaerieInventory, Log, TEXT("Server Received PostContentChanged"))
-		}
-		break;
-	}
-#endif
 }

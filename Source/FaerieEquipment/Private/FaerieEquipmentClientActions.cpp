@@ -36,7 +36,7 @@ bool FFaerieClientAction_MoveFromSlot::CanMove(const FFaerieItemStackView& View)
 
 bool FFaerieClientAction_MoveFromSlot::Release(FFaerieItemStack& Stack) const
 {
-	Stack = Slot->TakeItemFromSlot(Faerie::ItemData::EntireStack);
+	Stack = Slot->TakeItemFromSlot(Faerie::ItemData::EntireStack, Faerie::Inventory::Tags::RemovalMoving);
 	return ::IsValid(Stack.Item);
 }
 
@@ -66,7 +66,7 @@ bool FFaerieClientAction_MoveToSlot::CanMove(const FFaerieItemStackView& View) c
 
 bool FFaerieClientAction_MoveToSlot::Release(FFaerieItemStack& Stack) const
 {
-	Stack = Slot->TakeItemFromSlot(Faerie::ItemData::EntireStack);
+	Stack = Slot->TakeItemFromSlot(Faerie::ItemData::EntireStack, Faerie::Inventory::Tags::RemovalMoving);
 	return ::IsValid(Stack.Item);
 }
 

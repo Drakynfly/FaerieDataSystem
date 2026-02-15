@@ -172,12 +172,12 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	//~ UItemContainerExtensionBase
-	virtual FInstancedStruct MakeSaveData(const UFaerieItemContainerBase* Container) const override;
-	virtual void LoadSaveData(const UFaerieItemContainerBase* Container, const FInstancedStruct& SaveData) override;
-	virtual void InitializeExtension(const UFaerieItemContainerBase* Container) override;
-	virtual void DeinitializeExtension(const UFaerieItemContainerBase* Container) override;
-	//virtual void PreRemoval(const UFaerieItemContainerBase* Container, FEntryKey Key, int32 Removal) override;
-	virtual void PostRemoval(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event) override;
+	virtual FInstancedStruct MakeSaveData(TNotNull<const UFaerieItemContainerBase*> Container) const override;
+	virtual void LoadSaveData(TNotNull<const UFaerieItemContainerBase*> Container, const FInstancedStruct& SaveData) override;
+	virtual void InitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
+	virtual void DeinitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
+	//virtual void PreRemoval(TNotNull<const UFaerieItemContainerBase*> Container, FEntryKey Key, int32 Removal) override;
+	virtual void PostEventBatch(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Inventory::FEventLogBatch& Events) override;
 	//~ UItemContainerExtensionBase
 
 	// Children must implement this. It gives the struct type instanced per item.
@@ -185,9 +185,9 @@ public:
 	virtual bool SaveRepDataArray() const { return false; }
 
 private:
-	virtual void PreEntryDataRemoved(const UFaerieItemContainerBase* Container, const FFaerieReplicatedValue& Data) {}
-	virtual void PreEntryDataAdded(const UFaerieItemContainerBase* Container, const FFaerieReplicatedValue& Data) {}
-	virtual void PreEntryDataChanged(const UFaerieItemContainerBase* Container, const FFaerieReplicatedValue& Data) {}
+	virtual void PreEntryDataRemoved(TNotNull<const UFaerieItemContainerBase*> Container, const FFaerieReplicatedValue& Data) {}
+	virtual void PreEntryDataAdded(TNotNull<const UFaerieItemContainerBase*> Container, const FFaerieReplicatedValue& Data) {}
+	virtual void PreEntryDataChanged(TNotNull<const UFaerieItemContainerBase*> Container, const FFaerieReplicatedValue& Data) {}
 
 protected:
 	FConstStructView GetDataForHandle(FFaerieAddressableHandle Handle) const;
@@ -195,8 +195,8 @@ protected:
 	bool EditDataForHandle(FFaerieAddressableHandle Handle, const TFunctionRef<void(FStructView)>& Edit);
 
 private:
-	TStructView<FFaerieReplicatedSimMap> FindFastArrayForContainer(const UFaerieItemContainerBase* Container);
-	TConstStructView<FFaerieReplicatedSimMap> FindFastArrayForContainer(const UFaerieItemContainerBase* Container) const;
+	TStructView<FFaerieReplicatedSimMap> FindFastArrayForContainer(TNotNull<const UFaerieItemContainerBase*> Container);
+	TConstStructView<FFaerieReplicatedSimMap> FindFastArrayForContainer(TNotNull<const UFaerieItemContainerBase*> Container) const;
 
 #if WITH_EDITOR
 	void PrintPerContainerDataDebug() const;

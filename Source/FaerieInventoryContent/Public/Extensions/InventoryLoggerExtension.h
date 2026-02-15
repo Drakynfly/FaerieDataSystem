@@ -6,8 +6,8 @@
 #include "ItemContainerEvent.h"
 #include "InventoryLoggerExtension.generated.h"
 
-using FInventoryEventLoggedNative = TMulticastDelegate<void(const FLoggedInventoryEvent&)>;
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FInventoryEventLogged, const FLoggedInventoryEvent&, LoggedEvent);
+using FInventoryEventLoggedNative = TMulticastDelegate<void(int32 /* NewEvents */)>;
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FInventoryEventLogged, int32, NewEvents);
 
 /**
  * Logs events from additions, changes, and removals, and can parse them for data at request.
@@ -21,11 +21,7 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 protected:
-	virtual void PostAddition(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event) override;
-	virtual void PostRemoval(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event) override;
-	virtual void PostEntryChanged(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event) override;
-
-	void HandleNewEvent(const FLoggedInventoryEvent& Event);
+	virtual void PostEventBatch(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Inventory::FEventLogBatch& Events) override;
 
 public:
 	FInventoryEventLoggedNative::RegistrationType& GetOnInventoryEventLogged() { return OnInventoryEventLoggedNative; }

@@ -7,6 +7,7 @@
 
 #include "FaerieInventoryContentLog.h"
 #include "FaerieItemStorageQuery.h"
+#include "Extensions/ItemContainerExtensionEvents.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieStorageWidgetBase)
 
@@ -22,7 +23,7 @@ UFaerieStorageWidgetBase::UFaerieStorageWidgetBase(const FObjectInitializer& Obj
 bool UFaerieStorageWidgetBase::Initialize()
 {
 	// Request Resort after any change to our Query Object.
-	StorageQuery->GetQueryChangedEvent().AddWeakLambda(this, [this](auto){ RequestResort(); });
+	StorageQuery->GetQueryChangedEvent().AddWeakLambda(this, [this](auto){ RequestQuery(); });
 
 	return Super::Initialize();
 }
@@ -48,29 +49,35 @@ void UFaerieStorageWidgetBase::NativeTick(const FGeometry& MyGeometry, const flo
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
 
-	if (NeedsResort)
+	if (NeedsNewQuery)
 	{
 		StorageQuery->QueryAllAddresses(ItemStorage.Get(), SortedAndFilteredAddresses);
-		NeedsReconstructEntries = true;
-		NeedsResort = false;
+		NeedsReDisplay = true;
+		NeedsNewQuery = false;
 	}
 
-	if (NeedsReconstructEntries)
+	if (NeedsReDisplay)
 	{
 		DisplayAddresses();
-		NeedsReconstructEntries = false;
+		NeedsReDisplay = false;
 	}
 }
 
 void UFaerieStorageWidgetBase::Reset()
 {
 	SortedAndFilteredAddresses.Empty();
-	StorageQuery->SetInvertSort(false);
-	StorageQuery->SetInvertFilter(false);
+	if (IsValid(StorageQuery))
+	{
+		StorageQuery->SetInvertSort(false);
+		StorageQuery->SetInvertFilter(false);
+	}
 
 	if (ItemStorage.IsValid())
 	{
-		ItemStorage->GetOnAddressEvent().RemoveAll(this);
+		if (auto EventsExtension = Faerie::GetExtension<UItemContainerExtensionEvents>(ItemStorage.Get(), false))
+		{
+			EventsExtension->GetOnPostEventBatch().RemoveAll(this);
+		}
 	}
 
 	OnReset();
@@ -78,36 +85,68 @@ void UFaerieStorageWidgetBase::Reset()
 	ItemStorage = nullptr;
 }
 
-void UFaerieStorageWidgetBase::HandleAddressEvent(UFaerieItemStorage* Storage, const EFaerieAddressEventType Type, const TConstArrayView<FFaerieAddress> Addresses)
+void UFaerieStorageWidgetBase::OnPostEventBatch(const TNotNull<const UFaerieItemContainerBase*> Container,
+	const Faerie::Inventory::FEventLogBatch& Events)
 {
-	for (auto Address : Addresses)
+	if (Container != ItemStorage) return;
+
+	// If we are going to perform a full query next frame anyway, then this is pointless.
+	if (NeedsNewQuery)
 	{
-		switch (Type)
+		return;
+	}
+
+	// @todo do we need a way to customize this value
+	if (Events.Data.Num() > 1)
+	{
+		RequestQuery();
+		return;
+	}
+
+	if (Events.IsAdditionEvent())
+	{
+		for (auto&& Event : Events.Data)
+        {
+            for (auto&& Address : Event.AddressesTouched)
+            {
+            	const int32 Index = AddToSortOrder(Address, true);
+            	if (Index != INDEX_NONE)
+            	{
+            		OnAddressAdded(Address, Index);
+            	}
+            }
+        }
+	}
+	else if (Events.IsRemovalEvent())
+	{
+		for (auto&& Event : Events.Data)
 		{
-		case EFaerieAddressEventType::PostAdd:
-			{
-				if (bAlwaysAddNewToSortOrder)
-				{
-					AddToSortOrder(Address, true);
-					OnAddressAdded(Address);
-				}
-			}
-			break;
-		case EFaerieAddressEventType::PreRemove:
-			{
-				SortedAndFilteredAddresses.Remove(Address);
-				OnAddressRemoved(Address);
-			}
-			break;
-		case EFaerieAddressEventType::Edit:
-			{
-				if (bAlwaysAddNewToSortOrder)
-				{
-					AddToSortOrder(Address, false);
-				}
-				OnAddressUpdated(Address);
-			}
-			break;
+			for (auto&& Address : Event.AddressesTouched)
+            {
+            	const int32 Index = SortedAndFilteredAddresses.Find(Address);
+            	SortedAndFilteredAddresses.RemoveAt(Index);
+            	OnAddressRemoved(Address, Index);
+            }
+		}
+	}
+	else
+	{
+		check(Events.IsEditEvent())
+
+		for (auto&& Event : Events.Data)
+		{
+			for (auto&& Address : Event.AddressesTouched)
+            {
+            	const int32 Index = AddToSortOrder(Address, false);
+            	if (Index != INDEX_NONE)
+            	{
+            		OnAddressAdded(Address, Index);
+            	}
+            	else
+            	{
+            		OnAddressUpdated(Address, INDEX_NONE);
+            	}
+            }
 		}
 	}
 }
@@ -133,85 +172,88 @@ void UFaerieStorageWidgetBase::InitWithInventory(UFaerieItemStorage* Storage)
 	{
 		ItemStorage = Storage;
 
-		ItemStorage->GetOnAddressEvent().AddUObject(this, &ThisClass::HandleAddressEvent);
+		if (EnableUpdateEvents)
+		{
+			auto EventsExtension = Faerie::GetExtension<UItemContainerExtensionEvents>(Storage, false);
+			if (!IsValid(EventsExtension))
+			{
+				UE_LOG(LogFaerieInventoryContent, Error,
+					TEXT("Storage Widget failed to find Events Extension. Dynamic updates disabled! Please add a Extension Events object to '%s' or disable EnableUpdateEvents"),
+					*Storage->GetPathName())
+			}
+			else
+			{
+				EventsExtension->GetOnPostEventBatch().AddUObject(this, &ThisClass::OnPostEventBatch);
+			}
+		}
+
+		//ItemStorage->GetOnAddressEvent().AddUObject(this, &ThisClass::HandleAddressEvent);
 
 		OnInitWithInventory();
 
 		// Load in entries that should be initially displayed
-		NeedsResort = true;
+		NeedsNewQuery = true;
 	}
 }
 
-void UFaerieStorageWidgetBase::AddToSortOrder(const FFaerieAddress Address, const bool WarnIfAlreadyExists)
+int32 UFaerieStorageWidgetBase::AddToSortOrder(const FFaerieAddress Address, const bool WarnIfAlreadyExists)
 {
-	// If we are going to perform a full resort next frame anyway, then this is pointless.
-	if (NeedsResort)
-	{
-		return;
-	}
-
 	// This address is filtered, skip adding to list.
 	if (StorageQuery->IsAddressFiltered(ItemStorage.Get(), Address))
 	{
-		return;
+		return INDEX_NONE;
 	}
 
 	if (SortedAndFilteredAddresses.IsEmpty())
 	{
-		SortedAndFilteredAddresses.Add(Address);
+		return SortedAndFilteredAddresses.Add(Address);
 	}
-	else
+
+	if (StorageQuery->IsSortBound())
 	{
-		if (StorageQuery->IsSortBound())
+		auto SortPredicate = [this](const FFaerieAddress A, const FFaerieAddress B)
 		{
-			auto SortPredicate = [this](const FFaerieAddress A, const FFaerieAddress B)
-			{
-				return StorageQuery->CompareAddresses(ItemStorage.Get(), A, B);
-			};
+			return StorageQuery->CompareAddresses(ItemStorage.Get(), A, B);
+		};
 
-			// Use binary search to find position to insert the new key.
-			const int32 Index = Algo::LowerBound(SortedAndFilteredAddresses, Address, SortPredicate);
+		// Use binary search to find position to insert the new address.
+		const int32 Index = Algo::LowerBound(SortedAndFilteredAddresses, Address, SortPredicate);
 
-			// Return if the key we were sorted to or above is ourself.
-			if ((SortedAndFilteredAddresses.IsValidIndex(Index) && (SortedAndFilteredAddresses[Index] == Address)) ||
-				((SortedAndFilteredAddresses.IsValidIndex(Index+1) && (SortedAndFilteredAddresses[Index+1] == Address))))
-			{
-				if (WarnIfAlreadyExists)
-				{
-					UE_LOG(LogFaerieInventoryContent, Warning, TEXT("Cannot add sort key that already exists in the array"));
-				}
-				return;
-			}
-
-			if (!ensureAlwaysMsgf(!SortedAndFilteredAddresses.Contains(Address), TEXT("Cannot add key that already exists. How did code get here?")))
-			{
-				return;
-			}
-
-			SortedAndFilteredAddresses.Insert(Address, Index);
-		}
-		else
+		// Return if the address we were sorted to or above is ourself.
+		if ((SortedAndFilteredAddresses.IsValidIndex(Index) && (SortedAndFilteredAddresses[Index] == Address)) ||
+			((SortedAndFilteredAddresses.IsValidIndex(Index+1) && (SortedAndFilteredAddresses[Index+1] == Address))))
 		{
-			UE_LOG(LogFaerieInventoryContent, Warning, TEXT("StorageQuery's Sort is invalid. Content will not be sorted!"));
-			if (SortedAndFilteredAddresses.Find(Address) != INDEX_NONE)
+			if (WarnIfAlreadyExists)
 			{
-				if (WarnIfAlreadyExists)
-				{
-					UE_LOG(LogFaerieInventoryContent, Warning, TEXT("Cannot add sort key that already exists in the array"));
-				}
-				return;
+				UE_LOG(LogFaerieInventoryContent, Warning, TEXT("Cannot add address %lld that already exists in the array!"), Address.Address);
 			}
-
-			SortedAndFilteredAddresses.Add(Address);
+			return INDEX_NONE;
 		}
+
+		if (!ensureAlwaysMsgf(!SortedAndFilteredAddresses.Contains(Address), TEXT("Cannot add address %lld that already exists. How did code get here?"), Address.Address))
+		{
+			return INDEX_NONE;
+		}
+
+		return SortedAndFilteredAddresses.Insert(Address, Index);
 	}
 
-	NeedsReconstructEntries = true;
+	UE_LOG(LogFaerieInventoryContent, Verbose, TEXT("StorageQuery's Sort is invalid. Content will not be sorted!"));
+	if (SortedAndFilteredAddresses.Find(Address) != INDEX_NONE)
+	{
+		if (WarnIfAlreadyExists)
+		{
+			UE_LOG(LogFaerieInventoryContent, Warning, TEXT("Cannot add address that already exists in the array"));
+		}
+		return INDEX_NONE;
+	}
+
+	return SortedAndFilteredAddresses.Add(Address);
 }
 
-void UFaerieStorageWidgetBase::RequestResort()
+void UFaerieStorageWidgetBase::RequestQuery()
 {
-	NeedsResort = true;
+	NeedsNewQuery = true;
 }
 
 #undef LOCTEXT_NAMESPACE

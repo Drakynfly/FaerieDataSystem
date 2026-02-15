@@ -24,17 +24,17 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(EquipmentVisualizationUpdater)
 
-void UEquipmentVisualizationUpdater::InitializeExtension(const UFaerieItemContainerBase* Container)
+void UEquipmentVisualizationUpdater::InitializeExtension(const TNotNull<const UFaerieItemContainerBase*> Container)
 {
 	/*
 	 * Normally, extensions run logic here for the container being initialized.
 	 * However, we cannot in this case, as the visuals this extension generates can be dependent on the state of other
-	 * containers, which may not have been Initialized with us yet. Instead, PostAddition handles logic for dependent
+	 * containers, which may not have been Initialized with us yet. Instead, PostEventBatch handles logic for dependent
 	 * containers, as CreateVisualImpl recurses over children.
 	 */
 }
 
-void UEquipmentVisualizationUpdater::DeinitializeExtension(const UFaerieItemContainerBase* Container)
+void UEquipmentVisualizationUpdater::DeinitializeExtension(const TNotNull<const UFaerieItemContainerBase*> Container)
 {
 	if (const UFaerieEquipmentSlot* Slot = Cast<UFaerieEquipmentSlot>(Container))
 	{
@@ -48,17 +48,7 @@ void UEquipmentVisualizationUpdater::DeinitializeExtension(const UFaerieItemCont
 	}
 }
 
-void UEquipmentVisualizationUpdater::PostAddition(const UFaerieItemContainerBase* Container,
-												  const Faerie::Inventory::FEventLog& Event)
-{
-	if (auto Slot = Cast<UFaerieEquipmentSlot>(Container))
-	{
-		// A previously empty slot now has been filled with an item.
-		CreateVisualForEntry(Slot, Event.EntryTouched);
-	}
-}
-
-void UEquipmentVisualizationUpdater::PreRemoval(const UFaerieItemContainerBase* Container, const FEntryKey Key,
+void UEquipmentVisualizationUpdater::PreRemoval(const TNotNull<const UFaerieItemContainerBase*> Container, const FEntryKey Key,
 	const int32 Removal)
 {
 	if (auto Slot = Cast<UFaerieEquipmentSlot>(Container))
@@ -72,24 +62,39 @@ void UEquipmentVisualizationUpdater::PreRemoval(const UFaerieItemContainerBase* 
 	}
 }
 
-void UEquipmentVisualizationUpdater::PostEntryChanged(const UFaerieItemContainerBase* Container,
-	const Faerie::Inventory::FEventLog& Event)
+void UEquipmentVisualizationUpdater::PostEventBatch(const TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Inventory::FEventLogBatch& Events)
 {
-	if (auto Slot = Cast<UFaerieEquipmentSlot>(Container))
+	if (Events.IsAdditionEvent())
 	{
-		checkNoEntry() // Right now, EquipmentSlots don't use PostEntryChanged.
-
-		// The item in a container has changed. Recreate the visual.
-		// @todo maybe don't always do this?!?! determine if we need to. use the event tag type
-
-		auto&& Visualizer = GetVisualizer(Slot);
-		if (!IsValid(Visualizer))
+		if (auto&& Slot = Cast<UFaerieEquipmentSlot>(Container))
 		{
-			return;
+			// A previously empty slot now has been filled with an item.
+			CreateVisualForEntry(Slot, Events.Data.Last().EntryTouched);
 		}
-		const FFaerieItemProxy Proxy = Slot;
-		RemoveVisualImpl(Visualizer, Proxy);
-		CreateVisualImpl(Visualizer, Proxy);
+	}
+	else if (Events.IsRemovalEvent())
+	{
+	}
+	else
+	{
+		check(Events.IsEditEvent())
+
+		if (auto&& Slot = Cast<UFaerieEquipmentSlot>(Container))
+		{
+			checkNoEntry() // Right now, EquipmentSlots don't use EditEvents.
+
+			// The item in a container has changed. Recreate the visual.
+			// @todo maybe don't always do this?!?! determine if we need to. use the event tag type
+
+			auto&& Visualizer = GetVisualizer(Slot);
+			if (!IsValid(Visualizer))
+			{
+				return;
+			}
+			const FFaerieItemProxy Proxy = Slot;
+			RemoveVisualImpl(Visualizer, Proxy);
+			CreateVisualImpl(Visualizer, Proxy);
+		}
 	}
 }
 
@@ -100,7 +105,7 @@ UEquipmentVisualizer* UEquipmentVisualizationUpdater::GetVisualizer(const UFaeri
 		return nullptr;
 	}
 
-	auto&& Relevants = GetExtension<URelevantActorsExtension>(Slot, true);
+	auto&& Relevants = Faerie::GetExtension<URelevantActorsExtension>(Slot, true);
 	if (!IsValid(Relevants))
 	{
 		UE_LOG(LogFaerieEquipment, Warning, TEXT("GetVisualizer failed: Requires a RelevantActorsExtension on the container to find the pawn (%s)!"), *Slot->GetName())

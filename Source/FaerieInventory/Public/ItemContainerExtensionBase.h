@@ -15,7 +15,8 @@
 
 namespace Faerie::Inventory
 {
-	class FEventLog;
+	class FEventData;
+	class FEventLogBatch;
 }
 
 UENUM()
@@ -64,36 +65,33 @@ public:
 	virtual void InitializeNetObject(AActor* Actor) override;
 
 protected:
-	virtual FInstancedStruct MakeSaveData(const UFaerieItemContainerBase* Container) const { return {}; }
-	virtual void LoadSaveData(const UFaerieItemContainerBase* Container, const FInstancedStruct& SaveData) {}
+	virtual FInstancedStruct MakeSaveData(TNotNull<const UFaerieItemContainerBase*> Container) const { return {}; }
+	virtual void LoadSaveData(TNotNull<const UFaerieItemContainerBase*> Container, const FInstancedStruct& SaveData) {}
 
 	/* Called at begin play or when the extension is created during runtime */
-	virtual void InitializeExtension(const UFaerieItemContainerBase* Container) {}
-	virtual void DeinitializeExtension(const UFaerieItemContainerBase* Container) {}
+	virtual void InitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) {}
+	virtual void DeinitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) {}
 
 	/* Does this extension allow a stack of items, or multiple stacks, to be added to the container? */
-	virtual EEventExtensionResponse AllowsAddition(const UFaerieItemContainerBase* Container,
+	virtual EEventExtensionResponse AllowsAddition(TNotNull<const UFaerieItemContainerBase*> Container,
 		TConstArrayView<FFaerieItemStackView> Views, FFaerieExtensionAllowsAdditionArgs Args) const { return EEventExtensionResponse::NoExplicitResponse; }
 
 	/* Allows us to react before an item is added */
-	virtual void PreAddition(const UFaerieItemContainerBase* Container, FFaerieItemStackView Stack) {}
-	/* Allows us to use the key from the last addition */
-	virtual void PostAddition(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event) {}
+	virtual void PreAddition(TNotNull<const UFaerieItemContainerBase*> Container, FFaerieItemStackView Stack) {}
 
 	/* Does this extension allow removal of an address in the container? */
-	virtual EEventExtensionResponse AllowsRemoval(const UFaerieItemContainerBase* Container, FFaerieAddress Address, FFaerieInventoryTag Reason) const { return EEventExtensionResponse::NoExplicitResponse; }
+	virtual EEventExtensionResponse AllowsRemoval(TNotNull<const UFaerieItemContainerBase*> Container, FFaerieAddress Address, FFaerieInventoryTag Reason) const { return EEventExtensionResponse::NoExplicitResponse; }
 
 	/* Allows us to react before an item is removed */
-	virtual void PreRemoval(const UFaerieItemContainerBase* Container, FEntryKey Key, int32 Removal) {}
-	/* Allows us to use the key from the last removal */
-	virtual void PostRemoval(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event) {}
+	virtual void PreRemoval(TNotNull<const UFaerieItemContainerBase*> Container, FEntryKey Key, int32 Removal) {}
 
 	/* Does this extension allow this entry to be edited? */
-	virtual EEventExtensionResponse AllowsEdit(const UFaerieItemContainerBase* Container, FEntryKey Key, FFaerieInventoryTag EditTag) const { return EEventExtensionResponse::NoExplicitResponse; }
+	virtual EEventExtensionResponse AllowsEdit(TNotNull<const UFaerieItemContainerBase*> Container, FEntryKey Key, FFaerieInventoryTag EditTag) const { return EEventExtensionResponse::NoExplicitResponse; }
 
 	// @todo PreEntryChanged
 
-	virtual void PostEntryChanged(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event) {}
+	/* Called after a Addition, Removal, or Change to any address, and carries a full report of each event */
+	virtual void PostEventBatch(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Inventory::FEventLogBatch& Events) {}
 
 public:
 	void SetIdentifier(const FGuid* GuidToUse = nullptr);
@@ -253,17 +251,16 @@ public:
 	//~ UNetSupportedObject
 
 	//~ UItemContainerExtensionBase
-	virtual void InitializeExtension(const UFaerieItemContainerBase* Container) override;
-	virtual void DeinitializeExtension(const UFaerieItemContainerBase* Container) override;
-	virtual EEventExtensionResponse AllowsAddition(const UFaerieItemContainerBase* Container, TConstArrayView<FFaerieItemStackView> Views, FFaerieExtensionAllowsAdditionArgs Args) const override;
-	virtual void PreAddition(const UFaerieItemContainerBase* Container, FFaerieItemStackView Stack) override;
-	virtual void PostAddition(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event) override;
-	virtual EEventExtensionResponse AllowsRemoval(const UFaerieItemContainerBase* Container, FFaerieAddress Address, FFaerieInventoryTag Reason) const override;
-	virtual void PreRemoval(const UFaerieItemContainerBase* Container, FEntryKey Key, int32 Removal) override;
-	virtual void PostRemoval(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event) override;
-	virtual EEventExtensionResponse AllowsEdit(const UFaerieItemContainerBase* Container, FEntryKey Key, FFaerieInventoryTag EditTag) const override;
+	virtual void InitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
+	virtual void DeinitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
+	virtual EEventExtensionResponse AllowsAddition(TNotNull<const UFaerieItemContainerBase*> Container, TConstArrayView<FFaerieItemStackView> Views, FFaerieExtensionAllowsAdditionArgs Args) const override;
+	virtual void PreAddition(TNotNull<const UFaerieItemContainerBase*> Container, FFaerieItemStackView Stack) override;
+	virtual EEventExtensionResponse AllowsRemoval(TNotNull<const UFaerieItemContainerBase*> Container, FFaerieAddress Address, FFaerieInventoryTag Reason) const override;
+	virtual void PreRemoval(TNotNull<const UFaerieItemContainerBase*> Container, FEntryKey Key, int32 Removal) override;
+	virtual EEventExtensionResponse AllowsEdit(TNotNull<const UFaerieItemContainerBase*> Container, FEntryKey Key, FFaerieInventoryTag EditTag) const override;
 	// @todo PreEntryChanged
-	virtual void PostEntryChanged(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event) override;
+	void PostEvent(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Inventory::FEventData& Event, FFaerieInventoryTag Reason);
+	virtual void PostEventBatch(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Inventory::FEventLogBatch& Events) override;
 	//~ UItemContainerExtensionBase
 
 	//~ IFaerieContainerExtensionInterface

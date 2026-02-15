@@ -40,7 +40,7 @@ namespace Faerie
 				HitError |= true;
 			}
 
-			if (auto ExtInterface = Cast<IFaerieContainerExtensionInterface>(Token))
+			if (auto&& ExtInterface = Cast<IFaerieContainerExtensionInterface>(Token))
 			{
 				ExtInterface->GetExtensionGroup()->ValidateGroup();
 			}
@@ -122,8 +122,6 @@ namespace Faerie
 
 	void ClearOwnership(const TNotNull<UFaerieItem*> Item)
 	{
-		if (!ensure(IsValid(Item))) return;
-
 		if (UObject* Outer = Item->GetOuter())
 		{
 			if (Outer != GetTransientPackage())

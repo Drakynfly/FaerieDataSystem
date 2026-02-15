@@ -25,8 +25,8 @@ namespace Faerie
 	{
 		namespace StaticPredicates
 		{
-			FAERIEINVENTORY_API bool ClassEquals(const UFaerieItemContainerBase* Container, const TSubclassOf<UFaerieItemContainerBase>& Class);
-			FAERIEINVENTORY_API bool ClassEqualsOrChildOf(const UFaerieItemContainerBase* Container, const TSubclassOf<UFaerieItemContainerBase>& Class);
+			FAERIEINVENTORY_API bool ClassEquals(TNotNull<const UFaerieItemContainerBase*> Container, const TSubclassOf<UFaerieItemContainerBase>& Class);
+			FAERIEINVENTORY_API bool ClassEqualsOrChildOf(TNotNull<const UFaerieItemContainerBase*> Container, const TSubclassOf<UFaerieItemContainerBase>& Class);
 		}
 
 		/**
@@ -135,7 +135,7 @@ namespace Faerie
 
 		struct FClassFilter
 		{
-			bool Exec(const UFaerieItemContainerBase* Container) const
+			bool Exec(TNotNull<const UFaerieItemContainerBase*> Container) const
 			{
 				return StaticPredicates::ClassEqualsOrChildOf(Container, Class);
 			}
@@ -144,7 +144,7 @@ namespace Faerie
 
 		struct FClassFilterExact
 		{
-			bool Exec(const UFaerieItemContainerBase* Container) const
+			bool Exec(TNotNull<const UFaerieItemContainerBase*> Container) const
 			{
 				return StaticPredicates::ClassEquals(Container, Class);
 			}

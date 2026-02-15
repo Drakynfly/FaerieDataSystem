@@ -8,20 +8,16 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventoryItemLimitExtension)
 
-void UInventoryItemLimitExtension::InitializeExtension(const UFaerieItemContainerBase* Container)
+void UInventoryItemLimitExtension::InitializeExtension(const TNotNull<const UFaerieItemContainerBase*> Container)
 {
-	if (!ensure(IsValid(Container))) return;
-
 	for (const FEntryKey Key : Faerie::Container::KeyRange(Container))
 	{
 		UpdateCacheForEntry(Container, Key);
 	}
 }
 
-void UInventoryItemLimitExtension::DeinitializeExtension(const UFaerieItemContainerBase* Container)
+void UInventoryItemLimitExtension::DeinitializeExtension(const TNotNull<const UFaerieItemContainerBase*> Container)
 {
-	if (!ensure(IsValid(Container))) return;
-
 	for (const FEntryKey Key : Faerie::Container::KeyRange(Container))
 	{
 		int32 Value = 0;
@@ -30,7 +26,7 @@ void UInventoryItemLimitExtension::DeinitializeExtension(const UFaerieItemContai
 	}
 }
 
-EEventExtensionResponse UInventoryItemLimitExtension::AllowsAddition(const UFaerieItemContainerBase*,
+EEventExtensionResponse UInventoryItemLimitExtension::AllowsAddition(const TNotNull<const UFaerieItemContainerBase*>,
                                                                      const TConstArrayView<FFaerieItemStackView> Views,
                                                                      const FFaerieExtensionAllowsAdditionArgs Args) const
 {
@@ -70,19 +66,12 @@ EEventExtensionResponse UInventoryItemLimitExtension::AllowsAddition(const UFaer
 	return EEventExtensionResponse::NoExplicitResponse;
 }
 
-void UInventoryItemLimitExtension::PostAddition(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event)
+void UInventoryItemLimitExtension::PostEventBatch(const TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Inventory::FEventLogBatch& Events)
 {
-	UpdateCacheForEntry(Container, Event.EntryTouched);
-}
-
-void UInventoryItemLimitExtension::PostRemoval(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event)
-{
-	UpdateCacheForEntry(Container, Event.EntryTouched);
-}
-
-void UInventoryItemLimitExtension::PostEntryChanged(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event)
-{
-	UpdateCacheForEntry(Container, Event.EntryTouched);
+	for (auto&& Event : Events.Data)
+	{
+		UpdateCacheForEntry(Container, Event.EntryTouched);
+	}
 }
 
 int32 UInventoryItemLimitExtension::GetTotalItemCount() const
@@ -131,10 +120,8 @@ bool UInventoryItemLimitExtension::CanContain(const int32 Count) const
 	return true;
 }
 
-void UInventoryItemLimitExtension::UpdateCacheForEntry(const UFaerieItemContainerBase* Container, const FEntryKey Key)
+void UInventoryItemLimitExtension::UpdateCacheForEntry(const TNotNull<const UFaerieItemContainerBase*> Container, const FEntryKey Key)
 {
-	if (!ensure(IsValid(Container))) return;
-
 	int32 PrevEntryAmount = 0;
 	if (auto&& ExistingCache = EntryAmountCache.Find(Key))
 	{

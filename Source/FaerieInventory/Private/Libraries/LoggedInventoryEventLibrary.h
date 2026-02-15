@@ -18,7 +18,7 @@ class ULoggedInventoryEventLibrary : public UBlueprintFunctionLibrary
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "LoggedInventoryEventLibrary", meta = (NativeBreakFunc))
-	static void BreakLoggedInventoryEvent(const FLoggedInventoryEvent& LoggedEvent, FFaerieInventoryTag& Type, bool& Success,
+	static void BreakLoggedInventoryEvent(const FLoggedInventoryEvent& LoggedEvent, FFaerieInventoryTag& Type,
 										  FDateTime& Timestamp, FEntryKey& EntryTouched,
-										  TArray<FFaerieAddress>& AddressesTouched, FFaerieItemStackView& Stack, FString& ErrorMessage);
+										  TArray<FFaerieAddress>& AddressesTouched, FFaerieItemStackView& Stack);
 };

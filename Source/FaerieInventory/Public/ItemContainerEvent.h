@@ -16,6 +16,7 @@ namespace Faerie::Inventory
 		FAERIEINVENTORY_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, RemovalBase)
 		FAERIEINVENTORY_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, RemovalDeletion)
 		FAERIEINVENTORY_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, RemovalMoving)
+		FAERIEINVENTORY_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, EditBase)
 		FAERIEINVENTORY_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, Merge)
 		FAERIEINVENTORY_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, Split)
 
@@ -23,44 +24,17 @@ namespace Faerie::Inventory
 		FAERIEINVENTORY_API const TSet<FFaerieInventoryTag>& RemovalTagsAllowedByDefault();
 	}
 
-	// Logs that record data about additions to and removals from an item container.
-	class FAERIEINVENTORY_API FEventLog
+	class FAERIEINVENTORY_API FEventData
 	{
 	public:
-		FEventLog()
-		  : EventID(FGuid::NewGuid()),
-			Timestamp(FDateTime::UtcNow()) {}
-
-	private:
-		static FEventLog CreateFailureEvent_Internal(const FFaerieInventoryTag Type, const FString& Message)
-		{
-			FEventLog NewErrorEvent;
-			NewErrorEvent.Type = Type;
-			NewErrorEvent.Success = false;
-			NewErrorEvent.ErrorMessage = Message;
-			return NewErrorEvent;
-		}
+		FEventData() {}
 
 	public:
-		static FEventLog AdditionFailed(const FString& Message)
-		{
-			return CreateFailureEvent_Internal(Tags::Addition, Message);
-		}
+		// The item from this entry.
+		TWeakObjectPtr<const UFaerieItem> Item;
 
-		const FGuid& GetEventID() const { return EventID; }
-		const FDateTime& GetTimestamp() const { return Timestamp; }
-
-		[[nodiscard]] UE_REWRITE bool UEOpEquals(const FEventLog& Other) const
-		{
-			return EventID == Other.EventID;
-		}
-
-	public:
-		// Either the Addition tag or some kind of Removal.
-		FFaerieInventoryTag Type;
-
-		// Did this event succeed?
-		bool Success = false;
+		// The number of item copies added or removed.
+		int32 Amount = 0;
 
 		// The entry that this event pertained to.
 		FEntryKey EntryTouched;
@@ -68,30 +42,70 @@ namespace Faerie::Inventory
 		// All addresses that were modified by this event.
 		TArray<FFaerieAddress> AddressesTouched;
 
-		// The number of item copies added or removed.
-		int32 Amount = 0;
-
-		// The item from this entry.
-		TWeakObjectPtr<const UFaerieItem> Item;
-
-		// Message, in case of a failure event.
-		FString ErrorMessage;
-
-		friend FArchive& operator<<(FArchive& Ar, FEventLog& Val)
+		friend FArchive& operator<<(FArchive& Ar, FEventData& Val)
 		{
-			return Ar << Val.Type
-					  << Val.Success
-					  << Val.EntryTouched
+			return Ar << Val.EntryTouched
 					  << Val.AddressesTouched
 					  << Val.Amount
-					  << Val.Item
-					  << Val.ErrorMessage
-					  << Val.EventID
+					  << Val.Item;
+		}
+	};
+
+	// Logs that record data about additions to and removals from an item container.
+	class FAERIEINVENTORY_API FEventLogSingle
+	{
+	public:
+		FEventLogSingle() = default;
+
+		FEventLogSingle(const FFaerieInventoryTag Type, const FEventData& Data)
+		  : Type(Type),
+			Data(Data),
+			Timestamp(FDateTime::UtcNow())
+		{}
+
+		bool IsAdditionEvent() const { return Type == Tags::Addition; }
+		bool IsRemovalEvent() const { return Type.MatchesTag(Tags::RemovalBase); }
+		bool IsEditEvent() const { return Type.MatchesTag(Tags::EditBase); }
+
+		const FDateTime& GetTimestamp() const { return Timestamp; }
+
+	public:
+		// Either the Addition tag, some kind of Removal, or an edit tag.
+		FFaerieInventoryTag Type;
+
+		FEventData Data;
+
+		friend FArchive& operator<<(FArchive& Ar, FEventLogSingle& Val)
+		{
+			return Ar << Val.Type
+					  << Val.Data
 					  << Val.Timestamp;
 		}
 
 	private:
-		FGuid EventID;
+		FDateTime Timestamp;
+	};
+
+	// A group of events that occured at once.
+	class FAERIEINVENTORY_API FEventLogBatch
+	{
+	public:
+		FEventLogBatch()
+		  : Timestamp(FDateTime::UtcNow()) {}
+
+		const FDateTime& GetTimestamp() const { return Timestamp; }
+
+		bool IsAdditionEvent() const { return Type == Tags::Addition; }
+		bool IsRemovalEvent() const { return Type.MatchesTag(Tags::RemovalBase); }
+		bool IsEditEvent() const { return Type.MatchesTag(Tags::EditBase); }
+
+		// Either the Addition tag, some kind of Removal, or an edit tag.
+		FFaerieInventoryTag Type;
+
+	public:
+		TConstArrayView<FEventData> Data;
+
+	private:
 		FDateTime Timestamp;
 	};
 }
@@ -109,12 +123,7 @@ struct FAERIEINVENTORY_API FLoggedInventoryEvent
 	TWeakObjectPtr<const class UFaerieItemContainerBase> Container = nullptr;
 
 	// The logged event
-	Faerie::Inventory::FEventLog Event;
-
-	[[nodiscard]] UE_REWRITE bool UEOpEquals(const FLoggedInventoryEvent& Other) const
-	{
-		return Container == Other.Container && Event == Other.Event;
-	}
+	Faerie::Inventory::FEventLogSingle Event;
 
 	friend FArchive& operator<<(FArchive& Ar, FLoggedInventoryEvent& Val)
 	{

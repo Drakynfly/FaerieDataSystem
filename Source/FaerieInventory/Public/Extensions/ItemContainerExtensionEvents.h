@@ -13,12 +13,10 @@ namespace Faerie
 		Deinitialization
 	};
 
-	using FExtensionEvent = TMulticastDelegate<void(const UFaerieItemContainerBase* Container, EExtensionEventType Type)>;
-	using FPreAdditionEvent = TMulticastDelegate<void(const UFaerieItemContainerBase* Container, FFaerieItemStackView Stack)>;
-	using FPostAdditionEvent = TMulticastDelegate<void(const UFaerieItemContainerBase* Container, const Inventory::FEventLog& Event)>;
-	using FPreRemovalEvent = TMulticastDelegate<void(const UFaerieItemContainerBase* Container, FEntryKey Key, int32 Removal)>;
-	using FPostRemovalEvent = TMulticastDelegate<void(const UFaerieItemContainerBase* Container, const Inventory::FEventLog& Event)>;
-	using FPostEntryChangedEvent = TMulticastDelegate<void(const UFaerieItemContainerBase* Container, const Inventory::FEventLog& Event)>;
+	using FExtensionEvent = TMulticastDelegate<void(TNotNull<const UFaerieItemContainerBase*> Container, EExtensionEventType Type)>;
+	using FPreAdditionEvent = TMulticastDelegate<void(TNotNull<const UFaerieItemContainerBase*> Container, FFaerieItemStackView Stack)>;
+	using FPreRemovalEvent = TMulticastDelegate<void(TNotNull<const UFaerieItemContainerBase*> Container, FEntryKey Key, int32 Removal)>;
+	using FPostEventBatch = TMulticastDelegate<void(TNotNull<const UFaerieItemContainerBase*> Container, const Inventory::FEventLogBatch& Events)>;
 }
 
 
@@ -32,28 +30,22 @@ class FAERIEINVENTORY_API UItemContainerExtensionEvents : public UItemContainerE
 
 protected:
 	//~ UItemContainerExtensionBase
-	virtual void InitializeExtension(const UFaerieItemContainerBase* Container) override;
-	virtual void DeinitializeExtension(const UFaerieItemContainerBase* Container) override;
-	virtual void PreAddition(const UFaerieItemContainerBase* Container, FFaerieItemStackView Stack) override;
-	virtual void PostAddition(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event) override;
-	virtual void PreRemoval(const UFaerieItemContainerBase* Container, FEntryKey Key, int32 Removal) override;
-	virtual void PostRemoval(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event) override;
-	virtual void PostEntryChanged(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog& Event) override;
+	virtual void InitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
+	virtual void DeinitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
+	virtual void PreAddition(TNotNull<const UFaerieItemContainerBase*> Container, FFaerieItemStackView Stack) override;
+	virtual void PreRemoval(TNotNull<const UFaerieItemContainerBase*> Container, FEntryKey Key, int32 Removal) override;
+	virtual void PostEventBatch(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Inventory::FEventLogBatch& Events) override;
 	//~ UItemContainerExtensionBase
 
 public:
 	Faerie::FExtensionEvent::RegistrationType& GetExtensionEvent() { return ExtensionEvent; }
 	Faerie::FPreAdditionEvent::RegistrationType& GetPreAdditionEvent() { return PreAdditionEvent; }
-	Faerie::FPostAdditionEvent::RegistrationType& GetPostAdditionEvent() { return PostAdditionEvent; }
 	Faerie::FPreRemovalEvent::RegistrationType& GetPreRemovalEvent() { return PreRemovalEvent; }
-	Faerie::FPostRemovalEvent::RegistrationType& GetPostRemovalEvent() { return PostRemovalEvent; }
-	Faerie::FPostEntryChangedEvent::RegistrationType& GetPostEntryChangedEvent() { return PostEntryChangedEvent; }
+	Faerie::FPostEventBatch::RegistrationType& GetOnPostEventBatch() { return OnPostEventBatch; }
 
 private:
 	Faerie::FExtensionEvent ExtensionEvent;
 	Faerie::FPreAdditionEvent PreAdditionEvent;
-	Faerie::FPostAdditionEvent PostAdditionEvent;
 	Faerie::FPreRemovalEvent PreRemovalEvent;
-	Faerie::FPostRemovalEvent PostRemovalEvent;
-	Faerie::FPostEntryChangedEvent PostEntryChangedEvent;
+	Faerie::FPostEventBatch OnPostEventBatch;
 };

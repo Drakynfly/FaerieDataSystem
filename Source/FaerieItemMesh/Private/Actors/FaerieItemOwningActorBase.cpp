@@ -4,6 +4,7 @@
 #include "AssetLoadFlagFixer.h"
 #include "FaerieItemSource.h"
 #include "FaerieItemStackContainer.h"
+#include "ItemContainerEvent.h"
 #include "ItemContainerExtensionBase.h"
 #include "Net/UnrealNetwork.h"
 
@@ -24,7 +25,7 @@ void AFaerieItemOwningActorBase::InitStackFromConfig(const bool RegenerateDispla
 {
 	if (ItemStack->IsFilled())
 	{
-		ItemStack->TakeItemFromSlot(Faerie::ItemData::EntireStack);
+		ItemStack->TakeItemFromSlot(Faerie::ItemData::EntireStack, Faerie::Inventory::Tags::RemovalDeletion);
 	}
 
 	if (StackCopies > 0 &&
@@ -152,7 +153,7 @@ void AFaerieItemOwningActorBase::SetOwnedStack(const FFaerieItemStack& Stack)
 {
 	if (ItemStack->IsFilled())
 	{
-		ItemStack->TakeItemFromSlot(Faerie::ItemData::EntireStack);
+		ItemStack->TakeItemFromSlot(Faerie::ItemData::EntireStack, Faerie::Inventory::Tags::RemovalDeletion);
 	}
 	ItemStack->Possess(Stack);
 }

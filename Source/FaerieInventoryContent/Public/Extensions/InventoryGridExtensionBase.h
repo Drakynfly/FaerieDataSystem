@@ -64,8 +64,8 @@ public:
 
 protected:
 	//~ UItemContainerExtensionBase
-	virtual void InitializeExtension(const UFaerieItemContainerBase* Container) override;
-	virtual void DeinitializeExtension(const UFaerieItemContainerBase* Container) override;
+	virtual void InitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
+	virtual void DeinitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
 	//~ UItemContainerExtensionBase
 
 	virtual void PreStackRemove_Client(const FFaerieGridKeyedStack& Stack) {}

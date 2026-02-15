@@ -19,38 +19,28 @@ void UContentHashExtension::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, ServerChecksum, Params)
 }
 
-void UContentHashExtension::InitializeExtension(const UFaerieItemContainerBase* Container)
+void UContentHashExtension::InitializeExtension(const TNotNull<const UFaerieItemContainerBase*> Container)
 {
 	RecalcContainerHash(Container);
 }
 
-void UContentHashExtension::DeinitializeExtension(const UFaerieItemContainerBase* Container)
+void UContentHashExtension::DeinitializeExtension(const TNotNull<const UFaerieItemContainerBase*> Container)
 {
 	PerContainerHash.Remove(Container);
 	RecalcLocalChecksum();
 }
 
-void UContentHashExtension::LoadSaveData(const UFaerieItemContainerBase* Container, const FInstancedStruct&)
+void UContentHashExtension::LoadSaveData(const TNotNull<const UFaerieItemContainerBase*> Container, const FInstancedStruct&)
 {
 	RecalcContainerHash(Container);
 }
 
-void UContentHashExtension::PostRemoval(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog&)
+void UContentHashExtension::PostEventBatch(const TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Inventory::FEventLogBatch&)
 {
 	RecalcContainerHash(Container);
 }
 
-void UContentHashExtension::PostEntryChanged(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog&)
-{
-	RecalcContainerHash(Container);
-}
-
-void UContentHashExtension::PostAddition(const UFaerieItemContainerBase* Container, const Faerie::Inventory::FEventLog&)
-{
-	RecalcContainerHash(Container);
-}
-
-void UContentHashExtension::RecalcContainerHash(const UFaerieItemContainerBase* Container)
+void UContentHashExtension::RecalcContainerHash(const TNotNull<const UFaerieItemContainerBase*> Container)
 {
 	FFaerieHash& Hash = PerContainerHash.FindOrAdd(Container);
 	Hash = Faerie::Hash::HashContainer(Container, &Faerie::Hash::HashItemByName);

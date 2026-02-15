@@ -15,8 +15,8 @@ class FAERIEEQUIPMENT_API URelevantActorsExtension : public UItemContainerExtens
 	GENERATED_BODY()
 
 public:
-	virtual void InitializeExtension(const UFaerieItemContainerBase* Container) override;
-	virtual void DeinitializeExtension(const UFaerieItemContainerBase* Container) override;
+	virtual void InitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
+	virtual void DeinitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
 
 	template <
 		typename TActor

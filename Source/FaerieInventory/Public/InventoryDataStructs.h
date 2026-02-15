@@ -12,8 +12,6 @@
 
 enum class EEntryEquivalencyFlags : uint8;
 
-LLM_DECLARE_TAG(ItemStorage);
-
 // Typesafe wrapper around an FFaerieItemKeyBase used for keying stacks in a UFaerieItemStorage.
 USTRUCT(BlueprintType)
 struct FAERIEINVENTORY_API FStackKey : public FFaerieItemKeyBase
@@ -52,14 +50,18 @@ struct FInventoryEntry : public FFastArraySerializerItem
 {
 	GENERATED_BODY()
 
-	FInventoryEntry() = default;
-	FInventoryEntry(FFaerieItemStackView InStack, TArray<FFaerieAddress>& OutNewAddresses);
+	friend FInventoryContent;
+	friend TBinarySearchOptimizedArray;
+	friend Faerie::Hacks::TFaerieFastArraySerializeHelper;
 
+	FInventoryEntry() = default;
+	FInventoryEntry(FFaerieItemStackView InStack, FEntryKey EntryKey, TArray<FFaerieAddress>& OutNewAddresses);
+
+private:
 	// Unique key to identify this entry.
 	UPROPERTY(VisibleAnywhere, Category = "InventoryEntry")
 	FEntryKey Key;
 
-private:
 	// The item stored for all stacks in this entry.
 	UPROPERTY(VisibleAnywhere, Category = "InventoryEntry")
 	TObjectPtr<const UFaerieItem> ItemObject;
@@ -79,6 +81,7 @@ private:
 	void UpdateCachedStackLimit();
 
 public:
+	UE_REWRITE FEntryKey GetKey() const { return Key; }
 	UE_REWRITE const UFaerieItem* GetItem() const { return ItemObject; }
 	UE_REWRITE TConstArrayView<FKeyedStack> GetStacks() const { return Stacks; }
 
@@ -115,8 +118,6 @@ public:
 	struct FMutableAccess : FNoncopyable
 	{
 		FMutableAccess(FInventoryContent& Source, const FInventoryEntry& Entry);
-		FMutableAccess(FInventoryContent& Source, int32 Index);
-		FMutableAccess(FInventoryContent& Source, const FEntryKey Key);
 		~FMutableAccess();
 
 		FInventoryEntry* operator->() const { return &Handle; }
@@ -246,11 +247,6 @@ public:
 	void LockWriteAccess() const;
 	void UnlockWriteAccess() const;
 	UE_REWRITE UFaerieItemStorage* GetOuterItemStorage() const { return ChangeListener; }
-
-	UE_REWRITE FInventoryEntry::FMutableAccess GetMutableEntry(const FEntryKey Key)
-	{
-		return FInventoryEntry::FMutableAccess(*this, Key);
-	}
 
 	UE_REWRITE bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
 	{

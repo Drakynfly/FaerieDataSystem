@@ -41,7 +41,7 @@ namespace Finders
 	}
 }
 
-void URelevantActorsExtension::InitializeExtension(const UFaerieItemContainerBase* Container)
+void URelevantActorsExtension::InitializeExtension(const TNotNull<const UFaerieItemContainerBase*> Container)
 {
 	if (AActor* Owner = Container->GetTypedOuter<AActor>())
 	{
@@ -58,7 +58,7 @@ void URelevantActorsExtension::InitializeExtension(const UFaerieItemContainerBas
 	}
 }
 
-void URelevantActorsExtension::DeinitializeExtension(const UFaerieItemContainerBase* Container)
+void URelevantActorsExtension::DeinitializeExtension(const TNotNull<const UFaerieItemContainerBase*> Container)
 {
 	if (AActor* Owner = Container->GetTypedOuter<AActor>())
 	{

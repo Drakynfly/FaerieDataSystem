@@ -6,13 +6,8 @@
 
 namespace Faerie::Hash
 {
-	FFaerieHash HashContainer(const UFaerieItemContainerBase* Container, const FItemHashFunction& Function)
+	FFaerieHash HashContainer(const TNotNull<const UFaerieItemContainerBase*> Container, const FItemHashFunction& Function)
 	{
-		if (!IsValid(Container))
-		{
-			return FFaerieHash();
-		}
-
 		TArray<uint32> Hashes;
 
 		for (const UFaerieItem* Item : Container::ConstItemRange(Container))
@@ -23,7 +18,7 @@ namespace Faerie::Hash
 		return CombineHashes(Hashes);
 	}
 
-	FFaerieHash HashContainers(const TConstArrayView<const UFaerieItemContainerBase*> Containers, const FItemHashFunction& Function)
+	FFaerieHash HashContainers(const TConstArrayView<UFaerieItemContainerBase*> Containers, const FItemHashFunction& Function)
 	{
 		if (!Containers.IsEmpty())
 		{

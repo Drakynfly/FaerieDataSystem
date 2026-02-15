@@ -13,7 +13,6 @@
 #endif
 
 #include "DebuggingFlags.h"
-#include "FaerieContainerIterator.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventoryReplicatedDataExtensionBase)
 
@@ -242,7 +241,7 @@ void UInventoryReplicatedDataExtensionBase::GetLifetimeReplicatedProps(TArray<FL
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, PerContainerData, SharedParams)
 }
 
-FInstancedStruct UInventoryReplicatedDataExtensionBase::MakeSaveData(const UFaerieItemContainerBase* Container) const
+FInstancedStruct UInventoryReplicatedDataExtensionBase::MakeSaveData(const TNotNull<const UFaerieItemContainerBase*> Container) const
 {
 	if (SaveRepDataArray())
 	{
@@ -252,7 +251,7 @@ FInstancedStruct UInventoryReplicatedDataExtensionBase::MakeSaveData(const UFaer
 	return FInstancedStruct();
 }
 
-void UInventoryReplicatedDataExtensionBase::LoadSaveData(const UFaerieItemContainerBase* Container,
+void UInventoryReplicatedDataExtensionBase::LoadSaveData(const TNotNull<const UFaerieItemContainerBase*> Container,
 	const FInstancedStruct& SaveData)
 {
 	if (const TStructView<FFaerieReplicatedSimMap> ContainerData = FindFastArrayForContainer(Container);
@@ -264,7 +263,7 @@ void UInventoryReplicatedDataExtensionBase::LoadSaveData(const UFaerieItemContai
 	}
 }
 
-void UInventoryReplicatedDataExtensionBase::InitializeExtension(const UFaerieItemContainerBase* Container)
+void UInventoryReplicatedDataExtensionBase::InitializeExtension(const TNotNull<const UFaerieItemContainerBase*> Container)
 {
 #if WITH_EDITOR
 	checkf(FUObjectThreadContext::Get().IsInConstructor == false, TEXT("Do not call InitializeExtension from a constructor! Use InitializeNetObject if available."));
@@ -280,24 +279,21 @@ void UInventoryReplicatedDataExtensionBase::InitializeExtension(const UFaerieIte
 
 	checkSlow(!FindFastArrayForContainer(Container).IsValid());
 
-	if (ensure(IsValid(Container)))
+	URepDataArrayWrapper* NewWrapper = NewObject<URepDataArrayWrapper>(this);
+	NewWrapper->Container = Container;
+
+	if (AActor* Actor = GetTypedOuter<AActor>();
+		IsValid(Actor) && Actor->IsUsingRegisteredSubObjectList())
 	{
-		URepDataArrayWrapper* NewWrapper = NewObject<URepDataArrayWrapper>(this);
-		NewWrapper->Container = Container;
-
-		if (AActor* Actor = GetTypedOuter<AActor>();
-			IsValid(Actor) && Actor->IsUsingRegisteredSubObjectList())
-		{
-			Actor->AddReplicatedSubObject(NewWrapper);
-			NewWrapper->InitializeNetObject(Actor);
-		}
-
-		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, PerContainerData, this);
-		PerContainerData.Add(NewWrapper);
+		Actor->AddReplicatedSubObject(NewWrapper);
+		NewWrapper->InitializeNetObject(Actor);
 	}
+
+	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, PerContainerData, this);
+	PerContainerData.Add(NewWrapper);
 }
 
-void UInventoryReplicatedDataExtensionBase::DeinitializeExtension(const UFaerieItemContainerBase* Container)
+void UInventoryReplicatedDataExtensionBase::DeinitializeExtension(const TNotNull<const UFaerieItemContainerBase*> Container)
 {
 	if (!!PerContainerData.RemoveAll(
 		[this, Container](const TObjectPtr<URepDataArrayWrapper>& Wrapper)
@@ -320,7 +316,7 @@ void UInventoryReplicatedDataExtensionBase::DeinitializeExtension(const UFaerieI
 }
 
 /*
-void UInventoryReplicatedDataExtensionBase::PreRemoval(const UFaerieItemContainerBase* Container, const FEntryKey Key,
+void UInventoryReplicatedDataExtensionBase::PreRemoval(const TNotNull<const UFaerieItemContainerBase*> Container, const FEntryKey Key,
 													   const int32 Removal)
 {
 	Super::PreRemoval(Container, Key, Removal);
@@ -339,26 +335,27 @@ void UInventoryReplicatedDataExtensionBase::PreRemoval(const UFaerieItemContaine
 }
 */
 
-void UInventoryReplicatedDataExtensionBase::PostRemoval(const UFaerieItemContainerBase* Container,
-	const Faerie::Inventory::FEventLog& Event)
+void UInventoryReplicatedDataExtensionBase::PostEventBatch(const TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Inventory::FEventLogBatch& Events)
 {
-	Super::PostRemoval(Container, Event);
-
-	using namespace Faerie;
-
-	if (const TStructView<FFaerieReplicatedSimMap> ContainerData = FindFastArrayForContainer(Container);
-		ContainerData.IsValid())
+	if (Events.IsRemovalEvent())
 	{
-		FFaerieReplicatedSimMap& Ref = ContainerData.Get<FFaerieReplicatedSimMap>();
+		if (const TStructView<FFaerieReplicatedSimMap> ContainerData = FindFastArrayForContainer(Container);
+            ContainerData.IsValid())
+        {
+            FFaerieReplicatedSimMap& Ref = ContainerData.Get<FFaerieReplicatedSimMap>();
 
-		for (const FFaerieAddress Address : Event.AddressesTouched)
-		{
-			// If the whole stack was removed, delete any data we have for the Address
-			if (!Container->Contains(Address))
-			{
-				Ref.RemoveValue(Address);
-			}
-		}
+            for (auto&& Event : Events.Data)
+            {
+            	for (const FFaerieAddress Address : Event.AddressesTouched)
+            	{
+            		// If the whole stack was removed, delete any data we have for the Address
+            		if (!Container->Contains(Address))
+            		{
+            			Ref.RemoveValue(Address);
+            		}
+            	}
+            }
+        }
 	}
 }
 
@@ -409,7 +406,7 @@ bool UInventoryReplicatedDataExtensionBase::EditDataForHandle(const FFaerieAddre
 	return true;
 }
 
-TStructView<FFaerieReplicatedSimMap> UInventoryReplicatedDataExtensionBase::FindFastArrayForContainer(const UFaerieItemContainerBase* Container)
+TStructView<FFaerieReplicatedSimMap> UInventoryReplicatedDataExtensionBase::FindFastArrayForContainer(const TNotNull<const UFaerieItemContainerBase*> Container)
 {
 	if (auto&& Found = PerContainerData.FindByPredicate(
 			[Container](const TObjectPtr<URepDataArrayWrapper>& Data)
@@ -426,7 +423,7 @@ TStructView<FFaerieReplicatedSimMap> UInventoryReplicatedDataExtensionBase::Find
 	return TStructView<FFaerieReplicatedSimMap>();
 }
 
-TConstStructView<FFaerieReplicatedSimMap> UInventoryReplicatedDataExtensionBase::FindFastArrayForContainer(const UFaerieItemContainerBase* Container) const
+TConstStructView<FFaerieReplicatedSimMap> UInventoryReplicatedDataExtensionBase::FindFastArrayForContainer(const TNotNull<const UFaerieItemContainerBase*> Container) const
 {
 	if (auto&& Found = PerContainerData.FindByPredicate(
 			[Container](const TObjectPtr<URepDataArrayWrapper>& Data)

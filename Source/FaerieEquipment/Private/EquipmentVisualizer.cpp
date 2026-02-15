@@ -361,7 +361,7 @@ FEquipmentVisualAttachment UEquipmentVisualizer::FindAttachment(const FFaerieIte
 	const IFaerieContainerExtensionInterface* Container = Cast<IFaerieContainerExtensionInterface>(Proxy->GetItemOwner().GetObject());
 
 	// If there is a VisualSlotExtension on this container, then defer to it.
-	SlotExtension = GetExtension<UVisualSlotExtension>(Container, true);
+	SlotExtension = Faerie::GetExtension<UVisualSlotExtension>(Container, true);
 
 	AActor* ParentActor = nullptr;
 	USceneComponent* ParentComponent = nullptr;
