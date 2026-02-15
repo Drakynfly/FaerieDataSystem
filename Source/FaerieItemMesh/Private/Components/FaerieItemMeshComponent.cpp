@@ -152,23 +152,28 @@ void UFaerieItemMeshComponent::RebuildMesh()
 	// Select new type by preferred first
 	switch (PreferredType)
 	{
-	case EItemMeshType::None: break;
-	case EItemMeshType::Static:
-		if (MeshData.IsStatic())
-		{
-			NewMeshType = EItemMeshType::Static;
-		}
-		break;
+	case EItemMeshType::None:
+		// Fallthrough to first valid mesh.
 	case EItemMeshType::Dynamic:
+		// Check dynamic first
 		if (MeshData.IsDynamic())
 		{
 			NewMeshType = EItemMeshType::Dynamic;
+			break;
 		}
-		break;
 	case EItemMeshType::Skeletal:
+		// Check skeletal next
 		if (MeshData.IsSkeletal())
 		{
 			NewMeshType = EItemMeshType::Skeletal;
+			break;
+		}
+	case EItemMeshType::Static:
+		// Check static last
+		if (MeshData.IsStatic())
+		{
+			NewMeshType = EItemMeshType::Static;
+			break;
 		}
 		break;
 	default: checkNoEntry();
@@ -203,10 +208,13 @@ void UFaerieItemMeshComponent::RebuildMesh()
 		ActualType = NewMeshType;
 	}
 
-	// Warn if we have switched to None illegally.
-	if (NewMeshType == EItemMeshType::None && WarnIfMeshInvalid)
+	if (NewMeshType == EItemMeshType::None)
 	{
-		UE_LOG(LogFaerieItemMesh, Error, TEXT("No valid mesh in Mesh Data."))
+		if (WarnIfMeshInvalid)
+		{
+			// Warn if we have switched to None illegally.
+			UE_LOG(LogFaerieItemMesh, Error, TEXT("No valid mesh in Mesh Data."))
+		}
 		return;
 	}
 
