@@ -1,6 +1,6 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
-#include "FaerieItemStorageQuery.h"
+#include "FaerieContainerQuery.h"
 #include "DelegateCommon.h"
 #include "FaerieContainerFilter.h"
 #include "FaerieContainerFilterTypes.h"
@@ -9,7 +9,7 @@
 #include "FaerieItemDataFilter.h"
 #include "FaerieItemStorage.h"
 
-#include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemStorageQuery)
+#include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieContainerQuery)
 
 DECLARE_STATS_GROUP(TEXT("FaerieItemStorage"), STATGROUP_FaerieItemStorageQuery, STATCAT_Advanced);
 DECLARE_CYCLE_STAT(TEXT("Query (First)"), STAT_Storage_QueryFirst, STATGROUP_FaerieItemStorageQuery);
@@ -18,17 +18,17 @@ DECLARE_CYCLE_STAT(TEXT("Query (All)"), STAT_Storage_QueryAll, STATGROUP_FaerieI
 using namespace Faerie::ItemData;
 using namespace Faerie::Container;
 
-bool UFaerieItemStorageQuery::IsSortBound() const
+bool UFaerieContainerQuery::IsSortBound() const
 {
 	return SortFunction.IsBound();
 }
 
-bool UFaerieItemStorageQuery::IsFilterBound() const
+bool UFaerieContainerQuery::IsFilterBound() const
 {
 	return FilterFunction.IsBound();
 }
 
-void UFaerieItemStorageQuery::SetFilter(FViewPredicate&& Predicate, const UObject* AssociatedUObject)
+void UFaerieContainerQuery::SetFilter(FViewPredicate&& Predicate, const UObject* AssociatedUObject)
 {
 	if (Predicate.IsBound())
 	{
@@ -42,7 +42,7 @@ void UFaerieItemStorageQuery::SetFilter(FViewPredicate&& Predicate, const UObjec
 	}
 }
 
-void UFaerieItemStorageQuery::SetFilterByDelegate(const FFaerieViewPredicate& Delegate)
+void UFaerieContainerQuery::SetFilterByDelegate(const FFaerieViewPredicate& Delegate)
 {
 	if (Delegate.IsBound())
 	{
@@ -58,7 +58,7 @@ void UFaerieItemStorageQuery::SetFilterByDelegate(const FFaerieViewPredicate& De
 	}
 }
 
-void UFaerieItemStorageQuery::SetFilterByObject(const UFaerieItemDataFilter* Object)
+void UFaerieContainerQuery::SetFilterByObject(const UFaerieItemDataFilter* Object)
 {
 	if (Object != FilterObject)
 	{
@@ -72,7 +72,7 @@ void UFaerieItemStorageQuery::SetFilterByObject(const UFaerieItemDataFilter* Obj
 	}
 }
 
-void UFaerieItemStorageQuery::SetSort(FViewComparator&& Comparator, const UObject* AssociatedUObject)
+void UFaerieContainerQuery::SetSort(FViewComparator&& Comparator, const UObject* AssociatedUObject)
 {
 	if (Comparator.IsBound())
 	{
@@ -86,7 +86,7 @@ void UFaerieItemStorageQuery::SetSort(FViewComparator&& Comparator, const UObjec
 	}
 }
 
-void UFaerieItemStorageQuery::SetSortByDelegate(const UFaerieFunctionTemplates::FFaerieViewComparator& Delegate)
+void UFaerieContainerQuery::SetSortByDelegate(const UFaerieFunctionTemplates::FFaerieViewComparator& Delegate)
 {
 	if (Delegate.IsBound())
 	{
@@ -100,7 +100,7 @@ void UFaerieItemStorageQuery::SetSortByDelegate(const UFaerieFunctionTemplates::
 	}
 }
 
-void UFaerieItemStorageQuery::SetSortByObject(const UFaerieItemDataComparator* Comparator)
+void UFaerieContainerQuery::SetSortByObject(const UFaerieItemDataComparator* Comparator)
 {
 	if (Comparator != SortObject)
 	{
@@ -114,7 +114,7 @@ void UFaerieItemStorageQuery::SetSortByObject(const UFaerieItemDataComparator* C
 	}
 }
 
-void UFaerieItemStorageQuery::SetInvertFilter(const bool Invert)
+void UFaerieContainerQuery::SetInvertFilter(const bool Invert)
 {
 	if (Invert != InvertFilter)
 	{
@@ -123,7 +123,7 @@ void UFaerieItemStorageQuery::SetInvertFilter(const bool Invert)
 	}
 }
 
-void UFaerieItemStorageQuery::SetInvertSort(const bool Invert)
+void UFaerieContainerQuery::SetInvertSort(const bool Invert)
 {
 	if (Invert != InvertSort)
 	{
@@ -132,7 +132,7 @@ void UFaerieItemStorageQuery::SetInvertSort(const bool Invert)
 	}
 }
 
-void UFaerieItemStorageQuery::ResetFilter()
+void UFaerieContainerQuery::ResetFilter()
 {
 	if (IsFilterBound())
 	{
@@ -142,7 +142,7 @@ void UFaerieItemStorageQuery::ResetFilter()
 	}
 }
 
-void UFaerieItemStorageQuery::ResetSort()
+void UFaerieContainerQuery::ResetSort()
 {
 	if (IsSortBound())
 	{
@@ -152,11 +152,11 @@ void UFaerieItemStorageQuery::ResetSort()
 	}
 }
 
-FFaerieAddress UFaerieItemStorageQuery::QueryFirstAddress(const UFaerieItemStorage* Storage) const
+FFaerieAddress UFaerieContainerQuery::QueryFirstAddress(const UFaerieItemContainerBase* Container) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_Storage_QueryFirst);
 
-	if (!IsValid(Storage))
+	if (!IsValid(Container))
 	{
 		return {};
 	}
@@ -171,19 +171,19 @@ FFaerieAddress UFaerieItemStorageQuery::QueryFirstAddress(const UFaerieItemStora
 		return FAddressFilter()
 			.Invert()
 			.By(MoveTemp(IteratorPredicate))
-			.First(Storage);
+			.First(Container);
 	}
 
 	return FAddressFilter()
 		   .By(MoveTemp(IteratorPredicate))
-		   .First(Storage);
+		   .First(Container);
 }
 
-void UFaerieItemStorageQuery::QueryAllAddresses(const UFaerieItemStorage* Storage, TArray<FFaerieAddress>& OutAddresses) const
+void UFaerieContainerQuery::QueryAllAddresses(const UFaerieItemContainerBase* Container, TArray<FFaerieAddress>& OutAddresses) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_Storage_QueryAll);
 
-	if (!IsValid(Storage))
+	if (!IsValid(Container))
 	{
 		return;
 	}
@@ -201,27 +201,27 @@ void UFaerieItemStorageQuery::QueryAllAddresses(const UFaerieItemStorage* Storag
 			OutAddresses = FAddressFilter()
 				.Invert()
 				.By(MoveTemp(IteratorPredicate))
-				.Emit(Storage);
+				.Emit(Container);
 		}
 		else
 		{
 			OutAddresses = FAddressFilter()
 				.By(MoveTemp(IteratorPredicate))
-				.Emit(Storage);
+				.Emit(Container);
 		}
 	}
 	else
 	{
 		// If we have no filter, dump all addresses into the output.
-		Storage->GetAllAddresses(OutAddresses);
+		Container->GetAllAddresses(OutAddresses);
 	}
 
 	if (IsSortBound())
 	{
 		Algo::Sort(OutAddresses,
-			[this, Storage](const FFaerieAddress A, const FFaerieAddress B)
+			[this, Container](const FFaerieAddress A, const FFaerieAddress B)
 			{
-				return CompareAddresses_Impl(Storage, A, B);
+				return CompareAddresses_Impl(Container, A, B);
 			});
 	}
 }
@@ -243,25 +243,25 @@ namespace
 	};
 }
 
-bool UFaerieItemStorageQuery::CompareAddresses(const UFaerieItemStorage* Storage, const FFaerieAddress AddressA, const FFaerieAddress AddressB) const
+bool UFaerieContainerQuery::CompareAddresses(const UFaerieItemContainerBase* Container, const FFaerieAddress AddressA, const FFaerieAddress AddressB) const
 {
-	if (!IsValid(Storage)) return false;
+	if (!IsValid(Container)) return false;
 
 	if (SortFunction.IsBound())
 	{
-		return CompareAddresses_Impl(Storage, AddressA, AddressB);
+		return CompareAddresses_Impl(Container, AddressA, AddressB);
 	}
 
 	return false;
 }
 
-bool UFaerieItemStorageQuery::IsAddressFiltered(const UFaerieItemStorage* Storage, const FFaerieAddress Address) const
+bool UFaerieContainerQuery::IsAddressFiltered(const UFaerieItemContainerBase* Container, const FFaerieAddress Address) const
 {
-	if (!IsValid(Storage)) return false;
+	if (!IsValid(Container)) return false;
 
 	if (FilterFunction.IsBound())
 	{
-		FImmediateView View(Storage, Storage->ViewStack(Address));
+		FImmediateView View(Container, Container->ViewStack(Address));
 
 		if (InvertFilter)
 		{
@@ -273,11 +273,11 @@ bool UFaerieItemStorageQuery::IsAddressFiltered(const UFaerieItemStorage* Storag
 	return false;
 }
 
-bool UFaerieItemStorageQuery::CompareAddresses_Impl(const TNotNull<const UFaerieItemStorage*> Storage,
+bool UFaerieContainerQuery::CompareAddresses_Impl(const TNotNull<const UFaerieItemContainerBase*> Container,
 													const FFaerieAddress AddressA, const FFaerieAddress AddressB) const
 {
-	const FImmediateView ViewA(Storage, Storage->ViewStack(AddressA));
-	const FImmediateView ViewB(Storage, Storage->ViewStack(AddressB));
+	const FImmediateView ViewA(Container, Container->ViewStack(AddressA));
+	const FImmediateView ViewB(Container, Container->ViewStack(AddressB));
 
 	if (InvertSort)
 	{
@@ -287,7 +287,7 @@ bool UFaerieItemStorageQuery::CompareAddresses_Impl(const TNotNull<const UFaerie
 	return SortFunction.Execute(&ViewA, &ViewB);
 }
 
-bool UFaerieItemStorageQuery::IsIteratorFiltered(FIteratorPtr Iterator) const
+bool UFaerieContainerQuery::IsIteratorFiltered(FIteratorPtr Iterator) const
 {
 	return FilterFunction.Execute(Iterator);
 }

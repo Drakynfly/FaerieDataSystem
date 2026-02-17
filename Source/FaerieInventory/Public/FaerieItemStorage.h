@@ -56,6 +56,7 @@ public:
 	virtual FFaerieItemStack Release(FEntryKey Key, int32 Copies) override;
 	virtual int32 GetStack(FEntryKey Key) const override;
 
+	virtual void GetAllAddresses(TArray<FFaerieAddress>& Addresses) const override;
 	virtual bool Contains(FFaerieAddress Address) const override;
 	virtual int32 GetStack(FFaerieAddress Address) const override;
 	virtual const UFaerieItem* ViewItem(FEntryKey Key) const override;
@@ -126,9 +127,6 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Storage|Key")
 	TArray<int32> GetStacksInEntry(FEntryKey Key) const;
-
-	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Storage|Key")
-	void GetAllAddresses(TArray<FFaerieAddress>& Addresses) const;
 
 	// Gets all the addresses stored to an Entry Key.
 	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Storage|Key")

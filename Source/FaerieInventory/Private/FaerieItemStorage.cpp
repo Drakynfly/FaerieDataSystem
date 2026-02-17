@@ -202,6 +202,18 @@ int32 UFaerieItemStorage::GetStack(const FEntryKey Key) const
 	return 0;
 }
 
+void UFaerieItemStorage::GetAllAddresses(TArray<FFaerieAddress>& Addresses) const
+{
+	Addresses.Reset(Algo::TransformAccumulate(EntryMap, &FInventoryEntry::NumStacks, 0));
+	for (auto&& Entry : EntryMap)
+	{
+		for (auto&& Stack : Entry.GetStacks())
+		{
+			Addresses.Add(Encode(Entry.GetKey(), Stack.Key));
+		}
+	}
+}
+
 bool UFaerieItemStorage::Contains(const FFaerieAddress Address) const
 {
 	FEntryKey Entry;
@@ -844,18 +856,6 @@ TArray<int32> UFaerieItemStorage::GetStacksInEntry(const FEntryKey Key) const
 		Entry->CopyStacks(Out);
 	}
 	return Out;
-}
-
-void UFaerieItemStorage::GetAllAddresses(TArray<FFaerieAddress>& Addresses) const
-{
-	Addresses.Reset(Algo::TransformAccumulate(EntryMap, &FInventoryEntry::NumStacks, 0));
-	for (auto&& Entry : EntryMap)
-	{
-		for (auto&& Stack : Entry.GetStacks())
-		{
-			Addresses.Add(Encode(Entry.GetKey(), Stack.Key));
-		}
-	}
 }
 
 TArray<FFaerieAddress> UFaerieItemStorage::GetAddressesForEntry(const FEntryKey Key) const

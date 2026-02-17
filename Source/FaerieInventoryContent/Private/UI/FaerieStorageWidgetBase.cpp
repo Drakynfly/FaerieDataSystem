@@ -6,7 +6,7 @@
 #include "UI/InventoryUIActionContainer.h"
 
 #include "FaerieInventoryContentLog.h"
-#include "FaerieItemStorageQuery.h"
+#include "FaerieContainerQuery.h"
 #include "Extensions/ItemContainerExtensionEvents.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieStorageWidgetBase)
@@ -17,7 +17,7 @@ UFaerieStorageWidgetBase::UFaerieStorageWidgetBase(const FObjectInitializer& Obj
   : Super(ObjectInitializer)
 {
 	ActionContainer = CreateDefaultSubobject<UInventoryUIActionContainer>(TEXT("ActionContainer"));
-	StorageQuery = CreateDefaultSubobject<UFaerieItemStorageQuery>(TEXT("StorageQuery"));
+	StorageQuery = CreateDefaultSubobject<UFaerieContainerQuery>(TEXT("StorageQuery"));
 }
 
 bool UFaerieStorageWidgetBase::Initialize()

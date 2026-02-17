@@ -105,6 +105,9 @@ public:
 	// Note: This is the new api. FFaerieAddress will eventually replace public usage of FEntryKey.
 
 public:
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainer")
+	virtual void GetAllAddresses(TArray<FFaerieAddress>& Addresses) const PURE_VIRTUAL(UFaerieItemContainerBase::GetAllAddresses, ; )
+
 	// Is this a valid address in this container?
 	virtual bool Contains(FFaerieAddress Address) const PURE_VIRTUAL(UFaerieItemContainerBase::Contains, return false; )
 

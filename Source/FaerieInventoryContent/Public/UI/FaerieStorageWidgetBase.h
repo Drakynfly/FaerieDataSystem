@@ -6,7 +6,7 @@
 #include "FaerieItemStorage.h"
 #include "FaerieStorageWidgetBase.generated.h"
 
-class UFaerieItemStorageQuery;
+class UFaerieContainerQuery;
 class UInventoryUIActionContainer;
 
 /**
@@ -90,7 +90,7 @@ protected:
 	TArray<FFaerieAddress> SortedAndFilteredAddresses;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Runtime")
-	TObjectPtr<UFaerieItemStorageQuery> StorageQuery;
+	TObjectPtr<UFaerieContainerQuery> StorageQuery;
 
 	/** The storage this widget is representing.  */
 	UPROPERTY(BlueprintReadOnly, Category = "Runtime")

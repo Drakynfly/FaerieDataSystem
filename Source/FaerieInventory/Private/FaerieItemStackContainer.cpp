@@ -160,6 +160,14 @@ int32 UFaerieItemStackContainer::GetStack(const FEntryKey Key) const
 	return 0;
 }
 
+void UFaerieItemStackContainer::GetAllAddresses(TArray<FFaerieAddress>& Addresses) const
+{
+	if (IsFilled())
+	{
+		Addresses.Add(GetCurrentAddress());
+	}
+}
+
 bool UFaerieItemStackContainer::Contains(const FFaerieAddress Address) const
 {
 	return static_cast<int32>(Address.Address) == StoredKey.Value();
