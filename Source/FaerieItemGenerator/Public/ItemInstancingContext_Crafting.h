@@ -2,9 +2,8 @@
 
 #pragma once
 
+#include "FaerieItemSlotInterface.h"
 #include "FaerieItemSource.h"
-#include "ItemSlotHandle.h"
-#include "FaerieItemProxy.h"
 #include "ItemInstancingContext_Crafting.generated.h"
 
 class USquirrel;
@@ -17,7 +16,7 @@ struct FAERIEITEMGENERATOR_API FFaerieItemInstancingContext_Crafting : public FF
 public:
 	// Used to fill Required & Optional Slots (via inputs)
 	UPROPERTY()
-	TMap<FFaerieItemSlotHandle, FFaerieItemProxy> InputEntryData;
+	FFaerieCraftingFilledSlots InputEntryData;
 
 	// Used to fill Required & Optional Slots (generated instances)
 	UPROPERTY()

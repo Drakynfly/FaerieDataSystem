@@ -51,6 +51,15 @@ bool FFaerieItemProxy::IsInstanceMutable() const
 	return false;
 }
 
+FFaerieItemStack FFaerieItemProxy::Release(const int32 Copies) const
+{
+	if (const IFaerieItemDataProxy* ProxyObj = operator->())
+	{
+		return ProxyObj->Release(Copies);
+	}
+	return FFaerieItemStack();
+}
+
 FFaerieItemProxy::operator FFaerieItemStackView() const
 {
 	if (const IFaerieItemDataProxy* ProxyObj = operator->())

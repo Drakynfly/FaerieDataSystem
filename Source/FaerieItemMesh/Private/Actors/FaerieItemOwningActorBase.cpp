@@ -137,10 +137,20 @@ TScriptInterface<IFaerieItemOwnerInterface> AFaerieItemOwningActorBase::GetItemO
 	return const_cast<ThisClass*>(this);
 }
 
-FFaerieItemStack AFaerieItemOwningActorBase::Release(const FFaerieItemStackView Stack)
+FFaerieItemStack AFaerieItemOwningActorBase::Release(const int32 Copies) const
 {
 	// RegenerateDataDisplay will be triggered by the Slot broadcasting to OnItemChanged
-	return ItemStack->Release(Stack);
+	return ItemStack->Release(Copies);
+}
+
+FFaerieItemStack AFaerieItemOwningActorBase::Release(const FFaerieItemStackView Stack)
+{
+	if (Stack.Item == ItemStack->GetItemObject())
+	{
+		// RegenerateDataDisplay will be triggered by the Slot broadcasting to OnItemChanged
+		return ItemStack->Release(Stack.Copies);
+	}
+	return FFaerieItemStack();
 }
 
 bool AFaerieItemOwningActorBase::Possess(const FFaerieItemStack Stack)

@@ -50,8 +50,24 @@ struct FAERIEINVENTORY_API FFaerieAddress
 	}
 };
 
-struct FFaerieItemProxy;
 class UFaerieItemContainerBase;
+
+/**
+ * An item container and a key for some content.
+ */
+USTRUCT(BlueprintType)
+struct FAERIEINVENTORY_API FFaerieEntryHandle
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AddressableHandle")
+	TWeakObjectPtr<UFaerieItemContainerBase> Container;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AddressableHandle")
+	FEntryKey Key;
+
+	bool IsValid() const;
+};
 
 /**
  * An item container and an address for some content.
@@ -68,6 +84,5 @@ struct FAERIEINVENTORY_API FFaerieAddressableHandle
 	FFaerieAddress Address;
 
 	bool IsValid() const;
-
-	FFaerieItemProxy ToProxy() const;
 };
+

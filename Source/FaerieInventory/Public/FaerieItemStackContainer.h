@@ -82,13 +82,14 @@ public:
 	virtual const UFaerieItem* GetItemObject() const override;
 	virtual int32 GetCopies() const override;
 	virtual TScriptInterface<IFaerieItemOwnerInterface> GetItemOwner() const override;
+	virtual FFaerieItemStack Release(int32 Copies) const override;
 	//~ IFaerieItemDataProxy
 
 	//~ IFaerieItemOwnerInterface
-	virtual FFaerieItemStack Release(FFaerieItemStackView Stack) override;
 	virtual bool Possess(FFaerieItemStack Stack) override;
 
 protected:
+	virtual FFaerieItemStack Release(FFaerieItemStackView Stack) override;
 	virtual void OnItemMutated(TNotNull<const UFaerieItem*> Item, TNotNull<const UFaerieItemToken*> Token, FGameplayTag EditTag) override;
 	//~ IFaerieItemOwnerInterface
 

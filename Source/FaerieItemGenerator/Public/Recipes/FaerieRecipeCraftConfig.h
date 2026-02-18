@@ -16,7 +16,7 @@ class FAERIEITEMGENERATOR_API UFaerieRecipeCraftConfig : public UFaerieCraftingA
 {
 	GENERATED_BODY()
 
-	friend struct FFaerieRecipeCraftRequest;
+	friend struct FFaerieCraftRecipeAction;
 
 public:
 #if WITH_EDITOR

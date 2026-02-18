@@ -83,7 +83,7 @@ void FTableDropCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> Prop
     // Only display the slots property if the asset is a graph that needs them, or a value has already been set.
     if (auto&& SlotInterface = Cast<IFaerieItemSlotInterface>(ObjectValue))
     {
-    	const FFaerieCraftingSlotsView SlotsView = Faerie::Crafting::GetCraftingSlots(SlotInterface);
+    	const FFaerieCraftingSlotsView SlotsView = Faerie::Generation::GetCraftingSlots(SlotInterface);
     	const FFaerieItemCraftingSlots& SlotsPtr = SlotsView.Get();
 
     	if (SlotsPtr.RequiredSlots.IsEmpty() &&

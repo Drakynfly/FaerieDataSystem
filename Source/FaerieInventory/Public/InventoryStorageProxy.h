@@ -37,6 +37,7 @@ public:
 	virtual const UFaerieItem* GetItemObject() const override;
 	virtual int32 GetCopies() const override;
 	virtual TScriptInterface<IFaerieItemOwnerInterface> GetItemOwner() const override;
+	virtual FFaerieItemStack Release(int32 Copies) const override;
 	//~ IFaerieItemDataProxy
 
 	FAERIEINVENTORY_API UFaerieItemStorage* GetStorage() const { return ItemStorage.Get(); }

@@ -22,7 +22,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|Crafting", DisplayName = "Submit Crafting Action Async",
 		meta = (BlueprintInternalUseOnly = "true", WorldContext = "WorldContextObj"))
 	static UFaerieSubmitCraftingActionAsync* SubmitCraftingActionAsync(UObject* WorldContextObj,
-		TInstancedStruct<FFaerieCraftingRequestBase> Request);
+		TInstancedStruct<FFaerieCraftingActionBase> Request);
 
 	virtual void Activate() override;
 
@@ -37,5 +37,5 @@ protected:
 	TObjectPtr<UObject> WorldContext;
 
 	UPROPERTY()
-	TInstancedStruct<FFaerieCraftingRequestBase> Request;
+	TInstancedStruct<FFaerieCraftingActionBase> Request;
 };

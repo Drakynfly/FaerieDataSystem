@@ -33,5 +33,5 @@ EDataValidationResult UFaerieRecipeCraftConfig::IsDataValid(FDataValidationConte
 
 FFaerieCraftingSlotsView UFaerieRecipeCraftConfig::GetCraftingSlots() const
 {
-	return Faerie::Crafting::GetCraftingSlots(Recipe);
+	return Faerie::Generation::GetCraftingSlots(Recipe);
 }

@@ -15,6 +15,12 @@ TScriptInterface<IFaerieItemOwnerInterface> UFaerieWidgetPreview::GetItemOwner()
 	return nullptr;
 }
 
+FFaerieItemStack UFaerieWidgetPreview::Release(int32 Copies) const
+{
+	// Release doesn't make sense here, since we are only ever "owning" an asset.
+	return FFaerieItemStack();
+}
+
 void UFaerieWidgetPreview::InitFaerieWidgetPreview(UFaerieItemAsset* InAsset)
 {
 	Asset = InAsset;

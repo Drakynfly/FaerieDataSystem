@@ -26,6 +26,11 @@ TScriptInterface<IFaerieItemOwnerInterface> AFaerieProxyActorBase::GetItemOwner(
 	return DataSource.GetOwner();
 }
 
+FFaerieItemStack AFaerieProxyActorBase::Release(const int32 Copies) const
+{
+	return DataSource.Release(Copies);
+}
+
 void AFaerieProxyActorBase::SetSourceProxy(const FFaerieItemProxy Source)
 {
 	if (Source != DataSource)

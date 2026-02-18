@@ -17,11 +17,12 @@ class FAERIEITEMMESH_API AFaerieProxyActorBase : public AFaerieItemVisualBase
 public:
 	AFaerieProxyActorBase();
 
-	//~ UFaerieItemDataProxy
+	//~ IFaerieItemDataProxy
 	virtual const UFaerieItem* GetItemObject() const override;
 	virtual int32 GetCopies() const override;
 	virtual TScriptInterface<IFaerieItemOwnerInterface> GetItemOwner() const override;
-	//~ UFaerieItemDataProxy
+	virtual FFaerieItemStack Release(int32 Copies) const override;
+	//~ IFaerieItemDataProxy
 
 	FFaerieItemProxy GetSourceProxy() const { return DataSource; }
 

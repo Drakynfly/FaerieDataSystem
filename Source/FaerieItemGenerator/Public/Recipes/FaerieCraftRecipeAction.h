@@ -2,15 +2,15 @@
 
 #pragma once
 
-#include "FaerieCraftingRequestSlot.h"
 #include "FaerieCraftingRunner.h"
-#include "FaerieRecipeCraftRequest.generated.h"
+#include "FaerieItemSlotInterface.h"
+#include "FaerieCraftRecipeAction.generated.h"
 
 class UFaerieRecipeCraftConfig;
 
-// The client assembles these via UI and submits them to the server for validation when requesting an item craft.
+//
 USTRUCT(BlueprintType)
-struct FAERIEITEMGENERATOR_API FFaerieRecipeCraftRequest : public FFaerieCraftingRequestBase
+struct FAERIEITEMGENERATOR_API FFaerieCraftRecipeAction : public FFaerieCraftingActionBase
 {
 	GENERATED_BODY()
 
@@ -21,7 +21,7 @@ struct FAERIEITEMGENERATOR_API FFaerieRecipeCraftRequest : public FFaerieCraftin
 	TObjectPtr<UFaerieRecipeCraftConfig> Config;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Crafting Request")
-	TArray<FFaerieCraftingRequestSlot> Slots;
+	FFaerieCraftingFilledSlots Slots;
 
 	// Should ConsumeSlotCosts be called during Run. This is disabled to preview output before commiting to the action.
 	UPROPERTY(BlueprintReadWrite, Category = "Crafting Request")

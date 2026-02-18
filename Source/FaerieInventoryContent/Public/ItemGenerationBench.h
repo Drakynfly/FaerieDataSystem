@@ -10,6 +10,7 @@ struct FFaerieItemStack;
 struct FFaerieItemMutator;
 class USquirrel;
 class UFaerieItemGenerationConfig;
+class UFaerieItemUpgradeConfig;
 
 /**
  *
@@ -30,9 +31,9 @@ protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, NoClear, Category = "ItemGeneration", meta = (NoResetToDefault))
 	TArray<TObjectPtr<UFaerieItemGenerationConfig>> Drivers;
 
-	// Mutator to run on applicable items generated.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ItemGeneration", meta = (ExcludeBaseStruct))
-	TInstancedStruct<FFaerieItemMutator> Mutator;
+	// Upgrade to run on applicable items generated.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ItemGeneration")
+	TObjectPtr<UFaerieItemUpgradeConfig> Upgrade;
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, NoClear, Category = "ItemGeneration", meta = (NoResetToDefault, DisplayThumbnail = false, ShowInnerProperties))
 	TObjectPtr<USquirrel> Squirrel;

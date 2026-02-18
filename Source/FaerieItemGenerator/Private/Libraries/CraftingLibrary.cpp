@@ -38,11 +38,11 @@ void UFaerieCraftingLibrary::GetCraftingSlots_Message(UObject* Object, FFaerieIt
 
 bool UFaerieCraftingLibrary::IsSlotOptional(const TScriptInterface<IFaerieItemSlotInterface> Interface, const FFaerieItemSlotHandle& Name)
 {
-    return Faerie::Crafting::IsSlotOptional(Interface.GetInterface(), Name);
+    return Faerie::Generation::IsSlotOptional(Interface.GetInterface(), Name);
 }
 
 bool UFaerieCraftingLibrary::FindSlot(const TScriptInterface<IFaerieItemSlotInterface> Interface,
                                       const FFaerieItemSlotHandle& Name, UFaerieItemTemplate*& OutSlot)
 {
-    return Faerie::Crafting::FindSlot(Interface.GetInterface(), Name, OutSlot);
+    return Faerie::Generation::FindSlot(Interface.GetInterface(), Name, OutSlot);
 }

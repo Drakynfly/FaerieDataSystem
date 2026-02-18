@@ -42,6 +42,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataProxy")
 	virtual TScriptInterface<IFaerieItemOwnerInterface> GetItemOwner() const PURE_VIRTUAL(IFaerieItemDataProxy::GetItemOwner, return nullptr; )
 
+	// Release copies of this proxy as an item stack from its owner. Currently limited to C++ usage.
+	virtual FFaerieItemStack Release(int32 Copies) const PURE_VIRTUAL(IFaerieItemDataProxy::Release, return FFaerieItemStack(); )
+
 #if WITH_EDITOR
 	// Stub for UFaerieItemAssetThumbnailRenderer to provide a thumbnail object for the editor.
 	virtual class UThumbnailInfo* GetThumbnailInfo() const { return nullptr; }
@@ -87,6 +90,7 @@ public:
 	int32 GetCopies() const;
 	TScriptInterface<IFaerieItemOwnerInterface> GetOwner() const;
 	bool IsInstanceMutable() const;
+	FFaerieItemStack Release(int32 Copies) const;
 
 	FORCEINLINE const IFaerieItemDataProxy* operator->() const { return Cast<IFaerieItemDataProxy>(Proxy.Get()); }
 

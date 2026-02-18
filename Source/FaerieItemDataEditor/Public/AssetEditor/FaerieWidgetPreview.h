@@ -21,6 +21,7 @@ public:
 	virtual const UFaerieItem* GetItemObject() const override;
 	virtual int32 GetCopies() const override { return 1; }
 	virtual TScriptInterface<IFaerieItemOwnerInterface> GetItemOwner() const override;
+	virtual FFaerieItemStack Release(int32 Copies) const override;
 	//~ IFaerieItemDataProxy
 
 	void InitFaerieWidgetPreview(UFaerieItemAsset* InAsset);

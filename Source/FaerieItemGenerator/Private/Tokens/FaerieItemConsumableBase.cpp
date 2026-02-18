@@ -2,7 +2,6 @@
 
 #include "Tokens/FaerieItemConsumableBase.h"
 #include "FaerieItem.h"
-#include "FaerieItemOwnerInterface.h"
 #include "Tokens/FaerieItemUsesToken.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemConsumableBase)

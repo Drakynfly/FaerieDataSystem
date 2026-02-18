@@ -3,7 +3,6 @@
 #pragma once
 
 #include "FaerieItemStack.h"
-#include "UObject/Object.h"
 #include "FaerieItemMutator.generated.h"
 
 class USquirrel;

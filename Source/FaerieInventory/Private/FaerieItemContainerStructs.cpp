@@ -5,12 +5,12 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemContainerStructs)
 
+bool FFaerieEntryHandle::IsValid() const
+{
+	return Container.IsValid() && Container->Contains(Key);
+}
+
 bool FFaerieAddressableHandle::IsValid() const
 {
 	return Container.IsValid() && Container->Contains(Address);
-}
-
-FFaerieItemProxy FFaerieAddressableHandle::ToProxy() const
-{
-	return FFaerieItemProxy(Container->Proxy(Address));
 }

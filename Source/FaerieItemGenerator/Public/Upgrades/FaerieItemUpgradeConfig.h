@@ -30,4 +30,8 @@ public:
 	// Should this upgrade fail if the mutator cannot apply?
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upgrade Config")
 	bool RequireMutatorToRun = false;
+
+	// Should this upgrade release proxies from their owner, rather than mutate in place.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upgrade Config")
+	bool ReleaseWhileOperating = false;
 };

@@ -34,6 +34,11 @@ TScriptInterface<IFaerieItemOwnerInterface> UInventoryStackProxy::GetItemOwner()
 	return GetStorage();
 }
 
+FFaerieItemStack UInventoryStackProxy::Release(const int32 Copies) const
+{
+	return ItemStorage->Release(GetKey(), Copies);
+}
+
 FEntryKey UInventoryStackProxy::GetKey() const
 {
 	return UFaerieItemStorage::GetAddressEntry(Address);

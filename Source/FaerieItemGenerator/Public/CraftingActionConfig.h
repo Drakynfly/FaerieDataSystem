@@ -2,14 +2,14 @@
 
 #pragma once
 
-#include "UObject/Object.h"
+#include "Engine/DataAsset.h"
 #include "CraftingActionConfig.generated.h"
 
 /**
 * Base class for configuration objects passed into UFaerieItemCraftingSubsystem functions.
 */
-UCLASS(Abstract, Const, DefaultToInstanced, EditInlineNew, BlueprintType, ClassGroup = "Faerie", CollapseCategories)
-class FAERIEITEMGENERATOR_API UFaerieCraftingActionConfig : public UObject
+UCLASS(Abstract, Const, BlueprintType, ClassGroup = "Faerie", CollapseCategories)
+class FAERIEITEMGENERATOR_API UFaerieCraftingActionConfig : public UDataAsset
 {
 	GENERATED_BODY()
 

@@ -9,11 +9,11 @@
 
 #include "FaerieCraftingRunner.generated.h"
 
-struct FInstancedStruct;
 struct FFaerieItemStack;
 struct FStreamableHandle;
 class FTimerManager;
 class UFaerieCraftingRunner;
+class UFaerieItemCraftingSubsystem;
 class USquirrel;
 
 UENUM(BlueprintType)
@@ -31,13 +31,13 @@ namespace Faerie
 }
 
 USTRUCT(BlueprintType)
-struct FFaerieCraftingRequestBase
+struct FFaerieCraftingActionBase
 {
 	GENERATED_BODY()
 
-	virtual ~FFaerieCraftingRequestBase() = default;
+	virtual ~FFaerieCraftingActionBase() = default;
 
-	// Virtual run function. This must be implemented per subtype. It must finish before the timer has ran out.
+	// Virtual run function. This must be implemented per subtype. It must finish before the timer runs out.
 	virtual void Run(UFaerieCraftingRunner* Runner) const
 		PURE_VIRTUAL(FFaerieCraftingRequestBase::Run, )
 
@@ -56,45 +56,21 @@ struct FFaerieCraftingActionData
 	TArray<FFaerieItemStack> ProcessStacks;
 };
 
-USTRUCT(BlueprintType)
-struct FCraftingActionSparseClassStruct
-{
-	GENERATED_BODY()
-
-	FCraftingActionSparseClassStruct() = default;
-
-	// The maximum duration an action can run, in seconds, before timing out.
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Configuration", meta = (Units = s))
-	float DefaultTimeoutTime = 30.f;
-};
-
-class IFaerieItemSlotInterface;
-class UFaerieItemCraftingSubsystem;
-
 /**
  *
  */
-UCLASS(ClassGroup = "Faerie", Within = FaerieItemCraftingSubsystem, SparseClassDataTypes = CraftingActionSparseClassStruct)
+UCLASS(ClassGroup = "Faerie", Within = FaerieItemCraftingSubsystem)
 class FAERIEITEMGENERATOR_API UFaerieCraftingRunner final : public UObject
 {
 	GENERATED_BODY()
 
-public:
-	virtual UWorld* GetWorld() const override;
-
-	Faerie::FGenerationActionComplete::RegistrationType& GetOnCompletedCallback() { return OnCompletedCallback; }
+	friend UFaerieItemCraftingSubsystem;
 
 private:
-	FTimerManager& GetTimerManager() const;
-
-	void OnTimeout();
-
 	// This MUST be called during the actions execution or this action will be timed-out.
 	void Finish(EGenerationActionResult Result);
 
 public:
-	void Start(const TInstancedStruct<FFaerieCraftingRequestBase>& Request);
-
 	UFUNCTION(BlueprintCallable, Category = "Faerie|CraftingAction")
 	void Cancel();
 
@@ -112,8 +88,9 @@ public:
 	TSharedPtr<FStreamableHandle> RunningStreamHandle;
 
 private:
+	// Keep the Action alive while we are running.
 	UPROPERTY()
-	TInstancedStruct<FFaerieCraftingRequestBase> RunningRequest;
+	TInstancedStruct<FFaerieCraftingActionBase> RunningAction;
 
 	UPROPERTY()
 	FTimerHandle TimerHandle;
@@ -126,20 +103,3 @@ private:
 
 	Faerie::FGenerationActionComplete OnCompletedCallback;
 };
-
-// @todo move elsewhere
-USTRUCT()
-struct FFaerieCraftingActionSlots : public FFaerieCraftingActionData
-{
-	GENERATED_BODY()
-
-	// Crafting slots, and the proxy being used to provide data to them.
-	UPROPERTY()
-	TMap<FFaerieItemSlotHandle, FFaerieItemProxy> FilledSlots;
-};
-
-namespace Faerie
-{
-	// Remove items and durability from the entries in Slots used to fund this action.
-	void ConsumeSlotCosts(const TMap<FFaerieItemSlotHandle, FFaerieItemProxy>& Slots, const IFaerieItemSlotInterface* Interface);
-}

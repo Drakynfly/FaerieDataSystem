@@ -1,9 +1,8 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
-#include "Generation/FaerieItemGenerationRequest.h"
+#include "Generation/FaerieItemGenerationAction.h"
 #include "Generation/FaerieItemGenerationConfig.h"
 
-#include "FaerieItem.h"
 #include "FaerieItemGenerationLog.h"
 #include "FaerieItemPool.h"
 #include "FaerieItemStack.h"
@@ -12,11 +11,11 @@
 #include "Engine/StreamableManager.h"
 #include "Engine/World.h"
 
-#include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemGenerationRequest)
+#include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemGenerationAction)
 
 #define LOCTEXT_NAMESPACE "FaerieItemGenerationRequest"
 
-void FFaerieItemGenerationRequest::Run(UFaerieCraftingRunner* Runner) const
+void FFaerieItemGenerationAction::Run(UFaerieCraftingRunner* Runner) const
 {
 	// Step 0: Validate parameters
 
@@ -57,7 +56,7 @@ void FFaerieItemGenerationRequest::Run(UFaerieCraftingRunner* Runner) const
 	LoadCheck(nullptr, Runner);
 }
 
-void FFaerieItemGenerationRequest::LoadCheck(TSharedPtr<FStreamableHandle> Handle, UFaerieCraftingRunner* Runner) const
+void FFaerieItemGenerationAction::LoadCheck(TSharedPtr<FStreamableHandle> Handle, UFaerieCraftingRunner* Runner) const
 {
 	TArray<FSoftObjectPath> ObjectsToLoad;
 
@@ -117,7 +116,7 @@ void FFaerieItemGenerationRequest::LoadCheck(TSharedPtr<FStreamableHandle> Handl
 	{
 		// Suspend generation to async load drop assets, then continue
 		Runner->RunningStreamHandle = UAssetManager::GetStreamableManager().RequestAsyncLoad(ObjectsToLoad,
-			FStreamableDelegateWithHandle::CreateRaw(this, &FFaerieItemGenerationRequest::LoadCheck, Runner));
+			FStreamableDelegateWithHandle::CreateRaw(this, &FFaerieItemGenerationAction::LoadCheck, Runner));
 		return;
 	}
 
@@ -131,7 +130,7 @@ void FFaerieItemGenerationRequest::LoadCheck(TSharedPtr<FStreamableHandle> Handl
 	return Generate(Runner);
 }
 
-void FFaerieItemGenerationRequest::Generate(UFaerieCraftingRunner* Runner) const
+void FFaerieItemGenerationAction::Generate(UFaerieCraftingRunner* Runner) const
 {
 	FFaerieItemGenerationRequestStorage& Storage = Runner->RequestStorage.GetMutable<FFaerieItemGenerationRequestStorage>();
 
@@ -167,7 +166,7 @@ void FFaerieItemGenerationRequest::Generate(UFaerieCraftingRunner* Runner) const
 	}
 }
 
-void FFaerieItemGenerationRequest::ResolveGeneration(FFaerieItemGenerationRequestStorage& Storage, const Faerie::FPendingItemGeneration& Generation, const FFaerieItemInstancingContext_Crafting& Context) const
+void FFaerieItemGenerationAction::ResolveGeneration(FFaerieItemGenerationRequestStorage& Storage, const Faerie::FPendingItemGeneration& Generation, const FFaerieItemInstancingContext_Crafting& Context) const
 {
 	// If the source object is a Pool, and we are configured to recurse tables,
 	const UObject* SourceObject = Generation.Drop->Asset.Object.Get();

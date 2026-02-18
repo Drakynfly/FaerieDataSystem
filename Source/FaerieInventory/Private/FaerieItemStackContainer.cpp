@@ -268,9 +268,21 @@ TScriptInterface<IFaerieItemOwnerInterface> UFaerieItemStackContainer::GetItemOw
 {
 	return const_cast<ThisClass*>(this);
 }
+
+FFaerieItemStack UFaerieItemStackContainer::Release(const int32 Copies) const
+{
+	// Const-Cast'ing is fine here, since we are both the Proxy and Owner.
+	return const_cast<ThisClass*>(this)->TakeItemFromSlot(Copies, Faerie::Inventory::Tags::RemovalMoving);
+}
+
 //~ IFaerieItemDataProxy
 
 //~ IFaerieItemOwnerInterface
+bool UFaerieItemStackContainer::Possess(const FFaerieItemStack Stack)
+{
+	return SetItemInSlot(Stack);
+}
+
 FFaerieItemStack UFaerieItemStackContainer::Release(const FFaerieItemStackView Stack)
 {
 	if (Stack.Item == ItemStack.Item)
@@ -278,11 +290,6 @@ FFaerieItemStack UFaerieItemStackContainer::Release(const FFaerieItemStackView S
 		return TakeItemFromSlot(Stack.Copies, Faerie::Inventory::Tags::RemovalMoving);
 	}
 	return FFaerieItemStack();
-}
-
-bool UFaerieItemStackContainer::Possess(const FFaerieItemStack Stack)
-{
-	return SetItemInSlot(Stack);
 }
 
 void UFaerieItemStackContainer::OnItemMutated(const TNotNull<const UFaerieItem*> Item, const TNotNull<const UFaerieItemToken*> Token, const FGameplayTag EditTag)

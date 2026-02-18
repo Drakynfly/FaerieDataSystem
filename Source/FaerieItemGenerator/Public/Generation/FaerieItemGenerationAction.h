@@ -4,7 +4,7 @@
 
 #include "FaerieCraftingRunner.h"
 #include "FaerieGenerationStructs.h"
-#include "FaerieItemGenerationRequest.generated.h"
+#include "FaerieItemGenerationAction.generated.h"
 
 class UFaerieItemGenerationConfig;
 
@@ -17,9 +17,9 @@ struct FFaerieItemGenerationRequestStorage : public FFaerieCraftingActionData
 	TArray<Faerie::FPendingItemGeneration> PendingGenerations;
 };
 
-// The client assembles these via UI and submits them to the server for validation when requesting an item generation.
+//
 USTRUCT(BlueprintType)
-struct FAERIEITEMGENERATOR_API FFaerieItemGenerationRequest : public FFaerieCraftingRequestBase
+struct FAERIEITEMGENERATOR_API FFaerieItemGenerationAction : public FFaerieCraftingActionBase
 {
 	GENERATED_BODY()
 

@@ -30,6 +30,8 @@ public:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	//~ AActor
 
+	// As this class is abstract it doesn't implement IFaerieItemDataProxy's interface, it just requires that it's children will.
+
 	Faerie::FOnVisualActorDisplayFinished::RegistrationType& GetOnDisplayFinished() { return OnDisplayFinished; }
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Faerie|ItemRepresentationActor")
