@@ -5,7 +5,7 @@
 #include "FaerieGridEnums.h"
 #include "SpatialTypes.generated.h"
 
-namespace Faerie
+namespace Faerie::Extensions
 {
 	class FBitMatrix;
 }
@@ -34,9 +34,9 @@ struct FAERIEINVENTORYCONTENT_API FFaerieGridShape
 	bool IsSymmetrical() const;
 
 	//Matrix
-	Faerie::FBitMatrix ToMatrix() const;
-	static TArray<FIntPoint> MatrixToPoints(const Faerie::FBitMatrix& Matrix, FIntPoint Origin);
-	static void RotateMatrixClockwise(Faerie::FBitMatrix& Matrix, ESpatialItemRotation Rotation = ESpatialItemRotation::None);
+	Faerie::Extensions::FBitMatrix ToMatrix() const;
+	static TArray<FIntPoint> MatrixToPoints(const Faerie::Extensions::FBitMatrix& Matrix, FIntPoint Origin);
+	static void RotateMatrixClockwise(Faerie::Extensions::FBitMatrix& Matrix, ESpatialItemRotation Rotation = ESpatialItemRotation::None);
 
 	bool Contains(const FIntPoint& Position) const;
 	[[nodiscard]] bool Overlaps(const FFaerieGridShape& Other) const;

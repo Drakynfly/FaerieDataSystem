@@ -8,7 +8,7 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieMeshStructs)
 
-namespace Faerie::ItemMesh::Tags
+namespace Faerie::Mesh::Tags
 {
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(MeshPurpose_Default, FName{TEXTVIEW("MeshPurpose.Default")}, "Only mesh, or mesh used as fallback if others fail")
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(MeshPurpose_Display, FName{TEXTVIEW("MeshPurpose.Display")}, "Mesh for visual display, e.g item pickups.")

@@ -9,7 +9,7 @@ class IFaerieItemDataProxy;
 class UFaerieItem;
 class UFaerieItemToken;
 
-namespace Faerie
+namespace Faerie::ItemData
 {
 	template <typename T>
 	concept CItem = TIsDerivedFrom<typename TRemoveReference<T>::Type, UFaerieItem>::Value;

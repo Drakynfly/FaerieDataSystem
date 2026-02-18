@@ -8,6 +8,8 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemGenerationConfig)
 
+using namespace Faerie;
+
 UFaerieItemGenerationConfig::UFaerieItemGenerationConfig()
 {
 	ProcedureResolver = TInstancedStruct<FFaerieGenerationProcedureBase>::Make<FFaerieGenerationProcedure_OfOne>();
@@ -50,7 +52,7 @@ TInstancedStruct<FFaerieGeneratorAmountBase> UFaerieItemGenerationConfig::GetAmo
 	return AmountResolver;
 }
 
-void UFaerieItemGenerationConfig::Resolve(TArray<Faerie::FPendingItemGeneration>& Generations, USquirrel* Squirrel) const
+void UFaerieItemGenerationConfig::Resolve(TArray<Generation::FPendingTableDrop>& Generations, USquirrel* Squirrel) const
 {
 	if (const FFaerieGenerationProcedureBase* Proc = ProcedureResolver.GetPtr())
 	{

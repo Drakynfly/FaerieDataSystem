@@ -13,7 +13,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FFaerieGridSizeChanged, FIntPoint, N
 using FFaerieGridStackChangedNative = TMulticastDelegate<void(FFaerieAddress, EFaerieGridEventType)>;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FSpatialStackChanged, FFaerieAddress, Address, EFaerieGridEventType, EventType);
 
-namespace Faerie
+namespace Faerie::Extensions
 {
 	class FCellGrid
 	{
@@ -121,7 +121,7 @@ protected:
 	TObjectPtr<UFaerieItemContainerBase> InitializedContainer;
 
 	// Locally tracked grid of which cells are occupied.
-	Faerie::FCellGrid OccupiedCells;
+	Faerie::Extensions::FCellGrid OccupiedCells;
 
 private:
 	UPROPERTY(BlueprintAssignable, Category = "Events", meta = (AllowPrivateAccess = "true"))

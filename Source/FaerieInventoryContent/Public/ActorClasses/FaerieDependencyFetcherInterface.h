@@ -26,7 +26,7 @@ public:
 	bool FetchDependency(TSubclassOf<UActorComponent> Class, UActorComponent*& Component) const;
 };
 
-namespace Faerie
+namespace Faerie::Common
 {
 	template <
 		typename TActorComponent

@@ -4,7 +4,7 @@
 #include "AssetEditor/FaerieItemAssetPreviewScene.h"
 #include "AssetEditor/FaerieItemAssetViewport.h"
 
-namespace Faerie::Ed
+namespace Faerie::Editor
 {
 	FItemAssetViewportClient::FItemAssetViewportClient(const TSharedRef<SItemAssetEditorViewport>& InThumbnailViewport,
 																   const TSharedRef<FItemDataProxyPreviewScene>& InPreviewScene)
@@ -58,7 +58,7 @@ namespace Faerie::Ed
 			AspectToUse = Viewport->GetDesiredAspectRatio();
 		}
 
-		const bool bEnable = false;
+		constexpr bool bEnable = false;
 		ToggleOrbitCamera(bEnable);
 
 		/**

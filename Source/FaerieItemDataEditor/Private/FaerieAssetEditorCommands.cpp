@@ -5,7 +5,7 @@
 
 #define LOCTEXT_NAMESPACE "FAssetEditorCommands"
 
-namespace Faerie
+namespace Faerie::Editor
 {
 	void FAssetEditorCommands::RegisterCommands()
 	{

@@ -7,7 +7,7 @@
 class UObject;
 class UFaerieItem;
 
-namespace Faerie
+namespace Faerie::ItemData
 {
 	// Validate that an item is valid. Used after loading an item from disk/data.
 	FAERIEINVENTORY_API [[nodiscard]] bool ValidateItemData(const UFaerieItem* Item);

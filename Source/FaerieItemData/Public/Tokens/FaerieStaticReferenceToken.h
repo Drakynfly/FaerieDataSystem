@@ -42,7 +42,7 @@ protected:
 	TArray<FFaerieTaggedStaticReference> References;
 };
 
-namespace Faerie
+namespace Faerie::Token
 {
 	// Gets a view of all tokens for a reference.
 	FAERIEITEMDATA_API TConstArrayView<TObjectPtr<UFaerieItemToken>> GetReferencedTokens(const UFaerieItem& Item, FGameplayTag ReferenceTag, bool MatchExact = false);
@@ -54,7 +54,7 @@ namespace Faerie
 	FAERIEITEMDATA_API const UFaerieItemToken* GetReferencedToken(const UFaerieItem& Item, const TSubclassOf<UFaerieItemToken>& Class, FGameplayTag ReferenceTag, bool MatchExact = false);
 
 	// Gets the first token of the specified class.
-	template <CItemTokenImpl T>
+	template <ItemData::CItemTokenImpl T>
 	const T* GetReferencedToken(const UFaerieItem& Item, FGameplayTag ReferenceTag, bool MatchExact = false)
 	{
 		return CastChecked<T>(GetReferencedToken(Item, T::StaticClass(), ReferenceTag, MatchExact), ECastCheckedType::NullAllowed);

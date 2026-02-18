@@ -46,15 +46,15 @@ struct FFaerieEquipmentSaveData
 	FGameplayTagContainer RemovedDefaultSlots;
 };
 
-namespace Faerie::Equipment::Tags
+namespace Faerie::Equipment
 {
-	FAERIEEQUIPMENT_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, SlotCreated)
-	FAERIEEQUIPMENT_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, SlotDeleted)
-}
+	namespace Tags
+	{
+		FAERIEEQUIPMENT_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, SlotCreated)
+		FAERIEEQUIPMENT_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, SlotDeleted)
+	}
 
-namespace Faerie
-{
-	using FEquipmentSlotEvent = TMulticastDelegate<void(UFaerieEquipmentSlot*, FFaerieInventoryTag)>;
+	using FSlotEvent = TMulticastDelegate<void(UFaerieEquipmentSlot*, FFaerieInventoryTag)>;
 }
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FEquipmentChangedEvent, UFaerieEquipmentSlot*, Slot, FFaerieInventoryTag, Event);
 
@@ -114,7 +114,7 @@ public:
 	/*			SLOTS API			 */
 	/**------------------------------*/
 
-	Faerie::FEquipmentSlotEvent::RegistrationType& GetOnEquipmentSlotEvent() { return OnEquipmentSlotEventNative; }
+	Faerie::Equipment::FSlotEvent::RegistrationType& GetOnEquipmentSlotEvent() { return OnEquipmentSlotEventNative; }
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentManager")
 	UFaerieEquipmentSlot* AddSlot(const FFaerieEquipmentSlotConfig& Config);
@@ -181,7 +181,7 @@ protected:
 	FEquipmentChangedEvent OnEquipmentChangedEvent;
 
 private:
-	Faerie::FEquipmentSlotEvent OnEquipmentSlotEventNative;
+	Faerie::Equipment::FSlotEvent OnEquipmentSlotEventNative;
 
 protected:
 	// Slots and their extensions to add to this equipment manager by default.

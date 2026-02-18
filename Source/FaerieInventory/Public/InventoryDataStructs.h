@@ -73,7 +73,7 @@ private:
 	int32 Limit = 0;
 
 	// Internal count of how many stacks we've made. Used to track key creation. Only valid on the server.
-	Faerie::TKeyGen<FStackKey> KeyGen;
+	Faerie::Inventory::TKeyGen<FStackKey> KeyGen;
 
 	int32 GetStackIndex(FStackKey InKey) const;
 	const FKeyedStack* GetStackPtr(FStackKey InKey) const;

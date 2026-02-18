@@ -12,7 +12,7 @@ class UFaerieItemAsset;
 class UFaerieItemMeshLoader;
 class UFaerieItemMeshComponent;
 
-namespace Faerie::Ed
+namespace Faerie::Editor
 {
 	class FItemAssetPreviewSceneThumbnail final : public FThumbnailPreviewScene
 	{

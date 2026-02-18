@@ -4,7 +4,7 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemCardTags)
 
-namespace Faerie
+namespace Faerie::Card::Tags
 {
 	UE_DEFINE_GAMEPLAY_TAG_TYPED(FFaerieItemCardType, CardTypeBase, "Fae.CardType")
 	UE_DEFINE_GAMEPLAY_TAG_TYPED_COMMENT(FFaerieItemCardType, CardType_Full, "Fae.CardType.Full", "A large widget for displaying a highlighted/hovered item")

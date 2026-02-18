@@ -32,7 +32,7 @@ void UFaerieItemContainerBase::GetLifetimeReplicatedProps(TArray<FLifetimeProper
 
 void UFaerieItemContainerBase::InitializeNetObject(AActor* Actor)
 {
-	ensureAlwaysMsgf(!Faerie::HasLoadFlag(this),
+	ensureAlwaysMsgf(!Faerie::Utils::HasLoadFlag(this),
 		TEXT("Containers must not be assets loaded from disk. (DuplicateObjectFromDiskForReplication or ClearLoadFlags can fix this)"
 			LINE_TERMINATOR
 			"	Failing Container: '%s'"), *GetFullName());
@@ -65,7 +65,7 @@ bool UFaerieItemContainerBase::Possess(FFaerieItemStack Stack)
 void UFaerieItemContainerBase::OnItemMutated(const TNotNull<const UFaerieItem*> Item, const TNotNull<const UFaerieItemToken*> Token, const FGameplayTag EditTag)
 {
 	// @todo more logic from the TakeOwnership protocol might belong here, in which case, maybe just move most of this there.
-	if (EditTag == Tags::TokenAdd)
+	if (EditTag == Token::Tags::TokenAdd)
 	{
 		if (AActor* Actor = GetTypedOuter<AActor>();
 			IsValid(Actor) && Actor->IsUsingRegisteredSubObjectList())
@@ -78,7 +78,7 @@ void UFaerieItemContainerBase::OnItemMutated(const TNotNull<const UFaerieItem*> 
 		}
 		return;
 	}
-	if (EditTag == Tags::TokenRemove)
+	if (EditTag == Token::Tags::TokenRemove)
 	{
 		if (AActor* Actor = GetTypedOuter<AActor>();
 			IsValid(Actor) && Actor->IsUsingRegisteredSubObjectList())
@@ -115,7 +115,7 @@ void UFaerieItemContainerBase::RavelExtensionData(TMap<FGuid, FInstancedStruct>&
 
 	auto ExtractSaveData = [&ExtensionData](const UFaerieItemContainerBase* Container)
 	{
-		for (auto&& Extension : Extension::FRecursiveConstExtensionIterator(Container->Extensions))
+		for (auto&& Extension : Extensions::FRecursiveConstExtensionIterator(Container->Extensions))
 		{
 			const FGuid Identifier = Extension->GetIdentifier();
 			if (!ensure(Identifier.IsValid())) return;
@@ -153,7 +153,7 @@ void UFaerieItemContainerBase::UnravelExtensionData(UFaerieItemContainerExtensio
 		return;
 	}
 
-	for (auto&& Extension : Extension::FRecursiveExtensionIterator(Extensions))
+	for (auto&& Extension : Extensions::FRecursiveExtensionIterator(Extensions))
 	{
 		TryApplyUnclaimedSaveData(Extension);
 	}
@@ -161,7 +161,7 @@ void UFaerieItemContainerBase::UnravelExtensionData(UFaerieItemContainerExtensio
 	TArray<UFaerieItemContainerBase*> SubContainers;
 	for (UFaerieItem* Item : Container::ItemRange(this))
 	{
-		SubContainers.Append(GetAllContainersInItem(Item));
+		SubContainers.Append(SubObject::GetAllContainersInItem(Item));
 	}
 
 	for (UFaerieItemContainerBase* SubContainer : SubContainers)

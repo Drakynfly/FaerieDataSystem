@@ -23,7 +23,7 @@ struct FFaerieItemTokenSparseClassStruct
 	FGameplayTagContainer ClassTags;
 };
 
-namespace Faerie::Tags
+namespace Faerie::Token::Tags
 {
 	// Tag assigned to "Primary" identifiers. Primary tokens are used to distinguish items without doing full comparisons.
 	// See UFaerieItem::CompareWith
@@ -101,7 +101,7 @@ public:
 	// method to gain access to the non-const API of UFaerieItemToken.
 	[[nodiscard]] UFaerieItemToken* MutateCast() const;
 
-	template <Faerie::CItemTokenImpl T>
+	template <Faerie::ItemData::CItemTokenImpl T>
 	T* MutateCast() const
 	{
 		return CastChecked<T>(MutateCast(), ECastCheckedType::NullAllowed);
@@ -109,10 +109,10 @@ public:
 
 	void EditToken(const TFunctionRef<bool(UFaerieItemToken*)>& EditFunc);
 
-	template <Faerie::CItemTokenImpl T>
+	template <Faerie::ItemData::CItemTokenImpl T>
 	void EditToken(const TFunctionRef<bool(T*)>& EditFunc)
 	{
-		EditToken(Type::Cast<TFunctionRef<bool(UFaerieItemToken*)>>(EditFunc));
+		EditToken(Faerie::Utils::Cast<TFunctionRef<bool(UFaerieItemToken*)>>(EditFunc));
 	}
 
 protected:

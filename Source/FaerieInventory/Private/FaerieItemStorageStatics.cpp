@@ -13,7 +13,7 @@
 #include "GameFramework/Actor.h"
 #include "Tokens/FaerieItemStorageToken.h"
 
-namespace Faerie
+namespace Faerie::ItemData
 {
 	bool ValidateItemData(const UFaerieItem* Item)
 	{

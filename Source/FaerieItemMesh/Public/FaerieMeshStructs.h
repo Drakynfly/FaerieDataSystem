@@ -9,7 +9,7 @@
 
 class UDynamicMesh;
 
-namespace Faerie::ItemMesh::Tags
+namespace Faerie::Mesh::Tags
 {
 	FAERIEITEMMESH_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(MeshPurpose_Default)
 	FAERIEITEMMESH_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(MeshPurpose_Display)

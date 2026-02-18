@@ -2,7 +2,7 @@
 
 #include "BitMatrix.h"
 
-namespace Faerie
+namespace Faerie::Extensions
 {
 	FBitMatrix::FBitMatrix(const int32 Dim)
 	  : Dim(Dim)

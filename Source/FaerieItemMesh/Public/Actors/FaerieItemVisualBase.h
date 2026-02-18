@@ -8,7 +8,7 @@
 
 class AFaerieItemVisualBase;
 
-namespace Faerie
+namespace Faerie::Mesh
 {
 	using FOnVisualActorDisplayFinished = TMulticastDelegate<void(bool)>;
 }
@@ -32,7 +32,7 @@ public:
 
 	// As this class is abstract it doesn't implement IFaerieItemDataProxy's interface, it just requires that it's children will.
 
-	Faerie::FOnVisualActorDisplayFinished::RegistrationType& GetOnDisplayFinished() { return OnDisplayFinished; }
+	Faerie::Mesh::FOnVisualActorDisplayFinished::RegistrationType& GetOnDisplayFinished() { return OnDisplayFinished; }
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Faerie|ItemRepresentationActor")
 	USceneComponent* GetDefaultMeshComponent() const;
@@ -50,5 +50,5 @@ public:
 protected:
 	void RegenerateDataDisplay();
 
-	Faerie::FOnVisualActorDisplayFinished OnDisplayFinished;
+	Faerie::Mesh::FOnVisualActorDisplayFinished OnDisplayFinished;
 };

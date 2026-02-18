@@ -15,7 +15,9 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(EquipmentVisualizer)
 
-namespace Faerie
+using namespace Faerie;
+
+namespace Faerie::Equipment
 {
 	// @todo these are hardcoded for now.
 	static const FAttachmentTransformRules TempTransformRules{
@@ -225,7 +227,7 @@ AActor* UEquipmentVisualizer::SpawnVisualActor(const FFaerieVisualKey Key, const
 
 		if (Attachment.Parent.IsValid())
 		{
-			Faerie::UpdateActorAttachment(NewActor, Attachment);
+			Equipment::UpdateActorAttachment(NewActor, Attachment);
 
 			KeyedMetadata.FindOrAdd(Key).Attachment = Attachment;
 		}
@@ -263,7 +265,7 @@ USceneComponent* UEquipmentVisualizer::SpawnVisualComponent(const FFaerieVisualK
 
 		KeyedMetadata.FindOrAdd(Key).Attachment = Attachment;
 
-		Faerie::UpdateComponentAttachment(NewComponent, Attachment);
+		Equipment::UpdateComponentAttachment(NewComponent, Attachment);
 
 		KeyedMetadata.FindOrAdd(Key).ChangeCallback.Broadcast(Key, NewComponent);
 		OnAnyVisualSpawnedNative.Broadcast(Key, NewComponent);
@@ -361,7 +363,7 @@ FEquipmentVisualAttachment UEquipmentVisualizer::FindAttachment(const FFaerieIte
 	const IFaerieContainerExtensionInterface* Container = Cast<IFaerieContainerExtensionInterface>(Proxy->GetItemOwner().GetObject());
 
 	// If there is a VisualSlotExtension on this container, then defer to it.
-	SlotExtension = Faerie::GetExtension<UVisualSlotExtension>(Container, true);
+	SlotExtension = Extensions::Get<UVisualSlotExtension>(Container, true);
 
 	AActor* ParentActor = nullptr;
 	USceneComponent* ParentComponent = nullptr;
@@ -467,11 +469,11 @@ void UEquipmentVisualizer::ResetAttachment(const FFaerieVisualKey Key)
 
 	if (AActor* Visual = GetSpawnedActorByKey(Key))
 	{
-		Faerie::UpdateActorAttachment(Visual, Metadata->Attachment);
+		Equipment::UpdateActorAttachment(Visual, Metadata->Attachment);
 	}
 	else if (USceneComponent* VisualComponent = GetSpawnedComponentByKey(Key))
 	{
-		Faerie::UpdateComponentAttachment(VisualComponent, Metadata->Attachment);
+		Equipment::UpdateComponentAttachment(VisualComponent, Metadata->Attachment);
 	}
 }
 
@@ -479,11 +481,11 @@ void UEquipmentVisualizer::MoveAttachment(const FFaerieVisualKey Key, const FEqu
 {
 	if (AActor* Visual = GetSpawnedActorByKey(Key))
 	{
-		Faerie::UpdateActorAttachment(Visual, Attachment);
+		Equipment::UpdateActorAttachment(Visual, Attachment);
 	}
 	else if (USceneComponent* VisualComponent = GetSpawnedComponentByKey(Key))
 	{
-		Faerie::UpdateComponentAttachment(VisualComponent, Attachment);
+		Equipment::UpdateComponentAttachment(VisualComponent, Attachment);
 	}
 }
 

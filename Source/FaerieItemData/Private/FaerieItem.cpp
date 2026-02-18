@@ -13,7 +13,7 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItem)
 
-namespace Faerie::Tags
+namespace Faerie::Token::Tags
 {
 	UE_DEFINE_GAMEPLAY_TAG(TokenAdd, "Fae.Token.Add")
 	UE_DEFINE_GAMEPLAY_TAG(TokenRemove, "Fae.Token.Remove")
@@ -164,7 +164,7 @@ const UFaerieItemToken* UFaerieItem::GetOwnedTokenImpl(const TSubclassOf<UFaerie
 UFaerieItem* UFaerieItem::CreateNewInstance(const TConstArrayView<UFaerieItemToken*> Tokens, const EFaerieItemInstancingMutability Mutability)
 {
 	UFaerieItem* Instance = NewObject<UFaerieItem>();
-	EnumAddFlags(Instance->MutabilityFlags, ToFlags(Mutability) | EFaerieItemMutabilityFlags::InstanceMutability);
+	EnumAddFlags(Instance->MutabilityFlags, ItemData::ToFlags(Mutability) | EFaerieItemMutabilityFlags::InstanceMutability);
 	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, MutabilityFlags, Instance);
 
 	for (auto&& Token : Tokens)
@@ -234,7 +234,7 @@ UFaerieItem* UFaerieItem::CreateInstance(const EFaerieItemInstancingMutability M
 UFaerieItem* UFaerieItem::CreateDuplicate(const EFaerieItemInstancingMutability Mutability) const
 {
 	UFaerieItem* Duplicate = NewObject<UFaerieItem>();
-	EnumAddFlags(Duplicate->MutabilityFlags, ToFlags(Mutability) | EFaerieItemMutabilityFlags::InstanceMutability);
+	EnumAddFlags(Duplicate->MutabilityFlags, ItemData::ToFlags(Mutability) | EFaerieItemMutabilityFlags::InstanceMutability);
 	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, MutabilityFlags, Duplicate);
 
 	// Add our tokens to the new object.
@@ -244,7 +244,7 @@ UFaerieItem* UFaerieItem::CreateDuplicate(const EFaerieItemInstancingMutability 
 		// Mutable tokens must be duplicated.
 		if (Token->IsMutable())
 		{
-			Duplicate->Tokens.Add(DuplicateObjectFromDiskForReplication(Token.Get(), Duplicate));
+			Duplicate->Tokens.Add(Utils::DuplicateObjectFromDiskForReplication(Token.Get(), Duplicate));
 		}
 		// Immutable tokens can be referenced from the asset directly.
 		else
@@ -463,7 +463,7 @@ bool UFaerieItem::AddToken(UFaerieItemToken* Token)
 	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Tokens, this);
 	Tokens.Add(Token);
 
-	(void)NotifyOwnerOfSelfMutation.ExecuteIfBound(this, Token, Tags::TokenAdd);
+	(void)NotifyOwnerOfSelfMutation.ExecuteIfBound(this, Token, Token::Tags::TokenAdd);
 	return true;
 }
 
@@ -492,7 +492,7 @@ bool UFaerieItem::RemoveToken(const UFaerieItemToken* Token)
 		LastModified = FDateTime::UtcNow();
 		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, LastModified, this);
 
-		(void)NotifyOwnerOfSelfMutation.ExecuteIfBound(this, Token, Tags::TokenRemove);
+		(void)NotifyOwnerOfSelfMutation.ExecuteIfBound(this, Token, Token::Tags::TokenRemove);
 
 		return true;
 	}
@@ -552,8 +552,8 @@ bool UFaerieItem::ReplaceToken(const UFaerieItemToken* Old, UFaerieItemToken* Ne
 	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Tokens, this);
 	Tokens[Index] = New;
 
-	(void)NotifyOwnerOfSelfMutation.ExecuteIfBound(this, Old, Tags::TokenRemove);
-	(void)NotifyOwnerOfSelfMutation.ExecuteIfBound(this, New, Tags::TokenAdd);
+	(void)NotifyOwnerOfSelfMutation.ExecuteIfBound(this, Old, Token::Tags::TokenRemove);
+	(void)NotifyOwnerOfSelfMutation.ExecuteIfBound(this, New, Token::Tags::TokenAdd);
 	return true;
 }
 
@@ -600,7 +600,7 @@ int32 UFaerieItem::RemoveTokensByClass(const TSubclassOf<UFaerieItemToken> Class
 
 		for (auto&& Token : TokensRemoved)
 		{
-			(void)NotifyOwnerOfSelfMutation.ExecuteIfBound(this, Token, Tags::TokenRemove);
+			(void)NotifyOwnerOfSelfMutation.ExecuteIfBound(this, Token, Token::Tags::TokenRemove);
 		}
 
 		return Removed;
@@ -642,7 +642,7 @@ void UFaerieItem::OnTokenEdited(const UFaerieItemToken* Token)
 	check(CanMutate())
 	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, LastModified, this);
 	LastModified = FDateTime::UtcNow();
-	(void)NotifyOwnerOfSelfMutation.ExecuteIfBound(this, Token, Tags::TokenGenericPropertyEdit);
+	(void)NotifyOwnerOfSelfMutation.ExecuteIfBound(this, Token, Token::Tags::TokenGenericPropertyEdit);
 }
 
 void UFaerieItem::CacheTokenMutability()

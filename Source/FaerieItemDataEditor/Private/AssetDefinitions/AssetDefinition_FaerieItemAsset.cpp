@@ -10,7 +10,7 @@ EAssetCommandResult UAssetDefinition_FaerieItemAsset::OpenAssets(const FAssetOpe
 {
 	for (UFaerieItemAsset* ItemAsset : OpenArgs.LoadObjects<UFaerieItemAsset>())
 	{
-		const TSharedRef<Faerie::Ed::FItemAssetEditorToolkit> NewEditor = MakeShared<Faerie::Ed::FItemAssetEditorToolkit>();
+		const TSharedRef<Faerie::Editor::FItemAssetEditorToolkit> NewEditor = MakeShared<Faerie::Editor::FItemAssetEditorToolkit>();
 		NewEditor->InitAssetEditor(OpenArgs.GetToolkitMode(), OpenArgs.ToolkitHost, ItemAsset);
 	}
 

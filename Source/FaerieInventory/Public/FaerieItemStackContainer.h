@@ -22,11 +22,11 @@ struct FFaerieSimpleItemStackSaveData
 	FEntryKey StoredKey;
 };
 
-namespace Faerie
+namespace Faerie::Inventory
 {
 	using FItemStackContainerEvent = TMulticastDelegate<void(UFaerieItemStackContainer*, FFaerieInventoryTag)>;
 
-	namespace Inventory::Tags
+	namespace Tags
 	{
 		FAERIEINVENTORY_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, SlotItemMutated)
 		FAERIEINVENTORY_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, SlotClientReplication)
@@ -99,7 +99,7 @@ protected:
 	void SetStoredItem_Impl(const FFaerieItemStack& Stack);
 
 public:
-	Faerie::FItemStackContainerEvent::RegistrationType& GetOnContainerEvent() { return OnItemChangedNative; }
+	Faerie::Inventory::FItemStackContainerEvent::RegistrationType& GetOnContainerEvent() { return OnItemChangedNative; }
 
 	// This checks if the stack could ever be contained by this container, ignoring its current state.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemStackContainer")
@@ -138,7 +138,7 @@ protected:
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FEquipmentSlotEvent OnItemChanged;
 
-	Faerie::FItemStackContainerEvent OnItemChangedNative;
+	Faerie::Inventory::FItemStackContainerEvent OnItemChangedNative;
 
 	// The current item stack being stored in this container.
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, ReplicatedUsing = "OnRep_ItemStack", Category = "State")

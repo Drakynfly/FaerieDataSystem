@@ -19,7 +19,7 @@ void FFaerieItemDataEditorModule::StartupModule()
 {
 	IFaerieDataSystemEditorModuleBase::StartupModule();
 
-	Faerie::FAssetEditorCommands::Register();
+	Faerie::Editor::FAssetEditorCommands::Register();
 
 	ToolbarExtensibilityManager = MakeShared<FExtensibilityManager>();
 
@@ -38,7 +38,7 @@ void FFaerieItemDataEditorModule::StartupModule()
 
 void FFaerieItemDataEditorModule::ShutdownModule()
 {
-	Faerie::FAssetEditorCommands::Unregister();
+	Faerie::Editor::FAssetEditorCommands::Unregister();
 
 	IFaerieDataSystemEditorModuleBase::ShutdownModule();
 }

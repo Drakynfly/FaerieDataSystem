@@ -8,7 +8,7 @@
 
 UFaerieMeshSettings::UFaerieMeshSettings()
 {
-	FallbackPurpose = Faerie::ItemMesh::Tags::MeshPurpose_Default;
+	FallbackPurpose = Faerie::Mesh::Tags::MeshPurpose_Default;
 }
 
 FName UFaerieMeshSettings::GetCategoryName() const

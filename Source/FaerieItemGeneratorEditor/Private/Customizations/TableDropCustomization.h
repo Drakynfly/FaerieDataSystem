@@ -4,7 +4,7 @@
 
 #include "IPropertyTypeCustomization.h"
 
-namespace Faerie
+namespace Faerie::GeneratorEditor
 {
 class FTableDropCustomization final : public IPropertyTypeCustomization
 {

@@ -9,7 +9,7 @@
 class UFaerieItemStorage;
 class UInventoryStackProxy;
 
-namespace Faerie
+namespace Faerie::Inventory
 {
 	enum EStackProxyEventType
 	{
@@ -44,7 +44,7 @@ public:
 	FAERIEINVENTORY_API int32 GetItemVersion() const { return LocalItemVersion; }
 	FAERIEINVENTORY_API FEntryKey GetKey() const;
 
-	FAERIEINVENTORY_API Faerie::FStackProxyEvent::RegistrationType& GetOnProxyEvent() { return OnProxyEvent; }
+	FAERIEINVENTORY_API Faerie::Inventory::FStackProxyEvent::RegistrationType& GetOnProxyEvent() { return OnProxyEvent; }
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|StackProxy")
 	FFaerieAddressableHandle GetAddressable() const;
@@ -84,5 +84,5 @@ protected:
 	int32 LocalItemVersion = -1;
 
 private:
-	Faerie::FStackProxyEvent OnProxyEvent;
+	Faerie::Inventory::FStackProxyEvent OnProxyEvent;
 };

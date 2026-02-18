@@ -4,7 +4,7 @@
 
 #include "Containers/Array.h"
 
-namespace Faerie
+namespace Faerie::Extensions
 {
 	class FBitMatrix
 	{

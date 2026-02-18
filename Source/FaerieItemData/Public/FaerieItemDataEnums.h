@@ -46,7 +46,7 @@ enum class EFaerieItemInstancingMutability : uint8
 	Immutable,
 };
 
-namespace Faerie
+namespace Faerie::ItemData
 {
 	UE_REWRITE EFaerieItemMutabilityFlags ToFlags(const EFaerieItemInstancingMutability Mutability)
 	{

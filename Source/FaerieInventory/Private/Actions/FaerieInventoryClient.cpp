@@ -18,7 +18,7 @@ bool UFaerieInventoryClient::CanAccessContainer(const TNotNull<const UFaerieItem
 {
 	// @todo implement
 	/*
-	if (auto&& PermissionExtensions = Storage->GetExtension<UInventoryClientPermissionExtensions>())
+	if (auto&& PermissionExtensions = Extensions::Get<UInventoryClientPermissionExtensions>(Container))
 	{
 		if (!PermissionExtensions->AllowsClient(this))
 		{

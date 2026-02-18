@@ -7,7 +7,7 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemToken)
 
-namespace Faerie::Tags
+namespace Faerie::Token::Tags
 {
 	UE_DEFINE_GAMEPLAY_TAG(PrimaryIdentifierToken, "Fae.Token.PrimaryIdentifier");
 }

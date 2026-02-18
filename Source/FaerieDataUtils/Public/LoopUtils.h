@@ -2,7 +2,7 @@
 
 #pragma once
 
-namespace Faerie
+namespace Faerie::Utils
 {
 	// Type enum, used to represent the special End iterator
 	enum EIteratorType

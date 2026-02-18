@@ -8,7 +8,7 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(RelevantActorsExtension)
 
-namespace Finders
+namespace Faerie::Finders
 {
 	APawn* GetPawn(AController* Controller)
 	{
@@ -100,18 +100,18 @@ AActor* URelevantActorsExtension::FindActor(const TSubclassOf<AActor> Class) con
 		{
 			if (APawn* AsPawn = Cast<APawn>(Actor))
 			{
-				if (FindingController) return Finders::GetController(AsPawn);
-				if (FindingPlayerState) return Finders::GetPlayerState(AsPawn);
+				if (FindingController) return Faerie::Finders::GetController(AsPawn);
+				if (FindingPlayerState) return Faerie::Finders::GetPlayerState(AsPawn);
 			}
 			else if (APlayerState* AsPlayerState = Cast<APlayerState>(Actor))
 			{
-				if (FindingPawn) return Finders::GetPawn(AsPlayerState);
-				if (FindingController) return Finders::GetController(AsPlayerState);
+				if (FindingPawn) return Faerie::Finders::GetPawn(AsPlayerState);
+				if (FindingController) return Faerie::Finders::GetController(AsPlayerState);
 			}
 			else if (AController* AsController = Cast<AController>(Actor))
 			{
-				if (FindingPawn) return Finders::GetPawn(AsController);
-				if (FindingPlayerState) return Finders::GetPlayerState(AsController);
+				if (FindingPawn) return Faerie::Finders::GetPawn(AsController);
+				if (FindingPlayerState) return Faerie::Finders::GetPlayerState(AsController);
 			}
 		}
 	}

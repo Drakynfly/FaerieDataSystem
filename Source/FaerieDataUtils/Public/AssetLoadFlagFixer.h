@@ -2,7 +2,7 @@
 
 #pragma once
 
-namespace Faerie
+namespace Faerie::Utils
 {
 	// Explanation: Objects loaded from disk carry certain flags that let them be replicated efficiently.
 	// When making a duplicate of that object, those flags would carry over and cause issues with replication.

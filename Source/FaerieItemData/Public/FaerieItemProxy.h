@@ -67,7 +67,7 @@ struct FAERIEITEMDATA_API FFaerieItemProxy
 	FFaerieItemProxy(const IFaerieItemDataProxy* Interface)
 	  : Proxy(Cast<UObject>(Interface)) {}
 
-	template <Faerie::CItemDataProxy T>
+	template <Faerie::ItemData::CItemDataProxy T>
 	FFaerieItemProxy(const TObjectPtr<T> Interface)
 	  : Proxy(Interface) {}
 

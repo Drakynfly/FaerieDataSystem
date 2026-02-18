@@ -9,7 +9,7 @@
 
 #include "FaerieItemMeshComponent.generated.h"
 
-namespace Faerie::Ed
+namespace Faerie::Editor
 {
 	struct FItemPreviewSceneData;
 }
@@ -18,9 +18,9 @@ class UFaerieItemMeshComponent;
 class UFaerieMeshTokenBase;
 class UMeshComponent;
 
-namespace Faerie
+namespace Faerie::Mesh
 {
-	using FOnMeshRebuiltEvent = TMulticastDelegate<void(UFaerieItemMeshComponent*)>;
+	using FOnRebuildEvent = TMulticastDelegate<void(UFaerieItemMeshComponent*)>;
 }
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FFaerieOnMeshRebuilt);
@@ -30,7 +30,7 @@ class FAERIEITEMMESH_API UFaerieItemMeshComponent : public USceneComponent
 {
 	GENERATED_BODY()
 
-	friend Faerie::Ed::FItemPreviewSceneData;
+	friend Faerie::Editor::FItemPreviewSceneData;
 
 public:
 	UFaerieItemMeshComponent();
@@ -57,7 +57,7 @@ protected:
 	void OnRep_PreferredTag();
 
 public:
-	Faerie::FOnMeshRebuiltEvent::RegistrationType& GetOnMeshRebuilt() { return OnMeshRebuiltNative; }
+	Faerie::Mesh::FOnRebuildEvent::RegistrationType& GetOnMeshRebuilt() { return OnMeshRebuiltNative; }
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataMesh")
 	UMeshComponent* GetGeneratedMeshComponent() const { return MeshComponent; }
@@ -87,7 +87,7 @@ public:
 	FBoxSphereBounds GetBounds() const;
 
 protected:
-	Faerie::FOnMeshRebuiltEvent OnMeshRebuiltNative;
+	Faerie::Mesh::FOnRebuildEvent OnMeshRebuiltNative;
 
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FFaerieOnMeshRebuilt OnMeshRebuilt;

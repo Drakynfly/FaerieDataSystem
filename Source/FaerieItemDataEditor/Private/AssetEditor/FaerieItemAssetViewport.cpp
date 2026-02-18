@@ -4,7 +4,7 @@
 #include "AssetEditor/FaerieItemAssetPreviewScene.h"
 #include "AssetEditor/FaerieItemAssetViewportClient.h"
 
-namespace Faerie::Ed
+namespace Faerie::Editor
 {
 	void SItemAssetEditorViewport::Construct(const FArguments& InArgs, const FFaerieItemAssetViewportRequiredArgs& InRequiredArgs)
 	{

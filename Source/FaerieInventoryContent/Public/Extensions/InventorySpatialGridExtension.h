@@ -7,7 +7,7 @@
 #include "SpatialTypes.h"
 #include "InventorySpatialGridExtension.generated.h"
 
-namespace Faerie
+namespace Faerie::Extensions
 {
 	using FExclusionSet = TSet<FIntPoint>;
 
@@ -82,10 +82,10 @@ public:
 	bool CanAddAtLocation(const FFaerieGridShapeConstView& Shape, FIntPoint Position) const;
 
 protected:
-	Faerie::FExclusionSet MakeExclusionSet(FFaerieAddress ExcludedAddress) const;
-	Faerie::FExclusionSet MakeExclusionSet(const TConstArrayView<FFaerieAddress> ExcludedAddresses) const;
+	Faerie::Extensions::FExclusionSet MakeExclusionSet(FFaerieAddress ExcludedAddress) const;
+	Faerie::Extensions::FExclusionSet MakeExclusionSet(const TConstArrayView<FFaerieAddress> ExcludedAddresses) const;
 
-	bool FitsInGridAnyRotation(const FFaerieGridShapeConstView& Shape, FIntPoint Origin, const Faerie::FExclusionSet& ExclusionSet) const;
+	bool FitsInGridAnyRotation(const FFaerieGridShapeConstView& Shape, FIntPoint Origin, const Faerie::Extensions::FExclusionSet& ExclusionSet) const;
 
 	FFaerieAddress FindOverlappingItem(const FFaerieGridShapeConstView& TranslatedShape, FFaerieAddress ExcludeAddress) const;
 

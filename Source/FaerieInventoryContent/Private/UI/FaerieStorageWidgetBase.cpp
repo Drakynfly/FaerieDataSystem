@@ -13,6 +13,8 @@
 
 #define LOCTEXT_NAMESPACE "FaerieStorageWidgetBase"
 
+using namespace Faerie;
+
 UFaerieStorageWidgetBase::UFaerieStorageWidgetBase(const FObjectInitializer& ObjectInitializer)
   : Super(ObjectInitializer)
 {
@@ -74,7 +76,7 @@ void UFaerieStorageWidgetBase::Reset()
 
 	if (ItemStorage.IsValid())
 	{
-		if (auto EventsExtension = Faerie::GetExtension<UItemContainerExtensionEvents>(ItemStorage.Get(), false))
+		if (auto EventsExtension = Extensions::Get<UItemContainerExtensionEvents>(ItemStorage.Get(), false))
 		{
 			EventsExtension->GetOnPostEventBatch().RemoveAll(this);
 		}
@@ -86,7 +88,7 @@ void UFaerieStorageWidgetBase::Reset()
 }
 
 void UFaerieStorageWidgetBase::OnPostEventBatch(const TNotNull<const UFaerieItemContainerBase*> Container,
-	const Faerie::Inventory::FEventLogBatch& Events)
+	const Inventory::FEventLogBatch& Events)
 {
 	if (Container != ItemStorage) return;
 
@@ -174,7 +176,7 @@ void UFaerieStorageWidgetBase::InitWithInventory(UFaerieItemStorage* Storage)
 
 		if (EnableUpdateEvents)
 		{
-			auto EventsExtension = Faerie::GetExtension<UItemContainerExtensionEvents>(Storage, false);
+			auto EventsExtension = Extensions::Get<UItemContainerExtensionEvents>(Storage, false);
 			if (!IsValid(EventsExtension))
 			{
 				UE_LOG(LogFaerieInventoryContent, Error,

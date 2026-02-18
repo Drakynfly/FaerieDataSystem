@@ -35,7 +35,7 @@ void UFaerieItemAssetThumbnailRenderer::Draw(UObject* Object, const int32 X, con
 	{
 		if (!ThumbnailScene)
 		{
-			ThumbnailScene = new Faerie::Ed::FItemAssetPreviewSceneThumbnail(this);
+			ThumbnailScene = new Faerie::Editor::FItemAssetPreviewSceneThumbnail(this);
 		}
 
 		ThumbnailScene->SetItemProxy(this);

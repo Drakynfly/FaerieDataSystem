@@ -1,12 +1,13 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "Generation/FaerieGenerationStructs.h"
-#include "FaerieItem.h"
 #include "FaerieItemGenerationLog.h"
 #include "ItemInstancingContext_Crafting.h"
 #include "Squirrel.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieGenerationStructs)
+
+using namespace Faerie;
 
 TOptional<FFaerieItemStack> FFaerieTableDrop::Resolve(const FFaerieItemInstancingContext_Crafting& Context) const
 {
@@ -49,7 +50,7 @@ TOptional<FFaerieItemStack> FFaerieTableDrop::Resolve(const FFaerieItemInstancin
 }
 
 void FFaerieGenerationProcedure_OfOne::Resolve(const FFaerieWeightedPool& Pool, USquirrel* Squirrel,
-											   TArray<Faerie::FPendingItemGeneration>& Pending, const int32 Amount) const
+											   TArray<Generation::FPendingTableDrop>& Pending, const int32 Amount) const
 {
 	const double RanWeight = [Squirrel]
 	{
@@ -62,7 +63,7 @@ void FFaerieGenerationProcedure_OfOne::Resolve(const FFaerieWeightedPool& Pool, 
 
 	if (const FFaerieTableDrop* Drop = Pool.GetDrop(RanWeight))
 	{
-		Faerie::FPendingItemGeneration& Result = Pending.AddDefaulted_GetRef();
+		Generation::FPendingTableDrop& Result = Pending.AddDefaulted_GetRef();
 		Result.Drop = Drop;
 		Result.Count = Amount;
 		UE_LOG(LogItemGeneration, Log, TEXT("Chose Drop: %s - Amount: %i"), *Result.Drop->Asset.Object.ToString(), Result.Count);
@@ -70,7 +71,7 @@ void FFaerieGenerationProcedure_OfOne::Resolve(const FFaerieWeightedPool& Pool, 
 }
 
 void FFaerieGenerationProcedure_OfAny::Resolve(const FFaerieWeightedPool& Pool, USquirrel* Squirrel,
-											   TArray<Faerie::FPendingItemGeneration>& Pending, const int32 Amount) const
+											   TArray<Generation::FPendingTableDrop>& Pending, const int32 Amount) const
 {
 	for (int32 i = 0; i < Amount; ++i)
 	{
@@ -86,7 +87,7 @@ void FFaerieGenerationProcedure_OfAny::Resolve(const FFaerieWeightedPool& Pool, 
 
 		if (const FFaerieTableDrop* Drop = Pool.GetDrop(RanWeight))
 		{
-			Faerie::FPendingItemGeneration& Result = Pending.AddDefaulted_GetRef();
+			Generation::FPendingTableDrop& Result = Pending.AddDefaulted_GetRef();
 			Result.Drop = Drop;
 			Result.Count = 1;
 		}
@@ -94,7 +95,7 @@ void FFaerieGenerationProcedure_OfAny::Resolve(const FFaerieWeightedPool& Pool, 
 }
 
 void FFaerieGenerationProcedure_Chunked::Resolve(const FFaerieWeightedPool& Pool, USquirrel* Squirrel,
-												 TArray<Faerie::FPendingItemGeneration>& Pending, int32 Amount) const
+												 TArray<Generation::FPendingTableDrop>& Pending, int32 Amount) const
 {
 	while (Amount > 0)
 	{
@@ -122,7 +123,7 @@ void FFaerieGenerationProcedure_Chunked::Resolve(const FFaerieWeightedPool& Pool
 
 		if (const FFaerieTableDrop* Drop = Pool.GetDrop(RanWeight))
 		{
-			Faerie::FPendingItemGeneration& Result = Pending.AddDefaulted_GetRef();
+			Generation::FPendingTableDrop& Result = Pending.AddDefaulted_GetRef();
 			Result.Drop = Drop;
 			Result.Count = ThisDropAmount;
 		}
@@ -130,11 +131,11 @@ void FFaerieGenerationProcedure_Chunked::Resolve(const FFaerieWeightedPool& Pool
 }
 
 void FFaerieGenerationProcedure_OfAll::Resolve(const FFaerieWeightedPool& Pool, USquirrel* Squirrel,
-											   TArray<Faerie::FPendingItemGeneration>& Pending, const int32 Amount) const
+											   TArray<Generation::FPendingTableDrop>& Pending, const int32 Amount) const
 {
 	for (const FFaerieWeightedDrop& Drop : Pool.DropList)
 	{
-		Faerie::FPendingItemGeneration& Result = Pending.AddDefaulted_GetRef();
+		Generation::FPendingTableDrop& Result = Pending.AddDefaulted_GetRef();
 		Result.Drop = &Drop.Drop;
 		Result.Count = Amount;
 	}

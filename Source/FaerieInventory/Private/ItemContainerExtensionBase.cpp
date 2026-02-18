@@ -35,7 +35,7 @@ void UItemContainerExtensionBase::InitializeNetObject(AActor* Actor)
 {
 	Super::InitializeNetObject(Actor);
 
-	ensureAlwaysMsgf(!Faerie::HasLoadFlag(this),
+	ensureAlwaysMsgf(!Faerie::Utils::HasLoadFlag(this),
 		TEXT("Extensions must not be assets loaded from disk. (DuplicateObjectFromDiskForReplication or ClearLoadFlags can fix this)"
 			LINE_TERMINATOR
 			"	Failing Extension: '%s'"), *GetFullName());
@@ -61,7 +61,7 @@ void UItemContainerExtensionBase::SetEditorIdentifier(FStringView StringId)
 }
 #endif
 
-namespace Faerie::Extension
+namespace Faerie::Extensions
 {
 	// Declare the permutations of these templates, so we can store the implementations in this file.
 	template TExtensionIterator<false>;
@@ -253,7 +253,7 @@ void UItemContainerExtensionGroup::InitializeNetObject(AActor* Actor)
 {
 	Super::InitializeNetObject(Actor);
 
-	for (auto&& Extension : Extension::FExtensionIterator(this))
+	for (auto&& Extension : Extensions::FExtensionIterator(this))
 	{
 		Actor->AddReplicatedSubObject(Extension);
 		Extension->InitializeNetObject(Actor);
@@ -262,7 +262,7 @@ void UItemContainerExtensionGroup::InitializeNetObject(AActor* Actor)
 
 void UItemContainerExtensionGroup::DeinitializeNetObject(AActor* Actor)
 {
-	for (auto&& Extension : Extension::FExtensionIterator(this))
+	for (auto&& Extension : Extensions::FExtensionIterator(this))
 	{
 		Actor->RemoveReplicatedSubObject(Extension);
 		Extension->DeinitializeNetObject(Actor);
@@ -290,7 +290,7 @@ void UItemContainerExtensionGroup::InitializeExtension(const TNotNull<const UFae
 
 	Containers.Emplace(Container);
 
-	for (auto&& Extension : Extension::FExtensionIterator(this))
+	for (auto&& Extension : Extensions::FExtensionIterator(this))
 	{
 		Extension->InitializeExtension(Container);
 	}
@@ -300,7 +300,7 @@ void UItemContainerExtensionGroup::DeinitializeExtension(const TNotNull<const UF
 {
 	if (!Containers.Contains(Container)) return;
 
-	for (auto&& Extension : Extension::FExtensionIterator(this))
+	for (auto&& Extension : Extensions::FExtensionIterator(this))
 	{
 		Extension->DeinitializeExtension(Container);
 	}
@@ -315,7 +315,7 @@ EEventExtensionResponse UItemContainerExtensionGroup::AllowsAddition(const TNotN
 	EEventExtensionResponse Response = EEventExtensionResponse::NoExplicitResponse;
 
 	// Check each extension, to see if the reason is allowed or denied.
-	for (auto&& Extension : Extension::FConstExtensionIterator(this))
+	for (auto&& Extension : Extensions::FConstExtensionIterator(this))
 	{
 		switch (Extension->AllowsAddition(Container, Views, Args))
 		{
@@ -340,7 +340,7 @@ EEventExtensionResponse UItemContainerExtensionGroup::AllowsAddition(const TNotN
 
 void UItemContainerExtensionGroup::PreAddition(const TNotNull<const UFaerieItemContainerBase*> Container, const FFaerieItemStackView Stack)
 {
-	for (auto&& Extension : Extension::FExtensionIterator(this))
+	for (auto&& Extension : Extensions::FExtensionIterator(this))
 	{
 		Extension->PreAddition(Container, Stack);
 	}
@@ -352,7 +352,7 @@ EEventExtensionResponse UItemContainerExtensionGroup::AllowsRemoval(const TNotNu
 	EEventExtensionResponse Response = EEventExtensionResponse::NoExplicitResponse;
 
 	// Check each extension, to see if the reason is allowed or denied.
-	for (auto&& Extension : Extension::FConstExtensionIterator(this))
+	for (auto&& Extension : Extensions::FConstExtensionIterator(this))
 	{
 		switch (Extension->AllowsRemoval(Container, Address, Reason))
 		{
@@ -377,7 +377,7 @@ EEventExtensionResponse UItemContainerExtensionGroup::AllowsRemoval(const TNotNu
 
 void UItemContainerExtensionGroup::PreRemoval(const TNotNull<const UFaerieItemContainerBase*> Container, const FEntryKey Key, const int32 Removal)
 {
-	for (auto&& Extension : Extension::FExtensionIterator(this))
+	for (auto&& Extension : Extensions::FExtensionIterator(this))
 	{
 		Extension->PreRemoval(Container, Key, Removal);
 	}
@@ -390,7 +390,7 @@ EEventExtensionResponse UItemContainerExtensionGroup::AllowsEdit(const TNotNull<
 	EEventExtensionResponse Response = EEventExtensionResponse::NoExplicitResponse;
 
 	// Check each extension, to see if the reason is allowed or denied.
-	for (auto&& Extension : Extension::FConstExtensionIterator(this))
+	for (auto&& Extension : Extensions::FConstExtensionIterator(this))
 	{
 		switch (Extension->AllowsEdit(Container, Key, EditTag))
 		{
@@ -425,7 +425,7 @@ void UItemContainerExtensionGroup::PostEvent(const TNotNull<const UFaerieItemCon
 void UItemContainerExtensionGroup::PostEventBatch(const TNotNull<const UFaerieItemContainerBase*> Container,
 	const Inventory::FEventLogBatch& Events)
 {
-	for (auto&& Extension : Extension::FExtensionIterator(this))
+	for (auto&& Extension : Extensions::FExtensionIterator(this))
 	{
 		Extension->PostEventBatch(Container, Events);
 	}
@@ -566,7 +566,7 @@ bool UItemContainerExtensionGroup::HasExtension(
 
 	if (!IsValid(ExtensionClass) || ExtensionClass == UItemContainerExtensionBase::StaticClass()) return false;
 
-	for (auto&& Extension : Extension::FConstExtensionIterator(this))
+	for (auto&& Extension : Extensions::FConstExtensionIterator(this))
 	{
 		// Find extension by direct search
 		if (Extension->IsA(ExtensionClass))
@@ -595,7 +595,7 @@ UItemContainerExtensionBase* UItemContainerExtensionGroup::GetExtension(
 {
 	if (!IsValid(ExtensionClass) || ExtensionClass == UItemContainerExtensionBase::StaticClass()) return nullptr;
 
-	for (auto&& Extension : Extension::FConstExtensionIterator(this))
+	for (auto&& Extension : Extensions::FConstExtensionIterator(this))
 	{
 		// Find extension by direct search
 		if (Extension->IsA(ExtensionClass))
@@ -660,10 +660,10 @@ void UItemContainerExtensionGroup::SetParentGroup(UItemContainerExtensionGroup* 
 
 void UItemContainerExtensionGroup::ReplicationFixup()
 {
-	ClearLoadFlags(this);
-	for (auto&& Extension : Extension::FRecursiveExtensionIterator(this))
+	Utils::ClearLoadFlags(this);
+	for (auto&& Extension : Extensions::FRecursiveExtensionIterator(this))
 	{
-		ClearLoadFlags(Extension);
+		Utils::ClearLoadFlags(Extension);
 	}
 }
 

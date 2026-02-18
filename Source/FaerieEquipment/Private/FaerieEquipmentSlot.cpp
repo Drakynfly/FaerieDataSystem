@@ -18,6 +18,8 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieEquipmentSlot)
 
+using namespace Faerie;
+
 void UFaerieEquipmentSlot::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -68,7 +70,7 @@ void UFaerieEquipmentSlot::LoadSlotData(const FFaerieEquipmentSlotSaveData& Slot
 	// Clear any current content.
 	if (IsFilled())
 	{
-		TakeItemFromSlot(Faerie::ItemData::EntireStack, Faerie::Inventory::Tags::RemovalDeletion);
+		TakeItemFromSlot(ItemData::EntireStack, Inventory::Tags::RemovalDeletion);
 	}
 
 	// Cannot change Config here, as it only replicates once!
@@ -78,13 +80,13 @@ void UFaerieEquipmentSlot::LoadSlotData(const FFaerieEquipmentSlotSaveData& Slot
 		KeyGen.SetPosition(SlotData.StoredKey);
 
 		const FFaerieItemStack& LoadedItemStack = SlotData.ItemStack;
-		if (Faerie::ValidateItemData(LoadedItemStack.Item) &&
+		if (ItemData::ValidateItemData(LoadedItemStack.Item) &&
 			LoadedItemStack.Copies > 0)
 		{
 			// We do need to ClearOwnership here, as whatever loaded the data may have parented the items automatically.
 			if (auto Mutable = LoadedItemStack.Item->MutateCast())
 			{
-				Faerie::ClearOwnership(Mutable);
+				ItemData::ClearOwnership(Mutable);
 			}
 			SetStoredItem_Impl(LoadedItemStack);
 		}
@@ -179,7 +181,7 @@ const UFaerieEquipmentSlot* UFaerieEquipmentSlot::FindSlot(const FFaerieSlotTag 
 			return nullptr;
 		}
 
-		const TArray<UFaerieEquipmentSlot*> Children = Faerie::SubObject::Filter().ByClass<UFaerieEquipmentSlot>().Emit(Mutable);
+		const TArray<UFaerieEquipmentSlot*> Children = SubObject::Filter().ByClass<UFaerieEquipmentSlot>().Emit(Mutable);
 
 		for (auto&& Child : Children)
 		{

@@ -8,7 +8,7 @@
 class UFaerieItemContainerBase;
 class UItemContainerExtensionBase;
 
-namespace Faerie
+namespace Faerie::Container
 {
 	template <typename T>
 	concept CItemContainerExtension = TIsDerivedFrom<typename TRemoveReference<T>::Type, UItemContainerExtensionBase>::Value;

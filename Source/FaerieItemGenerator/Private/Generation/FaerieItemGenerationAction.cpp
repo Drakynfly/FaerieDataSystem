@@ -15,6 +15,8 @@
 
 #define LOCTEXT_NAMESPACE "FaerieItemGenerationRequest"
 
+using namespace Faerie;
+
 void FFaerieItemGenerationAction::Run(UFaerieCraftingRunner* Runner) const
 {
 	// Step 0: Validate parameters
@@ -82,7 +84,7 @@ void FFaerieItemGenerationAction::LoadCheck(TSharedPtr<FStreamableHandle> Handle
 	{
 		FFaerieItemGenerationRequestStorage& Storage = Runner->RequestStorage.GetMutable<FFaerieItemGenerationRequestStorage>();
 
-		for (const Faerie::FPendingItemGeneration& PendingGeneration : Storage.PendingGenerations)
+		for (const Generation::FPendingTableDrop& PendingGeneration : Storage.PendingGenerations)
 		{
 			const TSoftObjectPtr<UObject>& Obj = PendingGeneration.Drop->Asset.Object;
 			if (Obj.IsPending())
@@ -166,7 +168,7 @@ void FFaerieItemGenerationAction::Generate(UFaerieCraftingRunner* Runner) const
 	}
 }
 
-void FFaerieItemGenerationAction::ResolveGeneration(FFaerieItemGenerationRequestStorage& Storage, const Faerie::FPendingItemGeneration& Generation, const FFaerieItemInstancingContext_Crafting& Context) const
+void FFaerieItemGenerationAction::ResolveGeneration(FFaerieItemGenerationRequestStorage& Storage, const Generation::FPendingTableDrop& Generation, const FFaerieItemInstancingContext_Crafting& Context) const
 {
 	// If the source object is a Pool, and we are configured to recurse tables,
 	const UObject* SourceObject = Generation.Drop->Asset.Object.Get();
@@ -175,7 +177,7 @@ void FFaerieItemGenerationAction::ResolveGeneration(FFaerieItemGenerationRequest
 	{
 		for (auto&& WeightedDrop : Pool->ViewDropPool())
 		{
-			Faerie::FPendingItemGeneration SubGeneration;
+			Generation::FPendingTableDrop SubGeneration;
 			SubGeneration.Drop = &WeightedDrop.Drop;
 			SubGeneration.Count = Generation.Count;
 			ResolveGeneration(Storage, SubGeneration, Context);

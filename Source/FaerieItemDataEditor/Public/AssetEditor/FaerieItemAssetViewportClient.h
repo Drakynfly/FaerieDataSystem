@@ -4,7 +4,7 @@
 
 #include "EditorViewportClient.h"
 
-namespace Faerie::Ed
+namespace Faerie::Editor
 {
 	class FItemDataProxyPreviewScene;
 	class SItemAssetEditorViewport;

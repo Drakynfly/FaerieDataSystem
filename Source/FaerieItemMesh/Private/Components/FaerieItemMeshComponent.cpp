@@ -5,6 +5,8 @@
 #include "FaerieItemMeshLog.h"
 #include "FaerieMeshStructs.h"
 #include "FaerieMeshSubsystem.h"
+#include "Tokens/FaerieMeshToken.h"
+
 #include "Components/DynamicMeshComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "ConversionUtils/SceneComponentToDynamicMesh.h"
@@ -16,14 +18,15 @@
 #include "Libraries/FaerieMeshStructsLibrary.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
-#include "Tokens/FaerieMeshToken.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemMeshComponent)
+
+using namespace Faerie;
 
 UFaerieItemMeshComponent::UFaerieItemMeshComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
-	PreferredTag = Faerie::ItemMesh::Tags::MeshPurpose_Display;
+	PreferredTag = Mesh::Tags::MeshPurpose_Display;
 	PreferredType = EItemMeshType::Static;
 	ActualType = EItemMeshType::None;
 }
@@ -103,7 +106,7 @@ void UFaerieItemMeshComponent::LoadMeshFromToken(const bool Async)
 		if (Async)
 		{
 			AsyncMeshLoadingHandle = Loader->LoadMeshFromTokenAsynchronous(SourceMeshToken, PreferredTag,
-				Faerie::FItemMeshAsyncLoadResult::CreateUObject(this, &ThisClass::AsyncLoadMeshReturn));
+				Mesh::FAsyncLoadResult::CreateUObject(this, &ThisClass::AsyncLoadMeshReturn));
 		}
 		else
 		{
@@ -117,7 +120,7 @@ void UFaerieItemMeshComponent::LoadMeshFromToken(const bool Async)
 	if (Async)
 	{
 		AsyncMeshLoadingHandle = MeshSubsystem->LoadMeshFromTokenAsynchronous(SourceMeshToken, PreferredTag,
-			Faerie::FItemMeshAsyncLoadResult::CreateUObject(this, &ThisClass::AsyncLoadMeshReturn));
+			Mesh::FAsyncLoadResult::CreateUObject(this, &ThisClass::AsyncLoadMeshReturn));
 	}
 	else
 	{

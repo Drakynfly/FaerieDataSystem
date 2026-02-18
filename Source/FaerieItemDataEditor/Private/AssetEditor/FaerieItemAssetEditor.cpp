@@ -23,17 +23,17 @@
 
 #define LOCTEXT_NAMESPACE "FaerieItemAssetEditor"
 
-static const FLazyName Faerie_DetailsTab("FaerieItemAssetDetailsTab");
-static const FLazyName Faerie_ViewportTab("FaerieItemAssetViewportTab");
-static const FLazyName Faerie_PreviewSceneSettingsTab("FaerieItemAssetPreviewSceneSettingsTab");
-static const FLazyName Faerie_PreviewTab("FaerieItemAssetPreviewTab");
+static constexpr FLazyName Faerie_DetailsTab("FaerieItemAssetDetailsTab");
+static constexpr FLazyName Faerie_ViewportTab("FaerieItemAssetViewportTab");
+static constexpr FLazyName Faerie_PreviewSceneSettingsTab("FaerieItemAssetPreviewSceneSettingsTab");
+static constexpr FLazyName Faerie_PreviewTab("FaerieItemAssetPreviewTab");
 
 static Faerie::UMGWidgetPreview::FWidgetPreviewToolkitPausedState PausedState;
 static Faerie::UMGWidgetPreview::FWidgetPreviewToolkitBackgroundState BackgroundState;
 static Faerie::UMGWidgetPreview::FWidgetPreviewToolkitUnsupportedWidgetState UnsupportedWidgetState;
 static Faerie::UMGWidgetPreview::FWidgetPreviewToolkitRunningState RunningState;
 
-namespace Faerie::Ed
+namespace Faerie::Editor
 {
 	FItemAssetEditorToolkit::~FItemAssetEditorToolkit()
 	{
@@ -347,13 +347,13 @@ namespace Faerie::Ed
 
 			if (const UFaerieItemCardToken* CardToken = ItemAsset->GetItemInstance(EFaerieItemInstancingMutability::Immutable)->GetToken<UFaerieItemCardToken>())
 			{
-				WidgetType.ObjectPath = CardToken->GetCardClass(CardType_Full).ToSoftObjectPath();
+				WidgetType.ObjectPath = CardToken->GetCardClass(Card::Tags::CardType_Full).ToSoftObjectPath();
 			}
 
 			if (WidgetType.ObjectPath.IsNull())
 			{
 				// @todo temp
-				if (auto Default = GetDefault<UFaerieCardSettings>()->FallbackClasses.Find(CardType_Full))
+				if (auto Default = GetDefault<UFaerieCardSettings>()->FallbackClasses.Find(Card::Tags::CardType_Full))
 				{
 					WidgetType.ObjectPath = Default->ToSoftObjectPath();
 				}
@@ -452,10 +452,10 @@ namespace Faerie::Ed
 		check(Args.GetTabId().TabType == Faerie_PreviewSceneSettingsTab);
 
 		return SNew(SDockTab)
-		.Label( LOCTEXT("StaticMeshPreviewScene_TabTitle", "Scene Settings") )
-		[
-			PreviewSettingsWidget.IsValid() ? PreviewSettingsWidget.ToSharedRef() : SNullWidget::NullWidget
-		];
+			.Label( LOCTEXT("StaticMeshPreviewScene_TabTitle", "Scene Settings") )
+			[
+				PreviewSettingsWidget.IsValid() ? PreviewSettingsWidget.ToSharedRef() : SNullWidget::NullWidget
+			];
 	}
 
 	bool FItemAssetEditorToolkit::ShouldUpdate() const

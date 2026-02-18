@@ -110,13 +110,13 @@ bool FFaerieGridShape::IsSymmetrical() const
 	return ShapeCopy == *this;
 }
 
-Faerie::FBitMatrix FFaerieGridShape::ToMatrix() const
+Faerie::Extensions::FBitMatrix FFaerieGridShape::ToMatrix() const
 {
 	const FIntRect Bounds = GetBounds();
 	const FIntPoint Size = Bounds.Size() + 1; // @todo explain the +1
 
 	// Create square matrix
-	Faerie::FBitMatrix BitMatrix(FMath::Max(Size.X, Size.Y));
+	Faerie::Extensions::FBitMatrix BitMatrix(FMath::Max(Size.X, Size.Y));
 
 	// Only apply padding to the smaller dimension
 	const FIntPoint Padding {
@@ -134,7 +134,7 @@ Faerie::FBitMatrix FFaerieGridShape::ToMatrix() const
 	return BitMatrix;
 }
 
-TArray<FIntPoint> FFaerieGridShape::MatrixToPoints(const Faerie::FBitMatrix& Matrix, const FIntPoint Origin)
+TArray<FIntPoint> FFaerieGridShape::MatrixToPoints(const Faerie::Extensions::FBitMatrix& Matrix, const FIntPoint Origin)
 {
 	TArray<FIntPoint> NewPoints;
 
@@ -162,7 +162,7 @@ TArray<FIntPoint> FFaerieGridShape::MatrixToPoints(const Faerie::FBitMatrix& Mat
 	return NewPoints;
 }
 
-void FFaerieGridShape::RotateMatrixClockwise(Faerie::FBitMatrix& Matrix, const ESpatialItemRotation Rotation)
+void FFaerieGridShape::RotateMatrixClockwise(Faerie::Extensions::FBitMatrix& Matrix, const ESpatialItemRotation Rotation)
 {
 	if (Matrix.GetDim() <= 1 ||
 		Rotation == ESpatialItemRotation::None ||
@@ -223,7 +223,7 @@ void FFaerieGridShape::RotateInline(const ESpatialItemRotation Rotation, const b
 {
 	if (!Reset && Rotation == ESpatialItemRotation::None) return;
 
-	Faerie::FBitMatrix Matrix = ToMatrix();
+	Faerie::Extensions::FBitMatrix Matrix = ToMatrix();
 	RotateMatrixClockwise(Matrix, Rotation);
 
 	// Get Size when rotated
@@ -249,7 +249,7 @@ FFaerieGridShape FFaerieGridShape::Rotate(const ESpatialItemRotation Rotation, c
 {
 	if (!Reset && Rotation == ESpatialItemRotation::None) return *this;
 
-	Faerie::FBitMatrix Matrix = ToMatrix();
+	Faerie::Extensions::FBitMatrix Matrix = ToMatrix();
 	RotateMatrixClockwise(Matrix, Rotation);
 
 	FFaerieGridShape ShapeCopy;

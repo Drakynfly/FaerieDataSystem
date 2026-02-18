@@ -55,7 +55,7 @@ public:
 	}
 };
 
-namespace Faerie
+namespace Faerie::Inventory
 {
 	// Create a new key from each integer in order. Guarantees unique keys are generated in a binary searchable order.
 	template <

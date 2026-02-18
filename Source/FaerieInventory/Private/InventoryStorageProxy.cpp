@@ -8,6 +8,8 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventoryStorageProxy)
 
+using namespace Faerie;
+
 const UFaerieItem* UInventoryStackProxy::GetItemObject() const
 {
 	if (!VerifyStatus())
@@ -73,14 +75,14 @@ void UInventoryStackProxy::NotifyCreation()
 void UInventoryStackProxy::NotifyUpdate()
 {
 	LocalItemVersion++;
-	OnProxyEvent.Broadcast(this, Faerie::EStackProxyEventType::Updated);
+	OnProxyEvent.Broadcast(this, Inventory::EStackProxyEventType::Updated);
 	OnCacheUpdated.Broadcast(this);
 }
 
 void UInventoryStackProxy::NotifyRemoval()
 {
 	LocalItemVersion = -1;
-	OnProxyEvent.Broadcast(this, Faerie::EStackProxyEventType::Removed);
+	OnProxyEvent.Broadcast(this, Inventory::EStackProxyEventType::Removed);
 	OnCacheRemoved.Broadcast(this);
 }
 

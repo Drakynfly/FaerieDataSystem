@@ -53,14 +53,14 @@ namespace Faerie::Token
 			++Iterator;
 		}
 
-		[[nodiscard]] UE_REWRITE bool operator!=(EIteratorType) const
+		[[nodiscard]] UE_REWRITE bool operator!=(Utils::EIteratorType) const
 		{
 			// As long as we are valid, then we have not ended.
 			return static_cast<bool>(*this);
 		}
 
 		[[nodiscard]] UE_REWRITE const FTokenIterator& begin() const { return *this; }
-		[[nodiscard]] UE_REWRITE EIteratorType end() const { return End; }
+		[[nodiscard]] UE_REWRITE Utils::EIteratorType end() const { return Utils::End; }
 
 	private:
 		TArray<TObjectPtr<UFaerieItemToken>>::TConstIterator Iterator;
@@ -149,21 +149,21 @@ namespace Faerie::Token
 			}
 		}
 
-		[[nodiscard]] UE_REWRITE bool operator!=(EIteratorType) const
+		[[nodiscard]] UE_REWRITE bool operator!=(Utils::EIteratorType) const
 		{
 			// As long as we are valid, then we have not ended.
 			return static_cast<bool>(*this);
 		}
 
 		[[nodiscard]] UE_REWRITE const TFilteringIterator& begin() const { return *this; }
-		[[nodiscard]] UE_REWRITE EIteratorType end() const { return End; }
+		[[nodiscard]] UE_REWRITE Utils::EIteratorType end() const { return Utils::End; }
 
 	private:
 		FieldType PredicateTuple;
 		FTokenIterator Iterator;
 	};
 
-	template <CItemTokenBase FilterClass, EFilterFlags Flags, CTokenPredicate... TPredicates>
+	template <ItemData::CItemTokenBase FilterClass, EFilterFlags Flags, CTokenPredicate... TPredicates>
 	class TFilter : Private::FIteratorAccess
 	{
 		// Let this library use BlueprintOnlyAccess;
@@ -214,7 +214,7 @@ namespace Faerie::Token
 		}
 
 		template<
-			CItemTokenImpl T
+			ItemData::CItemTokenImpl T
 			UE_REQUIRES(TIsDerivedFrom<T, FilterClass>::Value && !std::is_same_v<FilterClass, T>)
 		>
 		[[nodiscard]] auto ByClass() const &
@@ -223,7 +223,7 @@ namespace Faerie::Token
 		}
 
 		template<
-			CItemTokenImpl T
+			ItemData::CItemTokenImpl T
 			UE_REQUIRES(TIsDerivedFrom<T, FilterClass>::Value && !std::is_same_v<FilterClass, T>)
 		>
 		[[nodiscard]] auto ByClass() &&
@@ -328,14 +328,14 @@ namespace Faerie::Token
 	private:
 		[[nodiscard]] TArray<UFaerieItemToken*> BlueprintOnlyAccess(const TNotNull<const UFaerieItem*> Item) const
 		{
-			return Type::Cast<TArray<UFaerieItemToken*>>(Emit(Item));
+			return Faerie::Utils::Cast<TArray<UFaerieItemToken*>>(Emit(Item));
 		}
 
 		Utils::TPredicateTuple<TPredicates...> PredicateTuple;
 	};
 
 	// Forward declare the default parameters of the template
-	template <CItemTokenBase FilterClass = UFaerieItemToken, EFilterFlags Flags = EFilterFlags::None, CTokenPredicate... TPredicates>
+	template <ItemData::CItemTokenBase FilterClass = UFaerieItemToken, EFilterFlags Flags = EFilterFlags::None, CTokenPredicate... TPredicates>
 	class TFilter;
 
 	// Create a new token filter

@@ -15,12 +15,12 @@
 #include "Tokens/FaerieMeshToken.h"
 #include "Tokens/FaerieVisualActorClassToken.h"
 
-namespace Faerie::Ed
+namespace Faerie::Editor
 {
 	FItemPreviewSceneData::FItemPreviewSceneData(FPreviewScene* Scene)
 		: Scene(Scene)
 	{
-		MeshPurposeTag = ItemMesh::Tags::MeshPurpose_Default;
+		MeshPurposeTag = Mesh::Tags::MeshPurpose_Default;
 	}
 
 	FItemPreviewSceneData::~FItemPreviewSceneData()

@@ -175,7 +175,7 @@ namespace Faerie::Container
 			return IteratorPtr && IteratorPtr->IsValid();
 		}
 
-		[[nodiscard]] UE_REWRITE bool operator!=(EIteratorType) const
+		[[nodiscard]] UE_REWRITE bool operator!=(Utils::EIteratorType) const
 		{
 			LOG_ITERATOR_MESSAGE_FMT("TIterator::operator!= (EIteratorType) - returning '%hs'", IteratorPtr && IteratorPtr->IsValid() ? "true" : "false")
 
@@ -184,7 +184,7 @@ namespace Faerie::Container
 		}
 
 		[[nodiscard]] UE_REWRITE const TIterator& begin() const { return *this; }
-		[[nodiscard]] UE_REWRITE EIteratorType end() const { return End; }
+		[[nodiscard]] UE_REWRITE Utils::EIteratorType end() const { return Utils::End; }
 
 	private:
 		TUniquePtr<IIterator> IteratorPtr;

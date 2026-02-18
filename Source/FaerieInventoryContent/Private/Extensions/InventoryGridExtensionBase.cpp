@@ -8,7 +8,7 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventoryGridExtensionBase)
 
-namespace Faerie
+namespace Faerie::Extensions
 {
 	bool FCellGrid::GetCell(const FIntPoint Point) const
 	{

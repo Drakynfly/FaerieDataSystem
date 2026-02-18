@@ -5,7 +5,7 @@
 #include "FaerieItemProxy.h"
 #include "ThumbnailRendering/SceneThumbnailInfo.h"
 
-namespace Faerie::Ed
+namespace Faerie::Editor
 {
 	FItemAssetPreviewSceneThumbnail::FItemAssetPreviewSceneThumbnail(const IFaerieItemDataProxy* Proxy)
 		: SceneData(this)

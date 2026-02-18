@@ -50,7 +50,7 @@ void UContentHashExtension::RecalcContainerHash(const TNotNull<const UFaerieItem
 void UContentHashExtension::RecalcLocalChecksum()
 {
 	TArray<uint32> Hashes;
-	PerContainerHash.GenerateValueArray(*Type::Cast<TArray<FFaerieHash>*>(&Hashes));
+	PerContainerHash.GenerateValueArray(*Faerie::Utils::Cast<TArray<FFaerieHash>*>(&Hashes));
 
 	LocalChecksum = Faerie::Hash::CombineHashes(Hashes);
 

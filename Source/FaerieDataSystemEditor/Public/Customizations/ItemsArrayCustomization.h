@@ -4,7 +4,7 @@
 
 #include "IPropertyTypeCustomization.h"
 
-namespace Faerie
+namespace Faerie::Editor
 {
 class FAERIEDATASYSTEMEDITOR_API FItemsArrayCustomization final : public IPropertyTypeCustomization
 {

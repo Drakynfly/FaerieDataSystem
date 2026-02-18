@@ -6,15 +6,17 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieSubObjectLibrary)
 
+using namespace Faerie;
+
 TArray<UFaerieItemContainerBase*> UFaerieSubObjectLibrary::GetAllContainersInItem(UFaerieItem* Item, const bool Recursive)
 {
 	if (!IsValid(Item)) return {};
 
 	if (Recursive)
 	{
-		return Faerie::GetAllContainersInItemRecursive(Item);
+		return SubObject::GetAllContainersInItemRecursive(Item);
 	}
-	return Faerie::GetAllContainersInItem(Item);
+	return SubObject::GetAllContainersInItem(Item);
 }
 
 TArray<UFaerieItemContainerBase*> UFaerieSubObjectLibrary::GetContainersInItemOfClass(UFaerieItem* Item,
@@ -22,13 +24,13 @@ TArray<UFaerieItemContainerBase*> UFaerieSubObjectLibrary::GetContainersInItemOf
 {
 	if (!IsValid(Item)) return {};
 
-	Faerie::SubObject::FClassFilter ClassFilter(Class);
+	SubObject::FClassFilter ClassFilter(Class);
 
 	if (Recursive)
 	{
-		return Faerie::SubObject::Filter().Recursive().By(MoveTemp(ClassFilter)).Emit(Item);
+		return SubObject::Filter().Recursive().By(MoveTemp(ClassFilter)).Emit(Item);
 	}
-	return Faerie::SubObject::Filter().By(MoveTemp(ClassFilter)).Emit(Item);
+	return SubObject::Filter().By(MoveTemp(ClassFilter)).Emit(Item);
 }
 
 TArray<UFaerieItem*> UFaerieSubObjectLibrary::GetItemChildren(UFaerieItem* Item, const bool Recursive)
@@ -37,7 +39,7 @@ TArray<UFaerieItem*> UFaerieSubObjectLibrary::GetItemChildren(UFaerieItem* Item,
 
 	if (Recursive)
 	{
-		return Type::Cast<TArray<UFaerieItem*>>(Faerie::GetChildrenInItemRecursive(Item));
+		return Utils::Cast<TArray<UFaerieItem*>>(SubObject::GetChildrenInItemRecursive(Item));
 	}
-	return Type::Cast<TArray<UFaerieItem*>>(Faerie::GetChildrenInItem(Item));
+	return Utils::Cast<TArray<UFaerieItem*>>(SubObject::GetChildrenInItem(Item));
 }

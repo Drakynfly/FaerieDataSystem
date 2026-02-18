@@ -122,7 +122,7 @@ protected:
 	Ext->SetIdentifier();
 #endif
 
-namespace Faerie::Extension
+namespace Faerie::Extensions
 {
 	// A flat iterator that looks through each extension directly referenced by a group.
 	template <bool Const>
@@ -154,14 +154,14 @@ namespace Faerie::Extension
 			return Group && Current;
 		}
 
-		[[nodiscard]] UE_REWRITE bool operator!=(EIteratorType) const
+		[[nodiscard]] UE_REWRITE bool operator!=(Utils::EIteratorType) const
 		{
 			// As long as we are valid, then we have not ended.
 			return static_cast<bool>(*this);
 		}
 
 		[[nodiscard]] UE_REWRITE const TExtensionIterator& begin() const { return *this; }
-		[[nodiscard]] UE_REWRITE EIteratorType end() const { return End; }
+		[[nodiscard]] UE_REWRITE Utils::EIteratorType end() const { return Utils::End; }
 
 	private:
 		GroupType* Group;
@@ -203,14 +203,14 @@ namespace Faerie::Extension
 			return static_cast<bool>(Iterator);
 		}
 
-		[[nodiscard]] UE_REWRITE bool operator!=(EIteratorType) const
+		[[nodiscard]] UE_REWRITE bool operator!=(Utils::EIteratorType) const
 		{
 			// As long as we are valid, then we have not ended.
 			return static_cast<bool>(*this);
 		}
 
 		[[nodiscard]] UE_REWRITE const TRecursiveExtensionIterator& begin() const { return *this; }
-		[[nodiscard]] UE_REWRITE EIteratorType end() const { return End; }
+		[[nodiscard]] UE_REWRITE Utils::EIteratorType end() const { return Utils::End; }
 
 	private:
 		TArray<ElementType*> Extensions;
@@ -232,8 +232,8 @@ class FAERIEINVENTORY_API UItemContainerExtensionGroup final : public UItemConta
 {
 	GENERATED_BODY()
 
-	template <bool Const> friend class Faerie::Extension::TExtensionIterator;
-	template <bool Const> friend class Faerie::Extension::TRecursiveExtensionIterator;
+	template <bool Const> friend class Faerie::Extensions::TExtensionIterator;
+	template <bool Const> friend class Faerie::Extensions::TRecursiveExtensionIterator;
 
 public:
 	//~ UObject

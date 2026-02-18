@@ -13,12 +13,9 @@
 struct FFaerieExtensionAllowsAdditionArgs;
 class UInventoryStackProxy;
 
-namespace Faerie
+namespace Faerie::Storage
 {
-	namespace Storage
-	{
-		class FStorageDataAccess;
-	}
+	class FStorageDataAccess;
 }
 
 /**

@@ -8,7 +8,7 @@
 
 class UFaerieItemAsset;
 
-namespace Faerie::Ed
+namespace Faerie::Editor
 {
 	class FItemAssetPreviewSceneThumbnail;
 }
@@ -43,5 +43,5 @@ private:
 	UPROPERTY()
 	TObjectPtr<UFaerieItemAsset> ItemAsset;
 
-	Faerie::Ed::FItemAssetPreviewSceneThumbnail* ThumbnailScene;
+	Faerie::Editor::FItemAssetPreviewSceneThumbnail* ThumbnailScene;
 };

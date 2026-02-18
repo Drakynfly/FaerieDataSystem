@@ -12,7 +12,7 @@
 class SBorder;
 class UUserWidget;
 
-namespace Faerie::Ed
+namespace Faerie::Editor
 {
 	class FItemAssetEditorToolkit;
 }
@@ -87,7 +87,7 @@ namespace Faerie::UMGWidgetPreview
 		SLATE_BEGIN_ARGS(SWidgetPreview) {}
 		SLATE_END_ARGS()
 
-		void Construct(const FArguments& Args, const TSharedRef<Ed::FItemAssetEditorToolkit>& InToolkit);
+		void Construct(const FArguments& Args, const TSharedRef<Editor::FItemAssetEditorToolkit>& InToolkit);
 
 		virtual ~SWidgetPreview() override;
 
@@ -103,7 +103,7 @@ namespace Faerie::UMGWidgetPreview
 		TSharedRef<SWidget> GetCreatedSlateWidget() const;
 
 	private:
-		TWeakPtr<Ed::FItemAssetEditorToolkit> WeakToolkit;
+		TWeakPtr<Editor::FItemAssetEditorToolkit> WeakToolkit;
 
 		TSharedPtr<SRetainerWidget> RetainerWidget;
 		TSharedPtr<SBorder> ContainerWidget;

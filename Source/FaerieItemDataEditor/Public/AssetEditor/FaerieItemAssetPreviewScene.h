@@ -12,7 +12,7 @@ class UBoxComponent;
 class UFaerieItemMeshLoader;
 class UFaerieItemMeshComponent;
 
-namespace Faerie::Ed
+namespace Faerie::Editor
 {
 	struct FItemPreviewSceneData
 	{

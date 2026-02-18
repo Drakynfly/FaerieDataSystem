@@ -14,9 +14,9 @@
 class UFaerieItem;
 class UFaerieItemToken;
 
-namespace Faerie
+namespace Faerie::Token
 {
-	namespace Token::Private
+	namespace Private
 	{
 		class FIteratorAccess;
 	}
@@ -55,7 +55,7 @@ public:
 	//~ Emd UObject interface
 
 private:
-	const UFaerieItemToken* GetTokenImpl(const TSubclassOf<UFaerieItemToken>& ValidatedClass, FGameplayTag ReferenceTag = Faerie::Tags::TokenReferenceDefaults) const;
+	const UFaerieItemToken* GetTokenImpl(const TSubclassOf<UFaerieItemToken>& ValidatedClass, FGameplayTag ReferenceTag = Faerie::Token::Tags::TokenReferenceDefaults) const;
 	const UFaerieItemToken* GetOwnedTokenImpl(const TSubclassOf<UFaerieItemToken>& ValidatedClass) const;
 	UFaerieItemToken* GetMutableTokenImpl(const TSubclassOf<UFaerieItemToken>& ValidatedClass);
 
@@ -76,11 +76,11 @@ public:
 	const UFaerieItemToken* GetTokenAtIndex(int32 Index) const;
 
 	// Gets the first token of the specified class that is either owned or referenced.
-	const UFaerieItemToken* GetToken(const TSubclassOf<UFaerieItemToken>& Class, FGameplayTag ReferenceTag = Faerie::Tags::TokenReferenceDefaults) const;
+	const UFaerieItemToken* GetToken(const TSubclassOf<UFaerieItemToken>& Class, FGameplayTag ReferenceTag = Faerie::Token::Tags::TokenReferenceDefaults) const;
 
 	// Gets the first token of the specified class that is either owned or referenced.
-	template <Faerie::CItemTokenImpl T>
-	const T* GetToken(FGameplayTag ReferenceTag = Faerie::Tags::TokenReferenceDefaults) const
+	template <Faerie::ItemData::CItemTokenImpl T>
+	const T* GetToken(FGameplayTag ReferenceTag = Faerie::Token::Tags::TokenReferenceDefaults) const
 	{
 		return CastChecked<T>(GetTokenImpl(T::StaticClass(), ReferenceTag), ECastCheckedType::NullAllowed);
 	}
@@ -89,7 +89,7 @@ public:
 	const UFaerieItemToken* GetOwnedToken(const TSubclassOf<UFaerieItemToken>& Class) const;
 
 	// Gets the first owned token of the specified class. Templated version.
-	template <Faerie::CItemTokenImpl T>
+	template <Faerie::ItemData::CItemTokenImpl T>
 	const T* GetOwnedToken() const
 	{
 		return CastChecked<T>(GetOwnedTokenImpl(T::StaticClass()), ECastCheckedType::NullAllowed);
@@ -99,7 +99,7 @@ public:
 	UFaerieItemToken* GetMutableToken(const TSubclassOf<UFaerieItemToken>& Class);
 
 	// Gets mutable access to an owned token, if this item allows mutation. Templated version.
-	template <Faerie::CItemTokenImpl T>
+	template <Faerie::ItemData::CItemTokenImpl T>
 	T* GetMutableToken()
 	{
 		return CastChecked<T>(GetMutableTokenImpl(T::StaticClass()), ECastCheckedType::NullAllowed);
@@ -158,11 +158,11 @@ protected:
 	void CacheTokenMutability();
 
 public:
-	Faerie::FNotifyOwnerOfSelfMutation::RegistrationType& GetNotifyOwnerOfSelfMutation() { return NotifyOwnerOfSelfMutation; }
+	Faerie::Token::FNotifyOwnerOfSelfMutation::RegistrationType& GetNotifyOwnerOfSelfMutation() { return NotifyOwnerOfSelfMutation; }
 
 private:
 	// Delegate for owners to bind to, for detecting when tokens are mutated outside their knowledge
-	Faerie::FNotifyOwnerOfSelfMutation NotifyOwnerOfSelfMutation;
+	Faerie::Token::FNotifyOwnerOfSelfMutation NotifyOwnerOfSelfMutation;
 
 protected:
 	UPROPERTY(Replicated, VisibleInstanceOnly, Category = "FaerieItem")

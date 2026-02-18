@@ -24,11 +24,11 @@ void FFaerieItemGeneratorEditorModule::StartupModule()
 	FOnGetDetailCustomizationInstance::CreateStatic(&FItemGenerationConfigCustomization::MakeInstance));
 
 	StructCustomizations.Add(FFaerieTableDrop::StaticStruct()->GetFName(),
-		FOnGetPropertyTypeCustomizationInstance::CreateStatic(&Faerie::FTableDropCustomization::MakeInstance));
+		FOnGetPropertyTypeCustomizationInstance::CreateStatic(&Faerie::GeneratorEditor::FTableDropCustomization::MakeInstance));
 	StructCustomizations.Add(FFaerieWeightedDrop::StaticStruct()->GetFName(),
-		FOnGetPropertyTypeCustomizationInstance::CreateStatic(&Faerie::FWeightedDropCustomization::MakeInstance));
+		FOnGetPropertyTypeCustomizationInstance::CreateStatic(&Faerie::GeneratorEditor::FWeightedDropCustomization::MakeInstance));
 	StructCustomizations.Add(FFaerieWeightedPool::StaticStruct()->GetFName(),
-		FOnGetPropertyTypeCustomizationInstance::CreateStatic(&Faerie::FItemsArrayCustomization::MakeInstance));
+		FOnGetPropertyTypeCustomizationInstance::CreateStatic(&Faerie::Editor::FItemsArrayCustomization::MakeInstance));
 
 	RegisterDetailCustomizations(ClassCustomizations);
 	RegisterPropertyCustomizations(StructCustomizations);

@@ -18,7 +18,7 @@ namespace Faerie::UMGWidgetPreview
 	struct FWidgetPreviewToolkitStateBase;
 }
 
-namespace Faerie::Ed
+namespace Faerie::Editor
 {
 	class FItemDataProxyPreviewScene;
 	class SItemAssetEditorViewport;

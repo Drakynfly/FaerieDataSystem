@@ -64,7 +64,7 @@ void UFaerieMeshSubsystem::LoadMeshFromTokenAsynchronous(const UFaerieMeshTokenB
 	}
 
 	(void)Loader->LoadMeshFromTokenAsynchronous(Token, Purpose,
-		Faerie::FItemMeshAsyncLoadResult::CreateLambda(
+		Faerie::Mesh::FAsyncLoadResult::CreateLambda(
 			[Callback](const bool Success, FFaerieItemMesh&& Mesh)
 			{
 				(void)Callback.ExecuteIfBound(Success, Mesh);
@@ -72,7 +72,7 @@ void UFaerieMeshSubsystem::LoadMeshFromTokenAsynchronous(const UFaerieMeshTokenB
 }
 
 TSharedPtr<FStreamableHandle> UFaerieMeshSubsystem::LoadMeshFromTokenAsynchronous(const TNotNull<const UFaerieMeshTokenBase*> Token,
-	FGameplayTag Purpose, const Faerie::FItemMeshAsyncLoadResult& Callback)
+	FGameplayTag Purpose, const Faerie::Mesh::FAsyncLoadResult& Callback)
 {
 	if (!Purpose.IsValid())
 	{
@@ -91,7 +91,7 @@ void UFaerieMeshSubsystem::LoadMeshFromProxyAsynchronous(const FFaerieItemProxy 
 	}
 
 	(void)Loader->LoadMeshFromProxyAsynchronous(Proxy, Purpose,
-		Faerie::FItemMeshAsyncLoadResult::CreateLambda(
+		Faerie::Mesh::FAsyncLoadResult::CreateLambda(
 			[Callback](const bool Success, FFaerieItemMesh&& Mesh)
 			{
 				(void)Callback.ExecuteIfBound(Success, Mesh);
@@ -99,7 +99,7 @@ void UFaerieMeshSubsystem::LoadMeshFromProxyAsynchronous(const FFaerieItemProxy 
 }
 
 TSharedPtr<FStreamableHandle> UFaerieMeshSubsystem::LoadMeshFromProxyAsynchronous(const FFaerieItemProxy Proxy, FGameplayTag Purpose,
-	const Faerie::FItemMeshAsyncLoadResult& Callback)
+	const Faerie::Mesh::FAsyncLoadResult& Callback)
 {
 	if (!Purpose.IsValid())
 	{

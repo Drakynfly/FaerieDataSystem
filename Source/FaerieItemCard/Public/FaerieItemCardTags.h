@@ -17,7 +17,7 @@ struct FFaerieItemCardType : public FGameplayTag
 	END_TAG_DECL2(FFaerieItemCardType, TEXT("Fae.CardType"))
 };
 
-namespace Faerie
+namespace Faerie::Card::Tags
 {
 	FAERIEITEMCARD_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieItemCardType, CardTypeBase)
 	FAERIEITEMCARD_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieItemCardType, CardType_Full)

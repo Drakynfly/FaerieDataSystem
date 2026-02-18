@@ -6,7 +6,7 @@
 
 #define LOCTEXT_NAMESPACE "ItemsArrayCustomization"
 
-namespace Faerie
+namespace Faerie::Editor
 {
 TSharedRef<IPropertyTypeCustomization> FItemsArrayCustomization::MakeInstance()
 {

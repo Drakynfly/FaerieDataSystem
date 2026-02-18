@@ -10,6 +10,8 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemOwningActorBase)
 
+using namespace Faerie;
+
 AFaerieItemOwningActorBase::AFaerieItemOwningActorBase()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -25,7 +27,7 @@ void AFaerieItemOwningActorBase::InitStackFromConfig(const bool RegenerateDispla
 {
 	if (ItemStack->IsFilled())
 	{
-		ItemStack->TakeItemFromSlot(Faerie::ItemData::EntireStack, Faerie::Inventory::Tags::RemovalDeletion);
+		ItemStack->TakeItemFromSlot(ItemData::EntireStack, Inventory::Tags::RemovalDeletion);
 	}
 
 	if (StackCopies > 0 &&
@@ -105,8 +107,8 @@ void AFaerieItemOwningActorBase::OnConstruction(const FTransform& Transform)
 
 void AFaerieItemOwningActorBase::BeginPlay()
 {
-	Faerie::ClearLoadFlags(ItemStack);
-	Faerie::ClearLoadFlags(ItemStack->GetExtensionGroup());
+	Utils::ClearLoadFlags(ItemStack);
+	Utils::ClearLoadFlags(ItemStack->GetExtensionGroup());
 
 	AddReplicatedSubObject(ItemStack);
 	ItemStack->InitializeNetObject(this);
@@ -163,7 +165,7 @@ void AFaerieItemOwningActorBase::SetOwnedStack(const FFaerieItemStack& Stack)
 {
 	if (ItemStack->IsFilled())
 	{
-		ItemStack->TakeItemFromSlot(Faerie::ItemData::EntireStack, Faerie::Inventory::Tags::RemovalDeletion);
+		ItemStack->TakeItemFromSlot(ItemData::EntireStack, Inventory::Tags::RemovalDeletion);
 	}
 	ItemStack->Possess(Stack);
 }

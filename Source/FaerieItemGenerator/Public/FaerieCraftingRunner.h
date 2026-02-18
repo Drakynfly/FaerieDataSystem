@@ -3,7 +3,6 @@
 #pragma once
 
 #include "FaerieItemProxy.h"
-#include "ItemSlotHandle.h"
 #include "Engine/TimerHandle.h"
 #include "StructUtils/InstancedStruct.h"
 
@@ -25,9 +24,9 @@ enum class EGenerationActionResult : uint8
 	Succeeded
 };
 
-namespace Faerie
+namespace Faerie::Generation
 {
-	using FGenerationActionComplete = TDelegate<void(UFaerieCraftingRunner*, EGenerationActionResult)>;
+	using FActionComplete = TDelegate<void(UFaerieCraftingRunner*, EGenerationActionResult)>;
 }
 
 USTRUCT(BlueprintType)
@@ -101,5 +100,5 @@ private:
 	FDateTime TimeStarted;
 #endif
 
-	Faerie::FGenerationActionComplete OnCompletedCallback;
+	Faerie::Generation::FActionComplete OnCompletedCallback;
 };

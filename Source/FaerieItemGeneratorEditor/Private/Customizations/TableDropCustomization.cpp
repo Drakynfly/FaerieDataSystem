@@ -12,7 +12,7 @@
 #include "PropertyHandle.h"
 #include "Algo/ForEach.h"
 
-namespace Faerie
+namespace Faerie::GeneratorEditor
 {
 TSharedRef<IPropertyTypeCustomization> FTableDropCustomization::MakeInstance()
 {

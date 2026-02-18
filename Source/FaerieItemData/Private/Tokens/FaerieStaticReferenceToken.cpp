@@ -46,7 +46,7 @@ const UFaerieItem* UFaerieStaticReferenceToken::GetReferencedItem(const FGamepla
 	return nullptr;
 }
 
-namespace Faerie
+namespace Faerie::Token
 {
 	TConstArrayView<TObjectPtr<UFaerieItemToken>> GetReferencedTokens(const UFaerieItem& Item, const FGameplayTag ReferenceTag, const bool MatchExact)
 	{

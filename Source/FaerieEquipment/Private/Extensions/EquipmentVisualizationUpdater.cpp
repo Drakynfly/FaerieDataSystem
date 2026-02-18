@@ -24,6 +24,8 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(EquipmentVisualizationUpdater)
 
+using namespace Faerie;
+
 void UEquipmentVisualizationUpdater::InitializeExtension(const TNotNull<const UFaerieItemContainerBase*> Container)
 {
 	/*
@@ -54,7 +56,7 @@ void UEquipmentVisualizationUpdater::PreRemoval(const TNotNull<const UFaerieItem
 	if (auto Slot = Cast<UFaerieEquipmentSlot>(Container))
 	{
 		// If the whole stack is being removed, remove the visual for it
-		if (Removal == Faerie::ItemData::EntireStack ||
+		if (Removal == ItemData::EntireStack ||
 			Slot->GetStack() == Removal)
 		{
 			RemoveVisualForEntry(Slot, Key);
@@ -62,7 +64,7 @@ void UEquipmentVisualizationUpdater::PreRemoval(const TNotNull<const UFaerieItem
 	}
 }
 
-void UEquipmentVisualizationUpdater::PostEventBatch(const TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Inventory::FEventLogBatch& Events)
+void UEquipmentVisualizationUpdater::PostEventBatch(const TNotNull<const UFaerieItemContainerBase*> Container, const Inventory::FEventLogBatch& Events)
 {
 	if (Events.IsAdditionEvent())
 	{
@@ -105,7 +107,7 @@ UEquipmentVisualizer* UEquipmentVisualizationUpdater::GetVisualizer(const UFaeri
 		return nullptr;
 	}
 
-	auto&& Relevants = Faerie::GetExtension<URelevantActorsExtension>(Slot, true);
+	auto&& Relevants = Extensions::Get<URelevantActorsExtension>(Slot, true);
 	if (!IsValid(Relevants))
 	{
 		UE_LOG(LogFaerieEquipment, Warning, TEXT("GetVisualizer failed: Requires a RelevantActorsExtension on the container to find the pawn (%s)!"), *Slot->GetName())
@@ -246,7 +248,7 @@ void UEquipmentVisualizationUpdater::CreateVisualImpl(UEquipmentVisualizer* Visu
 
 	// Path 2: A Visual Component
 	{
-		FGameplayTag PreferredTag = Faerie::ItemMesh::Tags::MeshPurpose_Default;
+		FGameplayTag PreferredTag = Mesh::Tags::MeshPurpose_Default;
 		if (Visualizer->GetPreferredTag().IsValid() &&
 			ensure(Visualizer->GetPreferredTag().GetTagName().IsValid()))
 		{
@@ -310,7 +312,7 @@ void UEquipmentVisualizationUpdater::CreateVisualImpl(UEquipmentVisualizer* Visu
 	// Step 3: Recurse over children
 	if (UFaerieItem* Mutable = ItemObject->MutateCast())
 	{
-		for (auto SubContainer : Faerie::Equipment::SlotFilter.Iterate(Mutable))
+		for (auto SubContainer : Equipment::SlotFilter.Iterate(Mutable))
 		{
 			auto Key = SubContainer->GetCurrentKey();
 			if (Key.IsValid())
@@ -335,7 +337,7 @@ void UEquipmentVisualizationUpdater::RemoveVisualImpl(UEquipmentVisualizer* Visu
 
 	if (UFaerieItem* Mutable = Item->MutateCast())
 	{
-        for (UFaerieEquipmentSlot* SubContainer : Faerie::Equipment::SlotFilter.Iterate(Mutable))
+        for (UFaerieEquipmentSlot* SubContainer : Equipment::SlotFilter.Iterate(Mutable))
         {
         	auto Key = SubContainer->GetCurrentKey();
         	if (Key.IsValid())

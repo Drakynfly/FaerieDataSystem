@@ -7,7 +7,7 @@
 
 UFaerieTagToken::UFaerieTagToken()
 {
-	GetMutableFaerieItemTokenSparseClassStruct()->ClassTags.AddTag(Faerie::Tags::PrimaryIdentifierToken);
+	GetMutableFaerieItemTokenSparseClassStruct()->ClassTags.AddTag(Faerie::Token::Tags::PrimaryIdentifierToken);
 }
 
 void UFaerieTagToken::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const

@@ -15,6 +15,8 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemStackContainer)
 
+using namespace Faerie;
+
 namespace Faerie::Inventory::Tags
 {
 	UE_DEFINE_GAMEPLAY_TAG_TYPED_COMMENT(FFaerieInventoryTag, SlotItemMutated, "Fae.Inventory.SlotItemMutated", "Event tag when the item in a container mutates")
@@ -88,7 +90,7 @@ void UFaerieItemStackContainer::LoadSaveData(const FConstStructView ItemData, UF
 	// Clear any current content.
 	if (IsFilled())
 	{
-		TakeItemFromSlot(Faerie::ItemData::EntireStack, Faerie::Inventory::Tags::RemovalDeletion);
+		TakeItemFromSlot(ItemData::EntireStack, Inventory::Tags::RemovalDeletion);
 	}
 
 	if (SaveData->StoredKey.IsValid())
@@ -96,13 +98,13 @@ void UFaerieItemStackContainer::LoadSaveData(const FConstStructView ItemData, UF
 		KeyGen.SetPosition(SaveData->StoredKey);
 
 		const FFaerieItemStack& LoadedItemStack = SaveData->ItemStack;
-		if (Faerie::ValidateItemData(LoadedItemStack.Item) &&
+		if (ItemData::ValidateItemData(LoadedItemStack.Item) &&
 			LoadedItemStack.Copies > 0)
 		{
 			// We do need to ClearOwnership here, as whatever loaded the data may have parented the items automatically.
 			if (UFaerieItem* Mutable = LoadedItemStack.Item->MutateCast())
 			{
-				Faerie::ClearOwnership(Mutable);
+				ItemData::ClearOwnership(Mutable);
 			}
 			SetStoredItem_Impl(LoadedItemStack);
 		}
@@ -141,7 +143,7 @@ FFaerieItemStack UFaerieItemStackContainer::Release(const FEntryKey Key, const i
 {
 	if (Key == StoredKey)
 	{
-		return TakeItemFromSlot(Copies, Faerie::Inventory::Tags::RemovalMoving);
+		return TakeItemFromSlot(Copies, Inventory::Tags::RemovalMoving);
 	}
 	return FFaerieItemStack();
 }
@@ -222,29 +224,29 @@ FFaerieItemStack UFaerieItemStackContainer::Release(const FFaerieAddress Address
 {
 	if (Contains(Address))
 	{
-		return TakeItemFromSlot(Copies, Faerie::Inventory::Tags::RemovalMoving);
+		return TakeItemFromSlot(Copies, Inventory::Tags::RemovalMoving);
 	}
 	return FFaerieItemStack();
 }
 
-TUniquePtr<Faerie::Container::IIterator> UFaerieItemStackContainer::CreateEntryIterator() const
+TUniquePtr<Container::IIterator> UFaerieItemStackContainer::CreateEntryIterator() const
 {
 	// Don't provide an iterator if we are empty...
 	if (!IsFilled()) return nullptr;
-	return MakeUnique<Faerie::Container::FStackContainerIteratorStub>(this);
+	return MakeUnique<Container::FStackContainerIteratorStub>(this);
 }
 
-TUniquePtr<Faerie::Container::IIterator> UFaerieItemStackContainer::CreateAddressIterator() const
+TUniquePtr<Container::IIterator> UFaerieItemStackContainer::CreateAddressIterator() const
 {
 	// Don't provide an iterator if we are empty...
 	if (!IsFilled()) return nullptr;
-	return MakeUnique<Faerie::Container::FStackContainerIteratorStub>(this);
+	return MakeUnique<Container::FStackContainerIteratorStub>(this);
 }
 
-TUniquePtr<Faerie::Container::IIterator> UFaerieItemStackContainer::CreateSingleEntryIterator(const FEntryKey Key) const
+TUniquePtr<Container::IIterator> UFaerieItemStackContainer::CreateSingleEntryIterator(const FEntryKey Key) const
 {
 	if (GetCurrentKey() != Key) return nullptr;
-	return MakeUnique<Faerie::Container::FStackContainerIteratorStub>(this);
+	return MakeUnique<Container::FStackContainerIteratorStub>(this);
 }
 
 int32 UFaerieItemStackContainer::GetStack() const
@@ -272,7 +274,7 @@ TScriptInterface<IFaerieItemOwnerInterface> UFaerieItemStackContainer::GetItemOw
 FFaerieItemStack UFaerieItemStackContainer::Release(const int32 Copies) const
 {
 	// Const-Cast'ing is fine here, since we are both the Proxy and Owner.
-	return const_cast<ThisClass*>(this)->TakeItemFromSlot(Copies, Faerie::Inventory::Tags::RemovalMoving);
+	return const_cast<ThisClass*>(this)->TakeItemFromSlot(Copies, Inventory::Tags::RemovalMoving);
 }
 
 //~ IFaerieItemDataProxy
@@ -287,7 +289,7 @@ FFaerieItemStack UFaerieItemStackContainer::Release(const FFaerieItemStackView S
 {
 	if (Stack.Item == ItemStack.Item)
 	{
-		return TakeItemFromSlot(Stack.Copies, Faerie::Inventory::Tags::RemovalMoving);
+		return TakeItemFromSlot(Stack.Copies, Inventory::Tags::RemovalMoving);
 	}
 	return FFaerieItemStack();
 }
@@ -297,7 +299,7 @@ void UFaerieItemStackContainer::OnItemMutated(const TNotNull<const UFaerieItem*>
 	Super::OnItemMutated(Item, Token, EditTag);
 	check(ItemStack.Item == Item);
 
-	BroadcastChange(Faerie::Inventory::Tags::SlotItemMutated);
+	BroadcastChange(Inventory::Tags::SlotItemMutated);
 }
 //~ IFaerieItemOwnerInterface
 
@@ -311,7 +313,7 @@ void UFaerieItemStackContainer::SetStoredItem_Impl(const FFaerieItemStack& Stack
 {
 	Extensions->PreAddition(this, Stack);
 
-	Faerie::Inventory::FEventData Event;
+	Inventory::FEventData Event;
 	Event.Item = Stack.Item;
 	Event.Amount = Stack.Copies;
 
@@ -327,7 +329,7 @@ void UFaerieItemStackContainer::SetStoredItem_Impl(const FFaerieItemStack& Stack
 		// Take ownership of the new item if it's mutable
 		if (UFaerieItem* Mutable = ItemStack.Item->MutateCast())
 		{
-			Faerie::TakeOwnership(this, Mutable);
+			ItemData::TakeOwnership(this, Mutable);
 		}
 	}
 	else
@@ -337,9 +339,9 @@ void UFaerieItemStackContainer::SetStoredItem_Impl(const FFaerieItemStack& Stack
 
 	Event.EntryTouched = StoredKey;
 
-	Extensions->PostEvent(this, Event, Faerie::Inventory::Tags::Addition);
+	Extensions->PostEvent(this, Event, Inventory::Tags::Addition);
 
-	BroadcastChange(Faerie::Inventory::Tags::Addition);
+	BroadcastChange(Inventory::Tags::Addition);
 }
 
 bool UFaerieItemStackContainer::CouldSetInSlot(const FFaerieItemStackView View) const
@@ -388,7 +390,7 @@ bool UFaerieItemStackContainer::CanTakeFromSlot(const int32 Copies, const FFaeri
 {
 	if (!ItemStack.IsValid()) return false;
 
-	if (Copies != Faerie::ItemData::EntireStack &&
+	if (Copies != ItemData::EntireStack &&
 		ItemStack.Copies < Copies)
 	{
 		return false;
@@ -433,14 +435,14 @@ FFaerieItemStack UFaerieItemStackContainer::TakeItemFromSlot(int32 Copies, const
 		return FFaerieItemStack();
 	}
 
-	if (Copies == Faerie::ItemData::EntireStack)
+	if (Copies == ItemData::EntireStack)
 	{
 		Copies = ItemStack.Copies;
 	}
 
 	Extensions->PreRemoval(this, StoredKey, Copies);
 
-	Faerie::Inventory::FEventData Event;
+	Inventory::FEventData Event;
 	Event.Item = ItemStack.Item;
 	Event.Amount = Copies;
 	Event.EntryTouched = StoredKey;
@@ -459,7 +461,7 @@ FFaerieItemStack UFaerieItemStackContainer::TakeItemFromSlot(int32 Copies, const
 		// Release ownership of this item.
 		if (UFaerieItem* Mutable = OutStack.Item->MutateCast())
 		{
-			Faerie::ReleaseOwnership(this, Mutable);
+			ItemData::ReleaseOwnership(this, Mutable);
 		}
 	}
 	else
@@ -491,5 +493,5 @@ bool UFaerieItemStackContainer::IsFilled() const
 
 void UFaerieItemStackContainer::OnRep_ItemStack()
 {
-	BroadcastChange(Faerie::Inventory::Tags::SlotClientReplication);
+	BroadcastChange(Inventory::Tags::SlotClientReplication);
 }

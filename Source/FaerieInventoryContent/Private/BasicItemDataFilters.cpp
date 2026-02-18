@@ -10,6 +10,8 @@
 
 #define LOCTEXT_NAMESPACE "BasicItemDataFilters"
 
+using namespace Faerie;
+
 #if WITH_EDITOR
 EItemDataMutabilityStatus UFilterRule_LogicalOr::GetMutabilityStatus() const
 {
@@ -30,7 +32,7 @@ EItemDataMutabilityStatus UFilterRule_LogicalOr::GetMutabilityStatus() const
 }
 #endif
 
-bool UFilterRule_LogicalOr::ExecWithLog(const FFaerieItemStackView View, Faerie::ItemData::FFilterLogger& Logger) const
+bool UFilterRule_LogicalOr::ExecWithLog(const FFaerieItemStackView View, ItemData::FFilterLogger& Logger) const
 {
 	for (auto&& Rule : Rules)
 	{
@@ -77,7 +79,7 @@ EItemDataMutabilityStatus UFilterRule_LogicalAnd::GetMutabilityStatus() const
 
 #endif
 
-bool UFilterRule_LogicalAnd::ExecWithLog(const FFaerieItemStackView View, Faerie::ItemData::FFilterLogger& Logger) const
+bool UFilterRule_LogicalAnd::ExecWithLog(const FFaerieItemStackView View, ItemData::FFilterLogger& Logger) const
 {
 	for (auto&& Rule : Rules)
 	{
@@ -182,7 +184,7 @@ EItemDataMutabilityStatus UFilterRule_MatchTemplate::GetMutabilityStatus() const
 #endif
 
 bool UFilterRule_MatchTemplate::ExecWithLog(const FFaerieItemStackView View,
-	Faerie::ItemData::FFilterLogger& Logger) const
+	ItemData::FFilterLogger& Logger) const
 {
 	if (IsValid(Template))
 	{
@@ -215,7 +217,7 @@ EItemDataMutabilityStatus UFilterRule_HasTokens::GetMutabilityStatus() const
 }
 #endif
 
-bool UFilterRule_HasTokens::ExecWithLog(const FFaerieItemStackView View, Faerie::ItemData::FFilterLogger& Logger) const
+bool UFilterRule_HasTokens::ExecWithLog(const FFaerieItemStackView View, ItemData::FFilterLogger& Logger) const
 {
 	static const FText InvalidViewError = LOCTEXT("HasTokens_InvalidViewError", "View is invalid");
 	static const FTextFormat MissingClassErrorFormat = LOCTEXT("HasTokens_MissingClassError", "Missing required token of class: '{0}'");
@@ -244,7 +246,7 @@ bool UFilterRule_HasTokens::ExecWithLog(const FFaerieItemStackView View, Faerie:
 	{
 		for (auto It = TokenClassesCopy.CreateIterator(); It; ++It)
 		{
-			if (Faerie::GetReferencedToken(*Item, *It, Faerie::Tags::TokenReferenceDefaults))
+			if (Token::GetReferencedToken(*Item, *It, Token::Tags::TokenReferenceDefaults))
 			{
 				It.RemoveCurrent();
 			}
@@ -290,7 +292,7 @@ bool UFilterRule_HasTokens::Exec(const FFaerieItemStackView View) const
 	{
 		for (auto It = TokenClassesCopy.CreateIterator(); It; ++It)
 		{
-			if (Faerie::GetReferencedToken(*Item, *It, Faerie::Tags::TokenReferenceDefaults))
+			if (Token::GetReferencedToken(*Item, *It, Token::Tags::TokenReferenceDefaults))
 			{
 				It.RemoveCurrent();
 			}
@@ -359,7 +361,7 @@ EItemDataMutabilityStatus UFilterRule_StackLimit::GetMutabilityStatus() const
 bool UFilterRule_StackLimit::Exec(const FFaerieItemStackView View) const
 {
 	if (const int32 Limit = UFaerieStackLimiterToken::GetItemStackLimit(View.Item.Get());
-		Limit == Faerie::ItemData::UnlimitedStack)
+		Limit == ItemData::UnlimitedStack)
 	{
 		switch (Operator)
 		{

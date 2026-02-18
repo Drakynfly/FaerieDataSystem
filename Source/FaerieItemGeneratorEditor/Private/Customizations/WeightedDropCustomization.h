@@ -4,14 +4,14 @@
 
 #include "IPropertyTypeCustomization.h"
 
-namespace Faerie
+namespace Faerie::GeneratorEditor
 {
-class FWeightedDropCustomization final : public IPropertyTypeCustomization
-{
-public:
-    static TSharedRef<IPropertyTypeCustomization> MakeInstance();
+    class FWeightedDropCustomization final : public IPropertyTypeCustomization
+    {
+    public:
+        static TSharedRef<IPropertyTypeCustomization> MakeInstance();
 
-    virtual void CustomizeHeader(TSharedRef<IPropertyHandle> PropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& CustomizationUtils) override;
-    virtual void CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override;
-};
+        virtual void CustomizeHeader(TSharedRef<IPropertyHandle> PropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& CustomizationUtils) override;
+        virtual void CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override;
+    };
 }

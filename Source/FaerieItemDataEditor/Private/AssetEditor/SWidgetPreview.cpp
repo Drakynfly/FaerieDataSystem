@@ -198,7 +198,7 @@ namespace Faerie::UMGWidgetPreview
 		bShouldOverlayMessage = false;
 	}
 
-	void SWidgetPreview::Construct(const FArguments& Args, const TSharedRef<Ed::FItemAssetEditorToolkit>& InToolkit)
+	void SWidgetPreview::Construct(const FArguments& Args, const TSharedRef<Editor::FItemAssetEditorToolkit>& InToolkit)
 	{
 		WeakToolkit = InToolkit;
 
@@ -233,7 +233,7 @@ namespace Faerie::UMGWidgetPreview
 	{
 		ContainerWidget->ClearContent();
 
-		if (const TSharedPtr<Ed::FItemAssetEditorToolkit> Toolkit = WeakToolkit.Pin())
+		if (const TSharedPtr<Editor::FItemAssetEditorToolkit> Toolkit = WeakToolkit.Pin())
 		{
 			//Toolkit->OnStateChanged().Remove(OnStateChangedHandle);
 
@@ -298,7 +298,7 @@ namespace Faerie::UMGWidgetPreview
 
 		if (InChangeType != EWidgetPreviewWidgetChangeType::Destroyed)
 		{
-			if (const TSharedPtr<Ed::FItemAssetEditorToolkit> Toolkit = WeakToolkit.Pin())
+			if (const TSharedPtr<Editor::FItemAssetEditorToolkit> Toolkit = WeakToolkit.Pin())
 			{
 				if (UFaerieWidgetPreview* Preview = Toolkit->GetPreview())
 				{
@@ -335,7 +335,7 @@ namespace Faerie::UMGWidgetPreview
 
 	UWorld* SWidgetPreview::GetWorld() const
 	{
-		if (const TSharedPtr<Ed::FItemAssetEditorToolkit> Toolkit = WeakToolkit.Pin())
+		if (const TSharedPtr<Editor::FItemAssetEditorToolkit> Toolkit = WeakToolkit.Pin())
 		{
 			return Toolkit->GetPreviewWorld();
 		}

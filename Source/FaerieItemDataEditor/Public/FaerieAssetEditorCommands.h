@@ -8,7 +8,7 @@
 
 class FUICommandInfo;
 
-namespace Faerie
+namespace Faerie::Editor
 {
 	class FAssetEditorCommands : public TCommands<FAssetEditorCommands>
 	{

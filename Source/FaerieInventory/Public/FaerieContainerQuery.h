@@ -17,9 +17,9 @@ class UFaerieContainerQuery;
 using FFaerieViewPredicate = UFaerieFunctionTemplates::FFaerieViewPredicate;
 using FFaerieViewComparator = UFaerieFunctionTemplates::FFaerieViewComparator;
 
-namespace Faerie
+namespace Faerie::Container
 {
-	using FContainerQueryEvent = TMulticastDelegate<void(const UFaerieContainerQuery*)>;
+	using FQueryEvent = TMulticastDelegate<void(const UFaerieContainerQuery*)>;
 }
 
 /**
@@ -31,7 +31,7 @@ class FAERIEINVENTORY_API UFaerieContainerQuery : public UObject
 	GENERATED_BODY()
 
 public:
-	Faerie::FContainerQueryEvent::RegistrationType& GetQueryChangedEvent() { return OnQueryChanged; }
+	Faerie::Container::FQueryEvent::RegistrationType& GetQueryChangedEvent() { return OnQueryChanged; }
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|Container Query")
 	bool IsSortBound() const;
@@ -99,7 +99,7 @@ private:
 	UPROPERTY()
 	TObjectPtr<const UObject> SortObject;
 
-	Faerie::FContainerQueryEvent OnQueryChanged;
+	Faerie::Container::FQueryEvent OnQueryChanged;
 
 	Faerie::ItemData::FViewPredicate FilterFunction;
 	Faerie::ItemData::FViewComparator SortFunction;

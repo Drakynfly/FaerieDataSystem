@@ -9,7 +9,7 @@
 
 #define LOCTEXT_NAMESPACE "WeightedDropCustomization"
 
-namespace Faerie
+namespace Faerie::GeneratorEditor
 {
 TSharedRef<IPropertyTypeCustomization> FWeightedDropCustomization::MakeInstance()
 {

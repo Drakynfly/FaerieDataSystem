@@ -5,7 +5,7 @@
 #include "FaerieItem.h"
 #include "FaerieItemContainerBase.h"
 
-namespace Faerie
+namespace Faerie::SubObject
 {
 	auto GetItemContainersFilter()
 	{
@@ -94,26 +94,23 @@ namespace Faerie
 		return Items;
 	}
 
-	namespace SubObject
+	namespace StaticPredicates
 	{
-		namespace StaticPredicates
+		bool ClassEquals(const TNotNull<const UFaerieItemContainerBase*> Container, const TSubclassOf<UFaerieItemContainerBase>& Class)
 		{
-			bool ClassEquals(const TNotNull<const UFaerieItemContainerBase*> Container, const TSubclassOf<UFaerieItemContainerBase>& Class)
-			{
-				return Class == Container->GetClass();
-			}
-
-			bool ClassEqualsOrChildOf(const TNotNull<const UFaerieItemContainerBase*> Container, const TSubclassOf<UFaerieItemContainerBase>& Class)
-			{
-				return Class->IsChildOf(Container->GetClass());
-			}
+			return Class == Container->GetClass();
 		}
 
-		FContainerIterator::FContainerIterator(const TNotNull<UFaerieItem*> Item)
-		  : Iterator(GetItemContainersFilter().Iterate(Item)) {}
-
-		FRecursiveContainerIterator::FRecursiveContainerIterator(const TNotNull<UFaerieItem*> Item)
-		  : Containers(GetAllContainersInItemRecursive(Item)),
-			Iterator(Containers.CreateIterator()) {}
+		bool ClassEqualsOrChildOf(const TNotNull<const UFaerieItemContainerBase*> Container, const TSubclassOf<UFaerieItemContainerBase>& Class)
+		{
+			return Class->IsChildOf(Container->GetClass());
+		}
 	}
+
+	FContainerIterator::FContainerIterator(const TNotNull<UFaerieItem*> Item)
+	  : Iterator(GetItemContainersFilter().Iterate(Item)) {}
+
+	FRecursiveContainerIterator::FRecursiveContainerIterator(const TNotNull<UFaerieItem*> Item)
+	  : Containers(GetAllContainersInItemRecursive(Item)),
+		Iterator(Containers.CreateIterator()) {}
 }

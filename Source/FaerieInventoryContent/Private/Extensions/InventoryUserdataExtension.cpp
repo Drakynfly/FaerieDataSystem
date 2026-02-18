@@ -7,6 +7,8 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventoryUserdataExtension)
 
+using namespace Faerie;
+
 namespace Faerie::Inventory::Tags
 {
 	UE_DEFINE_GAMEPLAY_TAG_TYPED_COMMENT(FFaerieInventoryUserTag, Favorite,
@@ -84,7 +86,7 @@ bool FFaerieClientAction_MarkStackWithTag::Server_Execute(const UFaerieInventory
 	if (!IsValid(Container)) return false;
 	if (!Client->CanAccessContainer(Container, StaticStruct())) return false;
 
-	if (auto&& Userdata = Faerie::GetExtension<UInventoryUserdataExtension>(Container, true))
+	if (auto&& Userdata = Extensions::Get<UInventoryUserdataExtension>(Container, true))
 	{
 		return Userdata->MarkStackWithTag(Handle, Tag);
 	}
@@ -97,7 +99,7 @@ bool FFaerieClientAction_ClearTagFromStack::Server_Execute(const UFaerieInventor
 	if (!IsValid(Storage)) return false;
 	if (!Client->CanAccessContainer(Storage, StaticStruct())) return false;
 
-	if (auto&& Userdata = Faerie::GetExtension<UInventoryUserdataExtension>(Storage, true))
+	if (auto&& Userdata = Extensions::Get<UInventoryUserdataExtension>(Storage, true))
 	{
 		return Userdata->ClearTagFromStack(Handle, Tag);
 	}

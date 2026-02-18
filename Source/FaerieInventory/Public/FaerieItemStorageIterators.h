@@ -46,14 +46,14 @@ namespace Faerie::Storage
 			return EntryIndex != INDEX_NONE;
 		}
 
-		[[nodiscard]] UE_REWRITE bool operator!=(EIteratorType) const
+		[[nodiscard]] UE_REWRITE bool operator!=(Utils::EIteratorType) const
 		{
 			// As long as we are valid, then we have not ended.
 			return static_cast<bool>(*this);
 		}
 
 		[[nodiscard]] UE_REWRITE const FIterator_AllEntries& begin() const { return *this; }
-		[[nodiscard]] UE_REWRITE EIteratorType end() const { return End; }
+		[[nodiscard]] UE_REWRITE Utils::EIteratorType end() const { return Utils::End; }
 
 	private:
 		// Entry iteration
@@ -87,14 +87,14 @@ namespace Faerie::Storage
 			return EntryIndex != INDEX_NONE && StackPtr != nullptr;
 		}
 
-		[[nodiscard]] UE_REWRITE bool operator!=(EIteratorType) const
+		[[nodiscard]] UE_REWRITE bool operator!=(Utils::EIteratorType) const
 		{
 			// As long as we are valid, then we have not ended.
 			return static_cast<bool>(*this);
 		}
 
 		[[nodiscard]] UE_REWRITE const FIterator_AllAddresses& begin() const { return *this; }
-		[[nodiscard]] UE_REWRITE EIteratorType end  () const { return End; }
+		[[nodiscard]] UE_REWRITE Utils::EIteratorType end  () const { return Utils::End; }
 
 	private:
 		// Entry iteration
@@ -130,14 +130,14 @@ namespace Faerie::Storage
 			return StackPtr && NumRemaining;
 		}
 
-		[[nodiscard]] UE_REWRITE bool operator!=(EIteratorType) const
+		[[nodiscard]] UE_REWRITE bool operator!=(Utils::EIteratorType) const
 		{
 			// As long as we are valid, then we have not ended.
 			return static_cast<bool>(*this);
 		}
 
 		[[nodiscard]] UE_REWRITE const FIterator_SingleEntry& begin() const { return *this; }
-		[[nodiscard]] UE_REWRITE EIteratorType end() const { return End; }
+		[[nodiscard]] UE_REWRITE Utils::EIteratorType end() const { return Utils::End; }
 
 	private:
 		TNotNull<const FInventoryEntry*> EntryPtr;

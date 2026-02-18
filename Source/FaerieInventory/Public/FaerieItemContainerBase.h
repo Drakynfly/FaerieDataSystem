@@ -174,5 +174,5 @@ protected:
 	UPROPERTY(Transient)
 	TObjectPtr<UFaerieItemContainerExtensionData> UnclaimedExtensionData;
 
-	Faerie::TKeyGen<FEntryKey> KeyGen;
+	Faerie::Inventory::TKeyGen<FEntryKey> KeyGen;
 };

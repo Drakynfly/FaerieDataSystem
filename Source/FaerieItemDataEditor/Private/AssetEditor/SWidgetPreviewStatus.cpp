@@ -12,7 +12,7 @@
 
 namespace Faerie::UMGWidgetPreview
 {
-	void SWidgetPreviewStatus::Construct(const FArguments& Args, const TSharedRef<Ed::FItemAssetEditorToolkit>& InToolkit)
+	void SWidgetPreviewStatus::Construct(const FArguments& Args, const TSharedRef<Editor::FItemAssetEditorToolkit>& InToolkit)
 	{
 		WeakToolkit = InToolkit;
 
@@ -52,7 +52,7 @@ namespace Faerie::UMGWidgetPreview
 
 	SWidgetPreviewStatus::~SWidgetPreviewStatus()
 	{
-		if (const TSharedPtr<Ed::FItemAssetEditorToolkit> Toolkit = WeakToolkit.Pin())
+		if (const TSharedPtr<Editor::FItemAssetEditorToolkit> Toolkit = WeakToolkit.Pin())
 		{
 			Toolkit->OnStateChanged().Remove(OnStateChangedHandle);
 		}
@@ -135,7 +135,7 @@ namespace Faerie::UMGWidgetPreview
 
 	TSharedPtr<FTokenizedMessage> SWidgetPreviewStatus::GetStatusMessage() const
 	{
-		if (const TSharedPtr<Ed::FItemAssetEditorToolkit> Toolkit = WeakToolkit.Pin())
+		if (const TSharedPtr<Editor::FItemAssetEditorToolkit> Toolkit = WeakToolkit.Pin())
 		{
 			if (FWidgetPreviewToolkitStateBase* CurrentState = Toolkit->GetState())
 			{
@@ -148,7 +148,7 @@ namespace Faerie::UMGWidgetPreview
 
 	EVisibility SWidgetPreviewStatus::GetStatusVisibility() const
 	{
-		if (const TSharedPtr<Ed::FItemAssetEditorToolkit> Toolkit = WeakToolkit.Pin())
+		if (const TSharedPtr<Editor::FItemAssetEditorToolkit> Toolkit = WeakToolkit.Pin())
 		{
 			if (FWidgetPreviewToolkitStateBase* CurrentState = Toolkit->GetState())
 			{

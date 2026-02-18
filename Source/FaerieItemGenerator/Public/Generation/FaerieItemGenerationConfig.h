@@ -33,7 +33,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|GenerationDriver")
 	TInstancedStruct<FFaerieGeneratorAmountBase> GetAmountResolver() const;
 
-	void Resolve(TArray<Faerie::FPendingItemGeneration>& Generations, USquirrel* Squirrel = nullptr) const;
+	void Resolve(TArray<Faerie::Generation::FPendingTableDrop>& Generations, USquirrel* Squirrel = nullptr) const;
 
 protected:
 	UPROPERTY(EditAnywhere, Category = "Table", meta = (ShowOnlyInnerProperties))

@@ -5,15 +5,15 @@
 #include "ItemContainerExtensionBase.h"
 #include "ItemContainerExtensionEvents.generated.h"
 
-namespace Faerie
+namespace Faerie::Extensions
 {
-	enum EExtensionEventType
+	enum EInitializationEventType
 	{
 		Initialization,
 		Deinitialization
 	};
 
-	using FExtensionEvent = TMulticastDelegate<void(TNotNull<const UFaerieItemContainerBase*> Container, EExtensionEventType Type)>;
+	using FInitializationEvent = TMulticastDelegate<void(TNotNull<const UFaerieItemContainerBase*> Container, EInitializationEventType Type)>;
 	using FPreAdditionEvent = TMulticastDelegate<void(TNotNull<const UFaerieItemContainerBase*> Container, FFaerieItemStackView Stack)>;
 	using FPreRemovalEvent = TMulticastDelegate<void(TNotNull<const UFaerieItemContainerBase*> Container, FEntryKey Key, int32 Removal)>;
 	using FPostEventBatch = TMulticastDelegate<void(TNotNull<const UFaerieItemContainerBase*> Container, const Inventory::FEventLogBatch& Events)>;
@@ -38,14 +38,14 @@ protected:
 	//~ UItemContainerExtensionBase
 
 public:
-	Faerie::FExtensionEvent::RegistrationType& GetExtensionEvent() { return ExtensionEvent; }
-	Faerie::FPreAdditionEvent::RegistrationType& GetPreAdditionEvent() { return PreAdditionEvent; }
-	Faerie::FPreRemovalEvent::RegistrationType& GetPreRemovalEvent() { return PreRemovalEvent; }
-	Faerie::FPostEventBatch::RegistrationType& GetOnPostEventBatch() { return OnPostEventBatch; }
+	Faerie::Extensions::FInitializationEvent::RegistrationType& GetInitializationEvent() { return ExtensionEvent; }
+	Faerie::Extensions::FPreAdditionEvent::RegistrationType& GetPreAdditionEvent() { return PreAdditionEvent; }
+	Faerie::Extensions::FPreRemovalEvent::RegistrationType& GetPreRemovalEvent() { return PreRemovalEvent; }
+	Faerie::Extensions::FPostEventBatch::RegistrationType& GetOnPostEventBatch() { return OnPostEventBatch; }
 
 private:
-	Faerie::FExtensionEvent ExtensionEvent;
-	Faerie::FPreAdditionEvent PreAdditionEvent;
-	Faerie::FPreRemovalEvent PreRemovalEvent;
-	Faerie::FPostEventBatch OnPostEventBatch;
+	Faerie::Extensions::FInitializationEvent ExtensionEvent;
+	Faerie::Extensions::FPreAdditionEvent PreAdditionEvent;
+	Faerie::Extensions::FPreRemovalEvent PreRemovalEvent;
+	Faerie::Extensions::FPostEventBatch OnPostEventBatch;
 };

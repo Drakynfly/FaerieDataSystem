@@ -5,7 +5,7 @@
 #include "SCommonEditorViewportToolbarBase.h"
 #include "SEditorViewport.h"
 
-namespace Faerie::Ed
+namespace Faerie::Editor
 {
 	class FItemAssetEditorToolkit;
 	class FItemDataProxyPreviewScene;
