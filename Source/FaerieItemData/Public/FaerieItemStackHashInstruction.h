@@ -11,7 +11,7 @@
  * Base for hashing functions that take a FaerieItemStackView.
  * Children can be prefixed with "UFISHI_", since this class name is quite long.
  */
-UCLASS(Const, Abstract, EditInlineNew, CollapseCategories)
+UCLASS(Abstract, Const, EditInlineNew, CollapseCategories)
 class FAERIEITEMDATA_API UFaerieItemStackHashInstruction : public UObject
 {
 	GENERATED_BODY()

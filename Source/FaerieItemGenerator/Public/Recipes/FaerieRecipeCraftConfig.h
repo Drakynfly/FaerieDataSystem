@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "CraftingActionConfig.h"
 #include "FaerieItemSlotInterface.h"
 #include "FaerieRecipeCraftConfig.generated.h"
 
@@ -12,7 +11,7 @@ class UFaerieItemRecipe;
  *
  */
 UCLASS()
-class FAERIEITEMGENERATOR_API UFaerieRecipeCraftConfig : public UFaerieCraftingActionConfig, public IFaerieItemSlotInterface
+class FAERIEITEMGENERATOR_API UFaerieRecipeCraftConfig : public UDataAsset, public IFaerieItemSlotInterface
 {
 	GENERATED_BODY()
 
@@ -23,7 +22,9 @@ public:
 	virtual EDataValidationResult IsDataValid(FDataValidationContext& Context) const override;
 #endif
 
-	virtual FFaerieCraftingSlotsView GetCraftingSlots() const override;
+	//~ IFaerieItemSlotInterface
+	virtual FFaerieItemCraftingSlots GetCraftingSlots() const override;
+	//~ IFaerieItemSlotInterface
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Crafting Config")

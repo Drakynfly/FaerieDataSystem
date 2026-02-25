@@ -3,14 +3,10 @@
 #pragma once
 
 #include "BenchBehaviorBase.h"
-#include "StructUtils/InstancedStruct.h"
 #include "ItemGenerationBench.generated.h"
 
-struct FFaerieItemStack;
-struct FFaerieItemMutator;
+class UFaerieItemUpgradeConfigBase;
 class USquirrel;
-class UFaerieItemGenerationConfig;
-class UFaerieItemUpgradeConfig;
 
 /**
  *
@@ -23,17 +19,10 @@ class FAERIEINVENTORYCONTENT_API UItemGenerationBench : public UBenchBehaviorBas
 public:
 	UItemGenerationBench();
 
-#if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-#endif
-
 protected:
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, NoClear, Category = "ItemGeneration", meta = (NoResetToDefault))
-	TArray<TObjectPtr<UFaerieItemGenerationConfig>> Drivers;
-
 	// Upgrade to run on applicable items generated.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ItemGeneration")
-	TObjectPtr<UFaerieItemUpgradeConfig> Upgrade;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ItemGeneration", meta = (AllowAbstract = false))
+	TSubclassOf<UFaerieItemUpgradeConfigBase> Config = nullptr;
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, NoClear, Category = "ItemGeneration", meta = (NoResetToDefault, DisplayThumbnail = false, ShowInnerProperties))
 	TObjectPtr<USquirrel> Squirrel;

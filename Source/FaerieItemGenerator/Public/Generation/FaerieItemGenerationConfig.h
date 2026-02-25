@@ -3,15 +3,14 @@
 #pragma once
 
 #include "FaerieGenerationStructs.h"
-#include "CraftingActionConfig.h"
 #include "StructUtils/InstancedStruct.h"
 #include "FaerieItemGenerationConfig.generated.h"
 
 /**
  * Configurable item generation wrapper class.
  */
-UCLASS()
-class FAERIEITEMGENERATOR_API UFaerieItemGenerationConfig : public UFaerieCraftingActionConfig
+UCLASS(BlueprintType)
+class FAERIEITEMGENERATOR_API UFaerieItemGenerationConfig : public UDataAsset
 {
 	GENERATED_BODY()
 

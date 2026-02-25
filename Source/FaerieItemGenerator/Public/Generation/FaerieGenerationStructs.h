@@ -29,7 +29,6 @@ struct FAERIEITEMGENERATOR_API FFaerieTableDrop
 		return !Asset.Object.IsNull();
 	}
 
-	// Only checks if asset is the same, ignores mutators.
 	[[nodiscard]] UE_REWRITE bool UEOpEquals(const FFaerieTableDrop& Other) const
 	{
 		return Asset.Object == Other.Asset.Object;

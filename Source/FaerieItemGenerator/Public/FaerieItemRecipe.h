@@ -16,7 +16,7 @@ class FAERIEITEMGENERATOR_API UFaerieItemRecipe : public UObject, public IFaerie
 
 public:
 	//~ IFaerieItemSlotInterface
-	virtual FFaerieCraftingSlotsView GetCraftingSlots() const override;
+	virtual FFaerieItemCraftingSlots GetCraftingSlots() const override;
 	//~ IFaerieItemSlotInterface
 
 	TScriptInterface<IFaerieItemSource> GetItemSource() const { return ItemSource; }

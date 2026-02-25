@@ -6,25 +6,13 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(CraftingLibrary)
 
-UFaerieItemGenerationConfig* UFaerieCraftingLibrary::CreateGenerationDriver(const TArray<FFaerieWeightedDrop>& DropList, const FFaerieGeneratorAmountBase& Amount)
-{
-    UFaerieItemGenerationConfig* NewDriver = NewObject<UFaerieItemGenerationConfig>();
-    NewDriver->DropPool.DropList = DropList;
-    NewDriver->AmountResolver = TInstancedStruct<FFaerieGeneratorAmountBase>::Make(Amount);
-    return NewDriver;
-}
-
 void UFaerieCraftingLibrary::GetCraftingSlots(const TScriptInterface<IFaerieItemSlotInterface> Interface, FFaerieItemCraftingSlots& Slots)
 {
     Slots = FFaerieItemCraftingSlots();
 
     if (Interface.GetInterface())
     {
-        if (const FFaerieCraftingSlotsView SlotsView = Interface->GetCraftingSlots();
-            SlotsView.IsValid())
-        {
-            Slots = SlotsView.Get();
-        }
+       Slots = Interface->GetCraftingSlots();
     }
 }
 
@@ -36,13 +24,35 @@ void UFaerieCraftingLibrary::GetCraftingSlots_Message(UObject* Object, FFaerieIt
     }
 }
 
+bool UFaerieCraftingLibrary::TestCraftingSlots(const TScriptInterface<IFaerieItemSlotInterface> Interface,
+    const FFaerieCraftingFilledSlots& FilledSlots)
+{
+    if (Interface.GetInterface())
+    {
+        return Faerie::Generation::ValidateFilledSlots(FilledSlots, Interface->GetCraftingSlots());
+    }
+    return false;
+}
+
 bool UFaerieCraftingLibrary::IsSlotOptional(const TScriptInterface<IFaerieItemSlotInterface> Interface, const FFaerieItemSlotHandle& Name)
 {
-    return Faerie::Generation::IsSlotOptional(Interface.GetInterface(), Name);
+    if (const IFaerieItemSlotInterface* InterfacePtr = Interface.GetInterface())
+    {
+        return Faerie::Generation::IsSlotOptional(InterfacePtr, Name);
+    }
+    return false;
 }
 
 bool UFaerieCraftingLibrary::FindSlot(const TScriptInterface<IFaerieItemSlotInterface> Interface,
-                                      const FFaerieItemSlotHandle& Name, UFaerieItemTemplate*& OutSlot)
+                                      const FFaerieItemSlotHandle& Name, FFaerieItemCraftingCostElement& OutSlot)
 {
-    return Faerie::Generation::FindSlot(Interface.GetInterface(), Name, OutSlot);
+    if (const IFaerieItemSlotInterface* InterfacePtr = Interface.GetInterface())
+    {
+        if (const FFaerieItemCraftingCostElement* Slot = Faerie::Generation::FindSlot(InterfacePtr, Name))
+        {
+            OutSlot = *Slot;
+            return true;
+        }
+    }
+    return false;
 }

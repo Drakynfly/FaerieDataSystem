@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include "FaerieCraftingRunner.h"
+#include "ItemCraftingAction.h"
 #include "Kismet/BlueprintAsyncActionBase.h"
 #include "StructUtils/InstancedStruct.h"
 #include "FaerieSubmitCraftingActionAsync.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FFaerieAsyncCraftingActionCompleted, EGenerationActionResult, Result,
-											 const TArray<FFaerieItemStack>&, Items);
+											 const FFaerieCraftingActionData&, Items);
 
 /**
  * 
@@ -27,7 +27,10 @@ public:
 	virtual void Activate() override;
 
 private:
-	void HandleResult(EGenerationActionResult GenerationActionResult, const TArray<FFaerieItemStack>& FaerieItemStacks);
+	void HandleResult(EGenerationActionResult GenerationActionResult, const FFaerieCraftingActionData& FaerieItemStacks);
+
+	UFUNCTION(BlueprintCallable, Category = "Faerie|CraftingAction")
+	void Cancel();
 
 protected:
 	UPROPERTY(BlueprintAssignable)
@@ -37,5 +40,7 @@ protected:
 	TObjectPtr<UObject> WorldContext;
 
 	UPROPERTY()
-	TInstancedStruct<FFaerieCraftingActionBase> Request;
+	TInstancedStruct<FFaerieCraftingActionBase> Action;
+
+	FFaerieCraftingActionHandle Handle;
 };

@@ -42,8 +42,7 @@ struct FFaerieItemMutatorContext
 };
 
 /**
- * Base struct for mutation behavior. This functions like a 'command' class, but is implemented as a struct, so that
- * clients can create and RPC these to the server.
+ * Base struct for mutation behavior. This functions as a 'command' class, with some helpers to get loading data.
  * GetRequiredAssets() is optional to implement.
  * Apply() must be implemented.
  */
@@ -57,6 +56,6 @@ struct FFaerieItemMutator
 	// Any soft assets required to be loaded when Apply is called should be registered here.
 	virtual void GetRequiredAssets(TArray<TSoftObjectPtr<UObject>>& RequiredAssets) const {}
 
-	//
+	// Try to run this mutator on a stack.
 	virtual bool Apply(FFaerieItemStack& Stack, FFaerieItemMutatorContext* Context) const PURE_VIRTUAL(FFaerieItemMutator::Apply, return false; )
 };

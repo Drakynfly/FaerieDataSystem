@@ -1,6 +1,8 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "Upgrades/FaerieItemUpgradeConfig.h"
+#include "FaerieItemMutator.h"
+#include "ItemCraftingAction.h"
 
 #if WITH_EDITOR
 #include "Misc/DataValidation.h"
@@ -11,6 +13,8 @@
 #if WITH_EDITOR
 
 #define LOCTEXT_NAMESPACE "FaerieItemUpgradeConfig_IsDataValid"
+
+void UFaerieItemUpgradeConfigBase::GetRequiredAssets(TArray<TSoftObjectPtr<UObject>>& Array) {}
 
 EDataValidationResult UFaerieItemUpgradeConfig::IsDataValid(FDataValidationContext& Context) const
 {
@@ -31,8 +35,73 @@ EDataValidationResult UFaerieItemUpgradeConfig::IsDataValid(FDataValidationConte
 
 #endif
 
-FFaerieCraftingSlotsView UFaerieItemUpgradeConfig::GetCraftingSlots() const
+FFaerieItemCraftingSlots UFaerieItemUpgradeConfig::GetCraftingSlots() const
 {
-	return FFaerieCraftingSlotsView();
-	//return Faerie::Crafting::GetCraftingSlots(Mutator);
+	return GetCraftingSlots(FFaerieItemStackView());
+}
+
+bool UFaerieItemUpgradeConfig::CanPayCost(const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemStackView View) const
+{
+	const FFaerieItemCraftingSlots CraftingSlots = GetCraftingSlots(View);
+	if (!Faerie::Generation::ValidateFilledSlots(FilledSlots, CraftingSlots))
+	{
+		return false;
+	}
+	return true;
+}
+
+void UFaerieItemUpgradeConfig::PayCost(const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemStackView View) const
+{
+	const FFaerieItemCraftingSlots CraftingSlots = GetCraftingSlots(View);
+	Faerie::Generation::ConsumeSlotCosts(FilledSlots, CraftingSlots);
+}
+
+FFaerieItemCraftingSlots UFaerieItemUpgradeConfig::GetCraftingSlots(const FFaerieItemStackView View) const
+{
+	return FFaerieItemCraftingSlots();
+}
+
+bool UFaerieItemUpgradeConfig::ApplyUpgrade(FFaerieCraftingActionData& Stacks, USquirrel* Squirrel) const
+{
+	FFaerieItemMutatorContext_UpgradeConfig Context;
+	Context.Squirrel = Squirrel;
+	Context.Config = this;
+
+	for (auto&& OperationStack : Stacks.Stacks)
+	{
+		if (OperationStack.Copies == 0)
+		{
+			return false;
+		}
+
+		// Apply the mutator, and fail if it doesn't apply, when RequireMutatorToRun is enabled.
+		if (!Mutator.Get().Apply(OperationStack, &Context) && RequireMutatorToRun)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+bool UFaerieItemUpgradeConfig_BlueprintBase::CanPayCost(const FFaerieCraftingFilledSlots& FilledSlots,
+	const FFaerieItemStackView View) const
+{
+	if (GetClass()->IsFunctionImplementedInScript(GET_FUNCTION_NAME_CHECKED(ThisClass, BP_CanPayCost)))
+	{
+		return BP_CanPayCost(FilledSlots, View);
+	}
+	return true;
+}
+
+void UFaerieItemUpgradeConfig_BlueprintBase::PayCost(const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemStackView View) const
+{
+	if (GetClass()->IsFunctionImplementedInScript(GET_FUNCTION_NAME_CHECKED(ThisClass, BP_CanPayCost)))
+	{
+		BP_PayCost(FilledSlots, View);
+	}
+}
+
+bool UFaerieItemUpgradeConfig_BlueprintBase::ApplyUpgrade(FFaerieCraftingActionData& Stacks, USquirrel* Squirrel) const
+{
+	return BP_ApplyUpgrade(Stacks, Squirrel);
 }

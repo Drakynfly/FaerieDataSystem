@@ -2,6 +2,7 @@
 
 #include "FaerieSubmitCraftingActionAsync.h"
 #include "FaerieItemCraftingSubsystem.h"
+#include "ItemCraftingRunner.h"
 #include "Engine/World.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieSubmitCraftingActionAsync)
@@ -11,7 +12,7 @@ UFaerieSubmitCraftingActionAsync* UFaerieSubmitCraftingActionAsync::SubmitCrafti
 {
 	UFaerieSubmitCraftingActionAsync* Action = NewObject<UFaerieSubmitCraftingActionAsync>();
 	Action->WorldContext = WorldContextObj;
-	Action->Request = Request;
+	Action->Action = Request;
 	return Action;
 }
 
@@ -24,11 +25,16 @@ void UFaerieSubmitCraftingActionAsync::Activate()
 
 	UFaerieItemCraftingSubsystem* CraftingSubsystem = WorldContext->GetWorld()->GetSubsystem<UFaerieItemCraftingSubsystem>();
 
-	UFaerieCraftingRunner* Runner = CraftingSubsystem->SubmitCraftingRequest(Request,
-		UFaerieItemCraftingSubsystem::FRequestResult::CreateUObject(this, &ThisClass::HandleResult));
+	Handle = CraftingSubsystem->GetRunner()->SubmitCraftingAction(Action, Faerie::Generation::FActionResult::CreateUObject(this, &ThisClass::HandleResult));
 }
 
-void UFaerieSubmitCraftingActionAsync::HandleResult(const EGenerationActionResult GenerationActionResult, const TArray<FFaerieItemStack>& FaerieItemStacks)
+void UFaerieSubmitCraftingActionAsync::HandleResult(const EGenerationActionResult GenerationActionResult, const FFaerieCraftingActionData& FaerieItemStacks)
 {
 	GenerationActionCompleted.Broadcast(GenerationActionResult, FaerieItemStacks);
+}
+
+void UFaerieSubmitCraftingActionAsync::Cancel()
+{
+	UFaerieItemCraftingSubsystem* CraftingSubsystem = WorldContext->GetWorld()->GetSubsystem<UFaerieItemCraftingSubsystem>();
+	CraftingSubsystem->CancelCraftingAction(Handle);
 }

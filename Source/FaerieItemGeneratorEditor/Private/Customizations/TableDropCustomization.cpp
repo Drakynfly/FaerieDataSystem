@@ -10,7 +10,6 @@
 #include "IDetailChildrenBuilder.h"
 #include "IPropertyUtilities.h"
 #include "PropertyHandle.h"
-#include "Algo/ForEach.h"
 
 namespace Faerie::GeneratorEditor
 {
@@ -67,7 +66,6 @@ void FTableDropCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> Prop
 	{
 		return;
 	}
-	auto&& Slots = static_cast<TMap<FFaerieItemSlotHandle, TInstancedStruct<FFaerieTableDrop>>*>(SlotsAddress);
 
 	if (!IsValid(ObjectValue))
 	{
@@ -83,33 +81,26 @@ void FTableDropCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> Prop
     // Only display the slots property if the asset is a graph that needs them, or a value has already been set.
     if (auto&& SlotInterface = Cast<IFaerieItemSlotInterface>(ObjectValue))
     {
-    	const FFaerieCraftingSlotsView SlotsView = Faerie::Generation::GetCraftingSlots(SlotInterface);
-    	const FFaerieItemCraftingSlots& SlotsPtr = SlotsView.Get();
-
-    	if (SlotsPtr.RequiredSlots.IsEmpty() &&
-    		SlotsPtr.OptionalSlots.IsEmpty())
+    	const FFaerieItemCraftingSlots Slots = SlotInterface->GetCraftingSlots();
+    	if (Slots.RequiredSlots.IsEmpty())
     	{
     		return;
     	}
 
     	ShowSlotsProperty = true;
 
-    	FScriptMapHelper MapHelper(CastField<FMapProperty>(SlotsHandle->GetProperty()), Slots);
+    	FScriptMapHelper MapHelper(CastField<FMapProperty>(SlotsHandle->GetProperty()), SlotsAddress);
 
-    	// Prefill the map with the slots from the asset:
-    	auto SlotIter = [&](const TPair<FFaerieItemSlotHandle, TObjectPtr<UFaerieItemTemplate>>& Slot)
-    		{
-    			MapHelper.FindOrAdd(&Slot.Key);
-    			MapHelper.Rehash();
-    		};
-
-    	Algo::ForEach(SlotsPtr.RequiredSlots, SlotIter);
-    	Algo::ForEach(SlotsPtr.OptionalSlots, SlotIter);
+    	for (auto&& Slot : Slots.RequiredSlots)
+    	{
+    		MapHelper.FindOrAdd(&Slot.Name);
+    		MapHelper.Rehash();
+    	}
     }
 	else // Not a crafting asset
 	{
 		uint32 NumItems;
-		SlotsHandle->AsArray()->GetNumElements(NumItems);
+		SlotsHandle->AsMap()->GetNumElements(NumItems);
 
 		// If there are items in the map, we should still display the property
 		if (NumItems > 0)

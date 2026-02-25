@@ -19,7 +19,7 @@ struct FAERIEINVENTORY_API FFaerieClientActionBase
 	 * Use this to implement Client-to-Server edits to item storage.
 	 */
 	virtual bool Server_Execute(const UFaerieInventoryClient* Client) const
-	PURE_VIRTUAL(FFaerieClientActionBase::Server_Execute, return false; )
+		PURE_VIRTUAL(FFaerieClientActionBase::Server_Execute, return false; )
 };
 
 USTRUCT()

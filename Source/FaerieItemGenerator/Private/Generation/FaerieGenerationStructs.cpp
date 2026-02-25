@@ -11,7 +11,12 @@ using namespace Faerie;
 
 TOptional<FFaerieItemStack> FFaerieTableDrop::Resolve(const FFaerieItemInstancingContext_Crafting& Context) const
 {
-	auto&& DropObject = Asset.Object.LoadSynchronous();
+	UObject* DropObject = Asset.Object.Get();
+	if (!ensure(::IsValid(DropObject)))
+	{
+		UE_LOG(LogItemGeneration, Error, TEXT("FFaerieTableDrop::Resolve - Falling back to Synchronous Load for source object. Why!"))
+		DropObject = Asset.Object.LoadSynchronous();
+	}
 
 	if (!DropObject || !ensure(DropObject->Implements<UFaerieItemSource>()))
 	{
@@ -25,7 +30,7 @@ TOptional<FFaerieItemStack> FFaerieTableDrop::Resolve(const FFaerieItemInstancin
 
 	for (auto&& StaticResourceSlot : StaticResourceSlots)
 	{
-		const FFaerieTableDrop& ChildDrop = StaticResourceSlot.Value.Get<FFaerieTableDrop>();
+		const FFaerieTableDrop& ChildDrop = StaticResourceSlot.Value.Get();
 
 		// @todo
 		// For Subgraph instances, automatically set the stack to the required amount for the filter.
@@ -37,17 +42,69 @@ TOptional<FFaerieItemStack> FFaerieTableDrop::Resolve(const FFaerieItemInstancin
 		FFaerieItemInstancingContext_Crafting ChildContext;
 		ChildContext.Squirrel = Context.Squirrel;
 
-		if (auto StaticInstanceItem = ChildDrop.Resolve(ChildContext))
+		if (auto StaticInstanceItem = ChildDrop.Resolve(ChildContext);
+			StaticInstanceItem.IsSet())
 		{
-			if (StaticInstanceItem.IsSet())
-			{
-				TempContext.GeneratedChildren.Add(StaticResourceSlot.Key, StaticInstanceItem.GetValue());
-			}
+			TempContext.GeneratedChildren.Add(StaticResourceSlot.Key, StaticInstanceItem.GetValue());
 		}
 	}
 
 	return ItemSource->CreateItemStack(&TempContext);
 }
+
+const FFaerieTableDrop* FFaerieWeightedPool::GetDrop(const double RanWeight) const
+{
+	if (DropList.IsEmpty())
+	{
+		UE_LOG(LogItemGeneration, Error, TEXT("Exiting generation: Empty Table"));
+		return nullptr;
+	}
+
+	// Skip performing binary search if there is only one possible result.
+	if (DropList.Num() == 1)
+	{
+		return &DropList[0].Drop;
+	}
+
+	const int32 BinarySearchResult = Algo::LowerBoundBy(DropList, RanWeight, &FFaerieWeightedDrop::AdjustedWeight);
+
+	if (!DropList.IsValidIndex(BinarySearchResult))
+	{
+		UE_LOG(LogItemGeneration, Error, TEXT("Binary search returned out-of-bounds index!"));
+		return nullptr;
+	}
+
+	return &DropList[BinarySearchResult].Drop;
+}
+
+#if WITH_EDITOR
+void FFaerieWeightedPool::CalculatePercentages()
+{
+	/**
+	 * Sum all weights into a total weight value, while also adjusting the weight of each drop to include to weight
+	 * of all drops before it.
+	 */
+
+	int32 WeightSum = 0;
+	for (FFaerieWeightedDrop& Entry : DropList)
+	{
+		WeightSum += Entry.Weight;
+		Entry.AdjustedWeight = WeightSum;
+	}
+
+	for (FFaerieWeightedDrop& Entry : DropList)
+	{
+		Entry.AdjustedWeight /= WeightSum;
+		Entry.PercentageChanceToDrop = 100.f * (static_cast<float>(Entry.Weight) / static_cast<float>(WeightSum));
+	}
+}
+
+void FFaerieWeightedPool::SortTable()
+{
+	Algo::SortBy(DropList, &FFaerieWeightedDrop::AdjustedWeight);
+}
+
+#endif
 
 void FFaerieGenerationProcedure_OfOne::Resolve(const FFaerieWeightedPool& Pool, USquirrel* Squirrel,
 											   TArray<Generation::FPendingTableDrop>& Pending, const int32 Amount) const

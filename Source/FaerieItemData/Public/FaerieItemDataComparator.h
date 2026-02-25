@@ -16,7 +16,7 @@ struct FFaerieItemDataViewWrapper;
 /**
  * Compares two item views. Used to create sorting functionality.
  */
-UCLASS(Abstract, BlueprintType, Const, EditInlineNew, DefaultToInstanced, CollapseCategories)
+UCLASS(Abstract, Const, BlueprintType, EditInlineNew, DefaultToInstanced, CollapseCategories)
 class FAERIEITEMDATA_API UFaerieItemDataComparator : public UObject
 {
 	GENERATED_BODY()

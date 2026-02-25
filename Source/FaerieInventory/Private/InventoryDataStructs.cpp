@@ -70,7 +70,7 @@ const FKeyedStack* FInventoryEntry::GetStackPtr(const FStackKey InKey) const
 
 void FInventoryEntry::UpdateCachedStackLimit()
 {
-	Limit = ItemObject ? UFaerieStackLimiterToken::GetItemStackLimit(ItemObject) : 0;
+	Limit = UFaerieStackLimiterToken::GetItemStackLimit(ItemObject);
 }
 
 bool FInventoryEntry::Contains(const FStackKey InKey) const
@@ -178,11 +178,15 @@ void FInventoryEntry::PreReplicatedRemove(const FInventoryContent& InArraySerial
 
 void FInventoryEntry::PostReplicatedAdd(const FInventoryContent& InArraySerializer)
 {
+	// Update the cached limit on the client so it isn't 0.
+	UpdateCachedStackLimit();
 	InArraySerializer.PostEntryReplicatedAdd(*this);
 }
 
 void FInventoryEntry::PostReplicatedChange(const FInventoryContent& InArraySerializer)
 {
+	// Update the cached limit on the client so it isn't 0.
+	UpdateCachedStackLimit();
 	InArraySerializer.PostEntryReplicatedChange_Client(*this);
 }
 

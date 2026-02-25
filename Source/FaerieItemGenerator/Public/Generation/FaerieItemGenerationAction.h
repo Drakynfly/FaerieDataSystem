@@ -2,40 +2,56 @@
 
 #pragma once
 
-#include "FaerieCraftingRunner.h"
+#include "ItemCraftingAction.h"
 #include "FaerieGenerationStructs.h"
 #include "FaerieItemGenerationAction.generated.h"
 
 class UFaerieItemGenerationConfig;
 
+//
 USTRUCT()
-struct FFaerieItemGenerationRequestStorage : public FFaerieCraftingActionData
+struct FAERIEITEMGENERATOR_API FFaerieItemGenerationActionBase : public FFaerieCraftingActionBase
 {
 	GENERATED_BODY()
-
-	// Children items to generate.
-	TArray<Faerie::Generation::FPendingTableDrop> PendingGenerations;
 };
 
 //
 USTRUCT(BlueprintType)
-struct FAERIEITEMGENERATOR_API FFaerieItemGenerationAction : public FFaerieCraftingActionBase
+struct FAERIEITEMGENERATOR_API FFaerieItemGenerationActionSingle : public FFaerieItemGenerationActionBase
 {
 	GENERATED_BODY()
 
-	virtual void Run(UFaerieCraftingRunner* Runner) const override;
+	virtual void Run(TNotNull<UFaerieItemCraftingRunner*> Runner) override;
 
 protected:
-	void LoadCheck(TSharedPtr<FStreamableHandle> Handle, UFaerieCraftingRunner* Runner) const;
-	void Generate(UFaerieCraftingRunner* Runner) const;
-	void ResolveGeneration(FFaerieItemGenerationRequestStorage& Storage, const Faerie::Generation::FPendingTableDrop& Generation, const FFaerieItemInstancingContext_Crafting& Context) const;
+	void LoadCheck(const TSharedPtr<FStreamableHandle>& LoadHandle, TNotNull<UFaerieItemCraftingRunner*> Runner);
+	void Generate(TNotNull<UFaerieItemCraftingRunner*> Runner);
 
-	// The client must fill this with drivers that can have network ID mapping. This is automatic for serialized objects.
-	// Runtime generated drivers must be created server-side and replicated for this to work.
-	UPROPERTY(BlueprintReadWrite, Category = "Generation Request")
-	TArray<TObjectPtr<UFaerieItemGenerationConfig>> Drivers;
+	UPROPERTY(BlueprintReadWrite, Category = "Generation Action Single")
+	FFaerieTableDrop Source;
+};
+
+//
+USTRUCT(BlueprintType)
+struct FAERIEITEMGENERATOR_API FFaerieItemGenerationAction : public FFaerieItemGenerationActionBase
+{
+	GENERATED_BODY()
+
+	virtual void Run(TNotNull<UFaerieItemCraftingRunner*> Runner) override;
+
+protected:
+	void LoadDrivers(TNotNull<UFaerieItemCraftingRunner*> Runner);
+	void LoadCheck(const TSharedPtr<FStreamableHandle>& LoadHandle, TNotNull<UFaerieItemCraftingRunner*> Runner, int32 CheckFromNum);
+	void Generate(TNotNull<UFaerieItemCraftingRunner*> Runner);
+
+	UPROPERTY(BlueprintReadWrite, Category = "Generation Action")
+	TArray<TSoftObjectPtr<UFaerieItemGenerationConfig>> Drivers;
 
 	// Use pool assets to generate lists of drops, rather that use them as a source of a single drop
-	UPROPERTY(BlueprintReadWrite, Category = "Crafting Request")
+	UPROPERTY(BlueprintReadWrite, Category = "Generation Action")
 	bool RecursivelyResolveTables = false;
+
+private:
+	// Children items to generate.
+	TArray<Faerie::Generation::FPendingTableDrop> PendingGenerations;
 };

@@ -15,57 +15,7 @@
 #include "FaerieItemGenerationLog.h"
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemPool)
 
-const FFaerieTableDrop* FFaerieWeightedPool::GetDrop(const double RanWeight) const
-{
-	if (DropList.IsEmpty())
-	{
-		UE_LOG(LogItemGeneration, Error, TEXT("Exiting generation: Empty Table"));
-		return nullptr;
-	}
-
-	// Skip performing binary search if there is only one possible result.
-	if (DropList.Num() == 1)
-	{
-		return &DropList[0].Drop;
-	}
-
-	const int32 BinarySearchResult = Algo::LowerBoundBy(DropList, RanWeight, &FFaerieWeightedDrop::AdjustedWeight);
-
-	if (!DropList.IsValidIndex(BinarySearchResult))
-	{
-		UE_LOG(LogItemGeneration, Error, TEXT("Binary search returned out-of-bounds index!"));
-		return nullptr;
-	}
-
-	return &DropList[BinarySearchResult].Drop;
-}
-
 #if WITH_EDITOR
-void FFaerieWeightedPool::CalculatePercentages()
-{
-	/**
-	 * Sum all weights into a total weight value, while also adjusting the weight of each drop to include to weight
-	 * of all drops before it.
-	 */
-
-	int32 WeightSum = 0;
-	for (FFaerieWeightedDrop& Entry : DropList)
-	{
-		WeightSum += Entry.Weight;
-		Entry.AdjustedWeight = WeightSum;
-	}
-
-	for (FFaerieWeightedDrop& Entry : DropList)
-	{
-		Entry.AdjustedWeight /= WeightSum;
-		Entry.PercentageChanceToDrop = 100.f * (static_cast<float>(Entry.Weight) / static_cast<float>(WeightSum));
-	}
-}
-
-void FFaerieWeightedPool::SortTable()
-{
-	Algo::SortBy(DropList, &FFaerieWeightedDrop::AdjustedWeight);
-}
 
 namespace Faerie::Editor
 {
@@ -116,7 +66,7 @@ EDataValidationResult UFaerieItemPool::IsDataValid(FDataValidationContext& Conte
 
 	for (const FFaerieWeightedDrop& Entry : DropPool.DropList)
 	{
-		if (!Entry.Drop.IsValid())
+		if (!Entry.Drop.Asset.Object.IsNull())
 		{
 			Context.AddWarning(LOCTEXT("DropTableInvalidAsset_Ref", "Invalid Asset Reference"));
 		}
@@ -183,13 +133,13 @@ TOptional<FFaerieItemStack> UFaerieItemPool::CreateItemStack(const FFaerieItemIn
 	}
 
 	const FFaerieTableDrop* Drop = [this, CraftingContext]
-	{
-		if (IsValid(CraftingContext->Squirrel))
 		{
-			return GetDrop_Seeded(CraftingContext->Squirrel);
-		}
-		return GetDrop(FMath::FRand());
-	}();
+			if (IsValid(CraftingContext->Squirrel))
+			{
+				return GetDrop_Seeded(CraftingContext->Squirrel);
+			}
+			return GetDrop(FMath::FRand());
+		}();
 
 	if (Drop && Drop->IsValid())
 	{

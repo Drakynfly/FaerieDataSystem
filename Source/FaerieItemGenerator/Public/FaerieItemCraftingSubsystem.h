@@ -3,26 +3,10 @@
 #pragma once
 
 #include "Subsystems/WorldSubsystem.h"
-#include "FaerieCraftingRunner.h"
+#include "ItemCraftingAction.h"
+#include "ItemCraftingRunner.h"
 #include "StructUtils/InstancedStruct.h"
 #include "FaerieItemCraftingSubsystem.generated.h"
-
-DECLARE_DYNAMIC_DELEGATE_TwoParams(FGenerationActionOnCompleteBinding, EGenerationActionResult, Result, const TArray<FFaerieItemStack>&, Items);
-
-namespace Faerie::Generation
-{
-	template <typename T>
-    concept CCraftingAction = TIsDerivedFrom<typename TRemoveReference<T>::Type, FFaerieCraftingActionBase>::Value;
-}
-
-USTRUCT()
-struct FFaerieCraftingActionHandle
-{
-	GENERATED_BODY()
-
-	UPROPERTY()
-	uint32 Key = 0;
-};
 
 /**
  *
@@ -33,39 +17,18 @@ class FAERIEITEMGENERATOR_API UFaerieItemCraftingSubsystem : public UWorldSubsys
 	GENERATED_BODY()
 
 public:
-	//virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 
-	using FRequestResult = TDelegate<void(EGenerationActionResult Success, const TArray<FFaerieItemStack>&)>;
-
-	UFaerieCraftingRunner* SubmitCraftingRequest(const Faerie::Generation::CCraftingAction auto& Request)
-	{
-		auto ActionStruct = TInstancedStruct<FFaerieCraftingActionBase>::Make(Request);
-		return SubmitCraftingRequest_Impl(ActionStruct, nullptr);
-	}
-
-	UFaerieCraftingRunner* SubmitCraftingRequest(const Faerie::Generation::CCraftingAction auto& Request, const FRequestResult& Callback)
-	{
-		auto ActionStruct = TInstancedStruct<FFaerieCraftingActionBase>::Make(Request);
-		return SubmitCraftingRequest_Impl(ActionStruct, &Callback);
-	}
+	UFaerieItemCraftingRunner* GetRunner() const { return Runner; }
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemGeneration")
-	UFaerieCraftingRunner* SubmitCraftingRequest(TInstancedStruct<FFaerieCraftingActionBase> Request, const FGenerationActionOnCompleteBinding& Callback);
+	FFaerieCraftingActionHandle SubmitCraftingRequest(TInstancedStruct<FFaerieCraftingActionBase> Request, const FGenerationActionOnCompleteBinding& Callback);
 
-	UFaerieCraftingRunner* SubmitCraftingRequest(const TInstancedStruct<FFaerieCraftingActionBase>& Request, const FRequestResult& Callback);
-
-private:
-	UFaerieCraftingRunner* SubmitCraftingRequest_Impl(const TInstancedStruct<FFaerieCraftingActionBase>& Request, const FRequestResult* Callback);
-
-	void OnActionTimeout(UFaerieCraftingRunner* Runner);
-	void OnActionCompleted(UFaerieCraftingRunner* Runner, EGenerationActionResult Result);
-	void OnActionCompleted(UFaerieCraftingRunner* Runner, EGenerationActionResult Result, FRequestResult Callback);
+	UFUNCTION(BlueprintCallable, Category = "Faerie|CraftingAction")
+	void CancelCraftingAction(FFaerieCraftingActionHandle Handle);
 
 private:
-	// The Actions currently running.
-	UPROPERTY(Transient)
-	TSet<TObjectPtr<UFaerieCraftingRunner>> ActiveActions;
-
-	float ActionTimeoutDuration = 30.f;
+	UPROPERTY()
+	TObjectPtr<UFaerieItemCraftingRunner> Runner;
 };

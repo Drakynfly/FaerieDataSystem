@@ -9,23 +9,18 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieCraftRecipeAction)
 
-void FFaerieCraftRecipeAction::Run(UFaerieCraftingRunner* Runner) const
+void FFaerieCraftRecipeAction::Run(const TNotNull<UFaerieItemCraftingRunner*> Runner)
 {
 	if (!IsValid(Config))
 	{
 		UE_LOG(LogItemGeneration, Warning, TEXT("%hs: Config is invalid!"), __FUNCTION__);
-		return Runner->Fail();
+		return Fail(Runner);
 	}
 
-	FFaerieCraftingActionData RequestData;
-
-	if (const FFaerieCraftingSlotsView SlotsView = Faerie::Generation::GetCraftingSlots(Config);
-		SlotsView.IsValid())
+	const FFaerieItemCraftingSlots CraftingSlots = Config->GetCraftingSlots();
+	if (!Faerie::Generation::ValidateFilledSlots(Slots, CraftingSlots))
 	{
-		if (!Faerie::Generation::ValidateFilledSlots(Slots, SlotsView.Get()))
-		{
-			return Runner->Fail();
-		}
+		return Fail(Runner);
 	}
 
 	UE_LOG(LogItemGeneration, Log, TEXT("Running RecipeCraft"));
@@ -43,21 +38,16 @@ void FFaerieCraftRecipeAction::Run(UFaerieCraftingRunner* Runner) const
 	if (!NewStack.IsSet())
 	{
 		UE_LOG(LogItemGeneration, Error, TEXT("Item Instancing failed for Craft Item!"));
-		return Runner->Fail();
+		return Fail(Runner);
 	}
 
-	RequestData.ProcessStacks.Add(NewStack.GetValue());
+	ActionData.Stacks.Add(NewStack.GetValue());
 
 	if (RunConsumeStep && Config->Recipe->Implements<UFaerieItemSlotInterface>())
 	{
-		if (const FFaerieCraftingSlotsView SlotsView = Faerie::Generation::GetCraftingSlots(Config->Recipe);
-			SlotsView.IsValid())
-		{
-			Faerie::Generation::ConsumeSlotCosts(Slots, SlotsView.Get());
-		}
+		const FFaerieItemCraftingSlots SlotsView = Config->Recipe->GetCraftingSlots();
+		Faerie::Generation::ConsumeSlotCosts(Slots, SlotsView);
 	}
 
-	Runner->RequestStorage.InitializeAs<FFaerieCraftingActionData>(RequestData);
-
-	Runner->Complete();
+	return Complete(Runner);
 }
