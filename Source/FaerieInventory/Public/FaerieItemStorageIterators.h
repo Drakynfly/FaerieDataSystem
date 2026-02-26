@@ -17,7 +17,7 @@ namespace Faerie::Storage
 		static const FInventoryContent& ReadInventoryContent(const TNotNull<const UFaerieItemStorage*> Storage);
 	};
 
-	class FAERIEINVENTORY_API FIterator_AllEntries : FStorageDataAccess
+	class FAERIEINVENTORY_API FIterator_AllEntries : FStorageDataAccess, FNoncopyable
 	{
 	public:
 		FIterator_AllEntries(TNotNull<const UFaerieItemStorage*> Storage);
@@ -61,7 +61,7 @@ namespace Faerie::Storage
 		int32 EntryIndex = INDEX_NONE;
 	};
 
-	class FAERIEINVENTORY_API FIterator_AllAddresses : FStorageDataAccess
+	class FAERIEINVENTORY_API FIterator_AllAddresses : FStorageDataAccess, FNoncopyable
 	{
 	public:
 		FIterator_AllAddresses(TNotNull<const UFaerieItemStorage*> Storage);
@@ -106,7 +106,7 @@ namespace Faerie::Storage
 		int32 NumRemaining;
 	};
 
-	class FAERIEINVENTORY_API FIterator_SingleEntry : FStorageDataAccess
+	class FAERIEINVENTORY_API FIterator_SingleEntry : FStorageDataAccess, FNoncopyable
 	{
 	public:
 		FIterator_SingleEntry(const FInventoryEntry& Entry);
@@ -151,11 +151,7 @@ namespace Faerie::Storage
 		FIterator_AllEntries_ForInterface(const TNotNull<const UFaerieItemStorage*> Storage)
 		  : Storage(Storage), Inner(Storage) {}
 
-		FIterator_AllEntries_ForInterface(const TNotNull<const UFaerieItemStorage*> Storage, const FIterator_AllEntries& Other)
-		  : Storage(Storage), Inner(Other) {}
-
 		//~ Container::IIterator
-		virtual TUniquePtr<IIterator> Copy() const override;
 		UE_REWRITE virtual void Advance() override { ++Inner; }
 		UE_REWRITE virtual FEntryKey ResolveKey() const override { return Inner.GetKey(); }
 		UE_REWRITE virtual FFaerieAddress ResolveAddress() const override { checkNoEntry(); return {}; }
@@ -176,11 +172,7 @@ namespace Faerie::Storage
 		FIterator_AllAddresses_ForInterface(const TNotNull<const UFaerieItemStorage*> Storage)
 		  : Storage(Storage), Inner(Storage) {}
 
-		FIterator_AllAddresses_ForInterface(const TNotNull<const UFaerieItemStorage*> Storage, const FIterator_AllAddresses& Other)
-		  : Storage(Storage), Inner(Other) {}
-
 		//~ Container::IIterator
-		virtual TUniquePtr<IIterator> Copy() const override;
 		UE_REWRITE virtual void Advance() override { ++Inner; }
 		UE_REWRITE virtual FEntryKey ResolveKey() const override { return Inner.GetKey(); }
 		UE_REWRITE virtual FFaerieAddress ResolveAddress() const override { return Inner.GetAddress(); }
@@ -201,11 +193,7 @@ namespace Faerie::Storage
 		FIterator_SingleEntry_ForInterface(const TNotNull<const UFaerieItemStorage*> Storage, const FInventoryEntry& Entry)
 		  : Storage(Storage), Inner(Entry) {}
 
-		FIterator_SingleEntry_ForInterface(const TNotNull<const UFaerieItemStorage*> Storage, const FIterator_SingleEntry& Other)
-		  : Storage(Storage), Inner(Other) {}
-
 		//~ Container::IIterator
-		virtual TUniquePtr<IIterator> Copy() const override;
 		UE_REWRITE virtual void Advance() override { ++Inner; }
 		UE_REWRITE virtual FEntryKey ResolveKey() const override { return Inner.GetKey(); }
 		UE_REWRITE virtual FFaerieAddress ResolveAddress() const override { return Inner.GetAddress(); }

@@ -48,8 +48,9 @@ namespace Faerie::ItemData
 
 			if (UFaerieItemContainerToken* SubStorage = Cast<UFaerieItemContainerToken>(Token))
 			{
-				for (const UFaerieItem* SubItem : Container::ConstItemRange(SubStorage->GetItemContainer()))
+				for (auto It = Container::ConstItemRange(SubStorage->GetItemContainer()); It; ++It)
 				{
+					const UFaerieItem* SubItem = *It;
 #if WITH_EDITOR
 					if (RecursiveValidationTracker.Contains(SubItem))
 					{
@@ -99,9 +100,9 @@ namespace Faerie::ItemData
 			// If the token contains nested items, release ownership recursively.
 			if (UFaerieItemContainerToken* ContainerToken = Cast<UFaerieItemContainerToken>(Token))
 			{
-				for (UFaerieItem* ChildItem : Container::ItemRange(ContainerToken->GetItemContainer()))
+				for (auto It = Container::ItemRange(ContainerToken->GetItemContainer()); It; ++It)
 				{
-					ReleaseOwnership_Impl<true>(Owner, ChildItem);
+					ReleaseOwnership_Impl<true>(Owner, *It);
 				}
 			}
 		}
@@ -195,9 +196,9 @@ namespace Faerie::ItemData
 			// If the token contains nested items, take ownership recursively.
 			if (UFaerieItemContainerToken* ContainerToken = Cast<UFaerieItemContainerToken>(Token))
 			{
-				for (UFaerieItem* ChildItem : Container::ItemRange(ContainerToken->GetItemContainer()))
+				for (auto It = Container::ItemRange(ContainerToken->GetItemContainer()); It; ++It)
 				{
-					TakeOwnership_Impl<true>(Owner, ChildItem);
+					TakeOwnership_Impl<true>(Owner, *It);
 				}
 			}
 		}

@@ -11,7 +11,7 @@
 #include "FaerieItemStorage.generated.h"
 
 struct FFaerieExtensionAllowsAdditionArgs;
-class UInventoryStackProxy;
+class UFaerieItemStackProxy;
 
 namespace Faerie::Storage
 {
@@ -88,7 +88,7 @@ private:
 
 	[[nodiscard]] const FInventoryEntry* FindEntry(const TNotNull<const UFaerieItem*> Item, EFaerieItemEqualsCheck Method) const;
 
-	[[nodiscard]] UInventoryStackProxy* GetStackProxyImpl(FFaerieAddress Address) const;
+	[[nodiscard]] UFaerieItemStackProxy* GetStackProxyImpl(FFaerieAddress Address) const;
 
 	// Internal implementation for adding items.
 	[[nodiscard]] Faerie::Inventory::FEventData AddStackImplNoBroadcast(const FFaerieItemStack& InStack, bool ForceNewStack);
@@ -279,5 +279,5 @@ private:
 	// being left around. Using weak pointers here is intentional. We don't want this storage to keep these alive. They
 	// should be stored in a strong pointer by whatever requested them, and once nothing needs the proxies, they will die.
 	UPROPERTY(Transient)
-	TMap<FFaerieAddress, TWeakObjectPtr<UInventoryStackProxy>> LocalStackProxies;
+	TMap<FFaerieAddress, TWeakObjectPtr<UFaerieItemStackProxy>> LocalStackProxies;
 };

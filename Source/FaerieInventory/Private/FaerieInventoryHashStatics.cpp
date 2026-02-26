@@ -10,9 +10,9 @@ namespace Faerie::Hash
 	{
 		TArray<uint32> Hashes;
 
-		for (const UFaerieItem* Item : Container::ConstItemRange(Container))
+		for (auto It = Container::ConstItemRange(Container); It; ++It)
 		{
-			Hashes.Add(Function(Item));
+			Hashes.Add(Function(*It));
 		}
 
 		return CombineHashes(Hashes);
@@ -29,9 +29,9 @@ namespace Faerie::Hash
 
 		for (auto&& Container : Containers)
 		{
-			for (const UFaerieItem* Item : Container::ConstItemRange(Container))
+			for (auto It = Container::ConstItemRange(Container); It; ++It)
 			{
-				Hashes.Add(Function(Item));
+				Hashes.Add(Function(*It));
 			}
 		}
 

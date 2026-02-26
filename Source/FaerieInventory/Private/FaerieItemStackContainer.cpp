@@ -2,6 +2,7 @@
 
 #include "FaerieItemStackContainer.h"
 
+#include "DelegateCommon.h"
 #include "FaerieContainerIterator.h"
 #include "FaerieInventoryLog.h"
 #include "FaerieItem.h"
@@ -36,10 +37,6 @@ namespace Faerie::Container
 		  : Stack(Stack) {}
 
 		//~ Container::IIterator
-		UE_REWRITE virtual TUniquePtr<IIterator> Copy() const override
-		{
-			return TUniquePtr<IIterator>(MakeUnique<FStackContainerIteratorStub>(Stack));
-		}
 		UE_REWRITE virtual void Advance() override { Stack = nullptr; }
 		UE_REWRITE virtual FEntryKey ResolveKey() const override { return Stack->GetCurrentKey(); }
 		UE_REWRITE virtual FFaerieAddress ResolveAddress() const override { return Stack->GetCurrentAddress(); }
@@ -269,6 +266,21 @@ int32 UFaerieItemStackContainer::GetCopies() const
 TScriptInterface<IFaerieItemOwnerInterface> UFaerieItemStackContainer::GetItemOwner() const
 {
 	return const_cast<ThisClass*>(this);
+}
+
+FDelegateHandle UFaerieItemStackContainer::BindToItemDataChanged(const FFaerieItemProxyChangedEvent& Event) const
+{
+	return const_cast<ThisClass*>(this)->OnItemChangedNative.AddLambda(DYNAMIC_TO_LAMBDA(Event));
+}
+
+void UFaerieItemStackContainer::UnbindFromItemDataChanged(const FDelegateHandle& Handle) const
+{
+	const_cast<ThisClass*>(this)->OnItemChangedNative.Remove(Handle);
+}
+
+void UFaerieItemStackContainer::UnbindAllFromItemDataChanged(const UObject* Object) const
+{
+	const_cast<ThisClass*>(this)->OnItemChangedNative.RemoveAll(Object);
 }
 
 FFaerieItemStack UFaerieItemStackContainer::Release(const int32 Copies) const

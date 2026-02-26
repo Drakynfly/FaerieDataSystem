@@ -69,6 +69,11 @@ void FFaerieItemUpgradeAction::Execute(const TNotNull<UFaerieItemCraftingRunner*
 	// @todo batching
 	int32 Copies = 1;
 
+	if (!Config->CanApplyUpgrade(FFaerieItemStackView(ItemProxy)))
+	{
+		return Fail(Runner);
+	}
+
 	if (!Config->CanPayCost(Slots, FFaerieItemStackView(ItemProxy)))
 	{
 		return Fail(Runner);

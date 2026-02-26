@@ -28,9 +28,9 @@ namespace Faerie::SubObject
 		OutContainers.Append(Containers);
 		for (UFaerieItemContainerBase* Container : Containers)
 		{
-			for (UFaerieItem* SubItem : Container::ItemRange(Container))
+			for (auto It = Container::ItemRange(Container); It; ++It)
 			{
-				GetAllContainersInItemRecursive(SubItem, OutContainers);
+				GetAllContainersInItemRecursive(*It, OutContainers);
 			}
 		}
 	}
@@ -53,9 +53,9 @@ namespace Faerie::SubObject
 	{
 		for (UFaerieItemContainerBase* Container : SubObject::Iterate(Item))
 		{
-			for (const UFaerieItem* Child : Container::ConstItemRange(Container))
+			for (auto It = Container::ConstItemRange(Container); It; ++It)
 			{
-				OutChildren.Add(Child);
+				OutChildren.Add(*It);
 			}
 		}
 	}
@@ -71,9 +71,9 @@ namespace Faerie::SubObject
 			{
 				for (UFaerieItemContainerBase* Container : SubObject::Iterate(Mutable))
 				{
-					for (UFaerieItem* SubChild : Container::ItemRange(Container))
+					for (auto It = Container::ItemRange(Container); It; ++It)
 					{
-						GetChildrenInItemRecursive(SubChild, OutChildren);
+						GetChildrenInItemRecursive(*It, OutChildren);
 					}
 				}
 			}

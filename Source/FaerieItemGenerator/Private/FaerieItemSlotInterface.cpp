@@ -16,9 +16,7 @@ namespace Faerie::Generation
 		// Validation
 		for (auto&& Element : FilledSlots.Slots)
 		{
-			if (!Element.Value.IsValid() ||
-				!IsValid(Element.Value->GetItemObject()) ||
-				!Element.Value.IsInstanceMutable())
+			if (!Element.Value.IsValid())
 			{
 				UE_LOG(LogItemGeneration, Error, TEXT("ValidateFilledSlots: A filled slot [%s] is invalid!)"), *Element.Key.ToString())
 				return false;

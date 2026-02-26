@@ -29,5 +29,9 @@ FBlueprintEquipmentHash UFaerieEquipmentHashLibrary::GetEquipmentHash_ByName()
 
 int32 UFaerieEquipmentHashLibrary::ExecHashItemByName(const UFaerieItem* Item)
 {
-	return Faerie::Hash::HashItemByName(Item);
+	if (Item)
+	{
+		return Faerie::Hash::HashItemByName(Item);
+	}
+	return 0;
 }

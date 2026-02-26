@@ -2,11 +2,11 @@
 
 #pragma once
 
+#include "FaerieItemProxy.h"
 #include "FaerieItemStackView.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "FaerieItemProxyUtils.generated.h"
 
-struct FFaerieItemProxy;
 class IFaerieItemOwnerInterface;
 class UFaerieItem;
 
@@ -45,6 +45,12 @@ public:
 	// Get the Object that owns the item this proxy represents.
 	UFUNCTION(BlueprintPure, Category = "Faerie|ItemProxyUtils")
 	static TScriptInterface<IFaerieItemOwnerInterface> GetOwner(const FFaerieItemProxy& Proxy);
+
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemProxyUtils")
+	static void BindToItemDataChanged(const FFaerieItemProxy& Proxy, const FFaerieItemProxyChangedEvent& Event);
+
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemProxyUtils")
+	static void UnbindAllFromItemDataChanged(const FFaerieItemProxy& Proxy, const UObject* Object);
 
 	// Convert an Item Proxy into a Stack View.
 	UFUNCTION(BlueprintPure, Category = "Faerie|ItemProxyUtils")

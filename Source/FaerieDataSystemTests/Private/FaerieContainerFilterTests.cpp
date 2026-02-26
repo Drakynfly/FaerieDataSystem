@@ -75,9 +75,9 @@ bool FaerieContainerFilterTests::RunTest(const FString& Parameters)
 		TestTrue("(Interface) IteratorItem resolved to item", ItemFromFilter == TestItem1Key);
 
 		int32 RangeCount = 0;
-		for (auto Element : ItemFilter.Iterate(Storage))
+		for (auto It = ItemFilter.Iterate(Storage); It; ++It)
 		{
-			TestTrue("(Interface) Iteration element is valid", IsValid(Element));
+			TestTrue("(Interface) Iteration element is valid", IsValid(*It));
 			++RangeCount;
 		}
 		if (!TestTrue("(Interface) Range count matched Entries", RangeCount == ExpectedEntries))

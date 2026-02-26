@@ -11,46 +11,7 @@
 
 class IFaerieItemOwnerInterface;
 class UFaerieItem;
-
-// @todo Eventually this should not be BlueprintType, once all APIs use FFaerieItemProxy
-UINTERFACE(BlueprintType, meta = (CannotImplementInterfaceInBlueprint))
-class FAERIEITEMDATA_API UFaerieItemDataProxy : public UInterface
-{
-	GENERATED_BODY()
-};
-
-/**
- * Item Data Proxies are objects to pass around item data, without breaking ownership.
- * There are multiple implementations for various purposes, but their primary point is to allow API's to be created
- * without having to worry about the various forms items can come in. Just declare a function that takes an
- * IFaerieItemDataProxy or its struct form FFaerieItemProxy and most anything can call that function.
- */
-class FAERIEITEMDATA_API IFaerieItemDataProxy
-{
-	GENERATED_BODY()
-
-public:
-	// Get the Item Definition Object that this proxy represents.
-	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataProxy")
-	virtual const UFaerieItem* GetItemObject() const PURE_VIRTUAL(IFaerieItemDataProxy::GetItemData, return nullptr; )
-
-	// Get the number of copies this proxy may access.
-	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataProxy")
-	virtual int32 GetCopies() const PURE_VIRTUAL(IFaerieItemDataProxy::GetCopies, return -1; )
-
-	// Get the Object that owns the item this proxy represents.
-	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataProxy")
-	virtual TScriptInterface<IFaerieItemOwnerInterface> GetItemOwner() const PURE_VIRTUAL(IFaerieItemDataProxy::GetItemOwner, return nullptr; )
-
-	// Release copies of this proxy as an item stack from its owner. Currently limited to C++ usage.
-	virtual FFaerieItemStack Release(int32 Copies) const PURE_VIRTUAL(IFaerieItemDataProxy::Release, return FFaerieItemStack(); )
-
-#if WITH_EDITOR
-	// Stub for UFaerieItemAssetThumbnailRenderer to provide a thumbnail object for the editor.
-	virtual class UThumbnailInfo* GetThumbnailInfo() const { return nullptr; }
-#endif
-};
-
+class IFaerieItemDataProxy;
 
 // This struct contains a weak pointer to a proxy of a FaerieItem somewhere. This struct should never be
 // serialized, and will not keep the proxy it points to alive.
@@ -89,10 +50,9 @@ public:
 	const UFaerieItem* GetItemObject() const;
 	int32 GetCopies() const;
 	TScriptInterface<IFaerieItemOwnerInterface> GetOwner() const;
-	bool IsInstanceMutable() const;
 	FFaerieItemStack Release(int32 Copies) const;
 
-	FORCEINLINE const IFaerieItemDataProxy* operator->() const { return Cast<IFaerieItemDataProxy>(Proxy.Get()); }
+	const IFaerieItemDataProxy* operator->() const;
 
 	explicit operator FFaerieItemStackView() const;
 
@@ -100,4 +60,55 @@ public:
 	{
 		return Proxy == Other.Proxy;
 	}
+};
+
+DECLARE_DYNAMIC_DELEGATE_TwoParams(FFaerieItemProxyChangedEvent, const FFaerieItemProxy&, Proxy, FGameplayTag, Type);
+
+// @todo Eventually this should not be BlueprintType, once all APIs use FFaerieItemProxy
+UINTERFACE(BlueprintType, meta = (CannotImplementInterfaceInBlueprint))
+class FAERIEITEMDATA_API UFaerieItemDataProxy : public UInterface
+{
+	GENERATED_BODY()
+};
+
+/**
+ * Item Data Proxies are objects to pass around item data, without breaking ownership.
+ * There are multiple implementations for various purposes, but their primary point is to allow API's to be created
+ * without having to worry about the various forms items can come in. Just declare a function that takes an
+ * IFaerieItemDataProxy or its struct form FFaerieItemProxy and most anything can call that function.
+ */
+class FAERIEITEMDATA_API IFaerieItemDataProxy
+{
+	GENERATED_BODY()
+
+public:
+	// Get the Item Definition Object that this proxy represents.
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataProxy")
+	virtual const UFaerieItem* GetItemObject() const PURE_VIRTUAL(IFaerieItemDataProxy::GetItemData, return nullptr; )
+
+	// Get the number of copies this proxy may access.
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataProxy")
+	virtual int32 GetCopies() const PURE_VIRTUAL(IFaerieItemDataProxy::GetCopies, return -1; )
+
+	// Get the Object that owns the item this proxy represents.
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataProxy")
+	virtual TScriptInterface<IFaerieItemOwnerInterface> GetItemOwner() const
+		PURE_VIRTUAL(IFaerieItemDataProxy::GetItemOwner, return nullptr; )
+
+	virtual FDelegateHandle BindToItemDataChanged(const FFaerieItemProxyChangedEvent& Event) const
+		PURE_VIRTUAL(IFaerieItemDataProxy::BindToItemDataChanged, return FDelegateHandle(); )
+
+	virtual void UnbindFromItemDataChanged(const FDelegateHandle& Handle) const
+		PURE_VIRTUAL(IFaerieItemDataProxy::UnbindFromItemDataChanged, ; )
+
+	virtual void UnbindAllFromItemDataChanged(const UObject* Object) const
+		PURE_VIRTUAL(IFaerieItemDataProxy::UnbindAllFromItemDataChanged, ; )
+
+	// Release copies of this proxy as an item stack from its owner. Currently limited to C++ usage.
+	virtual FFaerieItemStack Release(int32 Copies) const PURE_VIRTUAL(IFaerieItemDataProxy::Release, return FFaerieItemStack(); )
+
+#if WITH_EDITOR
+	// Stub for UFaerieItemAssetThumbnailRenderer to provide a thumbnail object for the editor.
+	virtual class UThumbnailInfo* GetThumbnailInfo() const { return nullptr; }
+#endif
 };

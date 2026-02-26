@@ -10,6 +10,7 @@
 struct FFaerieItemDataViewWrapper;
 class IFaerieItemOwnerInterface;
 class UFaerieItem;
+class UFaerieItemStackProxy;
 class UFaerieItemStorage;
 
 // We need to expose this delegate to the global namespace or UHT will cry.
@@ -19,7 +20,7 @@ using FFaerieViewPredicate = UFaerieFunctionTemplates::FFaerieViewPredicate;
  * 
  */
 UCLASS()
-class FAERIEINVENTORY_API UFaerieStorageLibrary : public UBlueprintFunctionLibrary
+class UFaerieStorageLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
 
@@ -32,6 +33,10 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Faerie|Storage Library")
 	static TScriptInterface<IFaerieItemOwnerInterface> GetViewOwner(const FFaerieItemDataViewWrapper& View);
+
+	// Query function to filter for the first matching entry.
+	UFUNCTION(BlueprintCallable, Category = "Faerie|Storage Library")
+	static TArray<UFaerieItemStackProxy*> GetAllStackProxies(UFaerieItemStorage* Storage);
 
 	// Query function to filter for the first matching entry.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|Storage Library")

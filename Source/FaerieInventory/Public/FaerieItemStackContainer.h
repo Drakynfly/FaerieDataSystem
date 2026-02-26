@@ -82,6 +82,9 @@ public:
 	virtual const UFaerieItem* GetItemObject() const override;
 	virtual int32 GetCopies() const override;
 	virtual TScriptInterface<IFaerieItemOwnerInterface> GetItemOwner() const override;
+	virtual FDelegateHandle BindToItemDataChanged(const FFaerieItemProxyChangedEvent& Event) const override;
+	virtual void UnbindFromItemDataChanged(const FDelegateHandle& Handle) const override;
+	virtual void UnbindAllFromItemDataChanged(const UObject* Object) const override;
 	virtual FFaerieItemStack Release(int32 Copies) const override;
 	//~ IFaerieItemDataProxy
 

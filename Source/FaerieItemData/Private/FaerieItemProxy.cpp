@@ -41,16 +41,6 @@ TScriptInterface<IFaerieItemOwnerInterface> FFaerieItemProxy::GetOwner() const
 	return nullptr;
 }
 
-bool FFaerieItemProxy::IsInstanceMutable() const
-{
-	if (const UFaerieItem* Object = GetItemObject();
-		::IsValid(Object))
-	{
-		return Object->IsInstanceMutable();
-	}
-	return false;
-}
-
 FFaerieItemStack FFaerieItemProxy::Release(const int32 Copies) const
 {
 	if (const IFaerieItemDataProxy* ProxyObj = operator->())
@@ -58,6 +48,11 @@ FFaerieItemStack FFaerieItemProxy::Release(const int32 Copies) const
 		return ProxyObj->Release(Copies);
 	}
 	return FFaerieItemStack();
+}
+
+const IFaerieItemDataProxy* FFaerieItemProxy::operator->() const
+{
+	return Cast<IFaerieItemDataProxy>(Proxy.Get());
 }
 
 FFaerieItemProxy::operator FFaerieItemStackView() const

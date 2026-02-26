@@ -7,7 +7,7 @@
 #include "FaerieItemStackWidgetBase.generated.h"
 
 class UFaerieStorageWidgetBase;
-class UInventoryStackProxy;
+class UFaerieItemStackProxy;
 
 /**
  * Responsible for displaying a single inventory entry in an entry list widget.
@@ -26,5 +26,5 @@ protected:
 	TObjectPtr<UFaerieStorageWidgetBase> InventoryWidget;
 
 	UPROPERTY(BlueprintReadWrite, Category = "ItemStackWidget")
-	TObjectPtr<UInventoryStackProxy> LocalCache;
+	TObjectPtr<UFaerieItemStackProxy> LocalCache;
 };

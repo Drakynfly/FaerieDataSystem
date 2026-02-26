@@ -204,7 +204,7 @@ namespace Faerie::Container
 		[[nodiscard]] int32 Count(const TNotNull<const UFaerieItemContainerBase*> Container) const
 		{
 			int32 OutCount = 0;
-			for (auto&& Value : Iterate(Container))
+			for (auto It = Iterate(Container); It; ++It)
 			{
 				OutCount++;
 			}
@@ -214,18 +214,19 @@ namespace Faerie::Container
 		[[nodiscard]] TArray<ResolveType> Emit(const TNotNull<const UFaerieItemContainerBase*> Container) const
 		{
 			TArray<ResolveType> OutItems;
-			for (auto&& Value : Iterate(Container))
+			for (auto It = Iterate(Container); It; ++It)
 			{
-				OutItems.Add(Value);
+				OutItems.Add(*It);
 			}
 			return OutItems;
 		}
 
 		[[nodiscard]] ResolveType First(const TNotNull<const UFaerieItemContainerBase*> Container) const
 		{
-			for (auto&& Value : Iterate(Container))
+			if (auto It = Iterate(Container);
+				It)
 			{
-				return Value;
+				return *It;
 			}
 			return ResolveType();
 		}

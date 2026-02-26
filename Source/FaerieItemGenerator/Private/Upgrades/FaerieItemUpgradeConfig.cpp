@@ -16,6 +16,12 @@
 
 void UFaerieItemUpgradeConfigBase::GetRequiredAssets(TArray<TSoftObjectPtr<UObject>>& Array) {}
 
+bool UFaerieItemUpgradeConfigBase::ConsumeSlotCosts(const FFaerieCraftingFilledSlots& FilledSlots,
+	const FFaerieItemCraftingSlots& CraftingSlots)
+{
+	return Faerie::Generation::ConsumeSlotCosts(FilledSlots, CraftingSlots);
+}
+
 EDataValidationResult UFaerieItemUpgradeConfig::IsDataValid(FDataValidationContext& Context) const
 {
 	if (!Mutator.IsValid())
@@ -83,8 +89,17 @@ bool UFaerieItemUpgradeConfig::ApplyUpgrade(FFaerieCraftingActionData& Stacks, U
 	return true;
 }
 
+bool UFaerieItemUpgradeConfig_BlueprintBase::CanApplyUpgrade(const FFaerieItemStackView View) const
+{
+	if (GetClass()->IsFunctionImplementedInScript(GET_FUNCTION_NAME_CHECKED(ThisClass, BP_CanApplyUpgrade)))
+	{
+		return BP_CanApplyUpgrade(View);
+	}
+	return true;
+}
+
 bool UFaerieItemUpgradeConfig_BlueprintBase::CanPayCost(const FFaerieCraftingFilledSlots& FilledSlots,
-	const FFaerieItemStackView View) const
+														const FFaerieItemStackView View) const
 {
 	if (GetClass()->IsFunctionImplementedInScript(GET_FUNCTION_NAME_CHECKED(ThisClass, BP_CanPayCost)))
 	{
@@ -95,7 +110,7 @@ bool UFaerieItemUpgradeConfig_BlueprintBase::CanPayCost(const FFaerieCraftingFil
 
 void UFaerieItemUpgradeConfig_BlueprintBase::PayCost(const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemStackView View) const
 {
-	if (GetClass()->IsFunctionImplementedInScript(GET_FUNCTION_NAME_CHECKED(ThisClass, BP_CanPayCost)))
+	if (GetClass()->IsFunctionImplementedInScript(GET_FUNCTION_NAME_CHECKED(ThisClass, BP_PayCost)))
 	{
 		BP_PayCost(FilledSlots, View);
 	}

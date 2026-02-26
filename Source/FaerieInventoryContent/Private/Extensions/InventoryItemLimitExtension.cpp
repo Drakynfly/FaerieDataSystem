@@ -10,18 +10,18 @@
 
 void UInventoryItemLimitExtension::InitializeExtension(const TNotNull<const UFaerieItemContainerBase*> Container)
 {
-	for (const FEntryKey Key : Faerie::Container::KeyRange(Container))
+	for (auto It = Faerie::Container::KeyRange(Container); It; ++It)
 	{
-		UpdateCacheForEntry(Container, Key);
+		UpdateCacheForEntry(Container, *It);
 	}
 }
 
 void UInventoryItemLimitExtension::DeinitializeExtension(const TNotNull<const UFaerieItemContainerBase*> Container)
 {
-	for (const FEntryKey Key : Faerie::Container::KeyRange(Container))
+	for (auto It = Faerie::Container::KeyRange(Container); It; ++It)
 	{
 		int32 Value = 0;
-		EntryAmountCache.RemoveAndCopyValue(Key, Value);
+		EntryAmountCache.RemoveAndCopyValue(*It, Value);
 		CurrentTotalItemCopies -= Value;
 	}
 }

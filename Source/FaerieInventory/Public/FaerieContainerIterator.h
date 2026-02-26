@@ -23,8 +23,6 @@ namespace Faerie::Container
 	public:
 		virtual FEntryKey ResolveKey() const = 0;
 		virtual FFaerieAddress ResolveAddress() const = 0;
-
-		virtual TUniquePtr<IIterator> Copy() const = 0;
 		virtual void Advance() = 0;
 	};
 
@@ -56,7 +54,7 @@ namespace Faerie::Container
 	class TIterator
 	{
 	public:
-		UE_REWRITE TIterator(const TNotNull<const UFaerieItemContainerBase*> Container)
+		UE_REWRITE explicit TIterator(const TNotNull<const UFaerieItemContainerBase*> Container)
 		  : IteratorPtr(Private::CreateIteratorImpl<std::is_same_v<ResolveType, FFaerieAddress>>(Container))
 		{
 			LOG_ITERATOR_MESSAGE("TIterator::Ctor from Container")
@@ -68,7 +66,7 @@ namespace Faerie::Container
 			}
 		}
 
-		UE_REWRITE TIterator(TIterator&& Other)
+		UE_REWRITE explicit TIterator(TIterator&& Other)
 		  : IteratorPtr(MoveTemp(Other.IteratorPtr))
 		{
 			LOG_ITERATOR_MESSAGE("TIterator::Move Ctor");
@@ -80,7 +78,7 @@ namespace Faerie::Container
 			}
 		}
 
-		UE_REWRITE TIterator(TUniquePtr<IIterator>&& Iterator)
+		UE_REWRITE explicit TIterator(TUniquePtr<IIterator>&& Iterator)
 		  : IteratorPtr(MoveTemp(Iterator))
 		{
 			LOG_ITERATOR_MESSAGE("TIterator::Move Ctor");
@@ -92,31 +90,7 @@ namespace Faerie::Container
 			}
 		}
 
-		UE_REWRITE TIterator(const TIterator& Other)
-		  : IteratorPtr(Other.IteratorPtr ? Other.IteratorPtr->Copy() : TUniquePtr<IIterator>())
-		{
-			LOG_ITERATOR_MESSAGE("TIterator::Copy Ctor");
-
-			// When in non-const mode, jump to next mutable item
-			if constexpr (SkipToNextMutable)
-			{
-				SkipInvalid();
-			}
-		}
-
-		UE_REWRITE explicit TIterator(const TUniquePtr<IIterator>& Iterator)
-		  : IteratorPtr(Iterator ? Iterator->Copy() : TUniquePtr<IIterator>())
-		{
-			LOG_ITERATOR_MESSAGE("TIterator::Copy Ctor");
-
-			// When in non-const mode, jump to next mutable item
-			if constexpr (SkipToNextMutable)
-			{
-				SkipInvalid();
-			}
-		}
-
-		const IIterator* GetPtr() const { return IteratorPtr.Get(); }
+		[[nodiscard]] UE_REWRITE const IIterator* GetPtr() const { return IteratorPtr.Get(); }
 
 		[[nodiscard]] UE_REWRITE ResolveType operator*() const
 		{
@@ -130,17 +104,17 @@ namespace Faerie::Container
 			{
 				return IteratorPtr->ResolveAddress();
 			}
-			else if constexpr (std::is_same_v<ResolveType, const UFaerieItem*>)
+			else if constexpr (std::is_same_v<ResolveType, TNotNull<const UFaerieItem*>>)
 			{
 				return IteratorPtr->ResolveItem();
 			}
-			else if constexpr (std::is_same_v<ResolveType, UFaerieItem*>)
+			else if constexpr (std::is_same_v<ResolveType, TNotNull<UFaerieItem*>>)
 			{
 				return IteratorPtr->ResolveItem()->MutateCast();
 			}
 			else
 			{
-				return ResolveType();
+				return *reinterpret_cast<ResolveType*>(nullptr);
 			}
 		}
 
@@ -198,8 +172,8 @@ namespace Faerie::Container
 
 	using FKeyIterator = TIterator<FEntryKey, false>;
 	using FAddressIterator = TIterator<FFaerieAddress, false>;
-	using FItemIterator = TIterator<UFaerieItem*, true>;
-	using FConstItemIterator = TIterator<const UFaerieItem*, false>;
+	using FItemIterator = TIterator<TNotNull<UFaerieItem*>, true>;
+	using FConstItemIterator = TIterator<TNotNull<const UFaerieItem*>, false>;
 
 	// Enables ranged for-loops through each key in the container. Simple range with no filtering.
 	FAERIEINVENTORY_API FKeyIterator KeyRange(TNotNull<const UFaerieItemContainerBase*> Container);

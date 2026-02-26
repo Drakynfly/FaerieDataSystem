@@ -26,6 +26,8 @@ protected:
 public:
 	void GetRequiredAssets(TArray<TSoftObjectPtr<UObject>>& Array);
 
+	virtual bool CanApplyUpgrade(const FFaerieItemStackView View) const { return true; }
+
 	virtual bool CanPayCost(const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemStackView View) const { return true; }
 
 	virtual void PayCost(const FFaerieCraftingFilledSlots& FilledSlots, FFaerieItemStackView View) const {}
@@ -39,6 +41,10 @@ public:
 	// Should this upgrade release proxies from their owner, rather than mutate in place.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upgrade Config")
 	bool ReleaseWhileOperating = false;
+
+protected:
+	UFUNCTION(BlueprintCallable, Category = "Upgrade Config")
+	bool ConsumeSlotCosts(const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemCraftingSlots& CraftingSlots);
 };
 
 class UFaerieItemUpgradeConfig;
@@ -103,11 +109,15 @@ protected:
 	//~ IFaerieItemSlotInterface
 
 public:
+	virtual bool CanApplyUpgrade(const FFaerieItemStackView View) const override;
 	virtual bool CanPayCost(const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemStackView View) const override;
 	virtual void PayCost(const FFaerieCraftingFilledSlots& FilledSlots, FFaerieItemStackView View) const override;
 	virtual bool ApplyUpgrade(FFaerieCraftingActionData& Stacks, USquirrel* Squirrel) const override;
 
 protected:
+	UFUNCTION(BlueprintImplementableEvent, Category = "Upgrade Config", meta = (DisplayName = "Can Apply Upgrade"))
+	bool BP_CanApplyUpgrade(const FFaerieItemStackView View) const;
+
 	UFUNCTION(BlueprintImplementableEvent, Category = "Upgrade Config", meta = (DisplayName = "Can Pay Cost"))
 	bool BP_CanPayCost(const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemStackView View) const;
 

@@ -7,7 +7,7 @@
 #include "FaerieItemStorageIterators.h"
 #include "FaerieItemStorageStatics.h"
 #include "FaerieSubObjectFilter.h"
-#include "InventoryStorageProxy.h"
+#include "ItemStackProxy.h"
 #include "ItemContainerExtensionBase.h"
 
 #include "Algo/Transform.h"
@@ -389,7 +389,7 @@ void UFaerieItemStorage::PreContentRemoved(const FInventoryEntry& Entry)
 	// Cleanup local views.
 	for (const FFaerieAddress Address : Addresses)
 	{
-		TWeakObjectPtr<UInventoryStackProxy> StackProxy;
+		TWeakObjectPtr<UFaerieItemStackProxy> StackProxy;
 		LocalStackProxies.RemoveAndCopyValue(Address, StackProxy);
 		if (StackProxy.IsValid())
 		{
@@ -535,7 +535,7 @@ const FInventoryEntry* UFaerieItemStorage::FindEntry(const TNotNull<const UFaeri
 	return nullptr;
 }
 
-UInventoryStackProxy* UFaerieItemStorage::GetStackProxyImpl(const FFaerieAddress Address) const
+UFaerieItemStackProxy* UFaerieItemStorage::GetStackProxyImpl(const FFaerieAddress Address) const
 {
 	// Don't create proxies for invalid keys.
 	if (!Address.IsValid()) return nullptr;
@@ -553,10 +553,10 @@ UInventoryStackProxy* UFaerieItemStorage::GetStackProxyImpl(const FFaerieAddress
 	FEntryKey Entry;
 	FStackKey Stack;
 	Storage::Address::Decode(Address, Entry, Stack);
-	const FName ProxyName = MakeUniqueObjectName(This, UInventoryStackProxy::StaticClass(),
+	const FName ProxyName = MakeUniqueObjectName(This, UFaerieItemStackProxy::StaticClass(),
 												 *FString::Printf(TEXT("STACK_PROXY_%s_%s"),
 												 *Entry.ToString(), *Stack.ToString()));
-	UInventoryStackProxy* NewEntryProxy = NewObject<UInventoryStackProxy>(This, UInventoryStackProxy::StaticClass(), ProxyName);
+	UFaerieItemStackProxy* NewEntryProxy = NewObject<UFaerieItemStackProxy>(This, UFaerieItemStackProxy::StaticClass(), ProxyName);
 	check(IsValid(NewEntryProxy));
 
 	NewEntryProxy->ItemStorage = This;
@@ -779,9 +779,9 @@ bool UFaerieItemStorage::CanRemoveEntryImpl(const FInventoryEntry& Entry, const 
 	// By default, some removal reasons are allowed, unless an extension explicitly disallows it.
 	bool Allowed = Inventory::Tags::RemovalTagsAllowedByDefault().Contains(Reason);
 
-	for (const FFaerieAddress Address : Storage::FIterator_SingleEntry(Entry))
+	for (auto It = Storage::FIterator_SingleEntry(Entry); It; ++It)
 	{
-		switch (Extensions->AllowsRemoval(this, Address, Reason))
+		switch (Extensions->AllowsRemoval(this, *It, Reason))
 		{
 		case EEventExtensionResponse::Disallowed:
 			return false;

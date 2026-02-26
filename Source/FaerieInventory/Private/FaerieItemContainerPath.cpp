@@ -14,9 +14,9 @@ void BuildPath_Recurse(UFaerieItemContainerBase* Container, const FFaerieItemCon
 	FFaerieItemContainerPath& NewPath = OutPaths.Emplace_GetRef(BasePath);
 	NewPath.Containers.Add(Container);
 
-	for (UFaerieItem* Item : Container::ItemRange(Container))
+	for (auto It = Container::ItemRange(Container); It; ++It)
 	{
-		for (UFaerieItemContainerBase* SubContainer : SubObject::Iterate(Item))
+		for (UFaerieItemContainerBase* SubContainer : SubObject::Iterate(*It))
 		{
 			BuildPath_Recurse(SubContainer, NewPath, OutPaths);
 		}

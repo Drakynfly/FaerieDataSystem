@@ -50,9 +50,9 @@ void UInventoryCapacityExtension::PostEditChangeChainProperty(FPropertyChangedCh
 
 void UInventoryCapacityExtension::InitializeExtension(const TNotNull<const UFaerieItemContainerBase*> Container)
 {
-	for (const FEntryKey Key : Faerie::Container::KeyRange(Container))
+	for (auto It = Faerie::Container::KeyRange(Container); It; ++It)
 	{
-		UpdateCacheForEntry(Container, Key);
+		UpdateCacheForEntry(Container, *It);
 	}
 
 	HandleStateChanged();

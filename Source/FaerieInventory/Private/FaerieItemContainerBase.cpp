@@ -134,9 +134,9 @@ void UFaerieItemContainerBase::RavelExtensionData(TMap<FGuid, FInstancedStruct>&
 
 	ExtractSaveData(this);
 
-	for (UFaerieItem* Item : Container::ItemRange(this))
+	for (auto It = Container::ItemRange(this); It; ++It)
 	{
-		for (const UFaerieItemContainerBase* Container : SubObject::IterateRecursive(Item))
+		for (const UFaerieItemContainerBase* Container : SubObject::IterateRecursive(*It))
 		{
 			ExtractSaveData(Container);
 		}
@@ -159,9 +159,9 @@ void UFaerieItemContainerBase::UnravelExtensionData(UFaerieItemContainerExtensio
 	}
 
 	TArray<UFaerieItemContainerBase*> SubContainers;
-	for (UFaerieItem* Item : Container::ItemRange(this))
+	for (auto It = Container::ItemRange(this); It; ++It)
 	{
-		SubContainers.Append(SubObject::GetAllContainersInItem(Item));
+		SubContainers.Append(SubObject::GetAllContainersInItem(*It));
 	}
 
 	for (UFaerieItemContainerBase* SubContainer : SubContainers)
@@ -190,10 +190,10 @@ void UFaerieItemContainerBase::TryApplyUnclaimedSaveData(UItemContainerExtension
 
 // Note: Implementations for these PURE_VIRTUAL need to be here because TUniquePtr complains about their dtors if they are forward declared.
 TUniquePtr<Container::IIterator> UFaerieItemContainerBase::CreateEntryIterator() const
-PURE_VIRTUAL(UFaerieItemContainerBase::CreateIterator, return nullptr; )
+	PURE_VIRTUAL(UFaerieItemContainerBase::CreateIterator, return nullptr; )
 
 TUniquePtr<Container::IIterator> UFaerieItemContainerBase::CreateAddressIterator() const
-PURE_VIRTUAL(UFaerieItemContainerBase::CreateIterator, return nullptr; )
+	PURE_VIRTUAL(UFaerieItemContainerBase::CreateIterator, return nullptr; )
 
 TUniquePtr<Container::IIterator> UFaerieItemContainerBase::CreateSingleEntryIterator(FEntryKey Key) const
-PURE_VIRTUAL(UFaerieItemContainerBase::CreateIterator, return nullptr; )
+	PURE_VIRTUAL(UFaerieItemContainerBase::CreateIterator, return nullptr; )

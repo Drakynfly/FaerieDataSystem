@@ -160,11 +160,11 @@ namespace Faerie::Hash
 		return HashProps(Obj, Obj->GetClass(), IncludeSuper);
 	}
 
-	FFaerieHash HashItemSet(const TSet<const UFaerieItem*>& Items, const FItemHashFunction& Function)
+	FFaerieHash HashItemSet(const TSet<TNotNull<const UFaerieItem*>>& Items, const FItemHashFunction& Function)
 	{
 		TArray<uint32> Hashes;
 
-		for (const UFaerieItem* Item : Items)
+		for (auto&& Item : Items)
 		{
 			Hashes.Add(Function(Item));
 		}
@@ -172,10 +172,8 @@ namespace Faerie::Hash
 		return CombineHashes(Hashes);
 	}
 
-	uint32 HashItemByName(const UFaerieItem* Item)
+	uint32 HashItemByName(const TNotNull<const UFaerieItem*> Item)
 	{
-		if (!IsValid(Item)) return 0;
-
 		if (const UFaerieInfoToken* InfoToken = Item->GetToken<UFaerieInfoToken>())
 		{
 			return InfoToken->GetTokenHash();

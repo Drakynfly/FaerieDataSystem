@@ -60,6 +60,23 @@ TScriptInterface<IFaerieItemOwnerInterface> UFaerieItemProxyUtils::GetOwner(cons
 	return nullptr;
 }
 
+void UFaerieItemProxyUtils::BindToItemDataChanged(const FFaerieItemProxy& Proxy,
+	const FFaerieItemProxyChangedEvent& Event)
+{
+	if (Proxy.IsValid())
+	{
+		(void)Proxy->BindToItemDataChanged(Event);
+	}
+}
+
+void UFaerieItemProxyUtils::UnbindAllFromItemDataChanged(const FFaerieItemProxy& Proxy, const UObject* Object)
+{
+	if (Proxy.IsValid())
+	{
+		return Proxy->UnbindAllFromItemDataChanged(Object);
+	}
+}
+
 FFaerieItemStackView UFaerieItemProxyUtils::ProxyToView(const FFaerieItemProxy& Proxy)
 {
 	return FFaerieItemStackView(GetItemObject(Proxy), GetCopies(Proxy));
