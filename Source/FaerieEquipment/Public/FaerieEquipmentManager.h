@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "FaerieContainerExtensionInterface.h"
 #include "FaerieEquipmentSlotStructs.h"
 #include "FaerieInventoryTag.h"
 #include "FaerieItemContainerBase.h"
@@ -66,7 +65,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FEquipmentChangedEvent, UFaerieEqui
  */
 UCLASS(Blueprintable, ClassGroup = ("Faerie"), meta = (BlueprintSpawnableComponent),
 	HideCategories = (Collision, ComponentTick, Replication, ComponentReplication, Activation, Sockets, Navigation))
-class FAERIEEQUIPMENT_API UFaerieEquipmentManager : public UActorComponent, public IFaerieContainerExtensionInterface
+class FAERIEEQUIPMENT_API UFaerieEquipmentManager : public UActorComponent
 {
 	GENERATED_BODY()
 
@@ -85,10 +84,6 @@ public:
 	virtual void OnComponentCreated() override;
 	virtual void ReadyForReplication() override;
 	//~ UActorComponent
-
-	//~ IFaerieContainerExtensionInterface
-	virtual UItemContainerExtensionGroup* VirtualGetExtensionGroup() const override final;
-	//~ IFaerieContainerExtensionInterface
 
 	// Can the client request to run arbitrary actions on this equipment manager.
 	virtual bool CanClientRunActions(const UFaerieInventoryClient* Client) const;
@@ -144,6 +139,12 @@ public:
 	/**------------------------------*/
 	/*		 EXTENSIONS SYSTEM		 */
 	/**------------------------------*/
+
+	/*
+	 * Get an extension of a certain class.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Faerie|Extensions", meta = (DeterminesOutputType = "ExtensionClass", DynamicOutputParam = "Extension", ExpandBoolAsExecs = "ReturnValue"))
+	bool FindExtension(TSubclassOf<UItemContainerExtensionBase> ExtensionClass, UItemContainerExtensionBase*& Extension, bool RecursiveSearch = true) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentManager")
 	UItemContainerExtensionGroup* GetExtensions() const { return ExtensionGroup; }

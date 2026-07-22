@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "FaerieContainerExtensionInterface.h"
+#include "FaerieInventoryConcepts.h"
 #include "FaerieInventoryTag.h"
 #include "FaerieItemDataView.h"
 #include "LoopUtils.h"
@@ -227,13 +227,34 @@ namespace Faerie::Extensions
 	using FRecursiveConstExtensionIterator = TRecursiveExtensionIterator<true>;
 
 	struct FGroupAPI;
+
+	FAERIEINVENTORY_API const UItemContainerExtensionBase* Get(const UItemContainerExtensionGroup* Group, const TSubclassOf<UItemContainerExtensionBase> Class, const bool RecursiveSearch);
+	FAERIEINVENTORY_API UItemContainerExtensionBase* Get(UItemContainerExtensionGroup* Group, const TSubclassOf<UItemContainerExtensionBase> Class, const bool RecursiveSearch);
+
+	template <Container::CItemContainerExtension T>
+	const T* Get(const UItemContainerExtensionGroup* Group, const bool RecursiveSearch)
+	{
+		return CastChecked<T>(Get(Group, T::StaticClass(), RecursiveSearch), ECastCheckedType::NullAllowed);
+	}
+
+	template <Container::CItemContainerExtension T>
+	T* Get(UItemContainerExtensionGroup* Group, const bool RecursiveSearch)
+	{
+		return CastChecked<T>(Get(Group, T::StaticClass(), RecursiveSearch), ECastCheckedType::NullAllowed);
+	}
+
+	// Add a new extension of the given class, and return the result. If an extension of this class already exists, it
+	// will be returned instead.
+	UItemContainerExtensionBase* AddExtensionByClass(UItemContainerExtensionGroup* Group, TSubclassOf<UItemContainerExtensionBase> ExtensionClass);
+
+	bool RemoveExtensionByClass(UItemContainerExtensionGroup* Group, TSubclassOf<UItemContainerExtensionBase> ExtensionClass, bool RecursiveSearch = true);
 }
 
 /*
  * A collection of extensions that implements the interface of the base class to defer to others.
  */
 UCLASS()
-class FAERIEINVENTORY_API UItemContainerExtensionGroup final : public UItemContainerExtensionBase, public IFaerieContainerExtensionInterface
+class FAERIEINVENTORY_API UItemContainerExtensionGroup final : public UItemContainerExtensionBase
 {
 	GENERATED_BODY()
 
@@ -271,10 +292,6 @@ protected:
 	//~ UItemContainerExtensionBase
 
 public:
-	//~ IFaerieContainerExtensionInterface
-	virtual UItemContainerExtensionGroup* VirtualGetExtensionGroup() const override;
-	//~ IFaerieContainerExtensionInterface
-
 	bool AddExtension(UItemContainerExtensionBase* Extension);
 	bool RemoveExtension(UItemContainerExtensionBase* Extension);
 	bool HasExtension(TSubclassOf<UItemContainerExtensionBase> ExtensionClass, bool RecursiveSearch) const;

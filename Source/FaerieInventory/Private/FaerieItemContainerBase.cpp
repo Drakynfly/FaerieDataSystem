@@ -65,11 +65,6 @@ void UFaerieItemContainerBase::OnItemDataChanged(const ItemData::FMutableReferen
 {
 }
 
-UItemContainerExtensionGroup* UFaerieItemContainerBase::VirtualGetExtensionGroup() const
-{
-	return Extensions;
-}
-
 FFaerieItemExportData UFaerieItemContainerBase::ExportItemData(const ItemData::FRequireEntityManager& EntityManager, const ItemData::FReference& Item) const
 {
 	static constexpr ItemData::EMassFragmentExportOptions ExportOptions = ItemData::EMassFragmentExportOptions::OnlyFaerieMassFragments;
@@ -153,6 +148,13 @@ void UFaerieItemContainerBase::UnravelExtensionData(const TSharedStruct<FFaerieI
 	{
 		Extensions->SetUnclaimedExtensionData(ExtensionData);
 	}
+}
+
+bool UFaerieItemContainerBase::FindExtension(const TSubclassOf<UItemContainerExtensionBase> ExtensionClass,
+	UItemContainerExtensionBase*& Extension, const bool RecursiveSearch) const
+{
+	Extension = Extensions->GetExtension(ExtensionClass, RecursiveSearch);
+	return IsValid(Extension);
 }
 
 // Note: Implementations for these PURE_VIRTUAL need to be here because TUniquePtr complains about their dtors if they are forward declared.

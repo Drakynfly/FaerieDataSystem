@@ -3,7 +3,6 @@
 #pragma once
 
 #include "NetSupportedObject.h"
-#include "FaerieContainerExtensionInterface.h"
 #include "FaerieItemContainerStructs.h"
 #include "FaerieItemDataView.h"
 #include "FaerieItemOwnerInterface.h"
@@ -44,6 +43,7 @@ namespace Faerie::Container
 }
 
 class UItemContainerExtensionBase;
+class UItemContainerExtensionGroup;
 
 USTRUCT()
 struct FFaerieItemContainerExtensionData
@@ -58,7 +58,7 @@ struct FFaerieItemContainerExtensionData
  * The base class for objects that store and replicate FaerieItems.
  */
 UCLASS(Abstract, Blueprintable, EditInlineNew, DefaultToInstanced)
-class FAERIEINVENTORY_API UFaerieItemContainerBase : public UNetSupportedObject, public IFaerieItemOwnerInterface, public IFaerieContainerExtensionInterface
+class FAERIEINVENTORY_API UFaerieItemContainerBase : public UNetSupportedObject, public IFaerieItemOwnerInterface
 {
 	GENERATED_BODY()
 
@@ -85,11 +85,6 @@ public:
 	virtual void OnItemDataChanged(const Faerie::ItemData::FMutableReference& Instance, TNotNull<const UScriptStruct*> Struct, FGameplayTag EditTag) override;
 	//~ IFaerieItemOwnerInterface
 
-public:
-	//~ IFaerieContainerExtensionInterface
-	virtual UItemContainerExtensionGroup* VirtualGetExtensionGroup() const override final;
-	//~ IFaerieContainerExtensionInterface
-
 
 	/**------------------------------*/
 	/*		 SAVE DATA API			 */
@@ -105,6 +100,10 @@ protected:
 	void RavelExtensionData(FFaerieItemContainerExtensionData& ExtensionData) const;
 	void UnravelExtensionData(const TSharedStruct<FFaerieItemContainerExtensionData>& ExtensionData);
 
+
+	/**------------------------------*/
+	/*		 ITEM DATA API			 */
+	/**------------------------------*/
 public:
 	// Is this a valid address in this container?
 	virtual bool Contains(FFaerieAddress Address) const PURE_VIRTUAL(UFaerieItemContainerBase::Contains, return false; )
@@ -133,7 +132,18 @@ public:
 
 	virtual void GetAllAddresses(TArray<FFaerieAddress>& Addresses) const PURE_VIRTUAL(UFaerieItemContainerBase::GetAllAddresses, ; )
 
+
+	/**------------------------------*/
+	/*		 EXTENSIONS API			 */
+	/**------------------------------*/
+
 	UE_REWRITE UItemContainerExtensionGroup* GetExtensions() const { return Extensions; }
+
+	/*
+	 * Get an extension of a certain class.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Faerie|Extensions", meta = (DeterminesOutputType = "ExtensionClass", DynamicOutputParam = "Extension", ExpandBoolAsExecs = "ReturnValue"))
+	bool FindExtension(TSubclassOf<UItemContainerExtensionBase> ExtensionClass, UItemContainerExtensionBase*& Extension, bool RecursiveSearch = true) const;
 
 protected:
 	// Iterators

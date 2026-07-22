@@ -78,11 +78,6 @@ void UFaerieEquipmentManager::ReadyForReplication()
 	AddSubobjectsForReplication();
 }
 
-UItemContainerExtensionGroup* UFaerieEquipmentManager::VirtualGetExtensionGroup() const
-{
-	return ExtensionGroup;
-}
-
 void UFaerieEquipmentManager::AddDefaultSlots()
 {
 	if (!Slots.IsEmpty())

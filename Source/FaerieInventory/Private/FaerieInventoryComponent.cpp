@@ -50,8 +50,3 @@ void UFaerieInventoryComponent::ReadyForReplication()
 		ItemStorage->InitializeNetObject(Owner);
 	}
 }
-
-UItemContainerExtensionGroup* UFaerieInventoryComponent::VirtualGetExtensionGroup() const
-{
-	return ItemStorage->GetExtensions();
-}

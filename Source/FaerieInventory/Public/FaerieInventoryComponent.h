@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "FaerieContainerExtensionInterface.h"
 #include "Components/ActorComponent.h"
 
 #include "FaerieInventoryComponent.generated.h"
@@ -15,7 +14,7 @@ class UFaerieItemStorage;
  */
 UCLASS(ClassGroup = ("Faerie"), meta = (BlueprintSpawnableComponent, ChildCannotTick),
 	HideCategories = (Collision, ComponentTick, Replication, ComponentReplication, Activation, Sockets, Navigation))
-class FAERIEINVENTORY_API UFaerieInventoryComponent : public UActorComponent, public IFaerieContainerExtensionInterface
+class FAERIEINVENTORY_API UFaerieInventoryComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
@@ -27,10 +26,6 @@ public:
 	//~ UActorComponent
 	virtual void ReadyForReplication() override;
 	//~ UActorComponent
-
-	//~ IFaerieContainerExtensionInterface
-	virtual UItemContainerExtensionGroup* VirtualGetExtensionGroup() const override final;
-	//~ IFaerieContainerExtensionInterface
 
 
 	/**------------------------------*/

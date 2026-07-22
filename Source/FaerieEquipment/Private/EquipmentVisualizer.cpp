@@ -1,7 +1,6 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "EquipmentVisualizer.h"
-#include "FaerieContainerExtensionInterface.h"
 #include "FaerieEquipmentLog.h"
 #include "FaerieEquipmentSlot.h"
 #include "Components/FaerieItemMeshComponent.h"
