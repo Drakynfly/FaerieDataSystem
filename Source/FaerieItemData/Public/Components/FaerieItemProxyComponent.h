@@ -7,11 +7,10 @@
 #include "FaerieItemProxyComponent.generated.h"
 
 class UFaerieItemProxyComponent;
-using FItemSetEventNative = TMulticastDelegate<void(UFaerieItemProxyComponent*, FFaerieItemProxy)>;
+using FItemSetEventNative = TMulticastDelegate<void(TNotNull<UFaerieItemProxyComponent*>, FFaerieItemProxy)>;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FItemSetEvent, UFaerieItemProxyComponent*, Component, FFaerieItemProxy, Proxy);
-using FItemClearEventNative = TMulticastDelegate<void(UFaerieItemProxyComponent*)>;
+using FItemClearEventNative = TMulticastDelegate<void(TNotNull<UFaerieItemProxyComponent*>)>;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FItemClearEvent, UFaerieItemProxyComponent*, Component);
-
 
 /**
  * A simple actor component that holds an item proxy struct, and offers events for the implementing actor to use.
@@ -29,7 +28,7 @@ public:
 	FFaerieItemProxy GetItemProxy() const { return ItemProxy; }
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemProxyComponent")
-	void SetItemProxy(FFaerieItemProxy Proxy);
+	void SetItemProxy(const FFaerieItemProxy& Proxy);
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemProxyComponent")
 	void ClearItemProxy();

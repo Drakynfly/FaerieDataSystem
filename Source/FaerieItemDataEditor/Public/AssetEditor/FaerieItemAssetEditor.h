@@ -34,7 +34,6 @@ namespace Faerie::Editor
 		FItemAssetEditorToolkit() = default;
 		virtual ~FItemAssetEditorToolkit() override;
 
-	protected:
 		//~ Begin IToolkit interface
 		virtual FName GetToolkitFName() const override { return "FaerieItemAssetEditor"; }
 		virtual FText GetBaseToolkitName() const override { return INVTEXT("Faerie Item Asset Editor"); }
@@ -45,11 +44,13 @@ namespace Faerie::Editor
 		//~ FAssetEditorToolkit
 		virtual void RegisterTabSpawners(const TSharedRef<FTabManager>& InTabManager) override;
 		virtual void UnregisterTabSpawners(const TSharedRef<FTabManager>& InTabManager) override;
+	protected:
 		virtual void PostInitAssetEditor() override;
 		virtual void SaveAsset_Execute() override;
 		virtual void OnClose() override;
 		//~ FAssetEditorToolkit
 
+	public:
 		//~ FGCObject interface
 		virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 		virtual FString GetReferencerName() const override;

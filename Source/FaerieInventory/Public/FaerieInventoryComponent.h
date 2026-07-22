@@ -7,11 +7,7 @@
 
 #include "FaerieInventoryComponent.generated.h"
 
-enum class EFaerieAddressEventType : uint8;
-struct FFaerieAddress;
 class UFaerieItemStorage;
-class UItemContainerExtensionGroup;
-class UItemContainerExtensionBase;
 
 /**
  *	This is the core of the inventory system. The actual component added to actors to allow them to contain item data.
@@ -33,9 +29,7 @@ public:
 	//~ UActorComponent
 
 	//~ IFaerieContainerExtensionInterface
-	virtual UItemContainerExtensionGroup* GetExtensionGroup() const override final;
-	virtual bool AddExtension(UItemContainerExtensionBase* Extension) override;
-	virtual bool RemoveExtension(UItemContainerExtensionBase* Extension) override;
+	virtual UItemContainerExtensionGroup* VirtualGetExtensionGroup() const override final;
 	//~ IFaerieContainerExtensionInterface
 
 
@@ -54,8 +48,4 @@ public:
 protected:
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Replicated, Instanced, Category = "ItemStorage", meta = (ShowInnerProperties))
 	TObjectPtr<UFaerieItemStorage> ItemStorage;
-
-	// @DEPRECATED: Use the extensions object in ItemStorage.
-	UPROPERTY(EditAnywhere, Instanced, NoClear, Category = "DEPRECATED")
-	TObjectPtr<UItemContainerExtensionGroup> Extensions;
 };

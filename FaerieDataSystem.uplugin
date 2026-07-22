@@ -101,6 +101,14 @@
 			"Enabled": true
 		},
 		{
+			"Name": "MassGameplay",
+			"Enabled": true
+		},
+		{
+			"Name": "ModelViewViewModel",
+			"Enabled": true
+		},
+		{
 			"Name": "UMGWidgetPreview",
 			"Enabled": true
 		},

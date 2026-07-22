@@ -6,7 +6,12 @@
 #include "FaerieItemDataFilter.h"
 #include "GameplayTagContainer.h"
 
+#include "Templates/SubclassOf.h"
+#include "Templates/SubScriptStructOf.h"
+
 #include "BasicItemDataFilters.generated.h"
+
+struct FFaerieMassFragment;
 
 /**
  * Automatic success when not inverted. Automatic failure when inverted.
@@ -17,7 +22,7 @@ class UFilterRule_Literal : public UFaerieItemDataFilter
 	GENERATED_BODY()
 
 public:
-	virtual bool Exec(FFaerieItemStackView View) const override { return true; }
+	virtual bool Exec(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const override { return true; }
 };
 
 /**
@@ -30,14 +35,14 @@ class UFilterRule_LogicalOr : public UFaerieItemDataFilter
 
 public:
 #if WITH_EDITOR
-	virtual EItemDataMutabilityStatus GetMutabilityStatus() const override;
+	virtual EFaerieItemDataMutabilityStatus GetMutabilityStatus() const override;
 #endif
 
-	virtual bool ExecWithLog(FFaerieItemStackView View, Faerie::ItemData::FFilterLogger& Logger) const override;
-	virtual bool Exec(FFaerieItemStackView View) const override;
+	virtual bool ExecWithLog(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View, Faerie::ItemData::FFilterLogger& Logger) const override;
+	virtual bool Exec(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const override;
 
 protected:
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Instanced, Category = "LogicalOr")
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Instanced, Category = "LogicalOr")
 	TArray<TObjectPtr<UFaerieItemDataFilter>> Rules;
 };
 
@@ -51,14 +56,14 @@ class UFilterRule_LogicalAnd : public UFaerieItemDataFilter
 
 public:
 #if WITH_EDITOR
-	virtual EItemDataMutabilityStatus GetMutabilityStatus() const override;
+	virtual EFaerieItemDataMutabilityStatus GetMutabilityStatus() const override;
 #endif
 
-	virtual bool ExecWithLog(FFaerieItemStackView View, Faerie::ItemData::FFilterLogger& Logger) const override;
-	virtual bool Exec(FFaerieItemStackView View) const override;
+	virtual bool ExecWithLog(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View, Faerie::ItemData::FFilterLogger& Logger) const override;
+	virtual bool Exec(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const override;
 
 protected:
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Instanced, Category = "LogicalAnd")
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Instanced, Category = "LogicalAnd")
 	TArray<TObjectPtr<UFaerieItemDataFilter>> Rules;
 };
 
@@ -72,20 +77,20 @@ class UFilterRule_Condition : public UFaerieItemDataFilter
 
 public:
 #if WITH_EDITOR
-	virtual EItemDataMutabilityStatus GetMutabilityStatus() const override;
+	virtual EFaerieItemDataMutabilityStatus GetMutabilityStatus() const override;
 #endif
 
-	virtual bool Exec(FFaerieItemStackView View) const override;
+	virtual bool Exec(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const override;
 
 protected:
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Instanced, Category = "Condition")
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Instanced, Category = "Condition")
 	TObjectPtr<UFaerieItemDataFilter> ConditionRule;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Instanced, Category = "Condition")
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Instanced, Category = "Condition")
 	TObjectPtr<UFaerieItemDataFilter> TrueBranch;
 
 	// Result if Condition fails.
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Condition")
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Condition")
 	bool FalseBranch = true;
 };
 
@@ -99,19 +104,19 @@ class UFilterRule_Ternary : public UFaerieItemDataFilter
 
 public:
 #if WITH_EDITOR
-	virtual EItemDataMutabilityStatus GetMutabilityStatus() const override;
+	virtual EFaerieItemDataMutabilityStatus GetMutabilityStatus() const override;
 #endif
 
-	virtual bool Exec(FFaerieItemStackView View) const override;
+	virtual bool Exec(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const override;
 
 protected:
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Instanced, Category = "Ternary")
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Instanced, Category = "Ternary")
 	TObjectPtr<UFaerieItemDataFilter> ConditionRule;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Instanced, Category = "Ternary")
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Instanced, Category = "Ternary")
 	TObjectPtr<UFaerieItemDataFilter> TrueBranch;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Instanced, Category = "Ternary")
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Instanced, Category = "Ternary")
 	TObjectPtr<UFaerieItemDataFilter> FalseBranch;
 };
 
@@ -125,13 +130,13 @@ class UFilterRule_LogicalNot : public UFaerieItemDataFilter
 
 public:
 #if WITH_EDITOR
-	virtual EItemDataMutabilityStatus GetMutabilityStatus() const override;
+	virtual EFaerieItemDataMutabilityStatus GetMutabilityStatus() const override;
 #endif
 
-	virtual bool Exec(FFaerieItemStackView View) const override;
+	virtual bool Exec(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const override;
 
 protected:
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Instanced, Category = "LogicalNot")
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Instanced, Category = "LogicalNot")
 	TObjectPtr<UFaerieItemDataFilter> InvertedRule;
 };
 
@@ -145,14 +150,14 @@ class UFilterRule_Mutability : public UFaerieItemDataFilter
 
 public:
 #if WITH_EDITOR
-	virtual EItemDataMutabilityStatus GetMutabilityStatus() const override;
+	virtual EFaerieItemDataMutabilityStatus GetMutabilityStatus() const override;
 #endif
 
-	virtual bool Exec(FFaerieItemStackView View) const override;
+	virtual bool Exec(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const override;
 
 protected:
 	// Enable to require a mutable entry. Leave disabled to only allow immutable entries.
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Mutability")
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Mutability")
 	bool RequireMutable;
 };
 
@@ -166,54 +171,42 @@ class UFilterRule_MatchTemplate : public UFaerieItemDataFilter
 
 public:
 #if WITH_EDITOR
-	virtual EItemDataMutabilityStatus GetMutabilityStatus() const override;
+	virtual EFaerieItemDataMutabilityStatus GetMutabilityStatus() const override;
 #endif
 
-	virtual bool ExecWithLog(const FFaerieItemStackView View, Faerie::ItemData::FFilterLogger& Logger) const override;
-	virtual bool Exec(FFaerieItemStackView View) const override;
+	virtual bool ExecWithLog(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View, Faerie::ItemData::FFilterLogger& Logger) const override;
+	virtual bool Exec(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const override;
 
 protected:
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "MatchTemplate", meta = (AllowAbstract))
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "MatchTemplate", meta = (AllowAbstract))
 	TObjectPtr<UFaerieItemTemplate> Template;
 };
 
-
-class UFaerieItemToken;
-
 /**
- * Filter entries by their tokens
+ * Filter entries by their fragments
  */
-UCLASS(meta = (DisplayName = "Has Token(s)"))
-class UFilterRule_HasTokens : public UFaerieItemDataFilter
+UCLASS(meta = (DisplayName = "Has Fragment(s)"))
+class UFilterRule_HasFragments : public UFaerieItemDataFilter
 {
 	GENERATED_BODY()
 
 public:
+	UFilterRule_HasFragments();
+
 #if WITH_EDITOR
-	virtual EItemDataMutabilityStatus GetMutabilityStatus() const override;
+	virtual EFaerieItemDataMutabilityStatus GetMutabilityStatus() const override;
 #endif
 
-	virtual bool ExecWithLog(const FFaerieItemStackView View, Faerie::ItemData::FFilterLogger& Logger) const override;
-	virtual bool Exec(FFaerieItemStackView View) const override;
+	virtual bool ExecWithLog(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View, Faerie::ItemData::FFilterLogger& Logger) const override;
+	virtual bool Exec(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const override;
 
 protected:
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "HasTokens", meta = (AllowAbstract = "true"))
-	TArray<TSubclassOf<UFaerieItemToken>> TokenClasses;
+	UPROPERTY(EditAnywhere, Category = "HasFragments")
+	TArray<TSubScriptStructOf<FFaerieMassFragment>> FragmentTypes;
 
-	// Include tokens from the default static reference, if present.
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "HasTokens")
-	bool IncludeDefaultReferences = true;
-};
-
-UENUM()
-enum class ECopiesCompareOperator : uint8
-{
-	Less			UMETA(DisplayName = "<"),
-	LessOrEqual		UMETA(DisplayName = "<="),
-	Greater			UMETA(DisplayName = ">"),
-	GreaterOrEqual	UMETA(DisplayName = ">="),
-	Equal			UMETA(DisplayName = "=="),
-	NotEqual		UMETA(DisplayName = "!="),
+	// Search for referenced fragments under this tag.
+	UPROPERTY(EditAnywhere, Category = "HasFragments")
+	FGameplayTag ReferenceTag;
 };
 
 /**
@@ -226,31 +219,17 @@ class UFilterRule_Copies : public UFaerieItemDataFilter
 
 public:
 #if WITH_EDITOR
-	virtual EItemDataMutabilityStatus GetMutabilityStatus() const override;
+	virtual EFaerieItemDataMutabilityStatus GetMutabilityStatus() const override;
 #endif
 
-	virtual bool Exec(FFaerieItemStackView View) const override;
+	virtual bool Exec(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const override;
 
 protected:
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "CompareCopies")
-	ECopiesCompareOperator Operator;
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "CompareCopies")
+	EFaerieCopiesCompareOperator Operator;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "CompareCopies", meta = (ClampMin = 1))
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "CompareCopies", meta = (ClampMin = 1))
 	int32 AmountToCompare = 1;
-};
-
-
-UENUM()
-enum class EStackCompareOperator : uint8
-{
-	Less			UMETA(DisplayName = "<"),
-	LessOrEqual		UMETA(DisplayName = "<="),
-	Greater			UMETA(DisplayName = ">"),
-	GreaterOrEqual	UMETA(DisplayName = ">="),
-	Equal			UMETA(DisplayName = "=="),
-	NotEqual		UMETA(DisplayName = "!="),
-	HasLimit		UMETA(DisplayName = "Limited"),
-	HasNoLimit		UMETA(DisplayName = "Unlimited")
 };
 
 /**
@@ -263,17 +242,17 @@ class UFilterRule_StackLimit : public UFaerieItemDataFilter
 
 public:
 #if WITH_EDITOR
-	virtual EItemDataMutabilityStatus GetMutabilityStatus() const override;
+	virtual EFaerieItemDataMutabilityStatus GetMutabilityStatus() const override;
 #endif
 
-	virtual bool Exec(FFaerieItemStackView View) const override;
+	virtual bool Exec(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const override;
 
 protected:
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "CompareLimit")
-	EStackCompareOperator Operator;
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "CompareLimit")
+	EFaerieStackCompareOperator Operator;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "CompareLimit",
-		meta = (ClampMin = 1, EditCondition = "Operator != EStackCompareOperator::HasLimit && Operator != EStackCompareOperator::HasNoLimit", EditConditionHides))
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "CompareLimit",
+		meta = (ClampMin = 1, EditCondition = "Operator != EFaerieStackCompareOperator::HasLimit && Operator != EFaerieStackCompareOperator::HasNoLimit", EditConditionHides))
 	int32 AmountToCompare = 1;
 };
 
@@ -287,13 +266,13 @@ class UFilterRule_GameplayTagAny : public UFaerieItemDataFilter
 
 public:
 #if WITH_EDITOR
-	//virtual EItemDataMutabilityStatus GetMutabilityStatus() const override;
+	//virtual EFaerieItemDataMutabilityStatus GetMutabilityStatus() const override;
 #endif
 
-	virtual bool Exec(FFaerieItemStackView View) const override;
+	virtual bool Exec(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const override;
 
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GameplayTagAny")
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "GameplayTagAny")
 	FGameplayTagContainer Tags;
 };
 
@@ -307,12 +286,12 @@ class UFilterRule_GameplayTagAll : public UFaerieItemDataFilter
 
 public:
 #if WITH_EDITOR
-	//virtual EItemDataMutabilityStatus GetMutabilityStatus() const override;
+	//virtual EFaerieItemDataMutabilityStatus GetMutabilityStatus() const override;
 #endif
 
-	virtual bool Exec(FFaerieItemStackView View) const override;
+	virtual bool Exec(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const override;
 
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GameplayTagAll")
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "GameplayTagAll")
 	FGameplayTagContainer Tags;
 };

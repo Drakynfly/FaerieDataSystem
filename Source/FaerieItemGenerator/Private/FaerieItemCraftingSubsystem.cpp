@@ -2,6 +2,7 @@
 
 #include "FaerieItemCraftingSubsystem.h"
 #include "ItemCraftingRunner.h"
+#include "Squirrel.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemCraftingSubsystem)
 
@@ -11,12 +12,15 @@ void UFaerieItemCraftingSubsystem::Initialize(FSubsystemCollectionBase& Collecti
 {
 	Super::Initialize(Collection);
 
+	Squirrel = NewObject<USquirrel>(this);
 	Runner = NewObject<UFaerieItemCraftingRunner>(this);
+	Runner->SetSquirrel(Squirrel);
 }
 
 void UFaerieItemCraftingSubsystem::Deinitialize()
 {
 	Runner->CancelAllActions();
+	Runner = nullptr;
 
 	Super::Deinitialize();
 }

@@ -5,7 +5,7 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "FaerieGridLibrary.generated.h"
 
-enum class ESpatialItemRotation : uint8;
+enum class EFaerieSpatialItemRotation : uint8;
 struct FFaerieGridShape;
 
 /**
@@ -18,7 +18,7 @@ class UFaerieGridLibrary : public UBlueprintFunctionLibrary
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|GridLibrary")
-	static FFaerieGridShape RotateShape(const FFaerieGridShape& InShape, ESpatialItemRotation Rotation);
+	static FFaerieGridShape RotateShape(const FFaerieGridShape& InShape, EFaerieSpatialItemRotation Rotation);
 
 	UFUNCTION(BlueprintPure, Category = "Faerie|GridLibrary")
 	static FIntPoint GetSize(const FFaerieGridShape& InShape);

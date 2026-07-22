@@ -3,189 +3,203 @@
 #pragma once
 
 #include "FaerieItemDataConcepts.h"
+#include "FaerieItemDataDefines.h"
+#include "FaerieItemDataFwd.h"
 #include "FaerieItemDataEnums.h"
-#include "GameplayTagContainer.h"
+#include "FaerieMassFragment.h"
+#include "MassEntityManager.h"
+
+#include "Mass/EntityHandle.h"
 #include "NativeGameplayTags.h"
-#include "NetSupportedObject.h"
-#include "Templates/SubclassOf.h"
+
+#include "StructUtils/StructView.h"
+
+#include "UObject/ObjectKey.h"
 
 #include "FaerieItem.generated.h"
 
-class UFaerieItem;
-class UFaerieItemToken;
-
-namespace Faerie::Token
+namespace Faerie::ItemData
 {
-	namespace Private
-	{
-		class FIteratorAccess;
-	}
-
 	namespace Tags
 	{
-		FAERIEITEMDATA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TokenAdd)
-		FAERIEITEMDATA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TokenRemove)
-		FAERIEITEMDATA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TokenGenericPropertyEdit)
+		FAERIEITEMDATA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(FragmentAdd)
+		FAERIEITEMDATA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(FragmentRemove)
+		FAERIEITEMDATA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(FragmentGenericPropertyEdit)
 
-		FAERIEITEMDATA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TokenReferenceDefaults)
+		// @todo remove this tag
+		FAERIEITEMDATA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(PrimaryIdentifier);
+
+		FAERIEITEMDATA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(ReferenceDefaults)
 	}
-
-	using FNotifyOwnerOfSelfMutation = TDelegate<void(TNotNull<const UFaerieItem*>, TNotNull<const UFaerieItemToken*>, FGameplayTag)>;
 }
 
 /**
  * A runtime instance of an item.
  */
 UCLASS(DefaultToInstanced, EditInlineNew, BlueprintType)
-class FAERIEITEMDATA_API UFaerieItem : public UNetSupportedObject
+class FAERIEITEMDATA_API UFaerieItem : public UObject
 {
 	GENERATED_BODY()
 
-	friend UFaerieItemToken;
 	friend class UFaerieItemAsset;
-	friend Faerie::Token::Private::FIteratorAccess;
 
 public:
 	//~ Begin UObject interface
 	virtual void PostInitProperties() override;
 	virtual void PreSave(FObjectPreSaveContext SaveContext) override;
 	virtual void PostLoad() override;
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	virtual void GetReplicatedCustomConditionState(FCustomPropertyConditionState& OutActiveState) const override;
-	//~ Emd UObject interface
+
+#if WITH_EDITOR
+	virtual EDataValidationResult IsDataValid(FDataValidationContext& Context) const override;
+#endif
+	//~ End UObject interface
 
 private:
-	const UFaerieItemToken* GetTokenImpl(const TSubclassOf<UFaerieItemToken>& ValidatedClass, FGameplayTag ReferenceTag = Faerie::Token::Tags::TokenReferenceDefaults) const;
-	const UFaerieItemToken* GetOwnedTokenImpl(const TSubclassOf<UFaerieItemToken>& ValidatedClass) const;
-	UFaerieItemToken* GetMutableTokenImpl(const TSubclassOf<UFaerieItemToken>& ValidatedClass);
+	// Hide GetWorld from API.
+	// ReSharper disable once CppOverrideWithDifferentVisibility
+	UE_REWRITE virtual class UWorld* GetWorld() const override { return Super::GetWorld(); }
 
 public:
-	// Creates a new faerie item object with the given tokens. These are instance-mutable by default.
-	static UFaerieItem* CreateNewInstance(TConstArrayView<UFaerieItemToken*> Tokens, EFaerieItemInstancingMutability Mutability = EFaerieItemInstancingMutability::Automatic);
-
-	// Creates a new faerie item object using this instance as a template. Instance-mutable only if required by item or flags.
-	UFaerieItem* CreateInstance(EFaerieItemInstancingMutability Mutability = EFaerieItemInstancingMutability::Automatic) const;
+#if WITH_EDITOR
+	// Creates a new faerie item object with the given fragments. These are instance-mutable by default.
+	static TNotNull<const UFaerieItem*> CreateNewInstance(TConstArrayView<FInstancedStruct> Fragments, TNotNull<UObject*> InstanceOuter, EFaerieItemInstancingMutability Mutability = EFaerieItemInstancingMutability::Automatic);
 
 	// Creates a new faerie item object using this instance as a template. Duplicates are instance-mutable by default.
-	UFaerieItem* CreateDuplicate(EFaerieItemInstancingMutability Mutability = EFaerieItemInstancingMutability::Automatic) const;
+	TNotNull<const UFaerieItem*> CreateDuplicate(TNotNull<UObject*> WorldContextObject, EFaerieItemInstancingMutability Mutability = EFaerieItemInstancingMutability::Automatic) const;
+#endif
 
-	// Gets a view of all owned tokens in this item.
-	TConstArrayView<TObjectPtr<UFaerieItemToken>> GetOwnedTokens() const { return Tokens; }
+	UE_REWRITE TConstArrayView<FInstancedStruct> GetFragmentDefaults() const { return FragmentDefaults; }
 
-	// Gets the token at a specified index. Low-level access for when you know what you are doing.
-	const UFaerieItemToken* GetTokenAtIndex(int32 Index) const;
+	UE_REWRITE int32 GetAssetFormatVersion() const { return FormatVersion; }
 
-	// Gets the first token of the specified class that is either owned or referenced.
-	const UFaerieItemToken* GetToken(const TSubclassOf<UFaerieItemToken>& Class, FGameplayTag ReferenceTag = Faerie::Token::Tags::TokenReferenceDefaults) const;
+	// Look for a default fragment value in an item asset.
+	TConstStructView<FFaerieMassFragment> GetDefaultFragment(TNotNull<const UScriptStruct*> StructType, const FGameplayTag ReferenceTag = Faerie::ItemData::Tags::ReferenceDefaults) const;
 
-	// Gets the first token of the specified class that is either owned or referenced.
-	template <Faerie::ItemData::CItemTokenImpl T>
-	const T* GetToken(FGameplayTag ReferenceTag = Faerie::Token::Tags::TokenReferenceDefaults) const
+	template <Faerie::ItemData::CFragmentImpl T>
+	UE_REWRITE const T* GetDefaultFragment(const FGameplayTag ReferenceTag = Faerie::ItemData::Tags::ReferenceDefaults) const
 	{
-		return CastChecked<T>(GetTokenImpl(T::StaticClass(), ReferenceTag), ECastCheckedType::NullAllowed);
+		return GetDefaultFragment(const_cast<UScriptStruct*>(T::StaticStruct()), ReferenceTag).GetPtr<const T>();
 	}
 
-	// Gets the first owned token of the specified class.
-	const UFaerieItemToken* GetOwnedToken(const TSubclassOf<UFaerieItemToken>& Class) const;
+#if WITH_EDITORONLY_DATA
+	// Only the Editor can set the defaults for fragment data. It should always be treated as immutable during runtime.
 
-	// Gets the first owned token of the specified class. Templated version.
-	template <Faerie::ItemData::CItemTokenImpl T>
-	const T* GetOwnedToken() const
+	void SetDefaultFragment(FConstStructView DefaultStructValue);
+
+	template <Faerie::ItemData::CFragmentImpl T>
+	void SetDefaultFragment(const T& DefaultStructValue)
 	{
-		return CastChecked<T>(GetOwnedTokenImpl(T::StaticClass()), ECastCheckedType::NullAllowed);
+		return SetDefaultFragment(FConstStructView::Make(DefaultStructValue));
 	}
+#endif
 
-	// Gets mutable access to an owned token, if this item allows mutation.
-	UFaerieItemToken* GetMutableToken(const TSubclassOf<UFaerieItemToken>& Class);
-
-	// Gets mutable access to an owned token, if this item allows mutation. Templated version.
-	template <Faerie::ItemData::CItemTokenImpl T>
-	T* GetMutableToken()
-	{
-		return CastChecked<T>(GetMutableTokenImpl(T::StaticClass()), ECastCheckedType::NullAllowed);
-	}
-
-	/*
-	 * Compares two Items to determine if they are "the same". There are some limitations here imposed by the design of
-	 * FDS. See EFaerieItemComparisonFlags for descriptions of the Flags.
-	 */
-	static bool Compare(const UFaerieItem* A, const UFaerieItem* B, const EFaerieItemComparisonFlags Flags);
-	bool CompareWith(TNotNull<const UFaerieItem*> Other, const EFaerieItemComparisonFlags Flags) const;
-
-
-	//~		C++ Item Mutation		~//
-
-	// Mutate cast will return a const_cast'd *this* if the item is a runtime mutable instance. This is the proscribed
-	// method to gain access to the non-const API of UFaerieItem.
-	[[nodiscard]] UFaerieItem* MutateCast() const;
-	bool AddToken(UFaerieItemToken* Token);
-	bool RemoveToken(const UFaerieItemToken* Token);
-	bool ReplaceToken(const UFaerieItemToken* Old, UFaerieItemToken* New);
-	int32 RemoveTokensByClass(TSubclassOf<UFaerieItemToken> Class);
-
-protected:
-	// While not returning const pointers, these are considered safe, as all mutating functions are locked being FFaerieItemEditHandle
-
-	// Gets all tokens owned by this item.
-	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "FaerieItem")
-	TArray<UFaerieItemToken*> GetAllTokens() const;
-
-	// Gets the first token of the given class
-	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "FaerieItem", meta = (DeterminesOutputType = Class, DynamicOutputParam = FoundToken, ExpandBoolAsExecs = ReturnValue))
-	bool FindToken(TSubclassOf<UFaerieItemToken> Class, UFaerieItemToken*& FoundToken) const;
-
-public:
-	UFUNCTION(BlueprintCallable, Category = "FaerieItem")
-	FDateTime GetLastModified() const { return LastModified; }
-
-	// Can this item object be changed whatsoever at runtime? This is not available for asset-referenced or precached items.
-	UFUNCTION(BlueprintCallable, Category = "FaerieItem")
-	bool IsInstanceMutable() const;
-
-	// Are any tokens in this item capable of being changed at runtime?
-	UFUNCTION(BlueprintCallable, Category = "FaerieItem")
-	bool IsDataMutable() const;
-
-	// Does this item instance meet all requirements to have its tokens mutated at runtime? See EFaerieItemMutabilityFlags.
-	// This is equivalent to IsInstanceMutable && IsDataMutable.
-	UFUNCTION(BlueprintCallable, Category = "FaerieItem")
+	// Does this item instance expect to mutate during runtime. This disables stacking.
 	bool CanMutate() const;
 
 protected:
-	// Called by our own tokens when they are edited.
-	void OnTokenEdited(const UFaerieItemToken* Token);
+	bool DetermineFragmentMutability() const;
 
-	void CacheTokenMutability();
+	// Mass fragments for this item instance that are not registered to the mass subsystem. Used to hold default values
+	// for instances generated in the editor.
+	UPROPERTY(VisibleInstanceOnly, Category = "FaerieItem")
+	TArray<FInstancedStruct /* TInstancedStruct<FFaerieMassFragment> */> FragmentDefaults;
 
-public:
-	Faerie::Token::FNotifyOwnerOfSelfMutation::RegistrationType& GetNotifyOwnerOfSelfMutation() { return NotifyOwnerOfSelfMutation; }
+	// In order for an item instance to be changed at runtime, it must be mutable. This disables stacking.
+	UPROPERTY(VisibleInstanceOnly, Category = "FaerieItem")
+	bool InstancesCanMutate = false;
 
-private:
-	// Delegate for owners to bind to, for detecting when tokens are mutated outside their knowledge
-	Faerie::Token::FNotifyOwnerOfSelfMutation NotifyOwnerOfSelfMutation;
+	// Version number for validation of instances created from an item asset.
+	// Stored as int32, but interpreted as Faerie::ItemData::EFormatVersion.
+	UPROPERTY(VisibleInstanceOnly, Category = "FaerieItem")
+	int32 FormatVersion = INDEX_NONE;
+};
 
-protected:
-	UPROPERTY(Replicated, VisibleInstanceOnly, Category = "FaerieItem")
-	TArray<TObjectPtr<UFaerieItemToken>> Tokens;
+namespace Faerie::ItemData
+{
+	FAERIEITEMDATA_API FMassEntityManager& GetEntityManager(const FRequireEntityManager& EntityManager);
 
-	// Keeps track of the last time this item was modified. Allows, for example, sorting items by recently touched.
-	// Only intended to be useful for mutable and dynamically-generated items. Asset-derived instances will be set
-	// to the time that they were cooked (for shipping) or last edited (at dev-time).
-	UPROPERTY(Replicated, VisibleInstanceOnly, Category = "FaerieItem")
+	template <CFragmentImpl T>
+	[[nodiscard]] UE_REWRITE const T* GetEntityFragment(const FRequireEntityManager& EntityManager, const FMassEntityHandle ItemHandle)
+	{
+		FMassEntityManager& Manager = GetEntityManager(EntityManager);
+		if (Manager.IsEntityValid(ItemHandle))
+		{
+			if (const T* Fragment = Manager.GetFragmentDataPtr<T>(ItemHandle))
+			{
+				return Fragment;
+			}
+		}
+
+		return nullptr;
+	}
+
+	[[nodiscard]] FAERIEITEMDATA_API FConstStructView GetEntityFragment(const FRequireEntityManager& EntityManager, FMassEntityHandle ItemHandle, TNotNull<const UScriptStruct*> FragmentType);
+
+
+	[[nodiscard]] FAERIEITEMDATA_API TConstStructView<FFaerieMassFragment> GetEntityFragmentOrDefault(const FOptionalEntityManager& EntityManager, const FReference& Reference, TNotNull<const UScriptStruct*> FragmentType, FGameplayTag ReferenceTag = Tags::ReferenceDefaults);
+
+
+	template <CFragmentImpl T>
+	[[nodiscard]] UE_REWRITE TConstStructView<T> GetEntityFragmentOrDefault(const FOptionalEntityManager& EntityManager, const FReference& Reference, FGameplayTag ReferenceTag = Tags::ReferenceDefaults)
+	{
+		TConstStructView<FFaerieMassFragment> FragmentCopy = GetEntityFragmentOrDefault(EntityManager, Reference, T::StaticStruct(), ReferenceTag);
+		return *reinterpret_cast<TConstStructView<T>*>(&FragmentCopy);
+	}
+
+
+	[[nodiscard]] FAERIEITEMDATA_API TConstStructView<FFaerieMassFragment> GetDefaultFragment(const UFaerieItem* ItemAsset, TNotNull<const UScriptStruct*> FragmentType, FGameplayTag ReferenceTag = Tags::ReferenceDefaults);
+
+
+	template <CFragmentImpl T>
+	[[nodiscard]] TConstStructView<T> GetDefaultFragment(const UFaerieItem* ItemAsset, FGameplayTag ReferenceTag = Tags::ReferenceDefaults)
+	{
+		TConstStructView<FFaerieMassFragment> FragmentCopy = GetDefaultFragment(ItemAsset, T::StaticStruct(), ReferenceTag);
+		return *reinterpret_cast<TConstStructView<T>*>(&FragmentCopy);
+	}
+}
+
+/*
+ * Keeps track of the last time this item was modified. Allows, for example, sorting items by recently touched.
+ */
+USTRUCT(meta = (Hidden))
+struct FFaerieItemModificationDate : public FFaerieMassFragment
+{
+	GENERATED_BODY()
+
+	FFaerieItemModificationDate() = default;
+	FFaerieItemModificationDate(const FDateTime& LastModified)
+	  : LastModified(LastModified) {}
+
 	FDateTime LastModified = FDateTime();
+};
 
-	// Mutability flags.
-	// In order for an item instance to be changed at runtime, it must have no mutually exclusive flags.
-	// This is only set once at item creation, and cannot change after.
-	UPROPERTY(Replicated, VisibleInstanceOnly, Category = "FaerieItem")
-	EFaerieItemMutabilityFlags MutabilityFlags;
+/**
+ * Not replicated, only the creator of the item can see these
+ */
+USTRUCT()
+struct FFaerieMassItemPointer : public FMassFragment
+{
+	GENERATED_BODY()
 
-private:
-	// Is writing to Tokens locked?
-	mutable uint32 WriteLock = 0;
+	FFaerieMassItemPointer() = default;
+	FFaerieMassItemPointer(const UFaerieItem* Item)
+	  : Item(Item) {}
 
-protected:
-	UE_DEPRECATED(5.6, TEXT("Replaced by UFaerieItemDataLibrary::FindTokensByClass"))
-	UFUNCTION(BlueprintCallable, BlueprintPure = false, meta = (DeterminesOutputType = Class, DynamicOutputParam = FoundTokens, deprecated, DeprecationMessage = "Replaced by UFaerieItemDataLibrary::FindTokensByClass"))
-	void FindTokens(TSubclassOf<UFaerieItemToken> Class, TArray<UFaerieItemToken*>& FoundTokens) const;
+	TObjectKey<const UFaerieItem> Item;
+};
+
+/**
+ * Not replicated, only the creator of the item can see these
+ */
+USTRUCT()
+struct FAERIEITEMDATA_API FFaerieMassItemOwner : public FMassConstSharedFragment
+{
+	GENERATED_BODY()
+
+	FFaerieMassItemOwner() = default;
+	FFaerieMassItemOwner(const UObject* Owner)
+	  : Owner(Owner) {}
+
+	IFaerieItemOwnerInterface* GetInterface() const;
+	FWeakObjectPtr Owner;
 };

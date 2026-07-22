@@ -5,20 +5,23 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieWidgetPreview)
 
-const UFaerieItem* UFaerieWidgetPreview::GetItemObject() const
+TOptional<FFaerieItemInstance> UFaerieWidgetPreview::GetItemInstance() const
 {
-	return Asset->GetEditorItemView();
+	if (Asset.IsValid())
+	{
+		return Asset->GetTemplateInstance();
+	}
+	return NullOpt;
 }
 
-TScriptInterface<IFaerieItemOwnerInterface> UFaerieWidgetPreview::GetItemOwner() const
+IFaerieItemOwnerInterface* UFaerieWidgetPreview::GetItemOwner() const
 {
 	return nullptr;
 }
 
-FFaerieItemStack UFaerieWidgetPreview::Release(int32 Copies) const
+Faerie::ItemData::FProxyChangeEvent::RegistrationType& UFaerieWidgetPreview::GetOnProxyChangeEvent()
 {
-	// Release doesn't make sense here, since we are only ever "owning" an asset.
-	return FFaerieItemStack();
+	return OnChangeEvent;
 }
 
 void UFaerieWidgetPreview::InitFaerieWidgetPreview(UFaerieItemAsset* InAsset)

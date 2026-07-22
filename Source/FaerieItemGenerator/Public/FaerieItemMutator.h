@@ -2,7 +2,9 @@
 
 #pragma once
 
-#include "FaerieItemStack.h"
+#include "FaerieItemDataFwd.h"
+#include "UObject/SoftObjectPtr.h"
+#include "FaerieItemGeneratorModule.h"
 #include "FaerieItemMutator.generated.h"
 
 class USquirrel;
@@ -15,10 +17,18 @@ struct FFaerieItemMutatorContext
 	virtual ~FFaerieItemMutatorContext() = default;
 
 	UPROPERTY()
+	TObjectPtr<UObject> WorldContextObject;
+
+	UPROPERTY()
 	TObjectPtr<USquirrel> Squirrel;
 
+#if WITH_EDITORONLY_DATA
+	// A flag to mark a mutator context as being run by the editor.
+	bool RunningInEditor = false;
+#endif
+
 	// Children must implement this to allow safe casting.
-	virtual const UScriptStruct* GetScriptStruct() const { return FFaerieItemMutatorContext::StaticStruct(); }
+	UE_REWRITE virtual const UScriptStruct* GetScriptStruct() const { return FFaerieItemMutatorContext::StaticStruct(); }
 
 	template <typename T>
 	const T* Cast() const
@@ -47,15 +57,55 @@ struct FFaerieItemMutatorContext
  * Apply() must be implemented.
  */
 USTRUCT()
-struct FFaerieItemMutator
+struct FAERIEITEMGENERATOR_API FFaerieItemMutator
 {
 	GENERATED_BODY()
 
 	virtual ~FFaerieItemMutator() = default;
 
+	void PostSerialize(const FArchive& Ar);
+
+	virtual const UScriptStruct* GetScriptStruct() const PURE_VIRTUAL(FFaerieItemMutator::GetScriptStruct, return nullptr; )
+
 	// Any soft assets required to be loaded when Apply is called should be registered here.
 	virtual void GetRequiredAssets(TArray<TSoftObjectPtr<UObject>>& RequiredAssets) const {}
 
 	// Try to run this mutator on a stack.
-	virtual bool Apply(FFaerieItemStack& Stack, FFaerieItemMutatorContext* Context) const PURE_VIRTUAL(FFaerieItemMutator::Apply, return false; )
+	virtual bool Apply(Faerie::ItemData::FMutableReference& Item, const FFaerieItemMutatorContext& Context) const PURE_VIRTUAL(FFaerieItemMutator::Apply, return false; )
+};
+
+// Macro to semi-automate implementation of virtual struct machinery.
+#define FAERIE_IMPL_GetScriptStruct() public: virtual const UScriptStruct* GetScriptStruct() const override { return StaticStruct(); }
+
+#if WITH_EDITOR
+// Declare editor-only type customization auto register RAII static.
+#define FAERIE_IMPL_StructTypeCustomization(Type)\
+	[[maybe_unused]] static Faerie::Generation::TMutatorStructTypeCustomizationAutoRegister<Type> Type##_CustomizationRegister;
+#else
+#define FAERIE_IMPL_StructTypeCustomization(Type)
+#endif
+
+#define FAERIE_IMPL_TStructOpsTypeTraits(Type)\
+template<> struct TStructOpsTypeTraits<Type> : public TStructOpsTypeTraitsBase2<Type>\
+{\
+	enum\
+	{\
+		WithPostSerialize = true, \
+	};
+
+#define FAERIE_MUTATOR_HEADER(Type)\
+	FAERIE_IMPL_GetScriptStruct()\
+	};\
+	FAERIE_IMPL_TStructOpsTypeTraits(Type)
+
+#define FAERIE_MUTATOR_IMPL(Type)\
+	FAERIE_IMPL_StructTypeCustomization(Type)
+
+template<>
+struct TStructOpsTypeTraits<FFaerieItemMutator> : public TStructOpsTypeTraitsBase2<FFaerieItemMutator>
+{
+	enum
+	{
+		WithPostSerialize = true,
+	};
 };

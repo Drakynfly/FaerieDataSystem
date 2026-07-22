@@ -1,11 +1,11 @@
 // Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "ItemStackProxy.h"
-#include "DelegateCommon.h"
 #include "FaerieItem.h"
 #include "FaerieItemStorage.h"
 #include "FaerieInventoryLog.h"
-#include "Tokens/FaerieStackLimiterToken.h"
+
+#include "Engine/World.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ItemStackProxy)
 
@@ -18,15 +18,22 @@ namespace Faerie::Inventory
 	UE_DEFINE_GAMEPLAY_TAG_TYPED(FFaerieInventoryTag, ProxyRemoved, "Fae.Inventory.ProxyRemoved")
 }
 
-const UFaerieItem* UFaerieItemStackProxy::GetItemObject() const
+UWorld* UFaerieItemStackProxy::GetWorld() const
+{
+	// If GetWorld is called on a StackProxy, it must be able to find it from its parent UFaerieItemStorage.
+	UWorld* WorldFromSuperChain = GetTypedOuter<UWorld>();
+	check(WorldFromSuperChain);
+	return WorldFromSuperChain;
+}
+
+TOptional<FFaerieItemInstance> UFaerieItemStackProxy::GetItemInstance() const
 {
 	if (!VerifyStatus())
 	{
-		return nullptr;
+		return NullOpt;
 	}
 
-	const FFaerieItemStackView EntryView = GetStorage()->View(GetKey());
-	return EntryView.Item.Get();
+	return ItemStorage->ViewInstance(Address);
 }
 
 int32 UFaerieItemStackProxy::GetCopies() const
@@ -36,54 +43,34 @@ int32 UFaerieItemStackProxy::GetCopies() const
 		return 0;
 	}
 
-	return ItemStorage->ViewStack(Address).Copies;
+	return ItemStorage->GetStack(Address);
 }
 
-TScriptInterface<IFaerieItemOwnerInterface> UFaerieItemStackProxy::GetItemOwner() const
+IFaerieItemOwnerInterface* UFaerieItemStackProxy::GetItemOwner() const
 {
 	return GetStorage();
 }
 
-FDelegateHandle UFaerieItemStackProxy::BindToItemDataChanged(const FFaerieItemProxyChangedEvent& Event) const
+FFaerieItemNetworkHandle UFaerieItemStackProxy::Proxy_GetNetworkHandle() const
 {
-	return const_cast<ThisClass*>(this)->OnProxyEvent.AddLambda(DYNAMIC_TO_LAMBDA(Event));
+	return GetNetworkHandle();
 }
 
-void UFaerieItemStackProxy::UnbindFromItemDataChanged(const FDelegateHandle& Handle) const
-{
-	const_cast<ThisClass*>(this)->OnProxyEvent.Remove(Handle);
-}
-
-void UFaerieItemStackProxy::UnbindAllFromItemDataChanged(const UObject* Object) const
-{
-	const_cast<ThisClass*>(this)->OnProxyEvent.RemoveAll(Object);
-}
-
-FFaerieItemStack UFaerieItemStackProxy::Release(const int32 Copies) const
-{
-	return ItemStorage->Release(GetKey(), Copies);
-}
-
-FEntryKey UFaerieItemStackProxy::GetKey() const
+FFaerieEntryKey UFaerieItemStackProxy::GetKey() const
 {
 	return UFaerieItemStorage::GetAddressEntry(Address);
 }
 
-FFaerieAddressableHandle UFaerieItemStackProxy::GetAddressable() const
+FFaerieItemNetworkHandle UFaerieItemStackProxy::GetNetworkHandle() const
 {
-	return { ItemStorage, Address };
-}
-
-int32 UFaerieItemStackProxy::GetStackLimit() const
-{
-	return UFaerieStackLimiterToken::GetItemStackLimit(GetItemObject());
+	return FFaerieItemNetworkHandle(ItemStorage, Address);
 }
 
 void UFaerieItemStackProxy::NotifyCreation()
 {
 	// If we are created on the server, or on a client for a pre-existing item, set Version to 0.
 	// For clients that do not have the item replicated yet, -1 denotes awaiting initial replication.
-	if (IsValid(GetItemObject()))
+	if (GetItemInstance().IsSet())
 	{
 		LocalItemVersion = 0;
 	}
@@ -92,35 +79,37 @@ void UFaerieItemStackProxy::NotifyCreation()
 		LocalItemVersion = -1;
 	}
 
-	OnProxyEvent.Broadcast(this, Inventory::ProxyCreated);
-	OnCacheUpdated.Broadcast(this, Inventory::ProxyCreated);
+	OnProxyEvent.Broadcast(FFaerieItemProxy(this), Inventory::ProxyCreated);
 }
 
 void UFaerieItemStackProxy::NotifyUpdate()
 {
 	LocalItemVersion++;
-	OnProxyEvent.Broadcast(this, Inventory::ProxyUpdated);
-	OnCacheUpdated.Broadcast(this, Inventory::ProxyUpdated);
+	OnProxyEvent.Broadcast(FFaerieItemProxy(this), Inventory::ProxyUpdated);
 }
 
 void UFaerieItemStackProxy::NotifyRemoval()
 {
 	LocalItemVersion = -1;
-	OnProxyEvent.Broadcast(this, Inventory::ProxyRemoved);
-	OnCacheRemoved.Broadcast(this, Inventory::ProxyRemoved);
+	OnProxyEvent.Broadcast(FFaerieItemProxy(this), Inventory::ProxyRemoved);
+}
+
+void UFaerieItemStackProxy::NotifyItemDataChanged(const FGameplayTag EditTag)
+{
+	OnProxyEvent.Broadcast(FFaerieItemProxy(this), EditTag);
 }
 
 bool UFaerieItemStackProxy::VerifyStatus() const
 {
-	auto&& Storage = GetStorage();
-	auto&& Key = GetKey();
+	UFaerieItemStorage* Storage = GetStorage();
+	const FFaerieEntryKey Key = GetKey();
 
-	if (!IsValid(Storage) || !Storage->Contains(Key))
+	if (!IsValid(Storage) || !Storage->ViewEntry(Key).IsValid())
 	{
-		UE_LOG(LogFaerieInventory, Warning, TEXT("InventoryEntryProxy is invalid! Debug State will follow:"))\
-		UE_LOG(LogFaerieInventory, Warning, TEXT("     Entry Cache: %s"), *GetName());
-		UE_LOG(LogFaerieInventory, Warning, TEXT("     OwningInventory: %s"), IsValid(Storage) ? *Storage->GetName() : TEXT("Invalid"));
-		UE_LOG(LogFaerieInventory, Warning, TEXT("     Key: %s"), *Key.ToString());
+		UE_LOG(LogFaerieInventory, Warning, TEXT("InventoryStackProxy is invalid! Debug State will follow:"))\
+		UE_LOG(LogFaerieInventory, Warning, TEXT("     Stack Proxy: %s"), *GetName());
+		UE_LOG(LogFaerieInventory, Warning, TEXT("     Owning Storage: %s"), IsValid(Storage) ? *Storage->GetName() : TEXT("Invalid"));
+		UE_LOG(LogFaerieInventory, Warning, TEXT("     Entry: %s"), *Key.ToString());
 		UE_LOG(LogFaerieInventory, Warning, TEXT("     Item Version : %i"), LocalItemVersion);
 		return false;
 	}

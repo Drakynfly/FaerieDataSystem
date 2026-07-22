@@ -31,7 +31,7 @@ void FFaerieItemDataEditorModule::StartupModule()
 	StructCustomizations.Add(FFaerieItemCardType::StaticStruct()->GetFName(),
 		FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FGameplayTagCustomizationPublic::MakeInstance));
 
-	RegisterPropertyCustomizations(StructCustomizations);
+	RegisterCustomizations({}, StructCustomizations);
 
 	UThumbnailManager::Get().RegisterCustomRenderer(UFaerieItemAsset::StaticClass(), UFaerieItemAssetThumbnailRenderer::StaticClass());
 }

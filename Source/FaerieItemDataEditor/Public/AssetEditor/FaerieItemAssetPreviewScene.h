@@ -4,6 +4,7 @@
 
 #include "AdvancedPreviewScene.h"
 #include "FaerieItemAssetEditorCustomSettings.h"
+#include "FaerieItemProxy.h"
 #include "GameplayTagContainer.h"
 
 class AFaerieProxyActorBase;
@@ -21,7 +22,7 @@ namespace Faerie::Editor
 
 		void InitializeScene();
 
-		void SetProxy(const IFaerieItemDataProxy* Proxy);
+		void SetProxy(const FFaerieItemProxy& Proxy);
 
 		void SetShowBounds(bool InShowBounds);
 		void SetMeshPurposeTag(FGameplayTag Tag);
@@ -38,20 +39,20 @@ namespace Faerie::Editor
 		FPreviewScene* Scene = nullptr;
 
 		// Cube mesh that is shown when no other mesh is found to obviously report an invalid mesh visually.
-		TObjectPtr<UStaticMeshComponent> DefaultCube;
+		TWeakObjectPtr<UStaticMeshComponent> DefaultCube;
 
-		// Box component to visualize capacity token bounds.
-		TObjectPtr<UBoxComponent> BoundsBox;
+		// Box component to visualize capacity fragment bounds.
+		TWeakObjectPtr<UBoxComponent> BoundsBox;
 
-		// The visual representation of the item, if a token specifies using an actor.
-		TObjectPtr<AFaerieProxyActorBase> ItemActor;
+		// The visual representation of the item, if a fragment specifies using an actor.
+		TWeakObjectPtr<AFaerieProxyActorBase> ItemActor;
 
 		// Component used to when we don't create an ItemActor. Always valid, but will have no data when using ItemActor.
-		TObjectPtr<UFaerieItemMeshComponent> ItemMeshComponent;
+		TWeakObjectPtr<UFaerieItemMeshComponent> ItemMeshComponent;
 
 		FGameplayTag MeshPurposeTag;
 
-		const IFaerieItemDataProxy* ItemProxy = nullptr;
+		FFaerieItemProxy ItemProxy;
 
 		bool CenterMeshByBounds = true;
 	};
@@ -74,7 +75,7 @@ namespace Faerie::Editor
 
 		FBoxSphereBounds GetBounds() const;
 
-		void SetItemProxy(const IFaerieItemDataProxy* Proxy);
+		void SetItemProxy(const FFaerieItemProxy& Proxy);
 
 		void RefreshMesh();
 

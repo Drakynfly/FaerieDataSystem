@@ -3,72 +3,63 @@
 #pragma once
 
 #include "FaerieInventoryTag.h"
-#include "FaerieItemContainerStructs.h"
-#include "FaerieItemProxy.h"
+#include "FaerieItemProxyBase.h"
 #include "TypedGameplayTags.h"
 #include "ItemStackProxy.generated.h"
 
 class UFaerieItemStorage;
-class UFaerieItemStackProxy;
 
 namespace Faerie::Inventory
 {
-	UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, ProxyCreated)
-	UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, ProxyUpdated)
-	UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, ProxyRemoved)
-	using FStackProxyEvent = TMulticastDelegate<void(UFaerieItemStackProxy*, FFaerieInventoryTag)>;
+	FAERIEINVENTORY_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, ProxyCreated)
+	FAERIEINVENTORY_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, ProxyUpdated)
+	FAERIEINVENTORY_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, ProxyRemoved)
 }
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FFaerieStackProxyEvent, UFaerieItemStackProxy*, Proxy, FFaerieInventoryTag, Event);
 
 /*
  * Class for a proxy to an address in a UFaerieItemStorage.
  * Proxies can be created predictively. When this is the case, ItemVersion will equal -1.
  */
 UCLASS(meta = (DontUseGenericSpawnObject = "true"), BlueprintType)
-class UFaerieItemStackProxy : public UObject, public IFaerieItemDataProxy
+class UFaerieItemStackProxy final : public UObject, public IFaerieContainerProxy
 {
 	GENERATED_BODY()
 
 	friend UFaerieItemStorage;
 
 public:
+	//~ UObject
+	virtual UWorld* GetWorld() const override;
+	//~ UObject
+
 	//~ IFaerieItemDataProxy
-	virtual const UFaerieItem* GetItemObject() const override;
+	virtual TOptional<FFaerieItemInstance> GetItemInstance() const override;
 	virtual int32 GetCopies() const override;
-	virtual TScriptInterface<IFaerieItemOwnerInterface> GetItemOwner() const override;
-	virtual FDelegateHandle BindToItemDataChanged(const FFaerieItemProxyChangedEvent& Event) const override;
-	virtual void UnbindFromItemDataChanged(const FDelegateHandle& Handle) const override;
-	virtual void UnbindAllFromItemDataChanged(const UObject* Object) const override;
-	virtual FFaerieItemStack Release(int32 Copies) const override;
+	virtual IFaerieItemOwnerInterface* GetItemOwner() const override;
+	virtual Faerie::ItemData::FProxyChangeEvent::RegistrationType& GetOnProxyChangeEvent() override { return OnProxyEvent; }
 	//~ IFaerieItemDataProxy
 
-	FAERIEINVENTORY_API UFaerieItemStorage* GetStorage() const { return ItemStorage.Get(); }
-	FAERIEINVENTORY_API int32 GetItemVersion() const { return LocalItemVersion; }
-	FAERIEINVENTORY_API FEntryKey GetKey() const;
+	//~ IFaerieContainerProxy
+	UE_REWRITE virtual FFaerieAddress Proxy_GetAddress() const override { return Address; }
+	virtual FFaerieItemNetworkHandle Proxy_GetNetworkHandle() const override;
+	//~ IFaerieContainerProxy
 
-	FAERIEINVENTORY_API Faerie::Inventory::FStackProxyEvent::RegistrationType& GetOnProxyEvent() { return OnProxyEvent; }
+	UE_REWRITE FFaerieAddress GetAddress() const { return Address; }
+
+	FAERIEINVENTORY_API UE_REWRITE UFaerieItemStorage* GetStorage() const { return ItemStorage.Get(); }
+	FAERIEINVENTORY_API UE_REWRITE int32 GetItemVersion() const { return LocalItemVersion; }
+	FAERIEINVENTORY_API FFaerieEntryKey GetKey() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|StackProxy")
-	FFaerieAddressableHandle GetAddressable() const;
-
-	/** Get the stack limit of this item. */
-	UFUNCTION(BlueprintCallable, Category = "Faerie|StackProxy")
-	int32 GetStackLimit() const;
+	FFaerieItemNetworkHandle GetNetworkHandle() const;
 
 protected:
 	void NotifyCreation();
 	void NotifyUpdate();
 	void NotifyRemoval();
+	void NotifyItemDataChanged(FGameplayTag EditTag);
 
 	bool VerifyStatus() const;
-
-	// Broadcast when this proxy is first initialized, or receives an update.
-	UPROPERTY(BlueprintAssignable, Category = "Events")
-	FFaerieStackProxyEvent OnCacheUpdated;
-
-	// Broadcast when the entry represented by this proxy is being partially removed or deleted.
-	UPROPERTY(BlueprintAssignable, Category = "Events")
-	FFaerieStackProxyEvent OnCacheRemoved;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "StackProxy")
 	TWeakObjectPtr<UFaerieItemStorage> ItemStorage;
@@ -86,5 +77,5 @@ protected:
 	int32 LocalItemVersion = -1;
 
 private:
-	Faerie::Inventory::FStackProxyEvent OnProxyEvent;
+	Faerie::ItemData::FProxyChangeEvent OnProxyEvent;
 };

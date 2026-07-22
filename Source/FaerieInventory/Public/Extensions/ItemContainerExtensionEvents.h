@@ -14,8 +14,8 @@ namespace Faerie::Extensions
 	};
 
 	using FInitializationEvent = TMulticastDelegate<void(TNotNull<const UFaerieItemContainerBase*> Container, EInitializationEventType Type)>;
-	using FPreAdditionEvent = TMulticastDelegate<void(TNotNull<const UFaerieItemContainerBase*> Container, FFaerieItemStackView Stack)>;
-	using FPreRemovalEvent = TMulticastDelegate<void(TNotNull<const UFaerieItemContainerBase*> Container, FEntryKey Key, int32 Removal)>;
+	using FPreAdditionEvent = TMulticastDelegate<void(TNotNull<const UFaerieItemContainerBase*> Container, const FFaerieItemDataView& View)>;
+	using FPreRemovalEvent = TMulticastDelegate<void(TNotNull<const UFaerieItemContainerBase*> Container, const ItemData::TNonNullViewPtr<Container::IEntryView> DataView, int32 Removal)>;
 	using FPostEventBatch = TMulticastDelegate<void(TNotNull<const UFaerieItemContainerBase*> Container, const Inventory::FEventLogBatch& Events)>;
 }
 
@@ -32,8 +32,8 @@ protected:
 	//~ UItemContainerExtensionBase
 	virtual void InitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
 	virtual void DeinitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
-	virtual void PreAddition(TNotNull<const UFaerieItemContainerBase*> Container, FFaerieItemStackView Stack) override;
-	virtual void PreRemoval(TNotNull<const UFaerieItemContainerBase*> Container, FEntryKey Key, int32 Removal) override;
+	virtual void PreAddition(TNotNull<const UFaerieItemContainerBase*> Container, const FFaerieItemDataView& View) override;
+	virtual void PreRemoval(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Extensions::FEntryView DataView, int32 Removal) override;
 	virtual void PostEventBatch(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Inventory::FEventLogBatch& Events) override;
 	//~ UItemContainerExtensionBase
 

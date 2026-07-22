@@ -5,13 +5,14 @@
 #include "FaerieContainerExtensionInterface.h"
 #include "FaerieEquipmentSlotStructs.h"
 #include "FaerieInventoryTag.h"
+#include "FaerieItemContainerBase.h"
 #include "FaerieSlotTag.h"
 #include "FaerieItemContainerPath.h"
 #include "Components/ActorComponent.h"
-#include "StructUtils/InstancedStruct.h"
 
 #include "FaerieEquipmentManager.generated.h"
 
+struct FFaerieItemProxy;
 class UFaerieItemStackContainer;
 class UFaerieEquipmentSlot;
 class UFaerieInventoryClient;
@@ -40,7 +41,7 @@ struct FFaerieEquipmentSaveData
 	TArray<FFaerieEquipmentSlotSaveData> PerSlotData;
 
 	UPROPERTY()
-	TMap<FGuid, FInstancedStruct> ExtensionData;
+	FFaerieItemContainerExtensionData ExtensionData;
 
 	UPROPERTY()
 	FGameplayTagContainer RemovedDefaultSlots;
@@ -54,7 +55,7 @@ namespace Faerie::Equipment
 		FAERIEEQUIPMENT_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, SlotDeleted)
 	}
 
-	using FSlotEvent = TMulticastDelegate<void(UFaerieEquipmentSlot*, FFaerieInventoryTag)>;
+	using FSlotEvent = TMulticastDelegate<void(TNotNull<UFaerieEquipmentSlot*>, FFaerieInventoryTag)>;
 }
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FEquipmentChangedEvent, UFaerieEquipmentSlot*, Slot, FFaerieInventoryTag, Event);
 
@@ -86,9 +87,7 @@ public:
 	//~ UActorComponent
 
 	//~ IFaerieContainerExtensionInterface
-	virtual UItemContainerExtensionGroup* GetExtensionGroup() const override final;
-	virtual bool AddExtension(UItemContainerExtensionBase* Extension) override;
-	virtual bool RemoveExtension(UItemContainerExtensionBase* Extension) override;
+	virtual UItemContainerExtensionGroup* VirtualGetExtensionGroup() const override final;
 	//~ IFaerieContainerExtensionInterface
 
 	// Can the client request to run arbitrary actions on this equipment manager.
@@ -99,7 +98,8 @@ private:
 	void AddSubobjectsForReplication();
 
 protected:
-	void BroadcastSlotEvent(UFaerieItemStackContainer* Container, FFaerieInventoryTag Event);
+	void OnDataChangeEvent(const FFaerieItemProxy& Proxy, FGameplayTag Tag);
+	void BroadcastSlotEvent(TNotNull<UFaerieEquipmentSlot*> Slot, FFaerieInventoryTag Event);
 
 public:
 	/**------------------------------*/
@@ -164,8 +164,8 @@ public:
 
 	// Gets all Slots and Storage objects for this manager and all contained items.
 	// For only top-level containers, use GetSlots instead.
-	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentManager")
-	TArray<FFaerieItemContainerPath> GetAllContainerPaths() const;
+	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentManager", meta = (WorldContext = "WorldContextObj"))
+	TArray<FFaerieItemContainerPath> GetAllContainerPaths(UObject* WorldContextObj) const;
 
 	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Faerie|EquipmentManager", meta = (DevelopmentOnly))
 	void PrintSlotDebugInfo() const;

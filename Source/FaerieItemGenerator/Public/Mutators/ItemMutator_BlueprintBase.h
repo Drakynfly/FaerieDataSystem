@@ -3,27 +3,33 @@
 #pragma once
 
 #include "FaerieItemMutator.h"
-#include "UObject/Object.h"
+#include "Templates/SubclassOf.h"
+#include "UObject/SoftObjectPtr.h"
+
 #include "ItemMutator_BlueprintBase.generated.h"
 
+struct FFaerieItemInstance;
 /*
  * Wrapper to apply a Blueprint Mutator Class.
  */
-USTRUCT(DisplayName = "Blueprint Mutator")
+USTRUCT()
 struct FFaerieItemMutator_Blueprint final : public FFaerieItemMutator
 {
 	GENERATED_BODY()
 
 	virtual void GetRequiredAssets(TArray<TSoftObjectPtr<UObject>>& RequiredAssets) const override;
-	virtual bool Apply(FFaerieItemStack& Stack, FFaerieItemMutatorContext* Context) const override;
+	virtual bool Apply(Faerie::ItemData::FMutableReference& Item, const FFaerieItemMutatorContext& Context) const override;
 
 protected:
 	UPROPERTY(EditAnywhere, Category = "Blueprint")
 	TSubclassOf<class UFaerieItemMutator_BlueprintBase> Blueprint;
+
+	FAERIE_MUTATOR_HEADER(FFaerieItemMutator_Blueprint)
 };
 
 /*
  * Base class for defining mutators in Blueprint.
+ * @Note for now this class does not support the ability to swap the item instance out for a new one.
  */
 UCLASS(Abstract, Blueprintable, const)
 class FAERIEITEMGENERATOR_API UFaerieItemMutator_BlueprintBase : public UObject
@@ -34,10 +40,10 @@ class FAERIEITEMGENERATOR_API UFaerieItemMutator_BlueprintBase : public UObject
 
 protected:
 	void NativeGetRequiredAssets(TArray<TSoftObjectPtr<UObject>>& RequiredAssets) const;
-	bool NativeApply(FFaerieItemStack& Stack, USquirrel* Squirrel) const;
+	bool NativeApply(const Faerie::ItemData::FMutableReference& Item, USquirrel* Squirrel) const;
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Mutator")
-	bool Apply(UPARAM(ref) FFaerieItemStack& Stack, USquirrel* Squirrel) const;
+	bool Apply(const FFaerieItemInstance& Instance, USquirrel* Squirrel) const;
 
 	// Any soft assets required to be loaded when Apply is called should be registered here.
 	UFUNCTION(BlueprintNativeEvent, Category = "Mutator")

@@ -4,26 +4,29 @@
 
 #include "FaerieHash.h"
 
-class UFaerieItem;
+namespace Faerie::ItemData
+{
+	struct FReference;
+}
 
 namespace Faerie::Hash
 {
 	// A function that takes in a UFaerieItem and returns a hash for it.
-	using FItemHashFunction = TFunctionRef<uint32(TNotNull<const UFaerieItem*>)>;
+	using FItemHashFunction = TFunctionRef<uint32(TNotNull<const UObject*> WorldContextObj, const ItemData::FReference&)>;
 
 	FAERIEITEMDATA_API [[nodiscard]] uint32 Combine(const uint32 A, const uint32 B);
 
 	FAERIEITEMDATA_API [[nodiscard]] FFaerieHash CombineHashes(TArray<uint32>& Hashes);
 
 	// Get the hash of a FProperty's value on a specific object
-	FAERIEITEMDATA_API [[nodiscard]] uint32 HashFProperty(const void* Ptr, const FProperty* Property);
+	FAERIEITEMDATA_API [[nodiscard]] uint32 HashFProperty(TNotNull<const void*> Ptr, const FProperty* Property);
 
-	FAERIEITEMDATA_API [[nodiscard]] uint32 HashStructByProps(const void* Ptr, const UScriptStruct* Struct, bool IncludeSuper);
-	FAERIEITEMDATA_API [[nodiscard]] uint32 HashObjectByProps(const UObject* Obj, bool IncludeSuper);
+	FAERIEITEMDATA_API [[nodiscard]] uint32 HashStructByProps(TNotNull<const void*> Ptr, TNotNull<const UScriptStruct*> Struct, bool IncludeSuper);
+	FAERIEITEMDATA_API [[nodiscard]] uint32 HashObjectByProps(TNotNull<const UObject*> Obj, bool IncludeSuper);
 
 	// Combine the hashes for a set of Items according to a HashFunction
-	FAERIEITEMDATA_API [[nodiscard]] FFaerieHash HashItemSet(const TSet<TNotNull<const UFaerieItem*>>& Items, const FItemHashFunction& Function);
+	FAERIEITEMDATA_API [[nodiscard]] FFaerieHash HashItemSet(TNotNull<const UObject*> WorldContextObj, const TSet<ItemData::FReference>& Items, const FItemHashFunction& Function);
 
-	// A simple HashFunction that hashes the name of an item by its InfoToken
-	FAERIEITEMDATA_API [[nodiscard]] uint32 HashItemByName(TNotNull<const UFaerieItem*> Item);
+	// A simple HashFunction that hashes the name of an item by its AssetInfo
+	FAERIEITEMDATA_API [[nodiscard]] uint32 HashItemByName(const TNotNull<const UObject*> WorldContextObj, const ItemData::FReference& Item);
 }

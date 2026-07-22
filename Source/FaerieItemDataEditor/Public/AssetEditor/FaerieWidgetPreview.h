@@ -18,10 +18,10 @@ class FAERIEITEMDATAEDITOR_API UFaerieWidgetPreview : public UWidgetPreview, pub
 
 public:
 	//~ IFaerieItemDataProxy
-	virtual const UFaerieItem* GetItemObject() const override;
+	virtual TOptional<FFaerieItemInstance> GetItemInstance() const override;
 	virtual int32 GetCopies() const override { return 1; }
-	virtual TScriptInterface<IFaerieItemOwnerInterface> GetItemOwner() const override;
-	virtual FFaerieItemStack Release(int32 Copies) const override;
+	virtual IFaerieItemOwnerInterface* GetItemOwner() const override;
+	virtual Faerie::ItemData::FProxyChangeEvent::RegistrationType& GetOnProxyChangeEvent() override;
 	//~ IFaerieItemDataProxy
 
 	void InitFaerieWidgetPreview(UFaerieItemAsset* InAsset);
@@ -29,4 +29,7 @@ public:
 protected:
 	UPROPERTY()
 	TWeakObjectPtr<UFaerieItemAsset> Asset;
+
+	// Unused change event for Proxy API. Could use in the future to push updates to the PreviewWidget without rebuilding???
+	Faerie::ItemData::FProxyChangeEvent OnChangeEvent;
 };

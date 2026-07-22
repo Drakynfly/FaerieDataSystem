@@ -2,9 +2,10 @@
 
 #pragma once
 
-#include "FaerieItemStackView.h"
 #include "FaerieClientActionBase.generated.h"
 
+struct FFaerieUnownedItemStack;
+struct FFaerieItemDataView;
 class UFaerieInventoryClient;
 
 USTRUCT()
@@ -18,7 +19,7 @@ struct FAERIEINVENTORY_API FFaerieClientActionBase
 	 * Runs on the server when called by UFaerieInventoryClient::RequestExecuteAction.
 	 * Use this to implement Client-to-Server edits to item storage.
 	 */
-	virtual bool Server_Execute(const UFaerieInventoryClient* Client) const
+	virtual bool Server_Execute(TNotNull<const UFaerieInventoryClient*> Client) const
 		PURE_VIRTUAL(FFaerieClientActionBase::Server_Execute, return false; )
 };
 
@@ -29,15 +30,15 @@ struct FAERIEINVENTORY_API FFaerieClientAction_MoveHandlerBase
 
 	virtual ~FFaerieClientAction_MoveHandlerBase() = default;
 
-	virtual bool IsValid(const UFaerieInventoryClient* Client) const
+	virtual bool IsValid(TNotNull<const UFaerieInventoryClient*> Client) const
 		PURE_VIRTUAL(FFaerieClientAction_MoveHandlerBase::IsValid, return false; )
-	virtual bool View(FFaerieItemStackView& View) const
+	virtual bool View(FFaerieItemDataView& View) const
 		PURE_VIRTUAL(FFaerieClientAction_MoveHandlerBase::View, return false; )
-	virtual bool CanMove(const FFaerieItemStackView& View) const
+	virtual bool CanMove(const FFaerieItemDataView& View) const
 		PURE_VIRTUAL(FFaerieClientAction_MoveHandlerBase::CanMove, return false; )
-	virtual bool Possess(const FFaerieItemStack& Stack) const
+	virtual bool Possess(const FFaerieUnownedItemStack& Stack) const
 		PURE_VIRTUAL(FFaerieClientAction_MoveHandlerBase::Possess, return false; )
-	virtual bool Release(FFaerieItemStack& Stack) const
+	virtual bool Release(FFaerieUnownedItemStack& Stack) const
 		PURE_VIRTUAL(FFaerieClientAction_MoveHandlerBase::Release, return false; )
 
 	// Only needs to be implemented for Target handlers

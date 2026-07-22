@@ -4,19 +4,33 @@
 
 #include "FaerieContainerExtensionInterface.h"
 #include "FaerieInventoryTag.h"
-#include "FaerieItemContainerStructs.h"
-#include "FaerieItemStackView.h"
+#include "FaerieItemDataView.h"
 #include "LoopUtils.h"
-#include "InventoryDataEnums.h"
+#include "FaerieStorageEnums.h"
 #include "NetSupportedObject.h"
 #include "StructUtils/InstancedStruct.h"
+#include "StructUtils/SharedStruct.h"
 
 #include "ItemContainerExtensionBase.generated.h"
+
+struct FFaerieItemContainerExtensionData;
+
+namespace Faerie::Container
+{
+	class IEntryView;
+	class IAddressView;
+}
 
 namespace Faerie::Inventory
 {
 	class FEventData;
 	class FEventLogBatch;
+}
+
+namespace Faerie::Extensions
+{
+	using FAddressView = ItemData::TNonNullViewPtr<Container::IAddressView>;
+	using FEntryView = ItemData::TNonNullViewPtr<Container::IEntryView>;
 }
 
 UENUM()
@@ -62,8 +76,6 @@ public:
 	virtual void PostDuplicate(EDuplicateMode::Type DuplicateMode) override;
 	//~ UObject
 
-	virtual void InitializeNetObject(AActor* Actor) override;
-
 protected:
 	virtual FInstancedStruct MakeSaveData(TNotNull<const UFaerieItemContainerBase*> Container) const { return {}; }
 	virtual void LoadSaveData(TNotNull<const UFaerieItemContainerBase*> Container, const FInstancedStruct& SaveData) {}
@@ -74,23 +86,23 @@ protected:
 
 	/* Does this extension allow a stack of items, or multiple stacks, to be added to the container? */
 	virtual EEventExtensionResponse AllowsAddition(TNotNull<const UFaerieItemContainerBase*> Container,
-		TConstArrayView<FFaerieItemStackView> Views, FFaerieExtensionAllowsAdditionArgs Args) const { return EEventExtensionResponse::NoExplicitResponse; }
+		TConstArrayView<FFaerieItemDataView> Views, FFaerieExtensionAllowsAdditionArgs Args) const { return EEventExtensionResponse::NoExplicitResponse; }
 
 	/* Allows us to react before an item is added */
-	virtual void PreAddition(TNotNull<const UFaerieItemContainerBase*> Container, FFaerieItemStackView Stack) {}
+	virtual void PreAddition(TNotNull<const UFaerieItemContainerBase*> Container, const FFaerieItemDataView& View) {}
 
 	/* Does this extension allow removal of an address in the container? */
-	virtual EEventExtensionResponse AllowsRemoval(TNotNull<const UFaerieItemContainerBase*> Container, FFaerieAddress Address, FFaerieInventoryTag Reason) const { return EEventExtensionResponse::NoExplicitResponse; }
+	virtual EEventExtensionResponse AllowsRemoval(TNotNull<const UFaerieItemContainerBase*> Container, Faerie::Extensions::FAddressView DataView, FFaerieInventoryTag Reason) const { return EEventExtensionResponse::NoExplicitResponse; }
 
 	/* Allows us to react before an item is removed */
-	virtual void PreRemoval(TNotNull<const UFaerieItemContainerBase*> Container, FEntryKey Key, int32 Removal) {}
+	virtual void PreRemoval(TNotNull<const UFaerieItemContainerBase*> Container, Faerie::Extensions::FEntryView DataView, int32 Removal) {}
 
 	/* Does this extension allow this entry to be edited? */
-	virtual EEventExtensionResponse AllowsEdit(TNotNull<const UFaerieItemContainerBase*> Container, FEntryKey Key, FFaerieInventoryTag EditTag) const { return EEventExtensionResponse::NoExplicitResponse; }
+	virtual EEventExtensionResponse AllowsEdit(TNotNull<const UFaerieItemContainerBase*> Container, Faerie::Extensions::FAddressView DataView, FFaerieInventoryTag EditTag) const { return EEventExtensionResponse::NoExplicitResponse; }
 
 	// @todo PreEntryChanged
 
-	/* Called after a Addition, Removal, or Change to any address, and carries a full report of each event */
+	/* Called after an Addition, Removal, or Change to any address, and carries a full report of each event */
 	virtual void PostEventBatch(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Inventory::FEventLogBatch& Events) {}
 
 public:
@@ -128,18 +140,11 @@ namespace Faerie::Extensions
 	template <bool Const>
 	class TExtensionIterator
 	{
-		using InterfaceType = std::conditional_t<Const, const IFaerieContainerExtensionInterface, IFaerieContainerExtensionInterface>;
 		using GroupType = std::conditional_t<Const, const UItemContainerExtensionGroup, UItemContainerExtensionGroup>;
 		using ElementType = std::conditional_t<Const, const UItemContainerExtensionBase, UItemContainerExtensionBase>;
 
 	public:
-		TExtensionIterator(InterfaceType* Interface)
-		  : Group(Interface->GetExtensionGroup())
-		{
-			operator++();
-		}
-
-		TExtensionIterator(GroupType* Group)
+		TExtensionIterator(const TNotNull<GroupType*> Group)
 		  : Group(Group)
 		{
 			operator++();
@@ -151,7 +156,7 @@ namespace Faerie::Extensions
 
 		UE_REWRITE explicit operator bool() const
 		{
-			return Group && Current;
+			return !!Current;
 		}
 
 		[[nodiscard]] UE_REWRITE bool operator!=(Utils::EIteratorType) const
@@ -164,7 +169,7 @@ namespace Faerie::Extensions
 		[[nodiscard]] UE_REWRITE Utils::EIteratorType end() const { return Utils::End; }
 
 	private:
-		GroupType* Group;
+		TNotNull<GroupType*> Group;
 		ElementType* Current;
 		int32 Index;
 		enum
@@ -180,18 +185,16 @@ namespace Faerie::Extensions
 	template <bool Const>
 	class TRecursiveExtensionIterator
 	{
-		using InterfaceType = std::conditional_t<Const, const IFaerieContainerExtensionInterface, IFaerieContainerExtensionInterface>;
 		using GroupType = std::conditional_t<Const, const UItemContainerExtensionGroup, UItemContainerExtensionGroup>;
 		using ElementType = std::conditional_t<Const, const UItemContainerExtensionBase, UItemContainerExtensionBase>;
-		using IteratorType = std::conditional_t<Const, typename TArray<ElementType*>::TConstIterator, typename TArray<ElementType*>::TIterator>;
+		using IteratorType = std::conditional_t<Const, typename TArray<TNotNull<ElementType*>>::TConstIterator, typename TArray<TNotNull<ElementType*>>::TIterator>;
 
 	public:
-		TRecursiveExtensionIterator(InterfaceType* Interface);
-		TRecursiveExtensionIterator(GroupType* Group);
+		TRecursiveExtensionIterator(TNotNull<GroupType*> Group);
 
-		static auto GetAllExtensions(GroupType* Group) -> TArray<ElementType*>;
+		static auto GetAllExtensions(TNotNull<GroupType*> Group) -> TArray<TNotNull<ElementType*>>;
 
-		UE_REWRITE ElementType* operator*() const { return *Iterator; }
+		UE_REWRITE TNotNull<ElementType*> operator*() const { return *Iterator; }
 
 		UE_REWRITE void operator++()
 		{
@@ -213,7 +216,7 @@ namespace Faerie::Extensions
 		[[nodiscard]] UE_REWRITE Utils::EIteratorType end() const { return Utils::End; }
 
 	private:
-		TArray<ElementType*> Extensions;
+		TArray<TNotNull<ElementType*>> Extensions;
 		IteratorType Iterator;
 	};
 
@@ -222,6 +225,8 @@ namespace Faerie::Extensions
 
 	using FRecursiveExtensionIterator = TRecursiveExtensionIterator<false>;
 	using FRecursiveConstExtensionIterator = TRecursiveExtensionIterator<true>;
+
+	struct FGroupAPI;
 }
 
 /*
@@ -231,6 +236,8 @@ UCLASS()
 class FAERIEINVENTORY_API UItemContainerExtensionGroup final : public UItemContainerExtensionBase, public IFaerieContainerExtensionInterface
 {
 	GENERATED_BODY()
+
+	friend Faerie::Extensions::FGroupAPI;
 
 	template <bool Const> friend class Faerie::Extensions::TExtensionIterator;
 	template <bool Const> friend class Faerie::Extensions::TRecursiveExtensionIterator;
@@ -246,32 +253,38 @@ public:
 	//~ UObject
 
 	//~ UNetSupportedObject
-	virtual void InitializeNetObject(AActor* Actor) override;
-	virtual void DeinitializeNetObject(AActor* Actor) override;
+	virtual void InitializeNetObject(TNotNull<AActor*> Actor) override;
+	virtual void DeinitializeNetObject(TNotNull<AActor*> Actor) override;
 	//~ UNetSupportedObject
 
+protected:
 	//~ UItemContainerExtensionBase
 	virtual void InitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
 	virtual void DeinitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
-	virtual EEventExtensionResponse AllowsAddition(TNotNull<const UFaerieItemContainerBase*> Container, TConstArrayView<FFaerieItemStackView> Views, FFaerieExtensionAllowsAdditionArgs Args) const override;
-	virtual void PreAddition(TNotNull<const UFaerieItemContainerBase*> Container, FFaerieItemStackView Stack) override;
-	virtual EEventExtensionResponse AllowsRemoval(TNotNull<const UFaerieItemContainerBase*> Container, FFaerieAddress Address, FFaerieInventoryTag Reason) const override;
-	virtual void PreRemoval(TNotNull<const UFaerieItemContainerBase*> Container, FEntryKey Key, int32 Removal) override;
-	virtual EEventExtensionResponse AllowsEdit(TNotNull<const UFaerieItemContainerBase*> Container, FEntryKey Key, FFaerieInventoryTag EditTag) const override;
+	virtual EEventExtensionResponse AllowsAddition(TNotNull<const UFaerieItemContainerBase*> Container, TConstArrayView<FFaerieItemDataView> Views, FFaerieExtensionAllowsAdditionArgs Args) const override;
+	virtual void PreAddition(TNotNull<const UFaerieItemContainerBase*> Container, const FFaerieItemDataView& View) override;
+	virtual EEventExtensionResponse AllowsRemoval(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Extensions::FAddressView DataView, FFaerieInventoryTag Reason) const override;
+	virtual void PreRemoval(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Extensions::FEntryView DataView, int32 Removal) override;
+	virtual EEventExtensionResponse AllowsEdit(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Extensions::FAddressView DataView, FFaerieInventoryTag EditTag) const override;
 	// @todo PreEntryChanged
-	void PostEvent(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Inventory::FEventData& Event, FFaerieInventoryTag Reason);
 	virtual void PostEventBatch(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Inventory::FEventLogBatch& Events) override;
 	//~ UItemContainerExtensionBase
 
+public:
 	//~ IFaerieContainerExtensionInterface
-	virtual UItemContainerExtensionGroup* GetExtensionGroup() const override;
-	virtual bool AddExtension(UItemContainerExtensionBase* Extension) override;
-	virtual bool RemoveExtension(UItemContainerExtensionBase* Extension) override;
-	virtual bool HasExtension(TSubclassOf<UItemContainerExtensionBase> ExtensionClass, bool RecursiveSearch) const override;
-	virtual UItemContainerExtensionBase* GetExtension(TSubclassOf<UItemContainerExtensionBase> ExtensionClass, bool RecursiveSearch) const override;
+	virtual UItemContainerExtensionGroup* VirtualGetExtensionGroup() const override;
 	//~ IFaerieContainerExtensionInterface
 
-	void SetParentGroup(UItemContainerExtensionGroup* Parent);
+	bool AddExtension(UItemContainerExtensionBase* Extension);
+	bool RemoveExtension(UItemContainerExtensionBase* Extension);
+	bool HasExtension(TSubclassOf<UItemContainerExtensionBase> ExtensionClass, bool RecursiveSearch) const;
+	UItemContainerExtensionBase* GetExtension(TSubclassOf<UItemContainerExtensionBase> ExtensionClass, bool RecursiveSearch) const;
+
+	void SetParentGroup(TNotNull<UItemContainerExtensionGroup*> Parent);
+	void ClearParentGroup();
+
+	void SetUnclaimedExtensionData(const TSharedStruct<FFaerieItemContainerExtensionData>& ExtensionData);
+	void TryApplyUnclaimedSaveData(UItemContainerExtensionBase* Extension);
 
 	// Explanation: Extensions are usually pre-configured as instanced subobjects inside a component that is saved to
 	// disk in a Blueprint.
@@ -287,7 +300,7 @@ public:
 
 private:
 	// Containers pointing to this group. This is a transient property populated by InitializeExtension.
-	TSet<TWeakObjectPtr<const UFaerieItemContainerBase>> Containers;
+	TArray<TWeakObjectPtr<const UFaerieItemContainerBase>> Containers;
 
 	// The group that leads "up" the tree of groups when we are a child in a nested container.
 	UPROPERTY(Replicated, Transient)
@@ -300,4 +313,65 @@ private:
 	// Additional extensions added during runtime. We do not always own these.
 	UPROPERTY(Replicated, Transient)
 	TArray<TObjectPtr<UItemContainerExtensionBase>> DynamicExtensions;
+
+	// Save data for extensions that did not exist on us during unraveling.
+	TSharedStruct<FFaerieItemContainerExtensionData> UnclaimedExtensionData;
 };
+
+namespace Faerie::Extensions
+{
+	/**
+	 * API of UItemContainerExtensionGroup. Use this to call Extension functions that will recurse over all contained
+	 * extensions.
+	 */
+	struct FGroupAPI
+	{
+		using GroupParam = const TNotNull<UItemContainerExtensionGroup*>;
+		using ContainerParam = const TNotNull<const UFaerieItemContainerBase*>;
+
+		UE_REWRITE static void InitializeExtension(GroupParam Group, ContainerParam Container)
+		{
+			Group->InitializeExtension(Container);
+		}
+
+		UE_REWRITE static void DeinitializeExtension(GroupParam Group, ContainerParam Container)
+		{
+			Group->DeinitializeExtension(Container);
+		}
+
+		[[nodiscard]] UE_REWRITE static EEventExtensionResponse AllowsAddition(GroupParam Group, ContainerParam Container,
+			const TConstArrayView<FFaerieItemDataView> Views, const FFaerieExtensionAllowsAdditionArgs Args)
+		{
+			return Group->AllowsAddition(Container, Views, Args);
+		}
+
+		UE_REWRITE static void PreAddition(GroupParam Group, ContainerParam Container, const FFaerieItemDataView& View)
+		{
+			Group->PreAddition(Container, View);
+		}
+
+		[[nodiscard]] UE_REWRITE static EEventExtensionResponse AllowsRemoval(GroupParam Group, ContainerParam Container,
+			const ItemData::TNonNullViewPtr<Container::IAddressView> DataView, const FFaerieInventoryTag Reason)
+		{
+			return Group->AllowsRemoval(Container, DataView, Reason);
+		}
+
+		UE_REWRITE static void PreRemoval(GroupParam Group, ContainerParam Container, const ItemData::TNonNullViewPtr<Container::IEntryView> DataView, const int32 Removal)
+		{
+			Group->PreRemoval(Container, DataView, Removal);
+		}
+
+		[[nodiscard]] UE_REWRITE static EEventExtensionResponse AllowsEdit(GroupParam Group, ContainerParam Container,
+			const ItemData::TNonNullViewPtr<Container::IAddressView> DataView, const FFaerieInventoryTag EditTag)
+		{
+			return Group->AllowsEdit(Container, DataView, EditTag);
+		}
+
+		static void PostEvent(GroupParam Group, ContainerParam Container, const Inventory::FEventData& Event, FFaerieInventoryTag Reason);
+
+		UE_REWRITE static void PostEventBatch(GroupParam Group, ContainerParam Container, const Inventory::FEventLogBatch& Events)
+		{
+			Group->PostEventBatch(Container, Events);
+		}
+	};
+}

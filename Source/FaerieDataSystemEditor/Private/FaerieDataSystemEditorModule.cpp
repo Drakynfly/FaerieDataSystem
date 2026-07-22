@@ -11,33 +11,46 @@
 
 #define LOCTEXT_NAMESPACE "FaerieDataSystemEditorModule"
 
+namespace Faerie::Editor
+{
+    constexpr const TCHAR* PropertyEditorModuleName = TEXT("PropertyEditor");
+
+    void StaticUnregisterCustomizations(const TConstArrayView<FName>& ClassNames, const TConstArrayView<FName>& PropertyTypeNames)
+    {
+        if (FModuleManager::Get().IsModuleLoaded(PropertyEditorModuleName))
+        {
+            FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>(PropertyEditorModuleName);
+
+            // Unregister all classes customized by name
+            for (auto&& ClassName : ClassNames)
+            {
+                PropertyModule.UnregisterCustomClassLayout(ClassName);
+            }
+
+            // Unregister all structures
+            for (auto&& PropertyTypeName : PropertyTypeNames)
+            {
+                PropertyModule.UnregisterCustomPropertyTypeLayout(PropertyTypeName);
+            }
+
+            PropertyModule.NotifyCustomizationModuleChanged();
+        }
+    }
+}
+
+using namespace Faerie;
+
 void IFaerieDataSystemEditorModuleBase::StartupModule()
 {
-    FCoreDelegates::OnPostEngineInit.AddRaw(this, &IFaerieDataSystemEditorModuleBase::OnPostEngineInit);
+    FCoreDelegates::GetOnPostEngineInit().AddRaw(this, &IFaerieDataSystemEditorModuleBase::OnPostEngineInit);
 }
 
 void IFaerieDataSystemEditorModuleBase::ShutdownModule()
 {
-    FCoreDelegates::OnPostEngineInit.RemoveAll(this);
+    FCoreDelegates::GetOnPostEngineInit().RemoveAll(this);
 
-    if (FModuleManager::Get().IsModuleLoaded(TEXT("PropertyEditor")))
-    {
-        auto&& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>(TEXT("PropertyEditor"));
-
-        // Unregister detail customizations
-        for (auto&& Customization : DetailCustomizations)
-        {
-            PropertyModule.UnregisterCustomClassLayout(Customization);
-        }
-
-        // Unregister property customizations
-        for (auto&& Customization : PropertyCustomizations)
-        {
-            PropertyModule.UnregisterCustomPropertyTypeLayout(Customization);
-        }
-
-        PropertyModule.NotifyCustomizationModuleChanged();
-    }
+    // Unregister customizations
+    Editor::StaticUnregisterCustomizations(CustomizedClassNames, CustomizedPropertyTypeNames);
 }
 
 void IFaerieDataSystemEditorModuleBase::OnPostEngineInit()
@@ -50,32 +63,48 @@ void IFaerieDataSystemEditorModuleBase::OnPostEngineInit()
     });
 }
 
-void IFaerieDataSystemEditorModuleBase::RegisterDetailCustomizations(
-    const TMap<FName, FOnGetDetailCustomizationInstance>& Customizations)
+void IFaerieDataSystemEditorModuleBase::RegisterCustomizations(
+    const TMap<FName, FOnGetDetailCustomizationInstance>& ClassCustomizations,
+    const TMap<FName, FOnGetPropertyTypeCustomizationInstance>& PropertyTypeCustomizations)
 {
-    auto&& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>(TEXT("PropertyEditor"));
+    auto&& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>(Editor::PropertyEditorModuleName);
 
-    for (auto&& Element : Customizations)
+    for (auto&& ClassCustomization : ClassCustomizations)
     {
-        PropertyModule.RegisterCustomClassLayout(Element.Key, Element.Value);
-        DetailCustomizations.Add(Element.Key);
+        PropertyModule.RegisterCustomClassLayout(ClassCustomization.Key, ClassCustomization.Value);
+        CustomizedClassNames.Add(ClassCustomization.Key);
+    }
+
+    for (auto&& PropertyTypeCustomization : PropertyTypeCustomizations)
+    {
+        PropertyModule.RegisterCustomPropertyTypeLayout(PropertyTypeCustomization.Key, PropertyTypeCustomization.Value);
+        CustomizedPropertyTypeNames.Add(PropertyTypeCustomization.Key);
     }
 
     PropertyModule.NotifyCustomizationModuleChanged();
 }
 
-void IFaerieDataSystemEditorModuleBase::RegisterPropertyCustomizations(
-    const TMap<FName, FOnGetPropertyTypeCustomizationInstance>& Customizations)
+void IFaerieDataSystemEditorModuleBase::AddPropertyTypeCustomization(const FName Name, FOnGetPropertyTypeCustomizationInstance LayoutDelegate)
 {
-    auto&& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>(TEXT("PropertyEditor"));
+    auto&& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>(Editor::PropertyEditorModuleName);
 
-    for (auto&& Element : Customizations)
-    {
-        PropertyModule.RegisterCustomPropertyTypeLayout(Element.Key, Element.Value);
-        PropertyCustomizations.Add(Element.Key);
-    }
+    PropertyModule.RegisterCustomPropertyTypeLayout(Name, MoveTemp(LayoutDelegate));
+    CustomizedPropertyTypeNames.Add(Name);
 
     PropertyModule.NotifyCustomizationModuleChanged();
+}
+
+void IFaerieDataSystemEditorModuleBase::RemovePropertyTypeCustomization(const FName Name)
+{
+    if (FModuleManager::Get().IsModuleLoaded(Editor::PropertyEditorModuleName))
+    {
+        FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>(Editor::PropertyEditorModuleName);
+
+        PropertyModule.UnregisterCustomPropertyTypeLayout(Name);
+        CustomizedPropertyTypeNames.Remove(Name);
+
+        PropertyModule.NotifyCustomizationModuleChanged();
+    }
 }
 
 FFaerieDataSystemEditorModule::FFaerieDataSystemEditorModule()

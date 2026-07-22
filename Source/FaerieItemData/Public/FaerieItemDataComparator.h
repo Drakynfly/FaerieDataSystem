@@ -2,16 +2,9 @@
 
 #pragma once
 
-#include "FaerieItemDataViewBase.h"
+#include "FaerieItemDataView.h"
 #include "UObject/Object.h"
 #include "FaerieItemDataComparator.generated.h"
-
-namespace Faerie::ItemData
-{
-	class IViewBase;
-}
-
-struct FFaerieItemDataViewWrapper;
 
 /**
  * Compares two item views. Used to create sorting functionality.
@@ -22,12 +15,12 @@ class FAERIEITEMDATA_API UFaerieItemDataComparator : public UObject
 	GENERATED_BODY()
 
 public:
-	virtual bool Exec(Faerie::ItemData::FViewPtr ViewA, Faerie::ItemData::FViewPtr ViewB) const
+	virtual bool Exec(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& ViewA, const Faerie::ItemData::FValidatedDataView& ViewB) const
 		PURE_VIRTUAL(UFaerieItemDataComparator::Exec, return false; )
 
 protected:
-	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataComparator", DisplayName = "Exec")
-	bool K2_Exec(const FFaerieItemDataViewWrapper& A, const FFaerieItemDataViewWrapper& B) const;
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataComparator", DisplayName = "Exec", meta = (WorldContext = "WorldContextObj"))
+	bool K2_Exec(UObject* WorldContextObj, const FFaerieItemDataView& A, const FFaerieItemDataView& B) const;
 };
 
 /*
@@ -39,9 +32,9 @@ class UFaerieItemDataComparator_BlueprintBase final : public UFaerieItemDataComp
 	GENERATED_BODY()
 
 public:
-	virtual bool Exec(Faerie::ItemData::FViewPtr ViewA, Faerie::ItemData::FViewPtr ViewB) const override;
+	virtual bool Exec(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& ViewA, const Faerie::ItemData::FValidatedDataView& ViewB) const override;
 
 protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Faerie|ItemDataComparator")
-	bool Execute(const FFaerieItemDataViewWrapper& A, const FFaerieItemDataViewWrapper& B) const;
+	bool Execute(const FFaerieItemDataView& A, const FFaerieItemDataView& B) const;
 };

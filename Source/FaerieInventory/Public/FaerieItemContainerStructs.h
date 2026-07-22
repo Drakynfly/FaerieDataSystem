@@ -3,18 +3,24 @@
 #pragma once
 
 #include "FaerieItemKey.h"
+#include "StructUtils/InstancedStruct.h"
+
 #include "FaerieItemContainerStructs.generated.h"
 
 // Typesafe wrapper around an FFaerieItemKeyBase used for keying entries in a UFaerieItemContainerBase.
 USTRUCT(BlueprintType)
-struct FAERIEINVENTORY_API FEntryKey : public FFaerieItemKeyBase
+struct FAERIEINVENTORY_API FFaerieEntryKey : public FFaerieItemKeyBase
 {
 	GENERATED_BODY()
 	using FFaerieItemKeyBase::FFaerieItemKeyBase;
 
-	static FEntryKey InvalidKey;
+	static FFaerieEntryKey InvalidKey;
 };
 
+/*
+ * A network stable key to refer to a stack of items in a faerie item container.
+ * Usage is left to the implementation of the container class.
+ */
 USTRUCT(BlueprintType)
 struct FAERIEINVENTORY_API FFaerieAddress
 {
@@ -52,28 +58,16 @@ struct FAERIEINVENTORY_API FFaerieAddress
 
 class UFaerieItemContainerBase;
 
-/**
- * An item container and a key for some content.
- */
-USTRUCT(BlueprintType)
-struct FAERIEINVENTORY_API FFaerieEntryHandle
-{
-	GENERATED_BODY()
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AddressableHandle")
-	TWeakObjectPtr<UFaerieItemContainerBase> Container;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AddressableHandle")
-	FEntryKey Key;
-
-	bool IsValid() const;
-};
+struct FFaerieItemProxy;
 
 /**
- * An item container and an address for some content.
+ * An alternative to FFaerieItemProxy that is stable to be sent over the network, but requires an additional level of
+ * indirection, by not storing the proxy object, but rather, the Container Object, and a Faerie Address that can be used
+ * as a lookup key.
+ * In most cases FFaerieItemProxy should be used instead as it is faster to resolve.
  */
 USTRUCT(BlueprintType)
-struct FAERIEINVENTORY_API FFaerieAddressableHandle
+struct FAERIEINVENTORY_API FFaerieItemNetworkHandle
 {
 	GENERATED_BODY()
 
@@ -84,5 +78,29 @@ struct FAERIEINVENTORY_API FFaerieAddressableHandle
 	FFaerieAddress Address;
 
 	bool IsValid() const;
+
+	FFaerieItemProxy ResolveProxy() const;
+
+	// Create a replicatable handle from a ItemProxy.
+	static FFaerieItemNetworkHandle FromProxy(const FFaerieItemProxy& Proxy);
+
+	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
 };
 
+template<>
+struct TStructOpsTypeTraits<FFaerieItemNetworkHandle> : public TStructOpsTypeTraitsBase2<FFaerieItemNetworkHandle>
+{
+	enum
+	{
+		WithNetSerializer = true,
+	};
+};
+
+USTRUCT()
+struct FAERIEINVENTORY_API FFaerieItemExportData
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	TArray<FInstancedStruct> MassInstances;
+};

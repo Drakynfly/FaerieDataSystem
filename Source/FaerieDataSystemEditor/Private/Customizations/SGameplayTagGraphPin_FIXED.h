@@ -30,6 +30,7 @@ protected:
 // Register SGameplayTagGraphPin_FIXED
 class FGameplayTagsGraphPanelPinFactory_ForFix : public FGraphPanelPinFactory
 {
+public:
 	virtual TSharedPtr<class SGraphPin> CreatePin(class UEdGraphPin* InPin) const override
 	{
 		if (InPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Struct)

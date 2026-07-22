@@ -7,14 +7,14 @@
 #include "FaerieItemOwningActorBase.generated.h"
 
 struct FFaerieInventoryTag;
-class IFaerieItemSource;
+class UFaerieItemAsset;
 class UFaerieItemStackContainer;
 
 /*
  * Base class for Actors that can own a stack of items, e.g., pick-ups on the ground.
  */
 UCLASS(Abstract)
-class FAERIEITEMMESH_API AFaerieItemOwningActorBase : public AFaerieItemVisualBase, public IFaerieItemOwnerInterface
+class FAERIEITEMMESH_API AFaerieItemOwningActorBase : public AFaerieItemVisualBase
 {
 	GENERATED_BODY()
 
@@ -33,30 +33,36 @@ public:
 	//~ AActor
 	virtual void PostLoad() override;
 	virtual void OnConstruction(const FTransform& Transform) override;
-	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+
+protected:
+	virtual void BeginPlay() override;
 	//~ AActor
 
+public:
 	//~ IFaerieItemDataProxy
-	virtual const UFaerieItem* GetItemObject() const override;
+	virtual TOptional<FFaerieItemInstance> GetItemInstance() const override;
 	virtual int32 GetCopies() const override;
-	virtual TScriptInterface<IFaerieItemOwnerInterface> GetItemOwner() const override;
-	virtual FFaerieItemStack Release(int32 Copies) const override;
+	virtual IFaerieItemOwnerInterface* GetItemOwner() const override;
+	virtual Faerie::ItemData::FProxyChangeEvent::RegistrationType& GetOnProxyChangeEvent() override { return OnItemChangedNative; }
 	//~ IFaerieItemDataProxy
-
-	//~ IFaerieItemOwnerInterface
-	virtual bool Possess(FFaerieItemStack Stack) override;
-
-protected:
-	virtual FFaerieItemStack Release(FFaerieItemStackView Stack) override;
-	//~ IFaerieItemOwnerInterface
 
 public:
+	UFaerieItemStackContainer* GetContainer() const { return ItemStack; }
+
 	UFUNCTION(BlueprintCallable, Category = "ItemOwningActor")
-	void SetOwnedStack(const FFaerieItemStack& Stack);
+	void SetOwnedStack(const FFaerieUnownedItemStack& Stack);
+
+#if WITH_EDITOR
+	UFUNCTION(Category = "Stack Editor", meta = (CallInEditor = "true"))
+	void ViewItemObject();
+
+	UFUNCTION(Category = "Stack Editor", meta = (CallInEditor = "true"))
+	void RegenerateStack();
+#endif
 
 protected:
-	virtual void OnItemChanged(UFaerieItemStackContainer* FaerieEquipmentSlot, FFaerieInventoryTag Event);
+	virtual void OnItemDataChanged(const FFaerieItemProxy& Proxy, FGameplayTag Tag);
 
 protected:
 	// The item stack replication wrapper object.
@@ -64,10 +70,14 @@ protected:
 	TObjectPtr<UFaerieItemStackContainer> ItemStack;
 
 #if WITH_EDITORONLY_DATA
-public:
+private:
 	// If set, fill the ItemStack with an instance from this source.
-	UPROPERTY(EditInstanceOnly, Category = "Stack Editor")
-	TScriptInterface<const IFaerieItemSource> ItemSourceAsset;
+	UPROPERTY()
+	TScriptInterface<const class IFaerieItemSource> ItemSourceAsset;
+
+public:
+	UPROPERTY(EditInstanceOnly, Category = "Stack Editor", meta = (NoResetToDefault))
+	TObjectPtr<const UFaerieItemAsset> SourceAsset;
 
 	UPROPERTY(EditInstanceOnly, Category = "Stack Editor")
 	int32 StackCopies = 1;
@@ -75,4 +85,7 @@ public:
 	UPROPERTY(EditInstanceOnly, Category = "Stack Editor")
 	bool RegenerateDisplayOnConstruction = true;
 #endif
+
+private:
+	Faerie::ItemData::FProxyChangeEvent OnItemChangedNative;
 };

@@ -1,13 +1,15 @@
 // Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieGridLibrary.h"
-#include "SpatialTypes.h"
+#include "GridLayout/SpatialTypes.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieGridLibrary)
 
-FFaerieGridShape UFaerieGridLibrary::RotateShape(const FFaerieGridShape& InShape, const ESpatialItemRotation Rotation)
+FFaerieGridShape UFaerieGridLibrary::RotateShape(const FFaerieGridShape& InShape, const EFaerieSpatialItemRotation Rotation)
 {
-	return InShape.Rotate(Rotation).Normalize();
+	FFaerieGridShape ShapeCopy = InShape;
+	ShapeCopy.Rotate(Rotation).Normalize();
+	return ShapeCopy;
 }
 
 FIntPoint UFaerieGridLibrary::GetSize(const FFaerieGridShape& InShape)

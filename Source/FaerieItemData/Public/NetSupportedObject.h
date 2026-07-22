@@ -6,6 +6,7 @@
 #include "Net/Core/PushModel/PushModelMacros.h"
 #include "NetSupportedObject.generated.h"
 
+class AActor;
 
 /**
  * A simple replicated UObject.
@@ -30,31 +31,9 @@ public:
 
 	// This should be called during ReadyForReplication / BeginPlay, or a similar "startup" location, to allow subclasses
 	// to initialize their themselves/any subobjects. Usually this means adding subobjects for replication to Actor.
-	virtual void InitializeNetObject(AActor* Actor) {}
+	virtual void InitializeNetObject(TNotNull<AActor*> Actor) {}
 
 	// This should be called during EndPlay, or a similar "shutdown" location, to allow subclasses to deinitialize
 	// themselves/any subobjects, or when switching owners (if pairing with a new InitializeNetObject call).
-	virtual void DeinitializeNetObject(AActor* Actor) {}
-};
-
-/**
- * A simple replicated UObject. Must be owned by an actor, or it'll complain.
- */
-UCLASS(Abstract)
-class FAERIEITEMDATA_API UActorSubobjectBase : public UNetSupportedObject
-{
-	GENERATED_BODY()
-
-public:
-	//~ UObject
-	virtual UWorld* GetWorld() const override;
-
-	virtual int32 GetFunctionCallspace(UFunction* Function, FFrame* Stack) override;
-	virtual bool CallRemoteFunction(UFunction* Function, void* Parms, struct FOutParmRec* OutParms, FFrame* Stack) override;
-
-	virtual void PostInitProperties() override;
-	//~ UObject
-
-	AActor* GetOwner() const;
-	AActor* GetOwnerChecked() const;
+	virtual void DeinitializeNetObject(TNotNull<AActor*> Actor) {}
 };

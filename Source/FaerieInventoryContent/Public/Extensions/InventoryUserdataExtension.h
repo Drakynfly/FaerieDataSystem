@@ -25,19 +25,19 @@ namespace Faerie::Inventory::Tags
 }
 
 USTRUCT()
-struct FInventoryEntryUserdata
+struct FFaerieStorageEntryUserdata
 {
 	GENERATED_BODY()
 
-	FInventoryEntryUserdata() = default;
+	FFaerieStorageEntryUserdata() = default;
 
-	FInventoryEntryUserdata(const FGameplayTagContainer& Tags)
+	FFaerieStorageEntryUserdata(const FGameplayTagContainer& Tags)
 	  : Tags(Tags) {}
 
 	UPROPERTY(EditAnywhere, Category = "InventoryEntryUserdata", meta = (Categories = "Fae.Inventory.Public"))
 	FGameplayTagContainer Tags;
 
-	[[nodiscard]] UE_REWRITE bool UEOpEquals(const FInventoryEntryUserdata& Other) const
+	[[nodiscard]] UE_REWRITE bool UEOpEquals(const FFaerieStorageEntryUserdata& Other) const
 	{
 		return Tags == Other.Tags;
 	}
@@ -51,22 +51,21 @@ class FAERIEINVENTORYCONTENT_API UInventoryUserdataExtension : public UInventory
 {
 	GENERATED_BODY()
 
-protected:
+public:
 	//~ UInventoryReplicatedDataExtensionBase
 	virtual UScriptStruct* GetDataScriptStruct() const override;
 	virtual bool SaveRepDataArray() const override { return true; }
 	//~ UInventoryReplicatedDataExtensionBase
 
-public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|UserdataExtension")
-	bool DoesStackHaveTag(FFaerieAddressableHandle Handle, FFaerieInventoryUserTag Tag) const;
+	bool DoesStackHaveTag(const UFaerieItemContainerBase* Container, FFaerieAddress Address, FFaerieInventoryUserTag Tag) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|UserdataExtension")
-	bool CanSetStackTag(FFaerieAddressableHandle Handle, FFaerieInventoryUserTag Tag, const bool StateToSetTo) const;
+	bool CanSetStackTag(const UFaerieItemContainerBase* Container, FFaerieAddress Address, FFaerieInventoryUserTag Tag, const bool StateToSetTo) const;
 
-	bool MarkStackWithTag(FFaerieAddressableHandle Handle, FFaerieInventoryUserTag Tag);
+	bool MarkStackWithTag(TNotNull<const UFaerieItemContainerBase*> Container, FFaerieAddress Address, FFaerieInventoryUserTag Tag);
 
-	bool ClearTagFromStack(FFaerieAddressableHandle Handle, FFaerieInventoryUserTag Tag);
+	bool ClearTagFromStack(TNotNull<const UFaerieItemContainerBase*> Container, FFaerieAddress Address, FFaerieInventoryUserTag Tag);
 };
 
 USTRUCT(BlueprintType)
@@ -74,10 +73,10 @@ struct FFaerieClientAction_MarkStackWithTag final : public FFaerieClientActionBa
 {
 	GENERATED_BODY()
 
-	virtual bool Server_Execute(const UFaerieInventoryClient* Client) const override;
+	virtual bool Server_Execute(TNotNull<const UFaerieInventoryClient*> Client) const override;
 
 	UPROPERTY(BlueprintReadWrite, Category = "MarkStackWithTag")
-	FFaerieAddressableHandle Handle;
+	FFaerieItemNetworkHandle Handle;
 
 	UPROPERTY(BlueprintReadWrite, Category = "MarkStackWithTag")
 	FFaerieInventoryUserTag Tag;
@@ -88,10 +87,10 @@ struct FFaerieClientAction_ClearTagFromStack final : public FFaerieClientActionB
 {
 	GENERATED_BODY()
 
-	virtual bool Server_Execute(const UFaerieInventoryClient* Client) const override;
+	virtual bool Server_Execute(TNotNull<const UFaerieInventoryClient*> Client) const override;
 
 	UPROPERTY(BlueprintReadWrite, Category = "ClearTagFromStack")
-	FFaerieAddressableHandle Handle;
+	FFaerieItemNetworkHandle Handle;
 
 	UPROPERTY(BlueprintReadWrite, Category = "ClearTagFromStack")
 	FFaerieInventoryUserTag Tag;

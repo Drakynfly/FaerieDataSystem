@@ -2,25 +2,19 @@
 
 #pragma once
 
+#include "FaerieItemDataFwd.h"
 #include "Templates/RemoveReference.h"
 #include "Templates/UnrealTypeTraits.h"
 
-class IFaerieItemDataProxy;
-class UFaerieItem;
-class UFaerieItemToken;
-
 namespace Faerie::ItemData
 {
+	// Concept for any mass fragment type, either the abstract parent or any derived child.
 	template <typename T>
-	concept CItem = TIsDerivedFrom<typename TRemoveReference<T>::Type, UFaerieItem>::Value;
+	concept CFragmentBase = TIsDerivedFrom<typename TRemoveReference<T>::Type, FFaerieMassFragment>::Value;
 
-	// Concept for any token class, either the abstract parent or any derived class.
+	// Concept for an implementation of the mass fragment type.
 	template <typename T>
-	concept CItemTokenBase = TIsDerivedFrom<typename TRemoveReference<T>::Type, UFaerieItemToken>::Value;
-
-	// Concept for an implementation of the token class.
-	template <typename T>
-	concept CItemTokenImpl = TIsDerivedFrom<typename TRemoveReference<T>::Type, UFaerieItemToken>::Value && !std::is_same_v<typename TRemoveReference<T>::Type, UFaerieItemToken>;
+	concept CFragmentImpl = TIsDerivedFrom<typename TRemoveReference<T>::Type, FFaerieMassFragment>::Value && !std::is_same_v<typename TRemoveReference<T>::Type, FFaerieMassFragment>;
 
 	template <typename T>
 	concept CItemDataProxy = TIsDerivedFrom<typename TRemoveReference<T>::Type, IFaerieItemDataProxy>::Value;

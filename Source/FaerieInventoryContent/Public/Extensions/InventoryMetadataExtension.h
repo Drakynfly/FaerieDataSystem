@@ -29,7 +29,7 @@ namespace Faerie::Inventory::Tags
 }
 
 USTRUCT()
-struct FInventoryEntryMetadata
+struct FFaerieStorageEntryMetadata
 {
 	GENERATED_BODY()
 
@@ -47,23 +47,23 @@ class FAERIEINVENTORYCONTENT_API UInventoryMetadataExtension : public UInventory
 
 protected:
 	//~ UItemContainerExtensionBase
-	virtual EEventExtensionResponse AllowsRemoval(TNotNull<const UFaerieItemContainerBase*> Container, FFaerieAddress Address, FFaerieInventoryTag Reason) const override;
+	virtual EEventExtensionResponse AllowsRemoval(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Extensions::FAddressView DataView, FFaerieInventoryTag Reason) const override;
 	//~ UItemContainerExtensionBase
 
+public:
 	//~ UInventoryReplicatedDataExtensionBase
 	virtual UScriptStruct* GetDataScriptStruct() const override;
 	virtual bool SaveRepDataArray() const override { return true; }
 	//~ UInventoryReplicatedDataExtensionBase
 
-public:
-	bool DoesEntryHaveTag(FFaerieAddressableHandle Handle, FFaerieInventoryMetaTag Tag) const;
+	bool DoesEntryHaveTag(TNotNull<const UFaerieItemContainerBase*> Container, FFaerieAddress Address, FFaerieInventoryMetaTag Tag) const;
 
-	bool CanSetEntryTag(FFaerieAddressableHandle Handle, const FFaerieInventoryMetaTag Tag, const bool StateToSetTo) const;
+	bool CanSetEntryTag(TNotNull<const UFaerieItemContainerBase*> Container, FFaerieAddress Address, const FFaerieInventoryMetaTag Tag, const bool StateToSetTo) const;
 
-	bool MarkStackWithTag(FFaerieAddressableHandle Handle, FFaerieInventoryMetaTag Tag);
+	bool MarkStackWithTag(TNotNull<const UFaerieItemContainerBase*> Container, FFaerieAddress Address, FFaerieInventoryMetaTag Tag);
 
 	// @todo tag type-safety
-	void TrySetTags(FFaerieAddressableHandle Handle, const FGameplayTagContainer& Tags);
+	void TrySetTags(TNotNull<const UFaerieItemContainerBase*> Container, FFaerieAddress Address, const FGameplayTagContainer& Tags);
 
-	bool ClearTagFromStack(FFaerieAddressableHandle Handle, FFaerieInventoryMetaTag Tag);
+	bool ClearTagFromStack(TNotNull<const UFaerieItemContainerBase*> Container, FFaerieAddress Address, FFaerieInventoryMetaTag Tag);
 };

@@ -8,9 +8,9 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventoryUIAction)
 
-void UInventoryUIAction::Run_Implementation(UFaerieInventoryClient* Client, const FFaerieAddressableHandle Handle) const {}
+void UInventoryUIAction::Run_Implementation(UFaerieInventoryClient* Client, const FFaerieItemProxy& Proxy) const {}
 
-EInventoryUIActionState UInventoryUIAction::TestCanRun_Implementation(UFaerieInventoryClient* Client, const FFaerieAddressableHandle Handle) const
+EInventoryUIActionState UInventoryUIAction::TestCanRun_Implementation(UFaerieInventoryClient* Client, const FFaerieItemProxy& Proxy) const
 {
 	return EInventoryUIActionState::Enabled;
 }
@@ -65,29 +65,29 @@ UFaerieInventoryClient* UInventoryUIAction::GetFaerieClient(const UObject* Conte
 	return nullptr;
 }
 
-FText UInventoryUIAction::GetDisplayText_Implementation(const FFaerieAddressableHandle Handle) const
+FText UInventoryUIAction::GetDisplayText_Implementation(const FFaerieItemProxy& Proxy) const
 {
 	return ButtonLabel;
 }
 
-TSoftObjectPtr<UTexture2D> UInventoryUIAction::GetDisplayIcon_Implementation(const FFaerieAddressableHandle Handle) const
+TSoftObjectPtr<UTexture2D> UInventoryUIAction::GetDisplayIcon_Implementation(const FFaerieItemProxy& Proxy) const
 {
 	return ButtonIcon;
 }
 
-EInventoryUIActionState UInventoryUIAction::CanStart(const FFaerieAddressableHandle Handle) const
+EInventoryUIActionState UInventoryUIAction::CanStart(const FFaerieItemProxy& Proxy) const
 {
-	UFaerieInventoryClient* Client = GetFaerieClient(Handle.Container.Get());
+	UFaerieInventoryClient* Client = GetFaerieClient(Cast<UObject>(Proxy->GetItemOwner()));
 	if (IsValid(Client))
 	{
-		return TestCanRun(Client, Handle);
+		return TestCanRun(Client, Proxy);
 	}
 
 	// Client doesn't exist. Hide all actions.
 	return EInventoryUIActionState::Hidden;
 }
 
-bool UInventoryUIAction::Start(const FFaerieAddressableHandle Handle)
+bool UInventoryUIAction::Start(const FFaerieItemProxy& Proxy)
 {
 	if (InProgress)
 	{
@@ -95,13 +95,13 @@ bool UInventoryUIAction::Start(const FFaerieAddressableHandle Handle)
 		return false;
 	}
 
-	UFaerieInventoryClient* Client = GetFaerieClient(Handle.Container.Get());
+	UFaerieInventoryClient* Client = GetFaerieClient(Proxy.GetProxyObject());
 	if (!IsValid(Client))
 	{
 		return false;
 	}
 
 	InProgress = true;
-	Run(Client, Handle);
+	Run(Client, Proxy);
 	return true;
 }

@@ -16,7 +16,7 @@ namespace Faerie::Equipment
 			{
 				if (Slot->IsFilled())
 				{
-					if (SetQuery.Query.Filter.Execute(Slot->View()) != SetQuery.Query.InvertFilter)
+					if (SetQuery.Query.Filter.Execute(FFaerieItemProxy(Slot)) != SetQuery.Query.InvertFilter)
 					{
 						PassingSlot = Slot;
 						return true;

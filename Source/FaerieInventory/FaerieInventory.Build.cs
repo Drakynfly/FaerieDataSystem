@@ -19,6 +19,7 @@ public class FaerieInventory : ModuleRules
                 "DeveloperSettings",
                 "Engine",
                 "GameplayTags",
+                "MassEntity",
                 "NetCore"
             });
 

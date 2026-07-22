@@ -14,10 +14,11 @@ class FAERIEEQUIPMENT_API URelevantActorsExtension : public UItemContainerExtens
 {
 	GENERATED_BODY()
 
-public:
+protected:
 	virtual void InitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
 	virtual void DeinitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
 
+public:
 	template <
 		typename TActor
 		UE_REQUIRES(TIsDerivedFrom<TActor, AActor>::Value)

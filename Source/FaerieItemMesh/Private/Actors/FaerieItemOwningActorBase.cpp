@@ -2,10 +2,17 @@
 
 #include "Actors/FaerieItemOwningActorBase.h"
 #include "AssetLoadFlagFixer.h"
-#include "FaerieItemSource.h"
+#include "EntityManagerHelpers.h"
+#include "FaerieDataUtilsModule.h"
+#include "FaerieItemAsset.h"
+#include "FaerieItemInstancingContext.h"
+#include "FaerieItemMeshLog.h"
+#include "FaerieItemOwnership.h"
 #include "FaerieItemStackContainer.h"
 #include "ItemContainerEvent.h"
 #include "ItemContainerExtensionBase.h"
+
+#include "Modules/ModuleManager.h"
 #include "Net/UnrealNetwork.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemOwningActorBase)
@@ -25,20 +32,29 @@ AFaerieItemOwningActorBase::AFaerieItemOwningActorBase()
 #if WITH_EDITOR
 void AFaerieItemOwningActorBase::InitStackFromConfig(const bool RegenerateDisplay)
 {
+	FEditorScriptExecutionGuard ScriptGuard;
+
 	if (ItemStack->IsFilled())
 	{
-		ItemStack->TakeItemFromSlot(ItemData::EntireStack, Inventory::Tags::RemovalDeletion);
+		ItemStack->ClearStackInSlot_Editor();
+		(void)MarkPackageDirty();
 	}
 
 	if (StackCopies > 0 &&
-		IsValid(ItemSourceAsset.GetObject()))
+		IsValid(SourceAsset))
 	{
 		FFaerieItemInstancingContext Context;
+		Context.ItemInstanceOuter = ItemStack;
 		Context.CopiesOverride = StackCopies;
-		if (auto NewStack = ItemSourceAsset->CreateItemStack(&Context);
-			NewStack.IsSet())
+		Context.RunningInEditor = true;
+		Context.CreateReferencingInstance = true;
+		if (const ItemData::FGetInstanceResult Result = SourceAsset->CreateItemStack(Context);
+			Result.IsValid())
 		{
-			ItemStack->Possess(MoveTemp(NewStack.GetValue()));
+			// We are knowingly possessing an un-initialized instance to the stack.
+			// We will properly initialize the instance in BeginPlay.
+			ItemStack->SetItemInSlot_Editor(Result.WithoutInitialization());
+			(void)MarkPackageDirty();
 		}
 	}
 
@@ -54,9 +70,8 @@ void AFaerieItemOwningActorBase::PostEditChangeProperty(struct FPropertyChangedE
 
 	if (const FName PropertyName = PropertyChangedEvent.GetPropertyName();
 		PropertyName == GET_MEMBER_NAME_CHECKED(ThisClass, StackCopies) ||
-		PropertyName == GET_MEMBER_NAME_CHECKED(ThisClass, ItemSourceAsset))
+		PropertyName == GET_MEMBER_NAME_CHECKED(ThisClass, SourceAsset))
 	{
-		FEditorScriptExecutionGuard ScriptGuard;
 		InitStackFromConfig(true);
 	}
 }
@@ -66,9 +81,8 @@ void AFaerieItemOwningActorBase::PostEditChangeChainProperty(struct FPropertyCha
 	Super::PostEditChangeChainProperty(PropertyChangedEvent);
 
 	if (const FName PropertyName = PropertyChangedEvent.GetPropertyName();
-		PropertyName == GET_MEMBER_NAME_CHECKED(ThisClass, ItemSourceAsset))
+		PropertyName == GET_MEMBER_NAME_CHECKED(ThisClass, SourceAsset))
 	{
-		FEditorScriptExecutionGuard ScriptGuard;
 		InitStackFromConfig(true);
 	}
 }
@@ -79,7 +93,25 @@ void AFaerieItemOwningActorBase::PostLoad()
 	Super::PostLoad();
 
 #if WITH_EDITOR
-	if (!ItemStack->IsFilled())
+	if (const UFaerieItemAsset* ItemAsset = Cast<UFaerieItemAsset>(ItemSourceAsset.GetObject()))
+	{
+		SourceAsset = ItemAsset;
+		ItemSourceAsset = nullptr;
+		(void)MarkPackageDirty();
+	}
+
+	if (ItemStack->IsFilled())
+	{
+		if (IsValid(SourceAsset))
+		{
+			if (!Container::ValidateItemData(ItemStack->GetItemInstance().GetValue()))
+			{
+				UE_LOG(LogFaerieItemMesh, Warning, TEXT("Detected out-of-date or invalid stack in: %s! Regenerating stack."), *GetPathName())
+				InitStackFromConfig(false);
+			}
+		}
+	}
+	else
 	{
 		InitStackFromConfig(false);
 	}
@@ -105,18 +137,6 @@ void AFaerieItemOwningActorBase::OnConstruction(const FTransform& Transform)
 #endif
 }
 
-void AFaerieItemOwningActorBase::BeginPlay()
-{
-	Utils::ClearLoadFlags(ItemStack);
-	Utils::ClearLoadFlags(ItemStack->GetExtensionGroup());
-
-	AddReplicatedSubObject(ItemStack);
-	ItemStack->InitializeNetObject(this);
-	ItemStack->GetOnContainerEvent().AddUObject(this, &ThisClass::OnItemChanged);
-
-	Super::BeginPlay();
-}
-
 void AFaerieItemOwningActorBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -124,9 +144,35 @@ void AFaerieItemOwningActorBase::GetLifetimeReplicatedProps(TArray<class FLifeti
 	DOREPLIFETIME_CONDITION(ThisClass, ItemStack, COND_InitialOnly);
 }
 
-const UFaerieItem* AFaerieItemOwningActorBase::GetItemObject() const
+void AFaerieItemOwningActorBase::BeginPlay()
 {
-	return ItemStack->GetItemObject();
+	Utils::ClearLoadFlags(ItemStack);
+	Utils::ClearLoadFlags(ItemStack->GetExtensions());
+
+	AddReplicatedSubObject(ItemStack);
+	ItemStack->InitializeNetObject(this);
+	ItemStack->GetOnContainerEvent().AddUObject(this, &ThisClass::OnItemDataChanged);
+
+	// @todo setup more complex trigger for initializing runtime instance. some actors might want to wait and only
+	// register at a later point.
+	if (ItemStack->IsFilled())
+	{
+		auto Instance = ItemStack->GetItemInstance();
+		if (Instance.IsSet() && Instance->IsMutable())
+		{
+			auto EntityManager = ItemData::FRequireEntityManager(this);
+			Instance->InitializeMassEntity(EntityManager);
+
+			Container::TakeOwnership(EntityManager, ItemStack, Instance.GetValue());
+		}
+	}
+
+	Super::BeginPlay();
+}
+
+TOptional<FFaerieItemInstance> AFaerieItemOwningActorBase::GetItemInstance() const
+{
+	return ItemStack->GetItemInstance();
 }
 
 int32 AFaerieItemOwningActorBase::GetCopies() const
@@ -134,43 +180,40 @@ int32 AFaerieItemOwningActorBase::GetCopies() const
 	return ItemStack->GetCopies();
 }
 
-TScriptInterface<IFaerieItemOwnerInterface> AFaerieItemOwningActorBase::GetItemOwner() const
+IFaerieItemOwnerInterface* AFaerieItemOwningActorBase::GetItemOwner() const
 {
-	return const_cast<ThisClass*>(this);
+	return ItemStack;
 }
 
-FFaerieItemStack AFaerieItemOwningActorBase::Release(const int32 Copies) const
-{
-	// RegenerateDataDisplay will be triggered by the Slot broadcasting to OnItemChanged
-	return ItemStack->Release(Copies);
-}
-
-FFaerieItemStack AFaerieItemOwningActorBase::Release(const FFaerieItemStackView Stack)
-{
-	if (Stack.Item == ItemStack->GetItemObject())
-	{
-		// RegenerateDataDisplay will be triggered by the Slot broadcasting to OnItemChanged
-		return ItemStack->Release(Stack.Copies);
-	}
-	return FFaerieItemStack();
-}
-
-bool AFaerieItemOwningActorBase::Possess(const FFaerieItemStack Stack)
-{
-	// RegenerateDataDisplay will be triggered by the Slot broadcasting to OnItemChanged
-	return ItemStack->Possess(Stack);
-}
-
-void AFaerieItemOwningActorBase::SetOwnedStack(const FFaerieItemStack& Stack)
+void AFaerieItemOwningActorBase::SetOwnedStack(const FFaerieUnownedItemStack& Stack)
 {
 	if (ItemStack->IsFilled())
 	{
 		ItemStack->TakeItemFromSlot(ItemData::EntireStack, Inventory::Tags::RemovalDeletion);
 	}
-	ItemStack->Possess(Stack);
+	ItemStack->SetItemInSlot(Stack);
 }
 
-void AFaerieItemOwningActorBase::OnItemChanged(UFaerieItemStackContainer* FaerieEquipmentSlot, FFaerieInventoryTag Event)
+#if WITH_EDITOR
+void AFaerieItemOwningActorBase::ViewItemObject()
+{
+	const TOptional<FFaerieItemInstance> Instance = GetItemInstance();
+	if (!Instance.IsSet()) return;
+
+	if (const UFaerieItem* Item = Instance->GetItemPtr())
+	{
+		FFaerieDataUtilsModule& DataUtilsModule = FModuleManager::GetModuleChecked<FFaerieDataUtilsModule>("FaerieDataUtils");
+		DataUtilsModule.AskEditorToOpenObjectEditorWindow(const_cast<UFaerieItem*>(Item));
+	}
+}
+
+void AFaerieItemOwningActorBase::RegenerateStack()
+{
+	InitStackFromConfig(true);
+}
+#endif
+
+void AFaerieItemOwningActorBase::OnItemDataChanged(const FFaerieItemProxy& Proxy, FGameplayTag Tag)
 {
 	RegenerateDataDisplay();
 }

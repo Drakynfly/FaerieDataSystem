@@ -3,9 +3,10 @@
 #include "Generation/FaerieItemGenerationAction.h"
 #include "Generation/FaerieItemGenerationConfig.h"
 
+#include "EntityManagerHelpers.h"
+
 #include "FaerieItemGenerationLog.h"
 #include "FaerieItemPool.h"
-#include "FaerieItemStack.h"
 #include "ItemCraftingRunner.h"
 #include "ItemInstancingContext_Crafting.h"
 #include "Engine/AssetManager.h"
@@ -20,16 +21,22 @@ using namespace Faerie;
 
 namespace Faerie::Generation
 {
-	void ResolveGeneration(const FPendingTableDrop& Generation, const FFaerieItemInstancingContext_Crafting& Context, FFaerieCraftingActionData& Data)
+	void ResolveGeneration(const FPendingTableDrop& PendingDrop, const FFaerieItemInstancingContext_Crafting& Context, FFaerieCraftingActionData& Data)
 	{
-		const UObject* SourceObject = Generation.Drop->Asset.Object.Get();
+		const UObject* AssetObject = PendingDrop.Drop->Asset.Object.Get();
+		if (!AssetObject)
+		{
+			AssetObject = PendingDrop.Drop->Asset.Object.LoadSynchronous();
+			check(AssetObject);
+		}
 
 		// Generate individual mutable entries when mutable, as each may be unique.
-		if (Cast<IFaerieItemSource>(SourceObject)->CanBeMutable())
+		if (const IFaerieItemSource* SourceObject = Cast<IFaerieItemSource>(AssetObject);
+			SourceObject->CanBeMutable())
 		{
-			for (int32 i = 0; i < Generation.Count; ++i)
+			for (int32 i = 0; i < PendingDrop.Count; ++i)
 			{
-				if (auto NewStack = Generation.Drop->Resolve(Context);
+				if (auto NewStack = PendingDrop.Drop->Resolve(Context); // @TODO CHECK THAT CODE PATH INITS RUNTIME
 					NewStack.IsSet())
 				{
 					Data.Stacks.Emplace(NewStack.GetValue());
@@ -43,43 +50,47 @@ namespace Faerie::Generation
 		// Generate a single entry stack when immutable, as there is no chance of uniqueness.
 		else
 		{
-			if (auto NewStack = Generation.Drop->Resolve(Context);
+			if (auto NewStack = PendingDrop.Drop->Resolve(Context); // @TODO CHECK THAT CODE PATH INITS RUNTIME
 				NewStack.IsSet())
 			{
-				FFaerieItemStack Value = NewStack.GetValue();
-				Value.Copies *= Generation.Count;
+				FFaerieUnownedItemStack Value = NewStack.GetValue();
+				Value.Copies *= PendingDrop.Count;
 				Data.Stacks.Emplace(Value);
 			}
 		}
 	}
 }
 
-void FFaerieItemGenerationActionSingle::Run(const TNotNull<UFaerieItemCraftingRunner*> Runner)
+void FFaerieItemGenerationActionSingle::Run(const Generation::FActionExecution& Execution)
 {
 	if (Source.Asset.Object.IsNull())
 	{
 		UE_LOG(LogItemGeneration, Warning, TEXT("%hs: Source is invalid!"), __FUNCTION__);
-		return Fail(Runner);
+		return Fail(Execution, this);
 	}
 
-	LoadCheck(nullptr, Runner);
+	if (NewInstancesOuter == nullptr)
+	{
+		NewInstancesOuter = GetTransientPackageAsObject();
+	}
+
+	LoadCheck(nullptr, Execution);
 }
 
-void FFaerieItemGenerationActionSingle::LoadCheck(const TSharedPtr<FStreamableHandle>& LoadHandle, const TNotNull<UFaerieItemCraftingRunner*> Runner)
+void FFaerieItemGenerationActionSingle::LoadCheck(const TSharedPtr<FStreamableHandle>& LoadHandle, const Generation::FActionExecution& Execution)
 {
 	TArray<FSoftObjectPath> ObjectsToLoad;
 
-	/*
 	if (LoadHandle.IsValid())
 	{
 		LoadHandle->ForEachLoadedAsset([&](UObject* LoadedObject)
 			{
+				LoadedAssets.Add(LoadedObject);
 			});
 	}
-	*/
 
 	{
-		const TSoftObjectPtr<UObject>& Obj = Source.Asset.Object;
+		auto&& Obj = Source.Asset.Object;
 		if (Obj.IsValid())
 		{
 			if (const UFaerieItemPool* Pool = Cast<UFaerieItemPool>(Obj.Get()))
@@ -95,76 +106,109 @@ void FFaerieItemGenerationActionSingle::LoadCheck(const TSharedPtr<FStreamableHa
 	{
 		const FFaerieTableDrop& SlotSource = ResourceSlot.Value.Get();
 
-		if (SlotSource.Asset.Object.IsValid())
+		auto&& ResourceObj = Source.Asset.Object;
+		if (ResourceObj.IsValid())
 		{
-			if (const UFaerieItemPool* Pool = Cast<UFaerieItemPool>(SlotSource.Asset.Object.Get()))
+			if (const UFaerieItemPool* Pool = Cast<UFaerieItemPool>(ResourceObj.Get()))
 			{
 			}
 		}
-		if (SlotSource.Asset.Object.IsPending())
+		if (ResourceObj.IsPending())
 		{
-			ObjectsToLoad.Add(SlotSource.Asset.Object.ToSoftObjectPath());
+			ObjectsToLoad.Add(ResourceObj.ToSoftObjectPath());
 		}
 	}
 
 	if (ObjectsToLoad.IsEmpty())
 	{
 		// Nothing needs to load, go to Step 3.
-		return Generate(Runner);
+		return Generate(Execution);
 	}
 
 	UE_LOG(LogItemGeneration, Log, TEXT("- Objects to load: %i"), ObjectsToLoad.Num());
 
-	// The check for IsGameWorld forces this action to run in the editor synchronously
-	if (Runner->GetWorld()->IsGameWorld())
+	// The check for IsInGameWorld forces this action to run in the editor synchronously
+	if (Execution.IsInGameWorld())
 	{
 		// Suspend generation to async load drop assets, then continue
 		RunningStreamHandle = UAssetManager::GetStreamableManager().RequestAsyncLoad(ObjectsToLoad,
-			FStreamableDelegateWithHandle::CreateLambda([Runner, This = Handle](const TSharedPtr<FStreamableHandle>& InLoadHandle)
+			FStreamableDelegateWithHandle::CreateWeakLambda(Execution.Runner, [Execution, This = Handle](const TSharedPtr<FStreamableHandle>& InLoadHandle)
 			{
-				FFaerieItemGenerationActionSingle& Action = Runner->GetRunningAction(This)->GetMutable<FFaerieItemGenerationActionSingle>();
-				Action.LoadCheck(InLoadHandle, Runner);
+				if (auto&& RunningAction = Execution.Runner->GetRunningAction(This);
+					RunningAction.IsValid())
+				{
+					RunningAction.Get<FFaerieItemGenerationActionSingle>().LoadCheck(InLoadHandle, Execution);
+				}
 			}));
 	}
 	else
 	{
 		// Load assets in-sync then keep searching
-        LoadCheck(UAssetManager::GetStreamableManager().RequestSyncLoad(ObjectsToLoad), Runner);
+        LoadCheck(UAssetManager::GetStreamableManager().RequestSyncLoad(ObjectsToLoad), Execution);
 	}
 }
 
-void FFaerieItemGenerationActionSingle::Generate(const TNotNull<UFaerieItemCraftingRunner*> Runner)
+void FFaerieItemGenerationActionSingle::Generate(const Generation::FActionExecution& Execution)
 {
 	// Step 3: Build a context, to use for the pending generation, and resolve it.
 
 	FFaerieItemInstancingContext_Crafting Context;
-	Context.Squirrel = Squirrel.Get();
+	Context.ItemInstanceOuter = NewInstancesOuter;
+	Context.Squirrel = Execution.Squirrel.Get();
 
-	const Generation::FPendingTableDrop Drop { &Source, 1 };
-	Generation::ResolveGeneration(Drop, Context, ActionData);
+	if (!Source.IsValid())
+	{
+		UE_LOG(LogItemGeneration, Error, TEXT("--- PendingDrop is invalid. Nothing will be returned."));
+		return Fail(Execution, this);
+	}
+
+	Generation::ResolveGeneration({&Source, 1}, Context, ActionData);
+
+
+	if (Execution.IsInGameWorld())
+	{
+		auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
+
+		// Initialize all generated instances for runtime.
+		for (auto&& Stack : ActionData.Stacks)
+		{
+			if (Stack.Instance.IsValid())
+			{
+				Stack.Instance.InitializeMassEntityIfInvalid(EntityManager);
+			}
+		}
+
+		for (auto&& GeneratedChild : Context.GeneratedChildren)
+		{
+			if (GeneratedChild.Value.Instance.IsValid())
+			{
+				GeneratedChild.Value.Instance.InitializeMassEntityIfInvalid(EntityManager);
+			}
+		}
+	}
 
 	// Step 4: Report result.
 
 	if (!ActionData.Stacks.IsEmpty())
 	{
 		UE_LOG(LogItemGeneration, Log, TEXT("--- Generation success. Created '%i' stack(s)."), ActionData.Stacks.Num());
-		return Complete(Runner);
+		return Complete(Execution, this);
 	}
 	else
 	{
 		UE_LOG(LogItemGeneration, Error, TEXT("--- Generation failed to create any entries. Nothing will be returned."));
-		return Fail(Runner);
+		return Fail(Execution, this);
 	}
 }
 
-void FFaerieItemGenerationAction::Run(const TNotNull<UFaerieItemCraftingRunner*> Runner)
+void FFaerieItemGenerationAction::Run(const Generation::FActionExecution& Execution)
 {
 	// Step 1: Validate parameters
 
 	if (Drivers.IsEmpty())
 	{
 		UE_LOG(LogItemGeneration, Warning, TEXT("%hs: Drivers are empty!"), __FUNCTION__);
-		return Fail(Runner);
+		return Fail(Execution, this);
 	}
 
 	for (auto&& Driver : Drivers)
@@ -172,16 +216,15 @@ void FFaerieItemGenerationAction::Run(const TNotNull<UFaerieItemCraftingRunner*>
 		if (Driver.IsNull())
 		{
 			UE_LOG(LogItemGeneration, Warning, TEXT("%hs: Driver is invalid!"), __FUNCTION__);
-			return Fail(Runner);
+			return Fail(Execution, this);
 		}
 	}
 
-	// Step 2: Repeat LoadCheck while finding objects to load.
-	LoadDrivers(Runner);
-}
+	if (NewInstancesOuter == nullptr)
+	{
+		NewInstancesOuter = GetTransientPackageAsObject();
+	}
 
-void FFaerieItemGenerationAction::LoadDrivers(TNotNull<UFaerieItemCraftingRunner*> Runner)
-{
 	TArray<FSoftObjectPath> ConfigsToLoad;
 
 	for (auto&& Driver : Drivers)
@@ -189,7 +232,7 @@ void FFaerieItemGenerationAction::LoadDrivers(TNotNull<UFaerieItemCraftingRunner
 		if (Driver.IsValid())
 		{
 			UFaerieItemGenerationConfig* ConfigObj = Driver.Get();
-			ConfigObj->Resolve(PendingGenerations, Squirrel.Get());
+			ConfigObj->Resolve(PendingDrops, Execution.Squirrel.Get());
 		}
 		else if (Driver.IsPending())
 		{
@@ -197,30 +240,38 @@ void FFaerieItemGenerationAction::LoadDrivers(TNotNull<UFaerieItemCraftingRunner
 		}
 	}
 
+	// Step 2: Load Configs
+
 	if (ConfigsToLoad.IsEmpty())
 	{
 		// Nothing needs to load, go to Step 2.
-		return LoadCheck(nullptr, Runner, 0);
+		return LoadCheck(nullptr, Execution, 0);
 	}
 
 	UE_LOG(LogItemGeneration, Log, TEXT("- Configs to load: %i"), ConfigsToLoad.Num());
 
-	// The check for IsGameWorld forces this action to run in the editor synchronously
-	if (Runner->GetWorld()->IsGameWorld())
+	// The check for IsInGameWorld forces this action to run in the editor synchronously
+	if (Execution.IsInGameWorld())
 	{
 		// Suspend generation to async load drop assets, then continue
 		RunningStreamHandle = UAssetManager::GetStreamableManager().RequestAsyncLoad(ConfigsToLoad,
-			FStreamableDelegateWithHandle::CreateLambda([Runner, ThisHandle = Handle](const TSharedPtr<FStreamableHandle>& InLoadHandle)
+			FStreamableDelegateWithHandle::CreateWeakLambda(Execution.Runner, [Execution, ThisHandle = Handle](const TSharedPtr<FStreamableHandle>& InLoadHandle)
 			{
-				FFaerieItemGenerationAction& This = Runner->GetRunningAction(ThisHandle)->GetMutable<FFaerieItemGenerationAction>();
-				InLoadHandle->ForEachLoadedAsset([This](const UObject* LoadedObject) mutable
-					{
-						if (const UFaerieItemGenerationConfig* Config = Cast<UFaerieItemGenerationConfig>(LoadedObject))
+				if (auto&& RunningAction = Execution.Runner->GetRunningAction(ThisHandle);
+					RunningAction.IsValid())
+				{
+					FFaerieItemGenerationAction& This = RunningAction.Get<FFaerieItemGenerationAction>();
+					InLoadHandle->ForEachLoadedAsset([&This, Squirrel = Execution.Squirrel](const UObject* LoadedObject) mutable
 						{
-							Config->Resolve(This.PendingGenerations, This.Squirrel.Get());
-						}
-					});
-				This.LoadCheck(nullptr, Runner, 0);
+							// Keep the drivers alive while we are generating from them.
+							This.LoadedAssets.Add(LoadedObject);
+							if (const UFaerieItemGenerationConfig* Config = CastChecked<UFaerieItemGenerationConfig>(LoadedObject))
+							{
+								Config->Resolve(This.PendingDrops, Squirrel.Get());
+							}
+						});
+					This.LoadCheck(nullptr, Execution, 0);
+				}
 			}));
 	}
 	else
@@ -229,32 +280,34 @@ void FFaerieItemGenerationAction::LoadDrivers(TNotNull<UFaerieItemCraftingRunner
 		UAssetManager::GetStreamableManager().RequestSyncLoad(ConfigsToLoad)->ForEachLoadedAsset(
 			[&](const UObject* LoadedObject)
 			{
-				if (const UFaerieItemGenerationConfig* Config = Cast<UFaerieItemGenerationConfig>(LoadedObject))
+				LoadedAssets.Add(LoadedObject);
+				if (const UFaerieItemGenerationConfig* Config = CastChecked<UFaerieItemGenerationConfig>(LoadedObject))
 				{
-					Config->Resolve(PendingGenerations, Squirrel.Get());
+					Config->Resolve(PendingDrops, Execution.Squirrel.Get());
 				}
 			});
-        LoadCheck(nullptr, Runner, 0);
+        LoadCheck(nullptr, Execution, 0);
 	}
 }
 
-void FFaerieItemGenerationAction::LoadCheck(const TSharedPtr<FStreamableHandle>& LoadHandle, TNotNull<UFaerieItemCraftingRunner*> Runner, const int32 CheckFromNum)
+void FFaerieItemGenerationAction::LoadCheck(const TSharedPtr<FStreamableHandle>& LoadHandle, const Generation::FActionExecution& Execution, const int32 CheckFromNum)
 {
+	check(this);
+
 	TArray<FSoftObjectPath> ObjectsToLoad;
 
-	/*
 	if (LoadHandle.IsValid())
 	{
 		LoadHandle->ForEachLoadedAsset([&](UObject* LoadedObject)
 			{
+				LoadedAssets.Add(LoadedObject);
 			});
 	}
-	*/
 
 	// Check if any new pending generations also need things loaded
-	for (int32 i = CheckFromNum; i < PendingGenerations.Num(); ++i)
+	for (int32 i = CheckFromNum; i < PendingDrops.Num(); ++i)
 	{
-		const TSoftObjectPtr<UObject>& Obj = PendingGenerations[i].Drop->Asset.Object;
+		auto&& Obj = PendingDrops[i].Drop->Asset.Object;
 		if (Obj.IsValid())
 		{
 			if (const UFaerieItemPool* Pool = Cast<UFaerieItemPool>(Obj.Get()))
@@ -262,15 +315,15 @@ void FFaerieItemGenerationAction::LoadCheck(const TSharedPtr<FStreamableHandle>&
 				// If a pool was loaded, and we are configured to expand pools, do that now.
 				if (RecursivelyResolveTables)
 				{
-					int32 DropCount = PendingGenerations[i].Count;
+					int32 DropCount = PendingDrops[i].Count;
 
 					// Remove this pool from the table.
-					PendingGenerations.RemoveAtSwap(i, EAllowShrinking::No);
+					PendingDrops.RemoveAtSwap(i, EAllowShrinking::No);
 					i--;
 
 					for (const FFaerieWeightedDrop& PoolDrop : Pool->ViewDropPool())
 					{
-						PendingGenerations.Emplace(&PoolDrop.Drop, DropCount);
+						PendingDrops.Emplace(&PoolDrop.Drop, DropCount);
 					}
 				}
 			}
@@ -284,60 +337,85 @@ void FFaerieItemGenerationAction::LoadCheck(const TSharedPtr<FStreamableHandle>&
 	if (ObjectsToLoad.IsEmpty())
 	{
 		// Nothing needs to load, go to Step 3.
-		return Generate(Runner);
+		return Generate(Execution);
 	}
 
 	UE_LOG(LogItemGeneration, Log, TEXT("- Objects to load: %i"), ObjectsToLoad.Num());
-	const int32 CurrentPendingNum = PendingGenerations.Num();
+	const int32 CurrentPendingNum = PendingDrops.Num();
 
-	// The check for IsGameWorld forces this action to run in the editor synchronously
-	if (Runner->GetWorld()->IsGameWorld())
+	// The check for IsInGameWorld forces this action to run in the editor synchronously
+	if (Execution.IsInGameWorld())
 	{
 		// Suspend generation to async load drop assets, then continue
 		RunningStreamHandle = UAssetManager::GetStreamableManager().RequestAsyncLoad(ObjectsToLoad,
-			FStreamableDelegateWithHandle::CreateLambda([Runner, This = Handle, CurrentPendingNum](const TSharedPtr<FStreamableHandle>& InLoadHandle)
+			FStreamableDelegateWithHandle::CreateWeakLambda(Execution.Runner, [Execution, This = Handle, CurrentPendingNum](const TSharedPtr<FStreamableHandle>& InLoadHandle)
 			{
-				FFaerieItemGenerationAction& Action = Runner->GetRunningAction(This)->GetMutable<FFaerieItemGenerationAction>();
-				Action.LoadCheck(InLoadHandle, Runner, CurrentPendingNum);
+				if (auto&& RunningAction = Execution.Runner->GetRunningAction(This);
+					RunningAction.IsValid())
+				{
+					RunningAction.Get<FFaerieItemGenerationAction>().LoadCheck(InLoadHandle, Execution, CurrentPendingNum);
+				}
 			}));
 	}
 	else
 	{
 		// Load assets in-sync then keep searching
-        LoadCheck(UAssetManager::GetStreamableManager().RequestSyncLoad(ObjectsToLoad), Runner, CurrentPendingNum);
+        LoadCheck(UAssetManager::GetStreamableManager().RequestSyncLoad(ObjectsToLoad), Execution, CurrentPendingNum);
 	}
 }
 
-void FFaerieItemGenerationAction::Generate(const TNotNull<UFaerieItemCraftingRunner*> Runner)
+void FFaerieItemGenerationAction::Generate(const Generation::FActionExecution& Execution)
 {
 	// Step 3: Build a context, to use for each pending generation, and resolve them.
 
 	FFaerieItemInstancingContext_Crafting Context;
-	Context.Squirrel = Squirrel.Get();
+	Context.ItemInstanceOuter = NewInstancesOuter;
+	Context.Squirrel = Execution.Squirrel.Get();
 
-	for (auto&& Generation : PendingGenerations)
+	for (const Generation::FPendingTableDrop& Generation : PendingDrops)
 	{
 		if (!Generation.IsValid())
 		{
-			UE_LOG(LogItemGeneration, Warning, TEXT("--- Invalid generation!"));
+			UE_LOG(LogItemGeneration, Warning, TEXT("--- Pending generation is invalid!"));
 			continue;
 		}
 
-		ResolveGeneration(Generation, Context, ActionData);
+		Generation::ResolveGeneration(Generation, Context, ActionData);
 	}
+
+	if (Execution.IsInGameWorld())
+	{
+		auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
+
+		// Initialize all generated instances for runtime.
+        for (auto&& Stack : ActionData.Stacks)
+        {
+        	if (Stack.Instance.IsValid())
+        	{
+        		Stack.Instance.InitializeMassEntityIfInvalid(EntityManager);
+        	}
+        }
+
+        for (auto&& GeneratedChild : Context.GeneratedChildren)
+        {
+        	if (GeneratedChild.Value.Instance.IsValid())
+        	{
+        		GeneratedChild.Value.Instance.InitializeMassEntityIfInvalid(EntityManager);
+        	}
+        }
+	}
+
 
 	// Step 4: Report result.
 
-	if (!ActionData.Stacks.IsEmpty())
-	{
-		UE_LOG(LogItemGeneration, Log, TEXT("--- Generation success. Created '%i' stack(s)."), ActionData.Stacks.Num());
-		return Complete(Runner);
-	}
-	else
+	if (ActionData.Stacks.IsEmpty())
 	{
 		UE_LOG(LogItemGeneration, Error, TEXT("--- Generation failed to create any entries. Nothing will be returned."));
-		return Fail(Runner);
+		return Fail(Execution, this);
 	}
+
+	UE_LOG(LogItemGeneration, Log, TEXT("--- Generation success. Created '%i' stack(s)."), ActionData.Stacks.Num());
+	return Complete(Execution, this);
 }
 
 #undef LOCTEXT_NAMESPACE

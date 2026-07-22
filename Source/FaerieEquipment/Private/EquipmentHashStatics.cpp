@@ -8,14 +8,9 @@
 
 namespace Faerie::Hash
 {
-	FFaerieHash HashEquipment(const UFaerieEquipmentManager* Manager,
+	FFaerieHash HashEquipment(const TNotNull<const UFaerieEquipmentManager*> Manager,
 							  const TSet<FFaerieSlotTag>& Slots, const FItemHashFunction& Function)
 	{
-		if (!IsValid(Manager))
-		{
-			return FFaerieHash();
-		}
-
 		TArray<uint32> Hashes;
 		Hashes.Reserve(Slots.Num());
 
@@ -23,37 +18,35 @@ namespace Faerie::Hash
 		{
 			if (const UFaerieEquipmentSlot* Slot = Manager->FindSlot(SlotTag, true))
 			{
-				Hashes.Add(Function(Slot->GetItemObject()));
+				Hashes.Add(Function(Slot, Slot->GetItemInstance().GetValue()));
 			}
 		}
 
 		return CombineHashes(Hashes);
 	}
 
-	bool ExecuteHashInstructions(const UFaerieEquipmentManager* Manager, const UFaerieEquipmentHashAsset* Asset)
+	bool ExecuteHashInstructions(const TNotNull<const UFaerieEquipmentManager*> Manager, const TNotNull<const UFaerieEquipmentHashAsset*> Asset)
 	{
-		if (!IsValid(Manager) || !IsValid(Asset))
-		{
-			return false;
-		}
-
 		uint32 FinalHash = 0;
 
 		for (auto&& Config : Asset->Configs)
 		{
+			bool BreakAfterFirstFilled = Config.MatchType == EGameplayContainerMatchType::Any;
+
 			for (const FGameplayTag Tag : Config.Slots)
 			{
 				const FFaerieSlotTag SlotTag = FFaerieSlotTag::ConvertChecked(Tag);
 
 				uint32 TagHash = 0;
 
-				if (auto&& Slot = Manager->FindSlot(SlotTag, true))
+				if (const UFaerieEquipmentSlot* Slot = Manager->FindSlot(SlotTag, true))
 				{
 					if (Slot->IsFilled())
 					{
-						TagHash = Config.Instruction->Hash(Slot->View());
+						FFaerieItemDataView View(Slot);
+						TagHash = Config.Instruction->Hash(Slot, View);
 
-						if (Config.MatchType == EGameplayContainerMatchType::Any)
+						if (BreakAfterFirstFilled)
 						{
 							FinalHash = Combine(FinalHash, TagHash);
 							break;

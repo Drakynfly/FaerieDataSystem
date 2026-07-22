@@ -1,11 +1,13 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "ItemCapacityCustomization.h"
-#include "Tokens/FaerieCapacityToken.h"
 #include "Math/UnitConversion.h"
 #include "IDetailChildrenBuilder.h"
 #include "IDetailGroup.h"
 #include "DetailWidgetRow.h"
+
+#include "Capacity/CapacityStructs.h"
+
 #include "Widgets/Text/STextBlock.h"
 
 #define LOCTEXT_NAMESPACE "InventoryWeightCustomization"
@@ -80,9 +82,9 @@ void FItemCapacityCustomization::CustomizeChildren(const TSharedRef<IPropertyHan
                                                     IDetailChildrenBuilder& StructBuilder,
                                                     IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
-    WeightHandle =     StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FItemCapacity, Weight));
-    BoundsHandle =     StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FItemCapacity, Bounds));
-    EfficiencyHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FItemCapacity, Efficiency));
+    WeightHandle =     StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FFaerieItemCapacity, Weight));
+    BoundsHandle =     StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FFaerieItemCapacity, Bounds));
+    EfficiencyHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FFaerieItemCapacity, Efficiency));
 
     if (!WeightHandle->IsValidHandle() || !BoundsHandle->IsValidHandle() || !EfficiencyHandle->IsValidHandle()) return;
 
@@ -125,7 +127,7 @@ void FItemCapacityCustomization::UpdateInfo()
         EfficiencyHandle.IsValid())
     {
         int32 WeightValue = 0;
-        if (auto&& WeightValueProp = WeightHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FWeightEditor, Weight)))
+        if (auto&& WeightValueProp = WeightHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FFaerieWeightEditor, Weight)))
         {
             WeightValueProp->GetValue(WeightValue);
         }

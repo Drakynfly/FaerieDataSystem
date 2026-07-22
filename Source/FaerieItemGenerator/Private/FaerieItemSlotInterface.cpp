@@ -1,17 +1,33 @@
 // Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieItemSlotInterface.h"
+#include "EntityManagerHelpers.h"
+#include "FaerieItem.h"
+#include "FaerieItemDataView.h"
 #include "FaerieItemGenerationLog.h"
+#include "FaerieItemOwnerInterface.h"
 #include "FaerieItemProxy.h"
-#include "FaerieItemStackView.h"
 #include "FaerieItemTemplate.h"
-#include "Tokens/FaerieItemUsesToken.h"
+
+#include "Consumable/FaerieItemUsesFragment.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemSlotInterface)
 
 namespace Faerie::Generation
 {
-	bool ValidateFilledSlots(const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemCraftingSlots& CraftingSlots)
+	bool ForEachCraftingSlot(const FFaerieItemCraftingSlots& Slots, const TFunctionRef<bool(const FFaerieItemCraftingCostElement& Slot)>& Predicate)
+	{
+		for (const FFaerieItemCraftingCostElement& Element : Slots.Slots)
+		{
+			if (!Predicate(Element))
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
+	bool ValidateFilledSlots(const TNotNull<const UObject*> WorldContext, const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemCraftingSlots& Slots)
 	{
 		// Validation
 		for (auto&& Element : FilledSlots.Slots)
@@ -23,68 +39,74 @@ namespace Faerie::Generation
 			}
 		}
 
-		for (auto&& RequiredSlot : CraftingSlots.RequiredSlots)
-		{
-			if (auto&& ItemProxy = FilledSlots.Slots.Find(RequiredSlot.Name))
+		ItemData::FOptionalEntityManager EntityManager(WorldContext);
+
+		return ForEachCraftingSlot(Slots, [&EntityManager, &FilledSlots, WorldContext](const FFaerieItemCraftingCostElement& Slot)
 			{
-				if (!IsValid(ItemProxy->GetObject()))
+				if (const FFaerieItemProxy* ItemProxy = FilledSlots.Slots.Find(Slot.Name))
 				{
-					UE_LOG(LogItemGeneration, Warning, TEXT("ValidateFilledSlots: Proxy is invalid for slot: %s!"),
-						*RequiredSlot.Name.ToString());
-					return false;
-				}
-
-				if (!RequiredSlot.Template->TryMatch(FFaerieItemStackView(*ItemProxy)))
-				{
-					UE_LOG(LogItemGeneration, Warning, TEXT("ValidateFilledSlots: Slot '%s' failed with key: %s"),
-						   *RequiredSlot.Name.ToString(), *ItemProxy->GetObject()->GetName());
-					return false;
-				}
-
-				if (RequiredSlot.PayInConsumableUses)
-				{
-					if (!ItemProxy->GetItemObject()->IsDataMutable())
+					const UObject* ProxyObj = ItemProxy->GetProxyObject();
+					if (!IsValid(ProxyObj))
 					{
-						UE_LOG(LogItemGeneration, Warning, TEXT("ValidateFilledSlots: Slot '%s' cannot pay consumable cost with immutable item: %s"),
-							*RequiredSlot.Name.ToString(), *ItemProxy->GetObject()->GetName());
+						UE_LOG(LogItemGeneration, Warning, TEXT("ValidateFilledSlots: Proxy is invalid for slot: %s!"),
+							*Slot.Name.ToString());
 						return false;
 					}
 
-					const UFaerieItemUsesToken* ItemUses = ItemProxy->GetItemObject()->GetToken<UFaerieItemUsesToken>();
-					if (!ItemUses->HasUses(RequiredSlot.Amount))
+					const FFaerieItemDataView DataView(*ItemProxy);
+
+					if (!Slot.Template->TryMatch(WorldContext, DataView))
 					{
-						UE_LOG(LogItemGeneration, Warning, TEXT("ValidateFilledSlots: Slot '%s' insufficient uses to pay cost with item: %s"),
-							*RequiredSlot.Name.ToString(), *ItemProxy->GetObject()->GetName());
+						UE_LOG(LogItemGeneration, Warning, TEXT("ValidateFilledSlots: Slot '%s' failed with key: %s"),
+							   *Slot.Name.ToString(), *ItemProxy->GetProxyObject()->GetName());
 						return false;
+					}
+
+					if (Slot.PayInConsumableUses)
+					{
+						if (!DataView.GetInstance().IsMutable())
+						{
+							UE_LOG(LogItemGeneration, Warning, TEXT("ValidateFilledSlots: Slot '%s' cannot pay consumable cost with immutable item: %s"),
+								*Slot.Name.ToString(), *ItemProxy->GetProxyObject()->GetName());
+							return false;
+						}
+
+						const ItemData::FUsesHelper Uses(EntityManager, DataView.GetInstance());
+						if (!Uses.HasUsesRemaining(Slot.Amount))
+						{
+							UE_LOG(LogItemGeneration, Warning, TEXT("ValidateFilledSlots: Slot '%s' insufficient uses to pay cost with item: %s"),
+								*Slot.Name.ToString(), *ProxyObj->GetName());
+							return false;
+						}
+					}
+					else
+					{
+						if (DataView.GetCopies() < Slot.Amount)
+						{
+							UE_LOG(LogItemGeneration, Warning, TEXT("ValidateFilledSlots: Slot '%s' insufficient uses to pay cost with item: %s"),
+								*Slot.Name.ToString(), *ProxyObj->GetName());
+							return false;
+						}
 					}
 				}
 				else
 				{
-					if (ItemProxy->GetCopies() < RequiredSlot.Amount)
+					if (!Slot.Optional)
 					{
-						UE_LOG(LogItemGeneration, Warning, TEXT("ValidateFilledSlots: Slot '%s' insufficient uses to pay cost with item: %s"),
-							*RequiredSlot.Name.ToString(), *ItemProxy->GetObject()->GetName());
+						UE_LOG(LogItemGeneration, Warning, TEXT("ValidateFilledSlots: Does not contain required slot: %s!"),
+							*Slot.Name.ToString());
 						return false;
 					}
 				}
-			}
-			else
-			{
-				if (!RequiredSlot.Optional)
-				{
-					UE_LOG(LogItemGeneration, Warning, TEXT("ValidateFilledSlots: Does not contain required slot: %s!"),
-						*RequiredSlot.Name.ToString());
-					return false;
-				}
-			}
-		}
 
-		return true;
+				// All slots validated!
+				return true;
+			});
 	}
 
-	bool ConsumeSlotCosts(const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemCraftingSlots& CraftingSlots)
+	bool ConsumeSlotCosts(const ItemData::FOptionalEntityManager& EntityManager, const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemCraftingSlots& Slots)
 	{
-		for (auto&& Slot : CraftingSlots.RequiredSlots)
+		return ForEachCraftingSlot(Slots, [&EntityManager, &FilledSlots](const FFaerieItemCraftingCostElement& Slot)
 		{
 			auto&& SlotPaymentPtr = FilledSlots.Slots.Find(Slot.Name);
 			if (!ensure(SlotPaymentPtr))
@@ -95,40 +117,41 @@ namespace Faerie::Generation
 
 			const FFaerieItemProxy& SlotPayment = *SlotPaymentPtr;
 
-			const UFaerieItem* Item = SlotPayment->GetItemObject();
-			if (!ensure(IsValid(Item)))
+			const TOptional<FFaerieItemInstance> InstanceOpt = SlotPayment->GetItemInstance();
+			if (!ensure(InstanceOpt.IsSet()))
 			{
 				return false;
 			}
 
 			if (Slot.PayInConsumableUses)
 			{
+				ItemData::FUsesHelper Uses(EntityManager, InstanceOpt.GetValue());
+
                 // If the item can be used as a resource multiple times.
-                if (UFaerieItem* Mutable = Item->MutateCast())
                 {
-                	if (auto&& Uses = Mutable->GetMutableToken<UFaerieItemUsesToken>())
+                	if (Uses.HasUsesRemaining(Slot.Amount))
                 	{
-                		if (Uses->HasUses(Slot.Amount))
-                		{
-                			Uses->RemoveUses(Slot.Amount);
-                		}
-                		return false;
+                		Uses.RemoveUses(SlotPayment, Slot.Amount);
                 	}
+                	return false;
                 }
 			}
 			else
 			{
-                (void)SlotPayment->Release(Slot.Amount);
+				if (IFaerieItemOwnerInterface* Owner = SlotPayment->GetItemOwner())
+				{
+					Owner->DestroyStack(SlotPayment, Slot.Amount);
+				}
 			}
-		}
 
-		return true;
+			// All slots consumed!
+			return true;
+		});
 	}
 
-	const FFaerieItemCraftingCostElement* FindSlot(const TNotNull<const IFaerieItemSlotInterface*> Interface, const FFaerieItemSlotHandle& Name)
+	const FFaerieItemCraftingCostElement* FindSlot(const FFaerieItemCraftingSlots& Slots, const FFaerieItemSlotHandle& Name)
 	{
-		const FFaerieItemCraftingSlots Slots = Interface->GetCraftingSlots();
-		if (const FFaerieItemCraftingCostElement* Slot = Slots.RequiredSlots.FindByKey(Name))
+		if (const FFaerieItemCraftingCostElement* Slot = Slots.Slots.FindByKey(Name))
 		{
 			return Slot;
 		}
@@ -136,9 +159,9 @@ namespace Faerie::Generation
 		return nullptr;
 	}
 
-	bool IsSlotOptional(const TNotNull<const IFaerieItemSlotInterface*> Interface, const FFaerieItemSlotHandle& Name)
+	bool IsSlotOptional(const FFaerieItemCraftingSlots& Slots, const FFaerieItemSlotHandle& Name)
 	{
-		if (const FFaerieItemCraftingCostElement* Slot = FindSlot(Interface, Name))
+		if (const FFaerieItemCraftingCostElement* Slot = FindSlot(Slots, Name))
 		{
 			return Slot->Optional;
 		}

@@ -1,40 +1,57 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieItemPool.h"
-#include "FaerieAssetInfo.h"
+#include "FaerieItemGenerationLog.h"
 #include "ItemInstancingContext_Crafting.h"
 
 #include "Squirrel.h"
+
 #include "Algo/AnyOf.h"
+#include "UObject/AssetRegistryTagsContext.h"
 #include "UObject/ObjectSaveContext.h"
 
 #if WITH_EDITOR
+#include "Engine/AssetManager.h"
+#include "AssetRegistry/AssetData.h"
 #include "Misc/DataValidation.h"
 #endif
 
-#include "FaerieItemGenerationLog.h"
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemPool)
 
 #if WITH_EDITOR
 
 namespace Faerie::Editor
 {
+	/*
+	 * Use the Asset Manager to determine if any contained assets are mutable. This avoids having to load them in the editor.
+	 */
 	bool HasMutableDrops(const TArray<FFaerieWeightedDrop>& Table)
 	{
+		UAssetManager& AssetManager = UAssetManager::Get();
+
 		return Algo::AnyOf(Table,
-			[](const FFaerieWeightedDrop& Drop)
+			[&AssetManager](const FFaerieWeightedDrop& Drop)
 			{
-				auto&& Interface = Cast<IFaerieItemSource>(Drop.Drop.Asset.Object.LoadSynchronous());
-				return Interface && Interface->CanBeMutable();
+				const FSoftObjectPath Path = Drop.Drop.Asset.Object.ToSoftObjectPath();
+				if (Path.IsNull()) return false;
+
+				if (FAssetData AssetData;
+					AssetManager.GetAssetDataForPath(Path, AssetData))
+				{
+					return AssetData.FindTag(IFaerieItemSource::MutableSourceTag);
+				}
+				return false;
 			});
 	}
 }
 
 #endif
 
-UFaerieItemPool::UFaerieItemPool()
+void UFaerieItemPool::GetAssetRegistryTags(FAssetRegistryTagsContext Context) const
 {
-	TableInfo.ObjectName = FText::FromString("<Unnamed Table>");
+	Super::GetAssetRegistryTags(Context);
+
+	Context.AddTag(FAssetRegistryTag(MutableSourceTag, HasMutableDrops ? TEXT("True") : TEXT("False"), FAssetRegistryTag::TT_Alphabetical));
 }
 
 void UFaerieItemPool::PreSave(FObjectPreSaveContext SaveContext)
@@ -62,11 +79,11 @@ void UFaerieItemPool::PostLoad()
 
 EDataValidationResult UFaerieItemPool::IsDataValid(FDataValidationContext& Context) const
 {
-	TArray<FFaerieItemSourceObject> AssetList;
+	TSet<FFaerieItemSourceObject> AssetList;
 
 	for (const FFaerieWeightedDrop& Entry : DropPool.DropList)
 	{
-		if (!Entry.Drop.Asset.Object.IsNull())
+		if (Entry.Drop.Asset.Object.IsNull())
 		{
 			Context.AddWarning(LOCTEXT("DropTableInvalidAsset_Ref", "Invalid Asset Reference"));
 		}
@@ -118,14 +135,9 @@ bool UFaerieItemPool::CanBeMutable() const
 #endif
 }
 
-FFaerieAssetInfo UFaerieItemPool::GetSourceInfo() const
+Faerie::ItemData::FGetInstanceResult UFaerieItemPool::CreateItemStack(const FFaerieItemInstancingContext& Context) const
 {
-	return TableInfo;
-}
-
-TOptional<FFaerieItemStack> UFaerieItemPool::CreateItemStack(const FFaerieItemInstancingContext* Context) const
-{
-	const FFaerieItemInstancingContext_Crafting* CraftingContext = Context->Cast<FFaerieItemInstancingContext_Crafting>();
+	const FFaerieItemInstancingContext_Crafting* CraftingContext = Context.Cast<FFaerieItemInstancingContext_Crafting>();
 	if (!CraftingContext)
 	{
 		UE_LOG(LogItemGeneration, Error, TEXT("UFaerieItemPool requires a Content of type FItemInstancingContext_Crafting!"));
@@ -136,7 +148,7 @@ TOptional<FFaerieItemStack> UFaerieItemPool::CreateItemStack(const FFaerieItemIn
 		{
 			if (IsValid(CraftingContext->Squirrel))
 			{
-				return GetDrop_Seeded(CraftingContext->Squirrel);
+				return GetDrop_Seeded(CraftingContext->Squirrel->GetState());
 			}
 			return GetDrop(FMath::FRand());
 		}();
@@ -154,9 +166,9 @@ const FFaerieTableDrop* UFaerieItemPool::GetDrop(const double RanWeight) const
 	return DropPool.GetDrop(RanWeight);
 }
 
-const FFaerieTableDrop* UFaerieItemPool::GetDrop_Seeded(USquirrel* Squirrel) const
+const FFaerieTableDrop* UFaerieItemPool::GetDrop_Seeded(FSquirrelState& Squirrel) const
 {
-	return DropPool.GetDrop(Squirrel->NextReal());
+	return DropPool.GetDrop(Squirrel::NextReal(Squirrel));
 }
 
 TConstArrayView<FFaerieWeightedDrop> UFaerieItemPool::ViewDropPool() const
@@ -175,7 +187,9 @@ FFaerieTableDrop UFaerieItemPool::GenerateDrop(const double RanWeight) const
 
 FFaerieTableDrop UFaerieItemPool::GenerateDrop_Seeded(USquirrel* Squirrel) const
 {
-	if (auto&& DropPtr = GetDrop_Seeded(Squirrel))
+	if (!ensure(IsValid(Squirrel)))return FFaerieTableDrop();
+
+	if (auto&& DropPtr = GetDrop_Seeded(Squirrel->GetState()))
 	{
 		return *DropPtr;
 	}

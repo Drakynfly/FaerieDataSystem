@@ -1,11 +1,11 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieItemContainerBase.h"
-#include "FaerieItemStorage.h"
 #include "AssetLoadFlagFixer.h"
+#include "EntityManagerHelpers.h"
 #include "FaerieContainerFilter.h"
 #include "FaerieInventoryLog.h"
-#include "FaerieItemToken.h"
+#include "FaerieItem.h"
 #include "FaerieSubObjectFilter.h"
 #include "ItemContainerExtensionBase.h"
 #include "GameFramework/Actor.h"
@@ -30,7 +30,7 @@ void UFaerieItemContainerBase::GetLifetimeReplicatedProps(TArray<FLifetimeProper
 	DOREPLIFETIME_CONDITION(ThisClass, Extensions, COND_InitialOnly);
 }
 
-void UFaerieItemContainerBase::InitializeNetObject(AActor* Actor)
+void UFaerieItemContainerBase::InitializeNetObject(const TNotNull<AActor*> Actor)
 {
 	ensureAlwaysMsgf(!Faerie::Utils::HasLoadFlag(this),
 		TEXT("Containers must not be assets loaded from disk. (DuplicateObjectFromDiskForReplication or ClearLoadFlags can fix this)"
@@ -38,162 +38,130 @@ void UFaerieItemContainerBase::InitializeNetObject(AActor* Actor)
 			"	Failing Container: '%s'"), *GetFullName());
 	Actor->AddReplicatedSubObject(Extensions);
 	Extensions->InitializeNetObject(Actor);
-	Extensions->InitializeExtension(this);
+	Extensions::FGroupAPI::InitializeExtension(Extensions, this);
 }
 
-void UFaerieItemContainerBase::DeinitializeNetObject(AActor* Actor)
+void UFaerieItemContainerBase::DeinitializeNetObject(const TNotNull<AActor*> Actor)
 {
 	Actor->RemoveReplicatedSubObject(Extensions);
 	Extensions->DeinitializeNetObject(Actor);
-	Extensions->DeinitializeExtension(this);
+	Extensions::FGroupAPI::DeinitializeExtension(Extensions, this);
 }
 
-FFaerieItemStack UFaerieItemContainerBase::Release(const FFaerieItemStackView Stack)
+void UFaerieItemContainerBase::DestroyStack(const FFaerieItemProxy& Proxy, int32 Copies)
 {
 	// This function should be implemented by children.
 	checkNoEntry();
-	return FFaerieItemStack();
 }
 
-bool UFaerieItemContainerBase::Possess(FFaerieItemStack Stack)
+bool UFaerieItemContainerBase::Possess(const FFaerieUnownedItemStack& Stack)
 {
 	// This function should be implemented by children.
 	checkNoEntry();
 	return false;
 }
 
-void UFaerieItemContainerBase::OnItemMutated(const TNotNull<const UFaerieItem*> Item, const TNotNull<const UFaerieItemToken*> Token, const FGameplayTag EditTag)
+void UFaerieItemContainerBase::OnItemDataChanged(const ItemData::FMutableReference& Instance, const TNotNull<const UScriptStruct*> Struct, const FGameplayTag EditTag)
 {
-	// @todo more logic from the TakeOwnership protocol might belong here, in which case, maybe just move most of this there.
-	if (EditTag == Token::Tags::TokenAdd)
-	{
-		if (AActor* Actor = GetTypedOuter<AActor>();
-			IsValid(Actor) && Actor->IsUsingRegisteredSubObjectList())
-		{
-			if (UFaerieItemToken* MutableToken = Token->MutateCast())
-			{
-				Actor->AddReplicatedSubObject(MutableToken);
-				MutableToken->InitializeNetObject(Actor);
-			}
-		}
-		return;
-	}
-	if (EditTag == Token::Tags::TokenRemove)
-	{
-		if (AActor* Actor = GetTypedOuter<AActor>();
-			IsValid(Actor) && Actor->IsUsingRegisteredSubObjectList())
-		{
-			if (UFaerieItemToken* MutableToken = Token->MutateCast())
-			{
-				Actor->RemoveReplicatedSubObject(MutableToken);
-				MutableToken->DeinitializeNetObject(Actor);
-			}
-		}
-		return;
-	}
 }
 
-UItemContainerExtensionGroup* UFaerieItemContainerBase::GetExtensionGroup() const
+UItemContainerExtensionGroup* UFaerieItemContainerBase::VirtualGetExtensionGroup() const
 {
 	return Extensions;
 }
 
-bool UFaerieItemContainerBase::AddExtension(UItemContainerExtensionBase* Extension)
+FFaerieItemExportData UFaerieItemContainerBase::ExportItemData(const ItemData::FRequireEntityManager& EntityManager, const ItemData::FReference& Item) const
 {
-	UE_LOG(LogFaerieInventory, Verbose, TEXT("Adding Extension: '%s' to '%s'"), *Extension->GetFullName(), *this->GetFullName())
-	if (Extensions->AddExtension(Extension))
-	{
-		TryApplyUnclaimedSaveData(Extension);
-		return true;
-	}
-	return false;
+	static constexpr ItemData::EMassFragmentExportOptions ExportOptions = ItemData::EMassFragmentExportOptions::OnlyFaerieMassFragments;
+
+	FFaerieItemExportData ExportData;
+	Item.GetInstance().ExportFragmentData(EntityManager, ExportData.MassInstances, ExportOptions);
+	return ExportData;
 }
 
-void UFaerieItemContainerBase::RavelExtensionData(TMap<FGuid, FInstancedStruct>& ExtensionData) const
+FFaerieItemInstance UFaerieItemContainerBase::ImportItemData(const ItemData::FRequireEntityManager& EntityManager, const UFaerieItem* Item,
+	const FFaerieItemExportData& ExportData)
+{
+	FFaerieItemInstance Instance = FFaerieItemInstance::FromPointer(Item);
+	TArray<FInstancedStruct> FragmentCopy = ExportData.MassInstances;
+	Instance.ImportFragmentData(EntityManager, FragmentCopy);
+	return Instance;
+}
+
+void UFaerieItemContainerBase::RavelExtensionData(FFaerieItemContainerExtensionData& ExtensionData) const
 {
 	using namespace Faerie;
 
 	auto ExtractSaveData = [&ExtensionData](const UFaerieItemContainerBase* Container)
 	{
+		const uint32 ContainerHash = GetTypeHash(Container->GetName());
+
 		for (auto&& Extension : Extensions::FRecursiveConstExtensionIterator(Container->Extensions))
 		{
 			const FGuid Identifier = Extension->GetIdentifier();
 			if (!ensure(Identifier.IsValid())) return;
 
-			// Skip if we have already included this extension.
-			const uint32 IdentifierHash = GetTypeHash(Identifier);
-			if (ExtensionData.ContainsByHash(IdentifierHash, Identifier)) return;
+			const uint32 ExtensionHash = GetTypeHash(Identifier);
 
+			// Unique hash for the combo of this extension + container.
+			const uint32 SaveHash = HashCombine(ExtensionHash, ContainerHash);
+
+			// Skip if we have already included this extension.
+			if (ExtensionData.Data.Contains(SaveHash)) return;
 			if (const FInstancedStruct SaveData = Extension->MakeSaveData(Container);
 				SaveData.IsValid())
 			{
-				ExtensionData.AddByHash(IdentifierHash, Identifier, SaveData);
+				ExtensionData.Data.Add(SaveHash, SaveData);
 			}
 		}
 	};
 
 	ExtractSaveData(this);
 
-	for (auto It = Container::ItemRange(this); It; ++It)
+	auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
+	for (auto It = Container::MutableItemRange(this); It; ++It)
 	{
-		for (const UFaerieItemContainerBase* Container : SubObject::IterateRecursive(*It))
+		for (const UFaerieItemContainerBase* Container : SubObject::IterateRecursive(EntityManager, *It))
 		{
 			ExtractSaveData(Container);
 		}
 	}
 }
 
-void UFaerieItemContainerBase::UnravelExtensionData(UFaerieItemContainerExtensionData* ExtensionData)
+void UFaerieItemContainerBase::UnravelExtensionData(const TSharedStruct<FFaerieItemContainerExtensionData>& ExtensionData)
 {
 	using namespace Faerie;
 
-	UnclaimedExtensionData = ExtensionData;
-	if (!IsValid(UnclaimedExtensionData))
-	{
-		return;
-	}
-
 	for (auto&& Extension : Extensions::FRecursiveExtensionIterator(Extensions))
 	{
-		TryApplyUnclaimedSaveData(Extension);
+		Extensions->TryApplyUnclaimedSaveData(Extension);
 	}
 
-	TArray<UFaerieItemContainerBase*> SubContainers;
-	for (auto It = Container::ItemRange(this); It; ++It)
+	auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
+	TArray<TNotNull<UFaerieItemContainerBase*>> SubContainers;
+	for (auto It = Container::MutableItemRange(this); It; ++It)
 	{
-		SubContainers.Append(SubObject::GetAllContainersInItem(*It));
+		SubObject::GetContainersInInstanceDirect(EntityManager, *It, SubContainers);
 	}
 
-	for (UFaerieItemContainerBase* SubContainer : SubContainers)
+	for (const TNotNull<UFaerieItemContainerBase*> SubContainer : SubContainers)
 	{
-		SubContainer->UnravelExtensionData(UnclaimedExtensionData);
-	}
-}
-
-void UFaerieItemContainerBase::TryApplyUnclaimedSaveData(UItemContainerExtensionBase* Extension)
-{
-	if (!IsValid(UnclaimedExtensionData))
-	{
-		return;
+		SubContainer->UnravelExtensionData(ExtensionData);
 	}
 
-	const FGuid Identifier = Extension->Identifier;
-	if (!ensure(Identifier.IsValid())) return;
-
-	const uint32 IdentifierHash = GetTypeHash(Identifier);
-	if (auto&& SaveData = UnclaimedExtensionData->Data.FindByHash(IdentifierHash, Identifier))
+	if (ExtensionData.IsValid() && !ExtensionData.Get().Data.IsEmpty())
 	{
-		Extension->LoadSaveData(this, *SaveData);
-		UnclaimedExtensionData->Data.RemoveByHash(IdentifierHash, Identifier);
+		Extensions->SetUnclaimedExtensionData(ExtensionData);
 	}
 }
 
 // Note: Implementations for these PURE_VIRTUAL need to be here because TUniquePtr complains about their dtors if they are forward declared.
-TUniquePtr<Container::IIterator> UFaerieItemContainerBase::CreateEntryIterator() const
+TUniquePtr<Container::IEntryIterator> UFaerieItemContainerBase::CreateEntryIterator() const
 	PURE_VIRTUAL(UFaerieItemContainerBase::CreateIterator, return nullptr; )
 
-TUniquePtr<Container::IIterator> UFaerieItemContainerBase::CreateAddressIterator() const
+TUniquePtr<Container::IAddressIterator> UFaerieItemContainerBase::CreateAddressIterator() const
 	PURE_VIRTUAL(UFaerieItemContainerBase::CreateIterator, return nullptr; )
 
-TUniquePtr<Container::IIterator> UFaerieItemContainerBase::CreateSingleEntryIterator(FEntryKey Key) const
+TUniquePtr<Container::IAddressIterator> UFaerieItemContainerBase::CreateSingleEntryIterator(FFaerieEntryKey Key) const
 	PURE_VIRTUAL(UFaerieItemContainerBase::CreateIterator, return nullptr; )
+

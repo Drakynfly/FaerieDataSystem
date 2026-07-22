@@ -27,6 +27,7 @@ public class FaerieInventoryEditor : ModuleRules
                 "Slate",
                 "SlateCore",
                 "PropertyEditor",
+                "UnrealEd"
             }
         );
     }

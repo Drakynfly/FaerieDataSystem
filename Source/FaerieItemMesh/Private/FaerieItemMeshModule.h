@@ -4,9 +4,13 @@
 
 #include "Modules/ModuleInterface.h"
 
-class FFaerieItemMeshModule : public IModuleInterface
+namespace Faerie::ItemMesh
 {
-public:
-    virtual void StartupModule() override;
-    virtual void ShutdownModule() override;
-};
+    class FModule : public IModuleInterface
+    {
+    public:
+        virtual void StartupModule() override;
+        virtual void ShutdownModule() override;
+    };
+}
+

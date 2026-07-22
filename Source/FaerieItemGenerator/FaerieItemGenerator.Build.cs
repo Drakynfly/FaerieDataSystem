@@ -12,7 +12,8 @@ public class FaerieItemGenerator : ModuleRules
             new []
             {
                 "Core",
-                "GameplayTags"
+                "GameplayTags",
+                "ModelViewViewModel"
             }
         );
 
@@ -29,6 +30,7 @@ public class FaerieItemGenerator : ModuleRules
             {
                 "CoreUObject",
                 "Engine",
+                "MassEntity",
                 "NetCore",
                 "Squirrel"
             }

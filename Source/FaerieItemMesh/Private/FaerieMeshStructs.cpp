@@ -1,7 +1,6 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieMeshStructs.h"
-#include "UDynamicMesh.h"
 #include "Engine/SkeletalMesh.h"
 #include "Engine/StaticMesh.h"
 #include "Materials/MaterialInterface.h"
@@ -59,14 +58,6 @@ FFaerieItemMesh FFaerieItemMesh::MakeStatic(UStaticMesh* Mesh, const TArray<FFae
 	return ItemMesh;
 }
 
-FFaerieItemMesh FFaerieItemMesh::MakeDynamic(UDynamicMesh* Mesh, const TArray<FFaerieItemMaterial>& Materials)
-{
-	FFaerieItemMesh ItemMesh;
-	ItemMesh.DynamicStaticMesh = Mesh;
-	ItemMesh.Materials = Materials;
-	return ItemMesh;
-}
-
 FFaerieItemMesh FFaerieItemMesh::MakeSkeletal(const FFaerieSkeletalMeshData& MeshData)
 {
 	FFaerieItemMesh ItemMesh;
@@ -88,14 +79,21 @@ FFaerieItemMesh FFaerieItemMesh::MakeSkeletal(const FSkeletonAndAnimation& Mesh,
 	return ItemMesh;
 }
 
+TArray<UMaterialInterface*> FFaerieItemMesh::ToObjectArray()
+{
+	TArray<UMaterialInterface*> OutArray;
+
+	for (const FFaerieItemMaterial& ItemMaterial : Materials)
+	{
+		OutArray.Add(ItemMaterial.Material);
+	}
+
+	return OutArray;
+}
+
 bool FFaerieItemMesh::IsStatic() const
 {
 	return IsValid(StaticMesh);
-}
-
-bool FFaerieItemMesh::IsDynamic() const
-{
-	return IsValid(DynamicStaticMesh);
 }
 
 bool FFaerieItemMesh::IsSkeletal() const

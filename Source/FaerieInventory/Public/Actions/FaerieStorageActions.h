@@ -3,8 +3,8 @@
 #pragma once
 
 #include "FaerieClientActionBase.h"
-#include "InventoryDataEnums.h"
-#include "InventoryDataStructs.h"
+#include "FaerieStorageEnums.h"
+#include "FaerieStorageStructs.h"
 #include "FaerieStorageActions.generated.h"
 
 class UFaerieItemStorage;
@@ -14,11 +14,11 @@ struct FFaerieClientAction_MoveFromStorage final : public FFaerieClientAction_Mo
 {
 	GENERATED_BODY()
 
-	virtual bool IsValid(const UFaerieInventoryClient* Client) const override;
-	virtual bool View(FFaerieItemStackView& View) const override;
-	virtual bool CanMove(const FFaerieItemStackView& View) const override;
-	virtual bool Release(FFaerieItemStack& Stack) const override;
-	virtual bool Possess(const FFaerieItemStack& Stack) const override;
+	virtual bool IsValid(TNotNull<const UFaerieInventoryClient*> Client) const override;
+	virtual bool View(FFaerieItemDataView& View) const override;
+	virtual bool CanMove(const FFaerieItemDataView& View) const override;
+	virtual bool Release(FFaerieUnownedItemStack& Stack) const override;
+	virtual bool Possess(const FFaerieUnownedItemStack& Stack) const override;
 
 	UPROPERTY(BlueprintReadWrite, Category = "MoveFromStorage")
 	TObjectPtr<UFaerieItemStorage> Storage = nullptr;
@@ -35,13 +35,13 @@ struct FFaerieClientAction_MoveToStorage final : public FFaerieClientAction_Move
 {
 	GENERATED_BODY()
 
-	virtual bool IsValid(const UFaerieInventoryClient* Client) const override;
-	virtual bool CanMove(const FFaerieItemStackView& View) const override;
-	virtual bool Possess(const FFaerieItemStack& Stack) const override;
+	virtual bool IsValid(TNotNull<const UFaerieInventoryClient*> Client) const override;
+	virtual bool CanMove(const FFaerieItemDataView& View) const override;
+	virtual bool Possess(const FFaerieUnownedItemStack& Stack) const override;
 
 	// MoveToStorage doesn't support swaps.
-	virtual bool View(FFaerieItemStackView& View) const override { return false; }
-	virtual bool Release(FFaerieItemStack& Stack) const override { return false; }
+	virtual bool View(FFaerieItemDataView& View) const override { return false; }
+	virtual bool Release(FFaerieUnownedItemStack& Stack) const override { return false; }
 
 	UPROPERTY(BlueprintReadWrite, Category = "MoveToStorage")
 	TObjectPtr<UFaerieItemStorage> Storage = nullptr;
@@ -55,7 +55,7 @@ struct FFaerieClientAction_DeleteEntry final : public FFaerieClientActionBase
 {
 	GENERATED_BODY()
 
-	virtual bool Server_Execute(const UFaerieInventoryClient* Client) const override;
+	virtual bool Server_Execute(TNotNull<const UFaerieInventoryClient*> Client) const override;
 
 	UPROPERTY(BlueprintReadWrite, Category = "DeleteEntry")
 	TObjectPtr<UFaerieItemStorage> Storage = nullptr;
@@ -72,7 +72,7 @@ struct FFaerieClientAction_RequestMoveEntry final : public FFaerieClientActionBa
 {
 	GENERATED_BODY()
 
-	virtual bool Server_Execute(const UFaerieInventoryClient* Client) const override;
+	virtual bool Server_Execute(TNotNull<const UFaerieInventoryClient*> Client) const override;
 
 	UPROPERTY(BlueprintReadWrite, Category = "MoveEntry")
 	TObjectPtr<UFaerieItemStorage> Storage = nullptr;
@@ -92,19 +92,19 @@ struct FFaerieClientAction_MergeStacks final : public FFaerieClientActionBase
 {
 	GENERATED_BODY()
 
-	virtual bool Server_Execute(const UFaerieInventoryClient* Client) const override;
+	virtual bool Server_Execute(TNotNull<const UFaerieInventoryClient*> Client) const override;
 
 	UPROPERTY(BlueprintReadWrite, Category = "MergeStacks")
 	TObjectPtr<UFaerieItemStorage> Storage = nullptr;
 
 	UPROPERTY(BlueprintReadWrite, Category = "MergeStacks")
-	FEntryKey Entry;
+	FFaerieEntryKey Entry;
 
 	UPROPERTY(BlueprintReadWrite, Category = "MergeStacks")
-	FStackKey FromStack;
+	FFaerieStackKey FromStack;
 
 	UPROPERTY(BlueprintReadWrite, Category = "MergeStacks")
-	FStackKey ToStack;
+	FFaerieStackKey ToStack;
 
 	// Amount to move from A to B. If equal to -1, the entire stack will attempt to merge.
 	UPROPERTY(BlueprintReadWrite, Category = "MergeStacks")
@@ -116,7 +116,7 @@ struct FFaerieClientAction_SplitStack final : public FFaerieClientActionBase
 {
 	GENERATED_BODY()
 
-	virtual bool Server_Execute(const UFaerieInventoryClient* Client) const override;
+	virtual bool Server_Execute(TNotNull<const UFaerieInventoryClient*> Client) const override;
 
 	UPROPERTY(BlueprintReadWrite, Category = "SplitStack")
 	TObjectPtr<UFaerieItemStorage> Storage = nullptr;

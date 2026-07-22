@@ -9,10 +9,7 @@
 
 #include "FaerieCardGenerator.generated.h"
 
-class UFaerieItemCardToken;
-
 using FFaerieCardGenerationResult = TDelegate<void(bool, UFaerieCardBase*)>;
-DECLARE_DYNAMIC_DELEGATE_TwoParams(FFaerieCardGenerationResultDynamic, bool, Success, UFaerieCardBase*, Widget);
 
 namespace Faerie::Card
 {
@@ -25,27 +22,12 @@ namespace Faerie::Card
 
 	struct FAsyncGeneration
 	{
-		FAsyncGeneration(APlayerController* Player, const FFaerieItemProxy ItemProxy, const FFaerieItemCardType Tag,
+		FAsyncGeneration(APlayerController* Player, const FFaerieItemProxy& ItemProxy, const FFaerieItemCardType Tag,
 						 const FFaerieCardGenerationResult& Callback)
 		  : Player(Player),
 			Proxy(ItemProxy),
 			Tag(Tag),
 			Callback(Callback) {}
-
-		FAsyncGeneration(APlayerController* Player, const FFaerieItemProxy ItemProxy, const FFaerieItemCardType Tag,
-						 const FFaerieCardGenerationResultDynamic& InCallback)
-		  : Player(Player),
-			Proxy(ItemProxy),
-			Tag(Tag)
-		{
-			if (Callback.IsBound())
-			{
-				Callback.BindWeakLambda(Callback.GetUObject(), [InCallback](const bool Success, UFaerieCardBase* Widget)
-				{
-					InCallback.Execute(Success, Widget);
-				});
-			}
-		}
 
 		TWeakObjectPtr<APlayerController> Player;
 		FFaerieItemProxy Proxy;
@@ -66,7 +48,7 @@ class FAERIEITEMCARD_API UFaerieCardGenerator : public UObject
 	friend class UFaerieCardSubsystem;
 
 public:
-	TSoftClassPtr<UFaerieCardBase> GetCardClassFromProxy(FFaerieItemProxy Proxy, const FFaerieItemCardType& Type) const;
+	TSoftClassPtr<UFaerieCardBase> GetCardClassFromProxy(const FFaerieItemProxy& Proxy, const FFaerieItemCardType& Type) const;
 
 	UFaerieCardBase* Generate(const Faerie::Card::FSyncGeneration& Params);
 	void GenerateAsync(const Faerie::Card::FAsyncGeneration& Params);

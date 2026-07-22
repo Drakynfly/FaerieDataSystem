@@ -3,12 +3,11 @@
 #pragma once
 
 #include "FaerieSlotTag.h"
-
 #include "EquipmentQueryTypes.generated.h"
 
-struct FFaerieItemStackView;
+struct FFaerieItemProxy;
 
-DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(bool, FBlueprintEquipmentFilter, const FFaerieItemStackView&, View);
+DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(bool, FBlueprintEquipmentFilter, const FFaerieItemProxy&, Proxy);
 
 USTRUCT(BlueprintType)
 struct FFaerieEquipmentQueryTagSet

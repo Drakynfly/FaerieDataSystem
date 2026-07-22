@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "Misc/NotNull.h"
+
 struct FFaerieEquipmentSetQuery;
 class UFaerieEquipmentManager;
 class UFaerieEquipmentSlot;

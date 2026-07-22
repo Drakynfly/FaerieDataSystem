@@ -7,38 +7,29 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemContainerPath)
 
-void BuildPath_Recurse(UFaerieItemContainerBase* Container, const FFaerieItemContainerPath& BasePath, TArray<FFaerieItemContainerPath>& OutPaths)
+using namespace Faerie;
+
+namespace Faerie::Container
 {
-	using namespace Faerie;
-
-	FFaerieItemContainerPath& NewPath = OutPaths.Emplace_GetRef(BasePath);
-	NewPath.Containers.Add(Container);
-
-	for (auto It = Container::ItemRange(Container); It; ++It)
+	void BuildPath_Recurse(ItemData::FRequireEntityManager& EntityManager, const ItemData::FMutableReference& Owner,
+	   const TNotNull<UFaerieItemContainerBase*> Container, const FFaerieItemContainerPath& BasePath, TArray<FFaerieItemContainerPath>& OutPaths)
 	{
-		for (UFaerieItemContainerBase* SubContainer : SubObject::Iterate(*It))
+		FFaerieItemContainerPath& NewPath = OutPaths.Emplace_GetRef(BasePath);
+		NewPath.Containers.Add({Owner.GetInstance(), Container});
+
+		for (auto It = MutableItemRange(Container); It; ++It)
 		{
-			BuildPath_Recurse(SubContainer, NewPath, OutPaths);
+			ItemData::FMutableReference Instance = *It;
+			for (UFaerieItemContainerBase* SubContainer : SubObject::Iterate(EntityManager, *It))
+			{
+				BuildPath_Recurse(EntityManager, Instance, SubContainer, NewPath, OutPaths);
+			}
 		}
 	}
 }
 
-void FFaerieItemContainerPath::BuildChildrenPaths(UFaerieItemContainerBase* Head, TArray<FFaerieItemContainerPath>& OutPaths)
+void FFaerieItemContainerPath::BuildChildrenPaths(ItemData::FRequireEntityManager& EntityManager,
+	const ItemData::FMutableReference& Owner, const TNotNull<UFaerieItemContainerBase*> Head, TArray<FFaerieItemContainerPath>& OutPaths)
 {
-	BuildPath_Recurse(Head, FFaerieItemContainerPath(), OutPaths);
-}
-
-FFaerieItemContainerPath FFaerieItemContainerPath::BuildParentPath(UFaerieItemContainerBase* Tail)
-{
-	FFaerieItemContainerPath Path;
-
-	UFaerieItemContainerBase* Container = Tail;
-
-	while (IsValid(Container))
-	{
-		Path.Containers.Add(Container);
-		Container = Container->GetTypedOuter<UFaerieItemContainerBase>();
-	}
-
-	return Path;
+	Container::BuildPath_Recurse(EntityManager, Owner, Head, FFaerieItemContainerPath(), OutPaths);
 }

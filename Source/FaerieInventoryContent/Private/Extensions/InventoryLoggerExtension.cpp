@@ -22,15 +22,15 @@ void UInventoryLoggerExtension::PostEventBatch(const TNotNull<const UFaerieItemC
 	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, EventLog, this);
 	for (auto&& Event : Events.Data)
 	{
-		EventLog.Emplace(Container, Faerie::Inventory::FEventLogSingle(Events.Type, Event));
+		EventLog.Emplace(FFaerieBlueprintInventoryEvent::FromNativeEvent(Container, Events.Type, Event, FDateTime::UtcNow()));
 	}
 	OnInventoryEventLoggedNative.Broadcast(Events.Data.Num());
 	OnInventoryEventLogged.Broadcast(Events.Data.Num());
 }
 
-TArray<FLoggedInventoryEvent> UInventoryLoggerExtension::GetRecentEvents(const int32 NumEvents, const int32 Offset) const
+TArray<FFaerieBlueprintInventoryEvent> UInventoryLoggerExtension::GetRecentEvents(const int32 NumEvents, const int32 Offset) const
 {
-	return TArray<FLoggedInventoryEvent>(MakeConstArrayView(EventLog).Mid(EventLog.Num() - Offset - NumEvents, NumEvents));
+	return TArray<FFaerieBlueprintInventoryEvent>(MakeConstArrayView(EventLog).Mid(EventLog.Num() - Offset - NumEvents, NumEvents));
 }
 
 void UInventoryLoggerExtension::OnRep_EventLog()

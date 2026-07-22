@@ -35,20 +35,22 @@ namespace Faerie::Editor
 		void Construct(const FArguments& InArgs, const FFaerieItemAssetViewportRequiredArgs& InRequiredArgs);
 		virtual ~SItemAssetEditorViewport() override;
 
+	protected:
 		//~ SEditorViewport
 		virtual void OnFocusViewportToSelection() override;
 		virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() override;
 		//~ SEditorViewport
 
-		//virtual void AddReferencedObjects(FReferenceCollector& Collector) override {}
-
+	public:
 		//~ ICommonEditorViewportToolbarInfoProvider
 		virtual TSharedRef<SEditorViewport> GetViewportWidget() override;
 		virtual TSharedPtr<FExtender> GetExtenders() const override;
 		virtual void OnFloatingButtonClicked() override;
 		//~ ICommonEditorViewportToolbarInfoProvider
 
-		TSharedPtr<FItemAssetViewportClient> GetViewportClient() { return TypedViewportClient; };
+		TSharedPtr<FItemAssetViewportClient> GetViewportClient() { return TypedViewportClient; }
+
+		void FocusViewport();
 
 	private:
 		/** The scene for this viewport. */

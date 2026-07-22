@@ -5,20 +5,6 @@
 #include "Animation/AnimInstance.h"
 #include "AnimUtilityStructs.generated.h"
 
-USTRUCT(BlueprintType)
-struct FAERIEITEMMESH_API FSocketAttachment
-{
-	GENERATED_BODY()
-
-	/** Attach to this bone */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Attachment Data")
-	FName Socket;
-
-	/** Attach with this offset */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Attachment Data")
-	FTransform Offset;
-};
-
 /*
  * A skeletal mesh and paired animation blueprint class and/or animation asset.
 */

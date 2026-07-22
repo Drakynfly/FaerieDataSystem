@@ -3,13 +3,15 @@
 #include "FaerieItemAsset.h"
 
 #include "FaerieItem.h"
-#include "FaerieItemStackView.h"
+#include "FaerieItemDataView.h"
 #include "FaerieItemTemplate.h"
+#include "FaerieItemInstancingContext.h"
+#include "Fragments/FaerieReferenceFragment.h"
 
-#include "Tokens/FaerieInfoToken.h"
+#include "EntityManagerHelpers.h"
 
+#include "UObject/AssetRegistryTagsContext.h"
 #include "UObject/ObjectSaveContext.h"
-#include "EngineUpgradeNotice.h"
 
 #if WITH_EDITOR
 #include "ThumbnailRendering/SceneThumbnailInfo.h"
@@ -25,6 +27,7 @@ namespace Faerie::ItemAssetPrivate
 	static const FName NAME_IsEditorTemplate("IsEditorTemplate");
 }
 
+using namespace Faerie;
 
 #define LOCTEXT_NAMESPACE "FaerieItemAssetMetadata"
 
@@ -33,7 +36,7 @@ void UFaerieItemAsset::GetAssetRegistryTagMetadata(TMap<FName, FAssetRegistryTag
 	Super::GetAssetRegistryTagMetadata(OutMetadata);
 
 	OutMetadata.Add(
-		Faerie::ItemAssetPrivate::NAME_IsEditorTemplate,
+		ItemAssetPrivate::NAME_IsEditorTemplate,
 		FAssetRegistryTagMetadata()
 		.SetDisplayName(LOCTEXT("IsEditorTemplate", "Is Editor Template"))
 		.SetTooltip(LOCTEXT("IsEditorTemplateTooltip", "This asset appears in the template section when creating a new asset."))
@@ -43,6 +46,16 @@ void UFaerieItemAsset::GetAssetRegistryTagMetadata(TMap<FName, FAssetRegistryTag
 #undef LOCTEXT_NAMESPACE
 
 #endif
+
+void UFaerieItemAsset::GetAssetRegistryTags(FAssetRegistryTagsContext Context) const
+{
+	Super::GetAssetRegistryTags(Context);
+
+	Context.AddTag(FAssetRegistryTag(MutableSourceTag, CanBeMutable() ? TEXT("True") : TEXT("False"), FAssetRegistryTag::TT_Alphabetical));
+#if WITH_EDITORONLY_DATA
+	Context.AddTag(FAssetRegistryTag(TEXT("ItemAssetVersion"), LexToString(AssetVersion), FAssetRegistryTag::TT_Numerical));
+#endif
+}
 
 void UFaerieItemAsset::PreSave(FObjectPreSaveContext SaveContext)
 {
@@ -59,38 +72,27 @@ void UFaerieItemAsset::PreSave(FObjectPreSaveContext SaveContext)
 	// Setting RF_Public suppresses "Illegal reference to private object" warnings when referenced by a Level.
 	Item->SetFlags(RF_Public);
 
-	Item->MutabilityFlags = EFaerieItemMutabilityFlags::None;
-
-	if (AlwaysMutable)
+	switch (InstanceMutability)
 	{
-		EnumAddFlags(Item->MutabilityFlags, EFaerieItemMutabilityFlags::AlwaysTokenMutable);
+	case EFaerieItemInstancingMutability::Automatic:
+		Item->InstancesCanMutate = Item->DetermineFragmentMutability();
+		break;
+	case EFaerieItemInstancingMutability::Mutable:
+		Item->InstancesCanMutate = true;
+		break;
+	case EFaerieItemInstancingMutability::Immutable:
+		Item->InstancesCanMutate = false;
+		break;
 	}
 
-	Item->Tokens.Empty();
-	TMultiMap<UClass*, UFaerieItemToken*> ClassMap;
-	for (auto&& Token : Tokens)
+	Item->FragmentDefaults.Empty();
+	for (const TInstancedStruct<FFaerieMassFragment>& Fragment : Fragments)
 	{
-		ClassMap.Add(Token->GetClass(), Token);
+		Item->FragmentDefaults.Add(FInstancedStruct(FConstStructView(Fragment.GetScriptStruct(), Fragment.GetMemory())));
 	}
-	TArray<UClass*> Keys;
-	ClassMap.GetKeys(Keys);
-	for (auto&& KeyClass : Keys)
-	{
-		TArray<UFaerieItemToken*, TInlineAllocator<1>> TokensOfClass;
-		ClassMap.MultiFind(KeyClass, TokensOfClass);
-		if (TokensOfClass.Num() == 1)
-		{
-			Item->Tokens.Add(DuplicateObject(TokensOfClass[0], Item, KeyClass->GetFName()));
-		}
-		else
-		{
-			for (auto&& It = TokensOfClass.CreateIterator(); It; ++It)
-			{
-				const FName TokenName(KeyClass->GetName() + TEXT("_") + LexToString(It.GetIndex()));
-				Item->Tokens.Add(DuplicateObject(*It, Item, TokenName));
-			}
-		}
-	}
+
+	// Bring item version up to date on re-save.
+	Item->FormatVersion = static_cast<int32>(ItemData::EFormatVersion::LatestVersion);
 #endif
 
 	Super::PreSave(SaveContext);
@@ -119,36 +121,31 @@ EDataValidationResult UFaerieItemAsset::IsDataValid(FDataValidationContext& Cont
 
 	if (!IsValid(Item))
 	{
-		Context.AddError(LOCTEXT("InvalidItemObject", "Item is invalid! Please try making sure Tokens are correctly configured and resave this asset."));
+		Context.AddError(LOCTEXT("InvalidItemObject", "Item is invalid! Please try making sure asset is correctly configured and resave this asset."));
 		Result = EDataValidationResult::Invalid;
 	}
 	else
 	{
-		ENGINE_UPGRADE_NOTICE(8, "Remove const cast after upgrade")
-		Result = CombineDataValidationResults(Result, const_cast<const UFaerieItem*>(Item.Get())->IsDataValid(Context));
-	}
+		Result = CombineDataValidationResults(Result, Item.Get()->IsDataValid(Context));
 
-	if (!IsValid(Template))
-	{
-		Context.AddWarning(LOCTEXT("InvalidTemplateObject", "Template is invalid! Unable to check Item for pattern-correctness."));
-	}
-
-	for (auto&& Token : Tokens)
-	{
-		ENGINE_UPGRADE_NOTICE(8, "Remove const cast after upgrade")
-		Result = CombineDataValidationResults(Result, const_cast<const UFaerieItemToken*>(Token.Get())->IsDataValid(Context));
-	}
-
-	if (IsValid(Item) && IsValid(Template))
-	{
-		if (TArray<FText> TemplateMatchErrors;
-			!Template->TryMatchWithDescriptions({Item, 1}, TemplateMatchErrors))
+		if (!IsValid(Template))
 		{
-			Context.AddError(LOCTEXT("PatternMatchFailed", "Item failed to match the pattern of its Template!"));
+			Context.AddWarning(LOCTEXT("InvalidTemplateObject", "Template is invalid! Unable to check Item for pattern-correctness."));
+		}
+		else
+		{
+			const FFaerieItemInstance Instance = FFaerieItemInstance::FromPointer(Item);
+			const FFaerieItemDataView View(Instance, 1, nullptr);
 
-			for (auto&& TemplateMatchError : TemplateMatchErrors)
+			if (TArray<FText> TemplateMatchErrors;
+				!Template->TryMatchWithDescriptions(this, View, TemplateMatchErrors))
 			{
-				Context.AddError(TemplateMatchError);
+				Context.AddError(LOCTEXT("PatternMatchFailed", "Item failed to match the pattern of its Template!"));
+
+				for (auto&& TemplateMatchError : TemplateMatchErrors)
+				{
+					Context.AddError(TemplateMatchError);
+				}
 			}
 		}
 	}
@@ -166,42 +163,97 @@ bool UFaerieItemAsset::CanBeMutable() const
 	{
 		// Item is part of this asset, which will cannot have InstanceMutable set. Assets are never InstanceMutable, as
 		// they are non-instanced templates that get duplicates made from them if they are supposed to be modifiable.
-		// Checking for DataMutable lets us know if this item has tokens that can mutate.
-		return Item->IsDataMutable();
+		// Checking for DataMutable lets us know if this item has fragments that can mutate.
+		return Item->CanMutate();
 	}
 	return false;
 }
 
-FFaerieAssetInfo UFaerieItemAsset::GetSourceInfo() const
-{
-	if (!IsValidChecked(Item)) return FFaerieAssetInfo();
-
-	if (auto&& InfoToken = Item->GetToken<UFaerieInfoToken>())
-	{
-		return InfoToken->GetAssetInfo();
-	}
-	return FFaerieAssetInfo();
-}
-
-TOptional<FFaerieItemStack> UFaerieItemAsset::CreateItemStack(const FFaerieItemInstancingContext* Context) const
+ItemData::FGetInstanceResult UFaerieItemAsset::CreateItemStack(const FFaerieItemInstancingContext& Context) const
 {
 	if (!IsValidChecked(Item)) return NullOpt;
-	if (Context)
+
+	FFaerieUnownedItemStack OutStack;
+
+	OutStack.Copies = 1;
+	if (Context.CopiesOverride.IsSet())
 	{
-		int32 Copies = 1;
-		if (Context->CopiesOverride.IsSet())
-		{
-			Copies = Context->CopiesOverride.GetValue();
-		}
-		return FFaerieItemStack(Item->CreateInstance(Context->Mutability), Copies);
+		OutStack.Copies = Context.CopiesOverride.GetValue();
 	}
-	return FFaerieItemStack(Item->CreateInstance(), 1);
+
+	if (Context.CreateReferencingInstance)
+	{
+		check(Context.ItemInstanceOuter);
+
+#if WITH_EDITOR
+		if (Context.RunningInEditor)
+		{
+			OutStack.Instance = CreateReferencingInstance_Editor(Context.ItemInstanceOuter);
+		}
+		else
+#endif
+		{
+			OutStack.Instance = CreateReferencingInstance_Runtime(Context.ItemInstanceOuter);
+		}
+	}
+	else
+	{
+		OutStack.Instance = FFaerieItemInstance::FromPointer(Item);
+	}
+
+	if (OutStack.Instance.IsMutable() && OutStack.Copies > 1)
+	{
+		if (!Context.EmitStackEvenIfMutableBecauseCallerKnowsToDuplicateItem)
+		{
+			// Reset Copies to 1, because caller doesn't expect to receive a mutable stack.
+			OutStack.Copies = 1;
+		}
+	}
+
+	return ItemData::FGetInstanceResult(OutStack);
 }
 
-const UFaerieItem* UFaerieItemAsset::GetItemInstance(const EFaerieItemInstancingMutability Mutability) const
+#if WITH_EDITOR
+FFaerieItemInstance UFaerieItemAsset::CreateReferencingInstance_Editor(const TNotNull<UObject*> InstanceOuter) const
 {
-	if (!ensure(IsValid(Item))) return GetDefault<UFaerieItem>();
-	return Item->CreateInstance(Mutability);
+	const FFaerieTaggedReference Reference
+	{
+		ItemData::Tags::ReferenceDefaults,
+		this
+	};
+
+	FFaerieReferenceFragment ReferenceFragment;
+	ReferenceFragment.References[0] = Reference;
+
+	FInstancedStruct FragmentStruct;
+	FragmentStruct.InitializeAs<FFaerieReferenceFragment>(ReferenceFragment);
+
+	// Create and return a new item instance
+	return FFaerieItemInstance::FromPointer(UFaerieItem::CreateNewInstance(MakeConstArrayView(&FragmentStruct, 1), InstanceOuter, EFaerieItemInstancingMutability::Mutable));
+}
+#endif
+
+FFaerieItemInstance UFaerieItemAsset::CreateReferencingInstance_Runtime(const TNotNull<const UObject*> WorldContextObj) const
+{
+	const FFaerieTaggedReference Reference
+	{
+		ItemData::Tags::ReferenceDefaults,
+		this
+	};
+
+	FFaerieReferenceFragment ReferenceFragment;
+	ReferenceFragment.References[0] = Reference;
+
+	FInstancedStruct FragmentStruct;
+	FragmentStruct.InitializeAs<FFaerieReferenceFragment>(ReferenceFragment);
+
+	ItemData::FRequireEntityManager EntityManager(WorldContextObj);
+	return FFaerieItemInstance::FromFragments(EntityManager, MakeArrayView(&FragmentStruct, 1));
+}
+
+FFaerieItemInstance UFaerieItemAsset::GetTemplateInstance() const
+{
+	return FFaerieItemInstance::FromPointer(Item);
 }
 
 #undef LOCTEXT_NAMESPACE

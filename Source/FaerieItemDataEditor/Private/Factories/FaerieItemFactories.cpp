@@ -65,7 +65,7 @@ namespace Faerie::Editor
 												.ButtonColorAndOpacity(GColorList.Aquamarine)
 												.OnClicked(this, &SItemAssetCreateDialog::CreateEmptyClicked)
 												.Text(LOCTEXT("CreateBlankItemAsset", "Create Blank Asset"))
-												.ToolTipText(LOCTEXT("CreateBlankItemAssetTooltip", "Create a blank asset with no tokens."))
+												.ToolTipText(LOCTEXT("CreateBlankItemAssetTooltip", "Create a blank asset with no fragments."))
 										]
 										+ SUniformGridPanel::Slot(1, 0)
 										[

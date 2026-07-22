@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Components/SceneComponent.h"
+#include "FaerieItemProxy.h"
 
 #include "FaerieMeshStructs.h"
 #include "ItemMeshType.h"
@@ -15,12 +16,11 @@ namespace Faerie::Editor
 }
 
 class UFaerieItemMeshComponent;
-class UFaerieMeshTokenBase;
 class UMeshComponent;
 
 namespace Faerie::Mesh
 {
-	using FOnRebuildEvent = TMulticastDelegate<void(UFaerieItemMeshComponent*)>;
+	using FOnRebuildEvent = TMulticastDelegate<void(TNotNull<UFaerieItemMeshComponent*>)>;
 }
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FFaerieOnMeshRebuilt);
@@ -39,16 +39,15 @@ public:
 
 	virtual void DestroyComponent(bool bPromoteChildren = false) override;
 
+	UE_REWRITE EItemMeshType GetMeshType() const { return ActualType; }
+
 protected:
 	void UpdateCachedBounds();
 
-	void LoadMeshFromToken(bool Async);
+	void LoadMeshFromSource(bool Async);
 	void AsyncLoadMeshReturn(bool Success, FFaerieItemMesh&& InMeshData);
 
 	void RebuildMesh();
-
-	UFUNCTION(/* Replication */)
-	void OnRep_SourceMeshToken();
 
 	UFUNCTION(/* Replication */)
 	void OnRep_SkeletalMeshLeader();
@@ -62,13 +61,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataMesh")
 	UMeshComponent* GetGeneratedMeshComponent() const { return MeshComponent; }
 
+	// Set the source proxy to source a mesh from.
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataMesh")
+	void SetItemMeshFromProxy(const FFaerieItemProxy& InProxy);
+
 	// Set the mesh to use directly. This is local only, as the ItemMesh struct does not replicate.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataMesh")
 	void SetItemMesh(const FFaerieItemMesh& InMeshData);
-
-	// Set the token to generate a mesh from. If called on the server, the client can generate the same mesh.
-	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataMesh")
-	void SetItemMeshFromToken(const UFaerieMeshTokenBase* InMeshToken);
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataMesh")
 	void SetSkeletalMeshLeaderPoseComponent(USkinnedMeshComponent* LeaderComponent);
@@ -92,14 +91,14 @@ protected:
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FFaerieOnMeshRebuilt OnMeshRebuilt;
 
-	UPROPERTY(VisibleInstanceOnly, ReplicatedUsing = "OnRep_SourceMeshToken", BlueprintReadOnly, Category = "Config")
-	TObjectPtr<const UFaerieMeshTokenBase> SourceMeshToken;
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Config")
+	FFaerieItemProxy SourceProxy;
 
 	// Leader component if LeaderPose is allowed.
 	UPROPERTY(VisibleInstanceOnly, ReplicatedUsing = "OnRep_SkeletalMeshLeader", BlueprintReadOnly, Category = "Config")
 	TObjectPtr<USkinnedMeshComponent> SkeletalMeshLeader;
 
-	// The MeshPurpose preferred by this Component. Only matters if SourceMeshToken is set.
+	// The MeshPurpose preferred by this Component. Only matters if SourceProxy is set.
 	UPROPERTY(EditAnywhere, ReplicatedUsing = "OnRep_PreferredTag", BlueprintReadOnly, Category = "Config", meta = (Categories = "MeshPurpose"))
 	FGameplayTag PreferredTag;
 

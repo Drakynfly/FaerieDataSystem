@@ -1,9 +1,13 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieHashStatics.h"
+#include "EntityManagerHelpers.h"
 #include "FaerieItem.h"
+#include "FaerieItemDataView.h"
 #include "Squirrel.h"
-#include "Tokens/FaerieInfoToken.h"
+
+#include "Fragments/FaerieAssetInfo.h"
+
 #include "UObject/TextProperty.h"
 #include "UObject/PropertyOptional.h"
 
@@ -40,7 +44,7 @@ namespace Faerie::Hash
 		return OutHash;
 	}
 
-	uint32 HashFProperty(const void* Ptr, const FProperty* Property)
+	uint32 HashFProperty(const TNotNull<const void*> Ptr, const FProperty* Property)
 	{
 		if (Property->IsA<FBoolProperty>())
 		{
@@ -132,7 +136,7 @@ namespace Faerie::Hash
 	}
 
 	template <typename T>
-	uint32 HashProps(const T* Container, const UStruct* Struct, const bool IncludeSuper)
+	uint32 HashProps(const TNotNull<const T*> Container, const UStruct* Struct, const bool IncludeSuper)
 	{
 		uint32 Hash = 0;
 
@@ -147,36 +151,35 @@ namespace Faerie::Hash
 		return Hash;
 	}
 
-	uint32 HashStructByProps(const void* Ptr, const UScriptStruct* Struct, const bool IncludeSuper)
+	uint32 HashStructByProps(const TNotNull<const void*> Ptr, const TNotNull<const UScriptStruct*> Struct, const bool IncludeSuper)
 	{
-		check(Ptr);
-		check(Struct);
 		return HashProps(Ptr, Struct, IncludeSuper);
 	}
 
-	uint32 HashObjectByProps(const UObject* Obj, const bool IncludeSuper)
+	uint32 HashObjectByProps(const TNotNull<const UObject*> Obj, const bool IncludeSuper)
 	{
-		check(Obj);
 		return HashProps(Obj, Obj->GetClass(), IncludeSuper);
 	}
 
-	FFaerieHash HashItemSet(const TSet<TNotNull<const UFaerieItem*>>& Items, const FItemHashFunction& Function)
+	FFaerieHash HashItemSet(const TNotNull<const UObject*> WorldContextObj, const TSet<ItemData::FReference>& Items, const FItemHashFunction& Function)
 	{
 		TArray<uint32> Hashes;
 
 		for (auto&& Item : Items)
 		{
-			Hashes.Add(Function(Item));
+			Hashes.Add(Function(WorldContextObj, Item));
 		}
 
 		return CombineHashes(Hashes);
 	}
 
-	uint32 HashItemByName(const TNotNull<const UFaerieItem*> Item)
+	uint32 HashItemByName(const TNotNull<const UObject*> WorldContextObj, const ItemData::FReference& Item)
 	{
-		if (const UFaerieInfoToken* InfoToken = Item->GetToken<UFaerieInfoToken>())
+		ItemData::FOptionalEntityManager EntityManager(WorldContextObj);
+		auto ItemInfo = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieAssetInfo>(EntityManager, Item);
+		if (ItemInfo.IsValid())
 		{
-			return InfoToken->GetTokenHash();
+			return GetTypeHash(ItemInfo.Get());
 		}
 
 		return 0;

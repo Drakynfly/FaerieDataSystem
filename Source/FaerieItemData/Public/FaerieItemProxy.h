@@ -2,67 +2,19 @@
 
 #pragma once
 
-#include "FaerieItemDataConcepts.h"
-#include "FaerieItemStackView.h"
+#include "FaerieItemInstance.h"
+#include "GameplayTagContainer.h"
+
 #include "UObject/Interface.h"
-#include "UObject/WeakInterfacePtr.h"
 
 #include "FaerieItemProxy.generated.h"
 
 class IFaerieItemOwnerInterface;
-class UFaerieItem;
-class IFaerieItemDataProxy;
 
-// This struct contains a weak pointer to a proxy of a FaerieItem somewhere. This struct should never be
-// serialized, and will not keep the proxy it points to alive.
-// Access to the referenced item data is always const. Mutable access must be granted by the owner of the data.
-USTRUCT(BlueprintType, meta = (HasNativeMake = "/Script/FaerieItemData.FaerieItemProxyUtils.ToWeakProxy"))
-struct FAERIEITEMDATA_API FFaerieItemProxy
+namespace Faerie::ItemData
 {
-	GENERATED_BODY()
-
-	FFaerieItemProxy() = default;
-
-	FFaerieItemProxy(TYPE_OF_NULLPTR) {}
-
-	FFaerieItemProxy(const IFaerieItemDataProxy* Interface)
-	  : Proxy(Cast<UObject>(Interface)) {}
-
-	template <Faerie::ItemData::CItemDataProxy T>
-	FFaerieItemProxy(const TObjectPtr<T> Interface)
-	  : Proxy(Interface) {}
-
-	FFaerieItemProxy(const TScriptInterface<IFaerieItemDataProxy>& Interface)
-	  : Proxy(Interface.GetObject()) {}
-
-private:
-	UPROPERTY()
-	TWeakObjectPtr<const UObject> Proxy;
-
-public:
-	bool IsValid() const;
-
-	const UObject* GetObject() const
-	{
-		return Proxy.Get();
-	}
-
-	const UFaerieItem* GetItemObject() const;
-	int32 GetCopies() const;
-	TScriptInterface<IFaerieItemOwnerInterface> GetOwner() const;
-	FFaerieItemStack Release(int32 Copies) const;
-
-	const IFaerieItemDataProxy* operator->() const;
-
-	explicit operator FFaerieItemStackView() const;
-
-	[[nodiscard]] UE_REWRITE bool UEOpEquals(const FFaerieItemProxy& Other) const
-	{
-		return Proxy == Other.Proxy;
-	}
-};
-
-DECLARE_DYNAMIC_DELEGATE_TwoParams(FFaerieItemProxyChangedEvent, const FFaerieItemProxy&, Proxy, FGameplayTag, Type);
+	using FProxyChangeEvent = TMulticastDelegate<void(const FFaerieItemProxy&, FGameplayTag)>;
+}
 
 // @todo Eventually this should not be BlueprintType, once all APIs use FFaerieItemProxy
 UINTERFACE(BlueprintType, meta = (CannotImplementInterfaceInBlueprint))
@@ -75,40 +27,78 @@ class FAERIEITEMDATA_API UFaerieItemDataProxy : public UInterface
  * Item Data Proxies are objects to pass around item data, without breaking ownership.
  * There are multiple implementations for various purposes, but their primary point is to allow API's to be created
  * without having to worry about the various forms items can come in. Just declare a function that takes an
- * IFaerieItemDataProxy or its struct form FFaerieItemProxy and most anything can call that function.
+ * IFaerieItemDataProxy in its struct form FFaerieItemProxy and most anything can call that function.
  */
 class FAERIEITEMDATA_API IFaerieItemDataProxy
 {
 	GENERATED_BODY()
 
 public:
-	// Get the Item Definition Object that this proxy represents.
-	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataProxy")
-	virtual const UFaerieItem* GetItemObject() const PURE_VIRTUAL(IFaerieItemDataProxy::GetItemData, return nullptr; )
+	// Get the valid item instance or NullOpt from this proxy.
+	virtual TOptional<FFaerieItemInstance> GetItemInstance() const = 0;
 
 	// Get the number of copies this proxy may access.
-	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataProxy")
-	virtual int32 GetCopies() const PURE_VIRTUAL(IFaerieItemDataProxy::GetCopies, return -1; )
+	virtual int32 GetCopies() const = 0;
 
-	// Get the Object that owns the item this proxy represents.
-	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataProxy")
-	virtual TScriptInterface<IFaerieItemOwnerInterface> GetItemOwner() const
-		PURE_VIRTUAL(IFaerieItemDataProxy::GetItemOwner, return nullptr; )
+	// Get the Proxy Interface Object that points to the item this proxy represents.
+	virtual IFaerieItemOwnerInterface* GetItemOwner() const = 0;
 
-	virtual FDelegateHandle BindToItemDataChanged(const FFaerieItemProxyChangedEvent& Event) const
-		PURE_VIRTUAL(IFaerieItemDataProxy::BindToItemDataChanged, return FDelegateHandle(); )
-
-	virtual void UnbindFromItemDataChanged(const FDelegateHandle& Handle) const
-		PURE_VIRTUAL(IFaerieItemDataProxy::UnbindFromItemDataChanged, ; )
-
-	virtual void UnbindAllFromItemDataChanged(const UObject* Object) const
-		PURE_VIRTUAL(IFaerieItemDataProxy::UnbindAllFromItemDataChanged, ; )
-
-	// Release copies of this proxy as an item stack from its owner. Currently limited to C++ usage.
-	virtual FFaerieItemStack Release(int32 Copies) const PURE_VIRTUAL(IFaerieItemDataProxy::Release, return FFaerieItemStack(); )
+	// Get the multicast delegate for listening to changes to the item data of this proxy.
+	virtual Faerie::ItemData::FProxyChangeEvent::RegistrationType& GetOnProxyChangeEvent() = 0;
 
 #if WITH_EDITOR
 	// Stub for UFaerieItemAssetThumbnailRenderer to provide a thumbnail object for the editor.
 	virtual class UThumbnailInfo* GetThumbnailInfo() const { return nullptr; }
 #endif
+};
+
+// This struct contains a pointer to a proxy of a FaerieItem somewhere. This struct should never be
+// serialized.
+// Access to the referenced item data is always const. Mutable access must be granted by the owner of the data.
+USTRUCT(BlueprintType, meta = (HasNativeMake = "/Script/FaerieItemData.FaerieItemProxyUtils.ToWeakProxy"))
+struct FAERIEITEMDATA_API FFaerieItemProxy
+{
+	GENERATED_BODY()
+
+	FFaerieItemProxy() = default;
+
+	FFaerieItemProxy(const FFaerieItemProxy& Other)
+	  : Proxy(Other.Proxy) {}
+
+	explicit FFaerieItemProxy(const TScriptInterface<const IFaerieItemDataProxy>& Interface)
+	  : Proxy(Interface.GetObject()) {}
+
+private:
+	// Storing the Proxy object as a ScriptInterface requires storing 2 pointers, but allows direct access to the interface
+	// while also keeping a strong pointer to the UObject.
+	UPROPERTY()
+	TScriptInterface<const IFaerieItemDataProxy> Proxy;
+
+public:
+	bool IsValid() const;
+
+	// Get the UObject that implements the IFaerieItemDataProxy interface.
+	UE_REWRITE const UObject* GetProxyObject() const { return Proxy.GetObject(); }
+
+	template <typename T>
+	UE_REWRITE const T* GetTypedProxyObject() const { return Cast<T>(Proxy.GetObject()); }
+
+	// Get the Interface pointer.
+	UE_REWRITE const IFaerieItemDataProxy* GetInterface() const { return Proxy.GetInterface(); }
+
+	const IFaerieItemDataProxy* operator->() const;
+
+	[[nodiscard]] UE_REWRITE bool UEOpEquals(const FFaerieItemProxy& Other) const
+	{
+		return Proxy == Other.Proxy;
+	}
+
+	friend [[nodiscard]] UE_REWRITE uint32 GetTypeHash(const FFaerieItemProxy& Proxy)
+	{
+		return GetTypeHash(Proxy.Proxy);
+	}
+
+	// Utility to access the change event, which requires non-const access to the delegate, and proxies are always
+	// treated as const, so a quick little ugly workaround is needed.
+	Faerie::ItemData::FProxyChangeEvent::RegistrationType& GetOnProxyChangeEvent() const;
 };

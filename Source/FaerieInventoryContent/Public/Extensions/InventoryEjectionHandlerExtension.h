@@ -2,8 +2,8 @@
 
 #pragma once
 
+#include "FaerieItemContainerStructs.h"
 #include "ItemContainerExtensionBase.h"
-#include "FaerieItemStack.h"
 #include "TypedGameplayTags.h"
 #include "Actions/FaerieClientActionBase.h"
 
@@ -29,14 +29,15 @@ class FAERIEINVENTORYCONTENT_API UInventoryEjectionHandlerExtension : public UIt
 
 	friend struct FFaerieClientAction_EjectViaRelease;
 
-public:
+protected:
 	//~ UItemContainerExtensionBase
-	virtual EEventExtensionResponse AllowsRemoval(TNotNull<const UFaerieItemContainerBase*> Container, FFaerieAddress Address, FFaerieInventoryTag Reason) const override;
+	virtual EEventExtensionResponse AllowsRemoval(TNotNull<const UFaerieItemContainerBase*> Container,
+		const Faerie::Extensions::FAddressView DataView, FFaerieInventoryTag Reason) const override;
 	virtual void PostEventBatch(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Inventory::FEventLogBatch& Events) override;
 	//~ UItemContainerExtensionBase
 
 private:
-	void Enqueue(const FFaerieItemStack& Stack);
+	void Enqueue(const FFaerieUnownedItemStack& Stack);
 
 	void HandleNextInQueue();
 
@@ -57,7 +58,7 @@ protected:
 	FTransform RelativeSpawningTransform;
 
 	UPROPERTY()
-	TArray<FFaerieItemStack> PendingEjectionQueue;
+	TArray<FFaerieUnownedItemStack> PendingEjectionQueue;
 
 private:
 	bool IsStreaming = false;
@@ -69,7 +70,7 @@ struct FFaerieClientAction_EjectEntry final : public FFaerieClientActionBase
 {
 	GENERATED_BODY()
 
-	virtual bool Server_Execute(const UFaerieInventoryClient* Client) const override;
+	virtual bool Server_Execute(TNotNull<const UFaerieInventoryClient*> Client) const override;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "EjectEntry")
 	TWeakObjectPtr<UFaerieItemStorage> ItemStorage;
@@ -87,10 +88,10 @@ struct FFaerieClientAction_EjectViaRelease final : public FFaerieClientActionBas
 {
 	GENERATED_BODY()
 
-	virtual bool Server_Execute(const UFaerieInventoryClient* Client) const override;
+	virtual bool Server_Execute(TNotNull<const UFaerieInventoryClient*> Client) const override;
 
 	UPROPERTY(BlueprintReadWrite, Category = "EjectViaRelease")
-	FFaerieAddressableHandle Handle;
+	FFaerieItemNetworkHandle Handle;
 
 	UPROPERTY(BlueprintReadWrite, Category = "EjectViaRelease")
 	int32 Amount = -1;

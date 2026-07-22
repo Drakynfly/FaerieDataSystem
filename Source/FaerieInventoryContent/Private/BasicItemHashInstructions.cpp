@@ -1,11 +1,11 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "BasicItemHashInstructions.h"
+#include "EntityManagerHelpers.h"
 #include "FaerieHashStatics.h"
+#include "FaerieItem.h"
 #include "FaerieItemDataFilter.h"
-#include "FaerieItemToken.h"
-#include "FaerieItemTokenFilter.h"
-#include "FaerieItemTokenFilterTypes.h"
+#include "FaerieItemDataView.h"
 #include "Squirrel.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(BasicItemHashInstructions)
@@ -20,39 +20,31 @@
 
 #define BOOLEAN_FILTER_TRUE 279557143
 #define BOOLEAN_FILTER_FALSE 582595723
-#define TOKEN_HASH_EMPTY 693300541
 
-uint32 UFISHI_Literial::Hash(const FFaerieItemStackView StackView) const
+uint32 UFISHI_Literial::Hash(const TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView&) const
 {
 	return Value.Hash;
 }
 
-uint32 UFISHI_IsValid::Hash(const FFaerieItemStackView StackView) const
-{
-	if (StackView.IsValid())
-	{
-		return VALIDATED_TRUE;
-	}
-	return VALIDATED_FALSE;
-}
-
-uint32 UFISHI_And::Hash(const FFaerieItemStackView StackView) const
+uint32 UFISHI_And::Hash(const TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const
 {
 	int32 Hash = 0;
 
 	for (auto&& Instruction : Instructions)
 	{
-		Hash = Squirrel::HashCombine(Hash, ChildHash(Instruction, StackView));
+		Hash = Squirrel::HashCombine(Hash, Instruction->Hash(WorldContextObj, View));
 	}
 
 	return Hash;
 }
 
-uint32 UFISHI_Or::Hash(const FFaerieItemStackView StackView) const
+uint32 UFISHI_Or::Hash(const TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const
 {
-	for (auto Instruction : Instructions)
+	for (const TObjectPtr<UFaerieItemStackHashInstruction>& Instruction : Instructions)
 	{
-		if (const int32 Hash = ChildHash(Instruction, StackView);
+		if (!Instruction) continue;
+
+		if (const int32 Hash = Instruction->Hash(WorldContextObj, View);
 			Hash != HASH_FAILURE)
 		{
 			return Hash;
@@ -62,14 +54,14 @@ uint32 UFISHI_Or::Hash(const FFaerieItemStackView StackView) const
 	return HASH_FAILURE;
 }
 
-uint32 UFISHI_BooleanFilter::Hash(const FFaerieItemStackView StackView) const
+uint32 UFISHI_BooleanFilter::Hash(const TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const
 {
 	if (!ensure(IsValid(Pattern)))
 	{
 		return HASH_FAILURE;
 	}
 
-	if (Pattern->Exec(StackView))
+	if (Pattern->Exec(WorldContextObj, View))
 	{
 		return BOOLEAN_FILTER_TRUE;
 	}
@@ -77,32 +69,48 @@ uint32 UFISHI_BooleanFilter::Hash(const FFaerieItemStackView StackView) const
 	return BOOLEAN_FILTER_FALSE;
 }
 
-uint32 UFISHI_BooleanSelect::Hash(const FFaerieItemStackView StackView) const
+uint32 UFISHI_BooleanSelect::Hash(const TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const
 {
 	if (!ensure(IsValid(Pattern)))
 	{
 		return HASH_FAILURE;
 	}
 
-	if (Pattern->Exec(StackView))
+	if (Pattern->Exec(WorldContextObj, View))
 	{
-		return ChildHash(True, StackView);
+		if (True)
+		{
+			return True->Hash(WorldContextObj, View);
+		}
+		return BOOLEAN_FILTER_TRUE;
 	}
 
-	return ChildHash(False, StackView);
+	if (False)
+	{
+		return False->Hash(WorldContextObj, View);
+	}
+	return BOOLEAN_FILTER_FALSE;
 }
 
-uint32 UFISHI_Tokens::Hash(const FFaerieItemStackView StackView) const
+uint32 UFISHI_Fragments::Hash(const TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const
 {
-	if (TokenClasses.IsEmpty()) return 0;
+	if (FragmentTypes.IsEmpty()) return 0;
 
-	uint32 Hash = TOKEN_HASH_EMPTY;
+	uint32 Hash = 0;
 
-	for (auto&& Token : Faerie::Token::Filter()
-			.By(Faerie::Token::FIsAnyClass(TokenClasses))
-			.Iterate(StackView.Item.Get()))
+	const FFaerieItemInstance Instance = View->GetInstance();
+
+	Faerie::ItemData::FOptionalEntityManager EntityManager(WorldContextObj);
+	for (auto&& FragmentType : FragmentTypes)
 	{
-		Hash = Squirrel::HashCombine(Hash, Token->GetTokenHash());
+		if (FragmentType->GetCppStructOps()->HasGetTypeHash())
+		{
+			auto FragmentView = Faerie::ItemData::GetEntityFragmentOrDefault(EntityManager, Instance, FragmentType);
+			if (FragmentView.IsValid())
+			{
+				Hash = Faerie::Hash::Combine(Hash, FragmentType->GetCppStructOps()->GetStructTypeHash(FragmentView.GetMemory()));
+			}
+		}
 	}
 
 	return Hash;

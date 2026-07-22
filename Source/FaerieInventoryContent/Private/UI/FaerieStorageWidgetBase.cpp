@@ -1,12 +1,12 @@
 // Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "UI/FaerieStorageWidgetBase.h"
-#include "UI/InventoryFillMeterBase.h"
 #include "UI/InventoryUIAction.h"
 #include "UI/InventoryUIActionContainer.h"
 
 #include "FaerieInventoryContentLog.h"
 #include "FaerieContainerQuery.h"
+
 #include "Extensions/ItemContainerExtensionEvents.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieStorageWidgetBase)
@@ -19,7 +19,10 @@ UFaerieStorageWidgetBase::UFaerieStorageWidgetBase(const FObjectInitializer& Obj
   : Super(ObjectInitializer)
 {
 	ActionContainer = CreateDefaultSubobject<UInventoryUIActionContainer>(TEXT("ActionContainer"));
+	ActionContainer->SetFlags(RF_Transactional | RF_ArchetypeObject);
+
 	StorageQuery = CreateDefaultSubobject<UFaerieContainerQuery>(TEXT("StorageQuery"));
+	StorageQuery->SetFlags(RF_Transactional | RF_ArchetypeObject);
 }
 
 bool UFaerieStorageWidgetBase::Initialize()
@@ -37,12 +40,13 @@ void UFaerieStorageWidgetBase::NativeConstruct()
 	// Resort and display items whenever we are reconstructed with an existing inventory.
 	if (ItemStorage.IsValid())
 	{
-		InitWithInventory(ItemStorage.Get());
+		InitWithStorage();
 	}
 }
 
 void UFaerieStorageWidgetBase::NativeDestruct()
 {
+	// ItemStorage is not cleared on Destruct so we still have it for rebuilding in NativeConstruct
 	Reset();
 	Super::NativeDestruct();
 }
@@ -76,15 +80,13 @@ void UFaerieStorageWidgetBase::Reset()
 
 	if (ItemStorage.IsValid())
 	{
-		if (auto EventsExtension = Extensions::Get<UItemContainerExtensionEvents>(ItemStorage.Get(), false))
+		if (auto EventsExtension = Extensions::Get<UItemContainerExtensionEvents>(ItemStorage->GetExtensions(), false))
 		{
 			EventsExtension->GetOnPostEventBatch().RemoveAll(this);
 		}
 	}
 
 	OnReset();
-
-	ItemStorage = nullptr;
 }
 
 void UFaerieStorageWidgetBase::OnPostEventBatch(const TNotNull<const UFaerieItemContainerBase*> Container,
@@ -125,9 +127,12 @@ void UFaerieStorageWidgetBase::OnPostEventBatch(const TNotNull<const UFaerieItem
 		{
 			for (auto&& Address : Event.AddressesTouched)
             {
-            	const int32 Index = SortedAndFilteredAddresses.Find(Address);
-            	SortedAndFilteredAddresses.RemoveAt(Index);
-            	OnAddressRemoved(Address, Index);
+				if (const int32 Index = SortedAndFilteredAddresses.Find(Address);
+					Index != INDEX_NONE)
+				{
+					SortedAndFilteredAddresses.RemoveAt(Index);
+					OnAddressRemoved(Address, Index);
+				}
             }
 		}
 	}
@@ -155,47 +160,53 @@ void UFaerieStorageWidgetBase::OnPostEventBatch(const TNotNull<const UFaerieItem
 
 void UFaerieStorageWidgetBase::SetLinkedStorage(UFaerieItemStorage* Storage)
 {
-	if (IsConstructed())
-	{
-		InitWithInventory(Storage);
-	}
-	else
-	{
-		ItemStorage = Storage;
-	}
-}
-
-void UFaerieStorageWidgetBase::InitWithInventory(UFaerieItemStorage* Storage)
-{
-	// Reset state fully.
-	Reset();
-
-	if (IsValid(Storage))
+	if (ItemStorage != Storage)
 	{
 		ItemStorage = Storage;
 
-		if (EnableUpdateEvents)
-		{
-			auto EventsExtension = Extensions::Get<UItemContainerExtensionEvents>(Storage, false);
-			if (!IsValid(EventsExtension))
+		if (IsConstructed())
+        {
+			if (Storage)
 			{
-				UE_LOG(LogFaerieInventoryContent, Error,
-					TEXT("Storage Widget failed to find Events Extension. Dynamic updates disabled! Please add a Extension Events object to '%s' or disable EnableUpdateEvents"),
-					*Storage->GetPathName())
+				InitWithStorage();
 			}
 			else
 			{
-				EventsExtension->GetOnPostEventBatch().AddUObject(this, &ThisClass::OnPostEventBatch);
+				Reset();
 			}
-		}
-
-		//ItemStorage->GetOnAddressEvent().AddUObject(this, &ThisClass::HandleAddressEvent);
-
-		OnInitWithInventory();
-
-		// Load in entries that should be initially displayed
-		NeedsNewQuery = true;
+        }
 	}
+}
+
+void UFaerieStorageWidgetBase::InitWithStorage()
+{
+	// Reset state fully.
+    Reset();
+
+	UFaerieItemStorage* Storage = ItemStorage.Get();
+
+    if (ensure(IsValid(Storage)))
+    {
+        if (EnableUpdateEvents)
+        {
+        	auto EventsExtension = Extensions::Get<UItemContainerExtensionEvents>(Storage->GetExtensions(), false);
+        	if (!IsValid(EventsExtension))
+        	{
+        		UE_LOG(LogFaerieInventoryContent, Error,
+        			TEXT("Storage Widget failed to find Events Extension. Dynamic updates disabled! Please add a Extension Events object to '%s' or disable EnableUpdateEvents"),
+        			*Storage->GetPathName())
+        	}
+        	else
+        	{
+        		EventsExtension->GetOnPostEventBatch().AddUObject(this, &ThisClass::OnPostEventBatch);
+        	}
+        }
+
+        OnInitWithInventory();
+
+        // Load in entries that should be initially displayed
+        NeedsNewQuery = true;
+    }
 }
 
 int32 UFaerieStorageWidgetBase::AddToSortOrder(const FFaerieAddress Address, const bool WarnIfAlreadyExists)
@@ -232,8 +243,13 @@ int32 UFaerieStorageWidgetBase::AddToSortOrder(const FFaerieAddress Address, con
 			return INDEX_NONE;
 		}
 
-		if (!ensureAlwaysMsgf(!SortedAndFilteredAddresses.Contains(Address), TEXT("Cannot add address %lld that already exists. How did code get here?"), Address.Address))
+		if (int32 ExistingIndex = INDEX_NONE;
+			SortedAndFilteredAddresses.Find(Address, ExistingIndex))
 		{
+			if (WarnIfAlreadyExists)
+			{
+				UE_LOG(LogFaerieInventoryContent, Warning, TEXT("Cannot add address %lld at index '%i' that already exists at index '%i'. How did code get here?"), Address.Address, Index, ExistingIndex);
+			}
 			return INDEX_NONE;
 		}
 

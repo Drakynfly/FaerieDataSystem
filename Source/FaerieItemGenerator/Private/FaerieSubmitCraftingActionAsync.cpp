@@ -10,6 +10,12 @@
 UFaerieSubmitCraftingActionAsync* UFaerieSubmitCraftingActionAsync::SubmitCraftingActionAsync(UObject* WorldContextObj,
 	const TInstancedStruct<FFaerieCraftingActionBase> Request)
 {
+	if (!IsValid(WorldContextObj))
+	{
+		FFrame::KismetExecutionMessage(TEXT("Invalid WorldContextObject passed to UFaerieSubmitCraftingActionAsync::SubmitCraftingActionAsync"), ELogVerbosity::Error);
+		return nullptr;
+	}
+
 	UFaerieSubmitCraftingActionAsync* Action = NewObject<UFaerieSubmitCraftingActionAsync>();
 	Action->WorldContext = WorldContextObj;
 	Action->Action = Request;

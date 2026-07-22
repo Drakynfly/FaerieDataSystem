@@ -4,6 +4,8 @@
 
 #include "ItemCraftingAction.h"
 #include "StructUtils/InstancedStruct.h"
+#include "StructUtils/StructView.h"
+
 #include "UObject/Object.h"
 #include "ItemCraftingRunner.generated.h"
 
@@ -24,19 +26,21 @@ struct FFaeriePrivate_CapturedCraftingAction
 	UPROPERTY()
 	TInstancedStruct<FFaerieCraftingActionBase> Action;
 
+	FFaerieCraftingActionHandle Handle;
+
 	[[nodiscard]] UE_REWRITE bool UEOpEquals(const FFaeriePrivate_CapturedCraftingAction& Other) const
 	{
-		return Action.Get().GetHandle() == Other.Action.Get().GetHandle();
+		return Handle == Other.Handle;
 	}
 
 	[[nodiscard]] UE_REWRITE bool UEOpEquals(const FFaerieCraftingActionHandle& Other) const
 	{
-		return Action.Get().GetHandle() == Other;
+		return Handle == Other;
 	}
 
 	friend uint32 GetTypeHash(const FFaeriePrivate_CapturedCraftingAction& Value)
 	{
-		return GetTypeHash(Value.Action.Get().GetHandle());
+		return GetTypeHash(Value.Handle);
 	}
 };
 
@@ -51,6 +55,10 @@ class FAERIEITEMGENERATOR_API UFaerieItemCraftingRunner : public UObject
 	friend FFaerieCraftingActionBase;
 
 public:
+	virtual void BeginDestroy() override;
+
+	void SetSquirrel(USquirrel* InSquirrel);
+
 	template <Faerie::Generation::CCraftingAction T>
 	FFaerieCraftingActionHandle SubmitCraftingAction(T&& Action)
 	{
@@ -70,24 +78,28 @@ public:
 
 	FFaerieCraftingActionHandle SubmitCraftingAction(TInstancedStruct<FFaerieCraftingActionBase>& Action, const Faerie::Generation::FActionResult& Callback);
 
+	TStructView<FFaerieCraftingActionBase> GetRunningAction(FFaerieCraftingActionHandle Handle);
+
 	UFUNCTION(BlueprintCallable, Category = "Faerie|CraftingAction")
 	void CancelCraftingAction(FFaerieCraftingActionHandle Handle);
-
-	TInstancedStruct<FFaerieCraftingActionBase>* GetRunningAction(FFaerieCraftingActionHandle Handle);
 
 	void CancelAllActions();
 
 private:
-	void CompleteCraftingAction(FFaerieCraftingActionHandle Handle);
-
-	void FailCraftingAction(FFaerieCraftingActionHandle Handle);
-
 	FFaerieCraftingActionHandle SubmitCraftingAction_Impl(TInstancedStruct<FFaerieCraftingActionBase>& Action, const Faerie::Generation::FActionResult* Callback);
 
+#if WITH_EDITOR
+	static void LogActionResult(const FDateTime TimeStarted, const EGenerationActionResult Result, FStringView ActionName);
+#endif
+
 	void FinishAction(FFaerieCraftingActionHandle Handle, EGenerationActionResult Result);
-	void FinishActionImpl(FFaerieCraftingActionBase& Action, EGenerationActionResult Result);
+	void FinishAction(TStructView<FFaerieCraftingActionBase> Action, EGenerationActionResult Result);
+	void FinishActionImpl(FFaerieCraftingActionBase& Action, EGenerationActionResult Result) const;
 
 private:
+	UPROPERTY()
+	TObjectPtr<USquirrel> Squirrel;
+
 	// The Actions currently running.
 	UPROPERTY(Transient)
 	TSet<FFaeriePrivate_CapturedCraftingAction> ActiveActions;

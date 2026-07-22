@@ -3,7 +3,6 @@
 #pragma once
 
 #include "FaerieItemProxy.h"
-#include "FaerieItemStackView.h"
 #include "Blueprint/UserWidget.h"
 #include "FaerieCardBase.generated.h"
 
@@ -17,29 +16,26 @@ class FAERIEITEMCARD_API UFaerieCardBase : public UUserWidget
 {
 	GENERATED_BODY()
 
-public:
-	//~ UObject
-	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	//~ UObject
-
+protected:
 	//~ UUserWidget
 	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
 	//~ UUserWidget
 
+public:
 	FOnCardRefreshed::RegistrationType& GetOnCardRefreshed() { return OnCardRefreshed; }
 
-	void SetItemData(FFaerieItemProxy InItemProxy, bool bRefresh);
+	void SetItemData(const FFaerieItemProxy& InItemProxy, bool bRefresh);
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemCard")
 	FFaerieItemProxy GetItemData() const { return ItemProxy; }
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemCard")
-	FFaerieItemStackView GetStackView() const;
-
-	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemCard")
 	virtual void Refresh();
 
 protected:
+	void OnItemDataChanged(const FFaerieItemProxy& FaerieItemProxy, FGameplayTag GameplayTag);
+
 	UFUNCTION(BlueprintImplementableEvent, Category = "Faerie|ItemCard", meta = (DisplayName = "Refresh"))
 	void BP_Refresh();
 
@@ -50,5 +46,9 @@ protected:
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "CardWidget")
 	bool RefreshOnConstruct = true;
 
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "CardWidget")
+	bool RefreshOnDataChange = true;
+
 	FOnCardRefreshed OnCardRefreshed;
+	FDelegateHandle OnDataChangedHandle;
 };

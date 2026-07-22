@@ -3,6 +3,9 @@
 #pragma once
 
 #include "FaerieInventoryConcepts.h"
+
+#include "Templates/SubclassOf.h"
+
 #include "UObject/Interface.h"
 #include "FaerieContainerExtensionInterface.generated.h"
 
@@ -24,42 +27,12 @@ class FAERIEINVENTORY_API IFaerieContainerExtensionInterface
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|Extensions")
-	virtual UItemContainerExtensionGroup* GetExtensionGroup() const
+	virtual UItemContainerExtensionGroup* VirtualGetExtensionGroup() const
 		PURE_VIRTUAL(IFaerieContainerExtensionInterface::GetExtensionGroup, return nullptr; )
 
-	// Has extension by class
-	UFUNCTION(BlueprintCallable, Category = "Faerie|Extensions")
-	virtual bool HasExtension(TSubclassOf<UItemContainerExtensionBase> ExtensionClass, bool RecursiveSearch = true) const;
-
-	// Get extension by class
-	UFUNCTION(BlueprintCallable, Category = "Faerie|Extensions", meta = (DeterminesOutputType = ExtensionClass))
-	virtual UItemContainerExtensionBase* GetExtension(UPARAM(meta = (AllowAbstract = "false")) TSubclassOf<UItemContainerExtensionBase> ExtensionClass, bool RecursiveSearch) const;
-
-	/*
-	// Doesn't compile for some reason
-	template <Faerie::Container::CItemContainerExtension T>
-	T* Get() const
-	{
-		return Cast<T>(Get(T::StaticClass()));
-	}
-	*/
-
-	// Try to add an extension to this storage. This will only fail if the extension pointer is invalid or already added.
-	UFUNCTION(BlueprintCallable, Category = "Faerie|Extensions")
-	virtual bool AddExtension(UItemContainerExtensionBase* Extension);
-
-	// Add a new extension of the given class, and return the result. If an extension of this class already exists, it
-	// will be returned instead.
-	UFUNCTION(BlueprintCallable, Category = "Faerie|Extensions", meta = (DeterminesOutputType = "ExtensionClass"), DisplayName = "Add Extension (by class)")
-	virtual UItemContainerExtensionBase* AddExtensionByClass(TSubclassOf<UItemContainerExtensionBase> ExtensionClass);
-
-	UFUNCTION(BlueprintCallable, Category = "Faerie|Extensions")
-	virtual bool RemoveExtension(UItemContainerExtensionBase* Extension);
-
-	UFUNCTION(BlueprintCallable, Category = "Faerie|Extensions", DisplayName = "Remove Extension (by class)")
-	virtual bool RemoveExtensionByClass(TSubclassOf<UItemContainerExtensionBase> ExtensionClass, bool RecursiveSearch = true);
-
 protected:
+	// BLUEPRINT USE ONLY
+
 	/*
      * Get an extension of a certain class.
      */
@@ -71,16 +44,24 @@ protected:
 
 namespace Faerie::Extensions
 {
-	// Outside IFaerieContainerExtensionInterface because it won't compile there
+	FAERIEINVENTORY_API const UItemContainerExtensionBase* Get(const UItemContainerExtensionGroup* Group, const TSubclassOf<UItemContainerExtensionBase> Class, const bool RecursiveSearch);
+	FAERIEINVENTORY_API UItemContainerExtensionBase* Get(UItemContainerExtensionGroup* Group, const TSubclassOf<UItemContainerExtensionBase> Class, const bool RecursiveSearch);
+
 	template <Container::CItemContainerExtension T>
-	const T* Get(const IFaerieContainerExtensionInterface* Interface, const bool RecursiveSearch)
+	const T* Get(const UItemContainerExtensionGroup* Group, const bool RecursiveSearch)
 	{
-		return CastChecked<T>(Interface->GetExtension(T::StaticClass(), RecursiveSearch), ECastCheckedType::NullAllowed);
+		return CastChecked<T>(Get(Group, T::StaticClass(), RecursiveSearch), ECastCheckedType::NullAllowed);
 	}
 
 	template <Container::CItemContainerExtension T>
-	T* Get(IFaerieContainerExtensionInterface* Interface, const bool RecursiveSearch)
+	T* Get(UItemContainerExtensionGroup* Group, const bool RecursiveSearch)
 	{
-		return CastChecked<T>(Interface->GetExtension(T::StaticClass(), RecursiveSearch), ECastCheckedType::NullAllowed);
+		return CastChecked<T>(Get(Group, T::StaticClass(), RecursiveSearch), ECastCheckedType::NullAllowed);
 	}
+
+	// Add a new extension of the given class, and return the result. If an extension of this class already exists, it
+	// will be returned instead.
+	UItemContainerExtensionBase* AddExtensionByClass(UItemContainerExtensionGroup* Group, TSubclassOf<UItemContainerExtensionBase> ExtensionClass);
+
+	bool RemoveExtensionByClass(UItemContainerExtensionGroup* Group, TSubclassOf<UItemContainerExtensionBase> ExtensionClass, bool RecursiveSearch = true);
 }

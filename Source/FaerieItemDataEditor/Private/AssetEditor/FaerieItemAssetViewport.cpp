@@ -50,4 +50,9 @@ namespace Faerie::Editor
 		TypedViewportClient = MakeShared<FItemAssetViewportClient>(SharedThis(this), PreviewScene.ToSharedRef());
 		return TypedViewportClient.ToSharedRef();
 	}
+
+	void SItemAssetEditorViewport::FocusViewport()
+	{
+		OnFocusViewportToSelection();
+	}
 }

@@ -21,6 +21,7 @@ public:
 	virtual UClass* GetDefaultActorClass(const FAssetData& AssetData) override;
 	virtual bool CanPlaceElementsFromAssetData(const FAssetData& InAssetData) override;
 
+protected:
 	virtual void PostSpawnActor(UObject* Asset, AActor* NewActor) override;
 	//~ UActorFactory
 };

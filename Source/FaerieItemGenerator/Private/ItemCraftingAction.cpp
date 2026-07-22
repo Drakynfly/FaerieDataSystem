@@ -3,19 +3,16 @@
 #include "ItemCraftingAction.h"
 #include "ItemCraftingRunner.h"
 
+#include "Engine/World.h"
+
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ItemCraftingAction)
 
-void FFaerieCraftingActionBase::Cancel(const TNotNull<UFaerieItemCraftingRunner*> Runner)
+bool Faerie::Generation::FActionExecution::IsInGameWorld() const
 {
-	Runner->FinishAction(Handle, EGenerationActionResult::Cancelled);
+	return WorldContextObject->GetWorld()->IsGameWorld();
 }
 
-void FFaerieCraftingActionBase::Complete(const TNotNull<UFaerieItemCraftingRunner*> Runner)
+void FFaerieCraftingActionBase::CompleteWithResult(const TStructView<FFaerieCraftingActionBase> ThisAction, const Faerie::Generation::FActionExecution& Execution, const EGenerationActionResult Result)
 {
-	Runner->FinishAction(Handle, EGenerationActionResult::Succeeded);
-}
-
-void FFaerieCraftingActionBase::Fail(const TNotNull<UFaerieItemCraftingRunner*> Runner)
-{
-	Runner->FinishAction(Handle, EGenerationActionResult::Failed);
+	Execution.Runner->FinishAction(ThisAction, Result);
 }

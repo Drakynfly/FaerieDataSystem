@@ -13,6 +13,16 @@ void FFaerieDataUtilsModule::ShutdownModule()
 {
 }
 
+#if WITH_EDITOR
+void FFaerieDataUtilsModule::AskEditorToOpenObjectEditorWindow(const TNotNull<UObject*> Object) const
+{
+	if (OnAskEditorToOpenObjectEditorWindow.IsBound())
+	{
+		OnAskEditorToOpenObjectEditorWindow.Execute(Object);
+	}
+}
+#endif
+
 #undef LOCTEXT_NAMESPACE
 
 IMPLEMENT_MODULE(FFaerieDataUtilsModule, FaerieDataUtils)

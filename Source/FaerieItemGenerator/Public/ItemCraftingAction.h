@@ -2,7 +2,10 @@
 
 #pragma once
 
-#include "FaerieItemStack.h"
+#include "FaerieUnownedItemStack.h"
+#include "Engine/TimerHandle.h"
+#include "Misc/DateTime.h"
+#include "StructUtils/StructView.h"
 #include "ItemCraftingAction.generated.h"
 
 struct FStreamableHandle;
@@ -44,11 +47,25 @@ struct FFaerieCraftingActionData
 	GENERATED_BODY()
 
 	UPROPERTY(BlueprintReadWrite, Category = "CraftingActionData")
-	TArray<FFaerieItemStack> Stacks;
+	TArray<FFaerieUnownedItemStack> Stacks;
 };
 
 namespace Faerie::Generation
 {
+	struct FActionExecution
+	{
+		// The object that is running this execution.
+		TNotNull<UFaerieItemCraftingRunner*> Runner;
+
+		// The world context for used by the action runner.
+		TNotNull<UObject*> WorldContextObject;
+
+		// The squirrel provided for deterministic generation (optional).
+		TWeakObjectPtr<USquirrel> Squirrel = nullptr;
+
+		bool IsInGameWorld() const;
+	};
+
 	using FActionResult = TDelegate<void(EGenerationActionResult Success, const FFaerieCraftingActionData&)>;
 }
 
@@ -63,31 +80,44 @@ struct FFaerieCraftingActionBase
 	virtual ~FFaerieCraftingActionBase() = default;
 
 	// Virtual run function. This must be implemented per subtype. It must finish before the timer runs out.
-	virtual void Run(TNotNull<UFaerieItemCraftingRunner*> Runner) PURE_VIRTUAL(FFaerieCraftingActionBase::Run, )
-
-	FFaerieCraftingActionHandle GetHandle() const { return Handle; }
+	virtual void Run(const Faerie::Generation::FActionExecution& Execution) PURE_VIRTUAL(FFaerieCraftingActionBase::Run, )
 
 protected:
-	void Cancel(TNotNull<UFaerieItemCraftingRunner*> Runner);
-	void Complete(TNotNull<UFaerieItemCraftingRunner*> Runner);
-	void Fail(TNotNull<UFaerieItemCraftingRunner*> Runner);
+	static void CompleteWithResult(TStructView<FFaerieCraftingActionBase> ThisAction, const Faerie::Generation::FActionExecution& Execution, EGenerationActionResult Result);
 
-	// The squirrel provided for deterministic generation (optional).
-	UPROPERTY(BlueprintReadWrite, Category = "Crafting Action")
-	TWeakObjectPtr<USquirrel> Squirrel;
+	template <typename T>
+	static void Complete(const Faerie::Generation::FActionExecution& Execution, T* Action)
+	{
+		CompleteWithResult(TStructView<FFaerieCraftingActionBase>(*Action), Execution, EGenerationActionResult::Succeeded);
+	}
 
+	template <typename T>
+	static void Fail(const Faerie::Generation::FActionExecution& Execution, T* Action)
+	{
+		CompleteWithResult(TStructView<FFaerieCraftingActionBase>(*Action), Execution, EGenerationActionResult::Failed);
+	}
+
+	template <typename T>
+	static void Cancel(const Faerie::Generation::FActionExecution& Execution, T* Action)
+	{
+		CompleteWithResult(TStructView<FFaerieCraftingActionBase>(*Action), Execution, EGenerationActionResult::Cancelled);
+	}
+
+	// Storage for result data.
 	UPROPERTY()
 	FFaerieCraftingActionData ActionData;
 
+	// Handle to an async stream of assets we need.
 	TSharedPtr<FStreamableHandle> RunningStreamHandle;
 
+	// The handle to ourself in the runner.
 	FFaerieCraftingActionHandle Handle;
 
+	// Timer to shut off this action if it runs for too long.
 	FTimerHandle TimerHandle;
 
 #if WITH_EDITORONLY_DATA
 	// Timestamp to record how long this action takes to run.
-	UPROPERTY()
 	FDateTime TimeStarted;
 #endif
 

@@ -1,15 +1,16 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieEquipmentSlot.h"
+#include "EntityManagerHelpers.h"
 
 #include "FaerieEquipmentSlotDescription.h"
-#include "FaerieAssetInfo.h"
 #include "FaerieEquipmentLog.h"
 #include "FaerieItem.h"
-#include "FaerieItemStorageStatics.h"
+#include "FaerieItemDataView.h"
+#include "FaerieItemOwnership.h"
 #include "FaerieItemTemplate.h"
 #include "FaerieSubObjectFilter.h"
-#include "InventoryDataEnums.h"
+#include "FaerieStorageEnums.h"
 #include "ItemContainerEvent.h"
 #include "ItemContainerExtensionBase.h"
 
@@ -29,12 +30,12 @@ void UFaerieEquipmentSlot::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 }
 
 //~ UFaerieItemContainerBase
-FInstancedStruct UFaerieEquipmentSlot::MakeSaveData(TMap<FGuid, FInstancedStruct>& ExtensionData) const
+FInstancedStruct UFaerieEquipmentSlot::MakeSaveData(FFaerieItemContainerExtensionData& ExtensionData) const
 {
 	return FInstancedStruct::Make(MakeSlotData(ExtensionData));
 }
 
-void UFaerieEquipmentSlot::LoadSaveData(const FConstStructView ItemData, UFaerieItemContainerExtensionData* ExtensionData)
+void UFaerieEquipmentSlot::LoadSaveData(const FConstStructView ItemData, const TSharedStruct<FFaerieItemContainerExtensionData>& ExtensionData)
 {
 	const FFaerieEquipmentSlotSaveData* SlotSaveData = ItemData.GetPtr<const FFaerieEquipmentSlotSaveData>();
 	if (!SlotSaveData)
@@ -45,27 +46,29 @@ void UFaerieEquipmentSlot::LoadSaveData(const FConstStructView ItemData, UFaerie
 	LoadSlotData(*SlotSaveData, ExtensionData);
 }
 
-FFaerieEquipmentSlotSaveData UFaerieEquipmentSlot::MakeSlotData(TMap<FGuid, FInstancedStruct>& ExtensionData) const
+FFaerieEquipmentSlotSaveData UFaerieEquipmentSlot::MakeSlotData(FFaerieItemContainerExtensionData& ExtensionData) const
 {
 	RavelExtensionData(ExtensionData);
 
 	FFaerieEquipmentSlotSaveData SlotSaveData;
-	SlotSaveData.Config = Config;
-	SlotSaveData.StoredKey = StoredKey;
+	SlotSaveData.SlotID = Config.SlotID;
 	if (StoredKey.IsValid())
 	{
-		SlotSaveData.ItemStack = ItemStack;
+		SlotSaveData.ItemObject = ItemStack.Instance.GetItemPtr();
+		SlotSaveData.Copies = ItemStack.Copies;
+		SlotSaveData.ExportData = ExportItemData(ItemData::FRequireEntityManager(this), ItemStack.Instance);
 	}
 	return SlotSaveData;
 }
 
-void UFaerieEquipmentSlot::LoadSlotData(const FFaerieEquipmentSlotSaveData& SlotData, UFaerieItemContainerExtensionData* ExtensionData)
+void UFaerieEquipmentSlot::LoadSlotData(const FFaerieEquipmentSlotSaveData& SlotData, const TSharedStruct<FFaerieItemContainerExtensionData>& ExtensionData)
 {
-	// @todo should check all Config members, not just SlotID
-	if (!ensure(Config.SlotID == SlotData.Config.SlotID))
+	if (!ensure(Config.SlotID == SlotData.SlotID))
 	{
 		return;
 	}
+
+	// Cannot change Config here, as it only replicates once!
 
 	// Clear any current content.
 	if (IsFilled())
@@ -73,29 +76,25 @@ void UFaerieEquipmentSlot::LoadSlotData(const FFaerieEquipmentSlotSaveData& Slot
 		TakeItemFromSlot(ItemData::EntireStack, Inventory::Tags::RemovalDeletion);
 	}
 
-	// Cannot change Config here, as it only replicates once!
-
-	if (SlotData.StoredKey.IsValid())
+	if (SlotData.Copies > 0)
 	{
-		KeyGen.SetPosition(SlotData.StoredKey);
+		// Rebuild instance from save data
+		ItemData::FRequireEntityManager EntityManager(this);
+		const FFaerieItemInstance Instance = ImportItemData(EntityManager, SlotData.ItemObject, SlotData.ExportData);
 
-		const FFaerieItemStack& LoadedItemStack = SlotData.ItemStack;
-		if (ItemData::ValidateItemData(LoadedItemStack.Item) &&
-			LoadedItemStack.Copies > 0)
+		if (Container::ValidateItemData(Instance) &&
+			SlotData.Copies > 0)
 		{
-			// We do need to ClearOwnership here, as whatever loaded the data may have parented the items automatically.
-			if (auto Mutable = LoadedItemStack.Item->MutateCast())
-			{
-				ItemData::ClearOwnership(Mutable);
-			}
-			SetStoredItem_Impl(LoadedItemStack);
+			// If it validated, store in slot.
+			const FFaerieItemDataView DataView(Instance, SlotData.Copies, nullptr);
+			SetStoredItem_Impl(DataView);
 		}
 		else
 		{
 			// Reset key if stack is invalid.
 			UE_LOG(LogFaerieEquipment, Error, TEXT("Loading content for slot '%s' failed. Slot has been emptied!"), *Config.SlotID.ToString())
 			MARK_PROPERTY_DIRTY_FROM_NAME(UFaerieItemStackContainer, StoredKey, this);
-			StoredKey = FEntryKey();
+			StoredKey = FFaerieEntryKey();
 		}
 	}
 
@@ -103,38 +102,39 @@ void UFaerieEquipmentSlot::LoadSlotData(const FFaerieEquipmentSlotSaveData& Slot
 }
 //~ UFaerieItemContainerBase
 
-bool UFaerieEquipmentSlot::CouldSetInSlot(const FFaerieItemStackView View) const
+bool UFaerieEquipmentSlot::CouldSetInSlot(const FFaerieItemDataView& View) const
 {
-	if (!View.Item.IsValid()) return false;
+	if (!View.IsValid()) return false;
 
-	if (Config.SingleItemSlot && View.Copies > 1)
+	const int32 ViewCopies = View.GetCopies();
+	if (Config.SingleItemSlot && ViewCopies > 1)
 	{
 		return false;
 	}
 
 	static constexpr FFaerieExtensionAllowsAdditionArgs Args = { EFaerieStorageAddStackBehavior::OnlyNewStacks };
 
-	if (Extensions->AllowsAddition(this, MakeArrayView(&View, 1), Args) == EEventExtensionResponse::Disallowed)
+	if (Extensions::FGroupAPI::AllowsAddition(Extensions, this, MakeConstArrayView(&View, 1), Args) == EEventExtensionResponse::Disallowed)
 	{
 		return false;
 	}
 
 	if (IsValid(Config.SlotDescription))
 	{
-		return Config.SlotDescription->Template->TryMatch(View);
+		return Config.SlotDescription->Template->TryMatch(this, View);
 	}
 
 	return false;
 }
 
-bool UFaerieEquipmentSlot::CanSetInSlot(const FFaerieItemStackView View) const
+bool UFaerieEquipmentSlot::CanSetInSlot(const FFaerieItemDataView& View) const
 {
-	if (!View.Item.IsValid()) return false;
+	if (!View.IsValid()) return false;
 
 	if (IsFilled())
 	{
 		// Cannot switch items. Remove current first.
-		if (View.Item != ItemStack.Item)
+		if (View.GetInstance() != ItemStack.Instance)
 		{
 			return false;
 		}
@@ -147,7 +147,7 @@ bool UFaerieEquipmentSlot::CanSetInSlot(const FFaerieItemStackView View) const
 
 	static constexpr FFaerieExtensionAllowsAdditionArgs Args = { EFaerieStorageAddStackBehavior::OnlyNewStacks };
 
-	if (Extensions->AllowsAddition(this, MakeArrayView(&View, 1), Args) == EEventExtensionResponse::Disallowed)
+	if (Extensions::FGroupAPI::AllowsAddition(Extensions, this, MakeConstArrayView(&View, 1), Args) == EEventExtensionResponse::Disallowed)
 	{
 		return false;
 	}
@@ -155,7 +155,7 @@ bool UFaerieEquipmentSlot::CanSetInSlot(const FFaerieItemStackView View) const
 	if (IsValid(Config.SlotDescription) &&
 		IsValid(Config.SlotDescription->Template))
 	{
-		return Config.SlotDescription->Template->TryMatch(View);
+		return Config.SlotDescription->Template->TryMatch(this, View);
 	}
 
 	return true;
@@ -171,17 +171,16 @@ FFaerieAssetInfo UFaerieEquipmentSlot::GetSlotInfo() const
 	return FFaerieAssetInfo();
 }
 
-const UFaerieEquipmentSlot* UFaerieEquipmentSlot::FindSlot(const FFaerieSlotTag SlotTag, const bool bRecursive) const
+const UFaerieEquipmentSlot* UFaerieEquipmentSlot::FindSlot(const ItemData::FRequireEntityManager& EntityManager, const FFaerieSlotTag SlotTag, const bool bRecursive) const
 {
 	if (IsFilled())
 	{
-		auto Mutable = ItemStack.Item->MutateCast();
-		if (!Mutable)
+		if (!ItemStack.Instance.IsMutable())
 		{
 			return nullptr;
 		}
 
-		const TArray<UFaerieEquipmentSlot*> Children = SubObject::Filter().ByClass<UFaerieEquipmentSlot>().Emit(Mutable);
+		const TArray<UFaerieEquipmentSlot*> Children = SubObject::Filter().ByClass<UFaerieEquipmentSlot>().Emit(EntityManager, ItemStack.Instance);
 
 		for (auto&& Child : Children)
 		{
@@ -195,7 +194,7 @@ const UFaerieEquipmentSlot* UFaerieEquipmentSlot::FindSlot(const FFaerieSlotTag 
 		{
 			for (auto&& Child : Children)
 			{
-				if (auto&& ChildSlot = Child->FindSlot(Config.SlotID, true))
+				if (auto&& ChildSlot = Child->FindSlot(EntityManager, Config.SlotID, true))
 				{
 					return ChildSlot;
 				}

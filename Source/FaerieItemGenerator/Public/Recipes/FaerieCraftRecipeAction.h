@@ -4,17 +4,22 @@
 
 #include "ItemCraftingAction.h"
 #include "FaerieItemSlotInterface.h"
+
+#include "Generation/FaerieItemGenerationAction.h"
+
 #include "FaerieCraftRecipeAction.generated.h"
 
 class UFaerieRecipeCraftConfig;
 
-//
+/*
+ * A crafting action is a sub-type of generation action
+ */
 USTRUCT(BlueprintType)
-struct FAERIEITEMGENERATOR_API FFaerieCraftRecipeAction : public FFaerieCraftingActionBase
+struct FAERIEITEMGENERATOR_API FFaerieCraftRecipeAction : public FFaerieItemGenerationActionBase
 {
 	GENERATED_BODY()
 
-	virtual void Run(TNotNull<UFaerieItemCraftingRunner*> Runner) override;
+	virtual void Run(const Faerie::Generation::FActionExecution& Execution) override;
 
 	// These should be sourced from cooked assets, or spawned by the server, if needed at runtime. Clients cannot create them.
 	UPROPERTY(BlueprintReadWrite, Category = "Craft Recipe Action")

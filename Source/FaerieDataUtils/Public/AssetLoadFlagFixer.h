@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "Misc/NotNull.h"
+#include "UObject/Object.h"
+
 namespace Faerie::Utils
 {
 	// Explanation: Objects loaded from disk carry certain flags that let them be replicated efficiently.
@@ -11,13 +14,13 @@ namespace Faerie::Utils
 	inline constexpr EObjectFlags LoadFlags = RF_WasLoaded | RF_LoadCompleted;
 
 	// Does this object have a flag that indicates it's an asset loaded from disk?
-	FORCEINLINE bool HasLoadFlag(const UObject* const SourceObject)
+	UE_REWRITE bool HasLoadFlag(const TNotNull<const UObject*> SourceObject)
 	{
 		return SourceObject->HasAnyFlags(LoadFlags);
 	}
 
 	// Clear load flags from an object
-	FORCEINLINE void ClearLoadFlags(UObject* SourceObject)
+	UE_REWRITE void ClearLoadFlags(const TNotNull<UObject*> SourceObject)
 	{
 		SourceObject->ClearFlags(LoadFlags);
 	}

@@ -25,10 +25,10 @@ class FAERIEITEMCARD_API UFaerieCardGenerateAsync : public UBlueprintAsyncAction
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemCards", meta = (ExpandBoolAsExecs = "ReturnValue"))
-	static bool GenerateItemCard(APlayerController* OwningPlayer, TScriptInterface<IFaerieCardGeneratorInterface> Generator, FFaerieItemProxy Proxy, FFaerieItemCardType Tag, UFaerieCardBase*& Widget);
+	static bool GenerateItemCard(APlayerController* OwningPlayer, TScriptInterface<IFaerieCardGeneratorInterface> Generator, const FFaerieItemProxy& Proxy, FFaerieItemCardType Tag, UFaerieCardBase*& Widget);
 
 	UFUNCTION(BlueprintCallable, meta = (BlueprintInternalUseOnly = "true", WorldContext = "WorldContextObject"), Category = "Faerie|ItemCards", DisplayName = "Generate Item Card (async)")
-	static UFaerieCardGenerateAsync* GenerateItemCardAsync(APlayerController* OwningPlayer, TScriptInterface<IFaerieCardGeneratorInterface> Generator, FFaerieItemProxy Proxy, FFaerieItemCardType Tag);
+	static UFaerieCardGenerateAsync* GenerateItemCardAsync(APlayerController* OwningPlayer, TScriptInterface<IFaerieCardGeneratorInterface> Generator, const FFaerieItemProxy& Proxy, FFaerieItemCardType Tag);
 
 	// UBlueprintAsyncActionBase interface
 	virtual void Activate() override;

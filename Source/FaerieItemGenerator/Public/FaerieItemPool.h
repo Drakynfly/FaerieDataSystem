@@ -2,14 +2,13 @@
 
 #pragma once
 
-#include "FaerieAssetInfo.h"
 #include "UObject/Object.h"
 #include "FaerieItemSource.h"
 #include "Generation/FaerieGenerationStructs.h"
 
 #include "FaerieItemPool.generated.h"
 
-class USquirrel;
+struct FSquirrelState;
 
 /**
  * A Faerie Item Pool is a list of possible item generations, each with a weight that determined its frequency.
@@ -20,8 +19,8 @@ class FAERIEITEMGENERATOR_API UFaerieItemPool : public UObject, public IFaerieIt
 	GENERATED_BODY()
 
 public:
-	UFaerieItemPool();
-
+	//~ UObject
+	virtual void GetAssetRegistryTags(FAssetRegistryTagsContext Context) const override;
 	virtual void PreSave(FObjectPreSaveContext SaveContext) override;
 	virtual void PostLoad() override;
 
@@ -30,16 +29,16 @@ public:
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
 #endif
+	//~ UObject
 
 public:
 	//~ IFaerieItemSource
 	virtual bool CanBeMutable() const override;
-	virtual FFaerieAssetInfo GetSourceInfo() const override;
-	virtual TOptional<FFaerieItemStack> CreateItemStack(const FFaerieItemInstancingContext* Context) const override;
+	virtual Faerie::ItemData::FGetInstanceResult CreateItemStack(const FFaerieItemInstancingContext& Context) const override;
 	//~ IFaerieItemSource
 
 	const FFaerieTableDrop* GetDrop(double RanWeight) const;
-	const FFaerieTableDrop* GetDrop_Seeded(USquirrel* Squirrel) const;
+	const FFaerieTableDrop* GetDrop_Seeded(FSquirrelState& Squirrel) const;
 
 	TConstArrayView<FFaerieWeightedDrop> ViewDropPool() const;
 
@@ -52,9 +51,6 @@ protected:
 	FFaerieTableDrop GenerateDrop_Seeded(USquirrel* Squirrel) const;
 
 protected:
-	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Table")
-	FFaerieAssetInfo TableInfo;
-
 	UPROPERTY(EditAnywhere, Category = "Table")
 	FFaerieWeightedPool DropPool;
 

@@ -16,6 +16,7 @@ public class FaerieInventoryContent : ModuleRules
                 "CoreUObject",
                 "Engine",
                 "GameplayTags",
+                "ModelViewViewModel",
                 "NetCore",
                 "Slate",
                 "SlateCore",
@@ -38,6 +39,7 @@ public class FaerieInventoryContent : ModuleRules
                 "FaerieDataUtils",
                 "GeometryScriptingCore",
                 "GeometryFramework",
+                "MassEntity",
                 "Squirrel"
             });
 

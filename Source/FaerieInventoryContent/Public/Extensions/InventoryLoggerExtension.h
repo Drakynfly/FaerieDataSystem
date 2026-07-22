@@ -30,10 +30,10 @@ public:
 	int32 GetNumEvents() const { return EventLog.Num(); }
 
 	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "LoggerExtension")
-	const TArray<FLoggedInventoryEvent>& GetAllEvents() const { return EventLog; }
+	const TArray<FFaerieBlueprintInventoryEvent>& GetAllEvents() const { return EventLog; }
 
 	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "LoggerExtension")
-	TArray<FLoggedInventoryEvent> GetRecentEvents(int32 NumEvents, int32 Offset = 0) const;
+	TArray<FFaerieBlueprintInventoryEvent> GetRecentEvents(int32 NumEvents, int32 Offset = 0) const;
 
 protected:
 	UFUNCTION(/* Replication */)
@@ -43,7 +43,7 @@ protected:
 	FInventoryEventLogged OnInventoryEventLogged;
 
 	UPROPERTY(ReplicatedUsing = "OnRep_EventLog")
-	TArray<FLoggedInventoryEvent> EventLog;
+	TArray<FFaerieBlueprintInventoryEvent> EventLog;
 
 private:
 	FInventoryEventLoggedNative OnInventoryEventLoggedNative;

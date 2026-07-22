@@ -1,34 +1,29 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "Mutators/ItemMutator_Condition.h"
-#include "FaerieItemStackView.h"
+#include "FaerieItemDataView.h"
 #include "FaerieItemTemplate.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ItemMutator_Condition)
 
+FAERIE_MUTATOR_IMPL(FFaerieItemMutator_TemplateCondition)
+
 void FFaerieItemMutator_TemplateCondition::GetRequiredAssets(TArray<TSoftObjectPtr<UObject>>& RequiredAssets) const
 {
-	if (Child.IsValid())
-	{
-		Child.Get().GetRequiredAssets(RequiredAssets);
-	}
+	Mutators.GetRequiredAssets(RequiredAssets);
 }
 
-bool FFaerieItemMutator_TemplateCondition::Apply(FFaerieItemStack& Stack, FFaerieItemMutatorContext* Context) const
+bool FFaerieItemMutator_TemplateCondition::Apply(Faerie::ItemData::FMutableReference& Item, const FFaerieItemMutatorContext& Context) const
 {
-	if (!Stack.IsValid()) return false;
-	if (!Stack.Item->CanMutate()) return false;
 	if (IsValid(ItemTemplate))
 	{
-		if (!ItemTemplate->TryMatch(Stack))
+		const FFaerieItemDataView View(Item, 1, nullptr);
+		if (!ItemTemplate->TryMatch(Context.WorldContextObject, View))
 		{
 			// Template failed, cannot apply.
 			return false;
 		}
 	}
-	if (Child.IsValid())
-	{
-		return Child.Get().Apply(Stack, Context);
-	}
-	return false;
+
+	return Mutators.Apply(Item, Context);
 }

@@ -1,26 +1,39 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieCardGenerator.h"
-#include "CardTokens/FaerieItemCardToken.h"
+#include "EntityManagerHelpers.h"
+
 #include "FaerieItem.h"
 #include "FaerieItemCardLog.h"
+#include "FaerieItemDataView.h"
+#include "FaerieItemInstance.h"
+
+#include "Widgets/FaerieItemCardFragment.h"
+
 #include "Engine/AssetManager.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieCardGenerator)
 
-TSoftClassPtr<UFaerieCardBase> UFaerieCardGenerator::GetCardClassFromProxy(const FFaerieItemProxy Proxy, const FFaerieItemCardType& Type) const
+TSoftClassPtr<UFaerieCardBase> UFaerieCardGenerator::GetCardClassFromProxy(const FFaerieItemProxy& Proxy, const FFaerieItemCardType& Type) const
 {
-	auto&& Item = Proxy.GetItemObject();
+	auto&& Instance = Proxy->GetItemInstance();
+	if (!Instance.IsSet())
+	{
+		UE_LOG(LogFaerieItemCard, Warning, TEXT("Unable to determine card class: Invalid Instance!"))
+		return nullptr;
+	}
 
-	if (!IsValidChecked(Item))
+	auto&& ItemObj = Instance->GetItemPtr();
+	if (!IsValidChecked(ItemObj))
 	{
 		UE_LOG(LogFaerieItemCard, Warning, TEXT("Unable to determine card class: Invalid Item!"))
 		return nullptr;
 	}
 
-	if (auto&& CardClassProvider = Item->GetToken<UFaerieItemCardToken>())
+	auto CardFragment = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieItemCardClassFragment>(Faerie::ItemData::FOptionalEntityManager(this), Instance.GetValue());
+	if (CardFragment.IsValid())
 	{
-		auto&& Class = CardClassProvider->GetCardClass(Type);
+		auto&& Class = CardFragment->GetCardClass(Type);
 		if (!Class.IsNull())
 		{
 			return Class;
@@ -52,6 +65,7 @@ UFaerieCardBase* UFaerieCardGenerator::Generate(const Faerie::Card::FSyncGenerat
 		return nullptr;
 	}
 
+	// Note: Known LoadSync code path; accepted use.
 	if (const TSoftClassPtr<UFaerieCardBase> CardClass = GetCardClassFromProxy(Params.Proxy, Params.Tag);
 		IsValid(CardClass.LoadSynchronous()))
 	{

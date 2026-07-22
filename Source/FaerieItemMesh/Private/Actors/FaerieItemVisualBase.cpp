@@ -35,6 +35,16 @@ void AFaerieItemVisualBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
+TOptional<FFaerieItemInstance> AFaerieItemVisualBase::GetItemInstance() const
+	PURE_VIRTUAL(AFaerieItemVisualBase::GetItemInstance, return NullOpt; )
+
+Faerie::ItemData::FProxyChangeEvent::RegistrationType& AFaerieItemVisualBase::GetOnProxyChangeEvent()
+{
+	checkNoEntry();
+	static Faerie::ItemData::FProxyChangeEvent Blank;
+	return Blank;
+}
+
 void AFaerieItemVisualBase::ClearDataDisplay_Implementation()
 {
 }
@@ -52,7 +62,7 @@ void AFaerieItemVisualBase::RegenerateDataDisplay()
 {
 	ClearDataDisplay();
 
-	if (IsValid(GetItemObject()))
+	if (GetItemInstance().IsSet())
 	{
 		DisplayData();
 	}

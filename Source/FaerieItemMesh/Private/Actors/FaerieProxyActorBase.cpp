@@ -11,27 +11,49 @@ AFaerieProxyActorBase::AFaerieProxyActorBase()
 	bReplicates = true;
 }
 
-const UFaerieItem* AFaerieProxyActorBase::GetItemObject() const
+TOptional<FFaerieItemInstance> AFaerieProxyActorBase::GetItemInstance() const
 {
-	return DataSource.GetItemObject();
+	if (!DataSource.IsValid())
+	{
+		return NullOpt;
+	}
+
+	return DataSource->GetItemInstance();
 }
 
 int32 AFaerieProxyActorBase::GetCopies() const
 {
-	return DataSource.GetCopies();
+	if (!DataSource.IsValid())
+	{
+		return -1;
+	}
+
+	return DataSource->GetCopies();
 }
 
-TScriptInterface<IFaerieItemOwnerInterface> AFaerieProxyActorBase::GetItemOwner() const
+IFaerieItemOwnerInterface* AFaerieProxyActorBase::GetItemOwner() const
 {
-	return DataSource.GetOwner();
+	if (!DataSource.IsValid())
+	{
+		return nullptr;
+	}
+
+	return DataSource->GetItemOwner();
 }
 
-FFaerieItemStack AFaerieProxyActorBase::Release(const int32 Copies) const
+Faerie::ItemData::FProxyChangeEvent::RegistrationType& AFaerieProxyActorBase::GetOnProxyChangeEvent()
 {
-	return DataSource.Release(Copies);
+	if (!DataSource.IsValid())
+	{
+		checkNoEntry();
+		static Faerie::ItemData::FProxyChangeEvent Blank;
+		return Blank;
+	}
+
+	return DataSource.GetOnProxyChangeEvent();
 }
 
-void AFaerieProxyActorBase::SetSourceProxy(const FFaerieItemProxy Source)
+void AFaerieProxyActorBase::SetSourceProxy(const FFaerieItemProxy& Source)
 {
 	if (Source != DataSource)
 	{

@@ -8,11 +8,17 @@
 
 class UFaerieItemGenerationConfig;
 
-//
+/*
+ * Base type for any action that generates new item instances.
+ */
 USTRUCT()
 struct FAERIEITEMGENERATOR_API FFaerieItemGenerationActionBase : public FFaerieCraftingActionBase
 {
 	GENERATED_BODY()
+
+	// The object to use as the outer for new item instances.
+	UPROPERTY(BlueprintReadWrite, Category = "Generation Action Single")
+	TObjectPtr<UObject> NewInstancesOuter;
 };
 
 //
@@ -21,14 +27,19 @@ struct FAERIEITEMGENERATOR_API FFaerieItemGenerationActionSingle : public FFaeri
 {
 	GENERATED_BODY()
 
-	virtual void Run(TNotNull<UFaerieItemCraftingRunner*> Runner) override;
+	virtual void Run(const Faerie::Generation::FActionExecution& Execution) override;
 
 protected:
-	void LoadCheck(const TSharedPtr<FStreamableHandle>& LoadHandle, TNotNull<UFaerieItemCraftingRunner*> Runner);
-	void Generate(TNotNull<UFaerieItemCraftingRunner*> Runner);
+	void LoadCheck(const TSharedPtr<FStreamableHandle>& LoadHandle, const Faerie::Generation::FActionExecution& Execution);
+	void Generate(const Faerie::Generation::FActionExecution& Execution);
 
 	UPROPERTY(BlueprintReadWrite, Category = "Generation Action Single")
 	FFaerieTableDrop Source;
+
+private:
+	// Storage for loaded assets to keep alive while running this action.
+	UPROPERTY()
+	TArray<TObjectPtr<const UObject>> LoadedAssets;
 };
 
 //
@@ -37,12 +48,11 @@ struct FAERIEITEMGENERATOR_API FFaerieItemGenerationAction : public FFaerieItemG
 {
 	GENERATED_BODY()
 
-	virtual void Run(TNotNull<UFaerieItemCraftingRunner*> Runner) override;
+	virtual void Run(const Faerie::Generation::FActionExecution& Execution) override;
 
 protected:
-	void LoadDrivers(TNotNull<UFaerieItemCraftingRunner*> Runner);
-	void LoadCheck(const TSharedPtr<FStreamableHandle>& LoadHandle, TNotNull<UFaerieItemCraftingRunner*> Runner, int32 CheckFromNum);
-	void Generate(TNotNull<UFaerieItemCraftingRunner*> Runner);
+	void LoadCheck(const TSharedPtr<FStreamableHandle>& LoadHandle, const Faerie::Generation::FActionExecution& Execution, int32 CheckFromNum);
+	void Generate(const Faerie::Generation::FActionExecution& Execution);
 
 	UPROPERTY(BlueprintReadWrite, Category = "Generation Action")
 	TArray<TSoftObjectPtr<UFaerieItemGenerationConfig>> Drivers;
@@ -52,6 +62,9 @@ protected:
 	bool RecursivelyResolveTables = false;
 
 private:
-	// Children items to generate.
-	TArray<Faerie::Generation::FPendingTableDrop> PendingGenerations;
+	TArray<Faerie::Generation::FPendingTableDrop> PendingDrops;
+
+	// Storage for loaded assets to keep alive while running this action.
+	UPROPERTY()
+	TArray<TObjectPtr<const UObject>> LoadedAssets;
 };

@@ -5,6 +5,7 @@
 #include "FaerieItemContainerStructs.h"
 #include "InventoryUIAction.generated.h"
 
+struct FFaerieItemProxy;
 class UTexture2D;
 class UFaerieInventoryClient;
 
@@ -32,10 +33,10 @@ class FAERIEINVENTORYCONTENT_API UInventoryUIAction : public UObject
 
 protected:
 	UFUNCTION(BlueprintNativeEvent, Category = "Faerie|UI Action")
-	void Run(UFaerieInventoryClient* Client, FFaerieAddressableHandle Handle) const;
+	void Run(UFaerieInventoryClient* Client, const FFaerieItemProxy& Proxy) const;
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Faerie|UI Action")
-	EInventoryUIActionState TestCanRun(UFaerieInventoryClient* Client, FFaerieAddressableHandle Handle) const;
+	EInventoryUIActionState TestCanRun(UFaerieInventoryClient* Client, const FFaerieItemProxy& Proxy) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|UI Action")
 	void Finish();
@@ -46,11 +47,11 @@ protected:
 public:
 	/* Gets the contextual display text for running this action on an address */
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Faerie|UI Action")
-	FText GetDisplayText(FFaerieAddressableHandle Handle) const;
+	FText GetDisplayText(const FFaerieItemProxy& Proxy) const;
 
 	/* Gets the contextual display icon for running this action on an address */
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Faerie|UI Action")
-	TSoftObjectPtr<UTexture2D> GetDisplayIcon(FFaerieAddressableHandle Handle) const;
+	TSoftObjectPtr<UTexture2D> GetDisplayIcon(const FFaerieItemProxy& Proxy) const;
 
 	/**
 	 * Check conditions for this Action running on an Address.
@@ -58,10 +59,10 @@ public:
 	 * when this returns false.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Faerie|UI Action")
-	EInventoryUIActionState CanStart(FFaerieAddressableHandle Handle) const;
+	EInventoryUIActionState CanStart(const FFaerieItemProxy& Proxy) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|UI Action")
-	bool Start(FFaerieAddressableHandle Handle);
+	bool Start(const FFaerieItemProxy& Proxy);
 
 protected:
 	/** Text to display on a user-facing button */

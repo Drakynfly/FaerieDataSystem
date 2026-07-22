@@ -2,96 +2,136 @@
 
 #include "FaerieSubObjectFilter.h"
 #include "FaerieContainerIterator.h"
+#include "FaerieInventoryLog.h"
 #include "FaerieItem.h"
-#include "FaerieItemContainerBase.h"
+#include "FaerieItemStackContainer.h"
+
+#include "Fragments/FaerieItemStorageFragment.h"
 
 namespace Faerie::SubObject
 {
-	auto GetItemContainersFilter()
+	void GetTemplateContainersInInstanceDirect(const ItemData::FReference& Reference, TArray<TNotNull<const UFaerieItemContainerBase*>>& Containers, const TNotNull<const UClass*> Class)
 	{
-		static const auto ContainerTokenFilter = Token::Filter().ByClass<UFaerieItemContainerToken>().ByMutable();
-		return ContainerTokenFilter;
-	}
+		auto StacksFragment = ItemData::GetDefaultFragment<FFaerieChildStackFragment>(Reference->GetItemPtr());
+		auto StorageFragment = ItemData::GetDefaultFragment<FFaerieItemStorageFragment>(Reference->GetItemPtr());
 
-	void GetAllContainersInItem(const TNotNull<UFaerieItem*> Item, TArray<UFaerieItemContainerBase*>& OutContainers)
-	{
-		for (UFaerieItemContainerToken* Token : GetItemContainersFilter().Iterate(Item))
+		if (StacksFragment.IsValid())
 		{
-			OutContainers.Add(Token->GetItemContainer());
+			for (auto&& Slot : StacksFragment->Slots)
+			{
+				if (IsValid(Slot.Stack) && Slot.Stack.IsA(Class))
+				{
+					Containers.Add(Slot.Stack);
+				}
+			}
+		}
+
+		if (StorageFragment.IsValid())
+		{
+			const TObjectPtr<UFaerieItemStorage>& ItemStorage = StorageFragment->Storage.Storage;
+			if (IsValid(ItemStorage) && ItemStorage.IsA(Class))
+			{
+				Containers.Add(ItemStorage);
+			}
+			else
+			{
+				UE_LOG(LogFaerieInventory, Error, TEXT("Storage invalid in ItemStorageFragment. This fragment should not contain a null container!"))
+			}
 		}
 	}
 
-	void GetAllContainersInItemRecursive(const TNotNull<UFaerieItem*> Item, TArray<UFaerieItemContainerBase*>& OutContainers)
+	void GetTemplateContainersInInstanceRecursive(const ItemData::FReference& Reference,
+		TArray<TNotNull<const UFaerieItemContainerBase*>>& Containers, const TNotNull<const UClass*> Class)
 	{
-		TArray<UFaerieItemContainerBase*> Containers;
-		GetAllContainersInItem(Item, Containers);
-		OutContainers.Append(Containers);
-		for (UFaerieItemContainerBase* Container : Containers)
+		const int32 CountBeforeThisRecursion = Containers.Num();
+		GetTemplateContainersInInstanceDirect(Reference, Containers, Class);
+		const int32 CountAfterThisRecursion = Containers.Num();
+		for (int32 i = CountBeforeThisRecursion; i < CountAfterThisRecursion; ++i)
+		{
+			for (auto It = Container::ItemRange(Containers[i]); It; ++It)
+			{
+				GetTemplateContainersInInstanceRecursive(*It, Containers, Class);
+			}
+		}
+	}
+
+	void GetContainersInInstanceDirect(const ItemData::FRequireEntityManager& EntityManager, const ItemData::FMutableReference& Reference, TArray<TNotNull<UFaerieItemContainerBase*>>& Containers, const TNotNull<const UClass*> Class)
+	{
+		auto* StacksFragment = ItemData::GetEntityFragment<FFaerieChildStackFragment>(EntityManager, Reference->GetMassEntityHandle());
+		auto* StorageFragment = ItemData::GetEntityFragment<FFaerieItemStorageFragment>(EntityManager, Reference->GetMassEntityHandle());
+
+		if (StacksFragment)
+		{
+			for (auto&& Slot : StacksFragment->Slots)
+			{
+				if (IsValid(Slot.Stack) && Slot.Stack.IsA(Class))
+				{
+					Containers.Add(Slot.Stack);
+				}
+			}
+		}
+
+		if (StorageFragment)
+		{
+			const TObjectPtr<UFaerieItemStorage>& ItemStorage = StorageFragment->Storage.Storage;
+			if (IsValid(ItemStorage) && ItemStorage.IsA(Class))
+			{
+				Containers.Add(ItemStorage);
+			}
+			else
+			{
+				UE_LOG(LogFaerieInventory, Error, TEXT("Storage invalid in ItemStorageFragment. This fragment should not contain a null container!"))
+			}
+		}
+	}
+
+	void GetContainersInInstanceRecursive(const ItemData::FRequireEntityManager& EntityManager,
+		const ItemData::FMutableReference& Reference, TArray<TNotNull<UFaerieItemContainerBase*>>& Containers,
+		const TNotNull<const UClass*> Class)
+	{
+		const int32 CountBeforeThisRecursion = Containers.Num();
+		GetContainersInInstanceDirect(EntityManager, Reference, Containers, Class);
+		const int32 CountAfterThisRecursion = Containers.Num();
+		for (int32 i = CountBeforeThisRecursion; i < CountAfterThisRecursion; ++i)
+		{
+			for (auto It = Container::ItemRange(Containers[i]); It; ++It)
+			{
+				GetContainersInInstanceRecursive(EntityManager, *It, Containers, Class);
+			}
+		}
+	}
+
+	void GetChildrenInItem(const ItemData::FRequireEntityManager& EntityManager, const ItemData::FMutableReference& Item, TArray<ItemData::FReference>& OutInstances)
+	{
+		for (UFaerieItemContainerBase* Container : SubObject::Iterate(EntityManager, Item))
 		{
 			for (auto It = Container::ItemRange(Container); It; ++It)
 			{
-				GetAllContainersInItemRecursive(*It, OutContainers);
+				OutInstances.Add(*It);
 			}
 		}
 	}
 
-	TArray<UFaerieItemContainerBase*> GetAllContainersInItem(const TNotNull<UFaerieItem*> Item)
+	void GetChildrenInItemRecursive(const ItemData::FRequireEntityManager& EntityManager, const ItemData::FMutableReference& Item, TArray<ItemData::FReference>& OutInstances)
 	{
-		TArray<UFaerieItemContainerBase*> Containers;
-		GetAllContainersInItem(Item, Containers);
-		return Containers;
-	}
-
-	TArray<UFaerieItemContainerBase*> GetAllContainersInItemRecursive(const TNotNull<UFaerieItem*> Item)
-	{
-		TArray<UFaerieItemContainerBase*> Containers;
-		GetAllContainersInItemRecursive(Item, Containers);
-		return Containers;
-	}
-
-	void GetChildrenInItem(const TNotNull<UFaerieItem*> Item, TArray<const UFaerieItem*>& OutChildren)
-	{
-		for (UFaerieItemContainerBase* Container : SubObject::Iterate(Item))
+		const int32 CountBeforeThisRecursion = OutInstances.Num();
+		GetChildrenInItem(EntityManager, Item, OutInstances);
+		const int32 CountAfterThisRecursion = OutInstances.Num();
+		for (int32 i = CountBeforeThisRecursion; i < CountAfterThisRecursion; ++i)
 		{
-			for (auto It = Container::ConstItemRange(Container); It; ++It)
-			{
-				OutChildren.Add(*It);
-			}
-		}
-	}
+			auto&& Child = OutInstances[i];
 
-	void GetChildrenInItemRecursive(const TNotNull<UFaerieItem*> Item, TArray<const UFaerieItem*>& OutChildren)
-	{
-		TArray<const UFaerieItem*> Children;
-		GetChildrenInItem(Item, OutChildren);
-		OutChildren.Append(OutChildren);
-		for (const UFaerieItem* Child : Children)
-		{
-			if (UFaerieItem* Mutable = Child->MutateCast())
+			if (Child->IsMutable())
 			{
-				for (UFaerieItemContainerBase* Container : SubObject::Iterate(Mutable))
+				for (UFaerieItemContainerBase* Container : SubObject::Iterate(EntityManager, Child))
 				{
-					for (auto It = Container::ItemRange(Container); It; ++It)
+					for (auto It = Container::MutableItemRange(Container); It; ++It)
 					{
-						GetChildrenInItemRecursive(*It, OutChildren);
+						GetChildrenInItemRecursive(EntityManager, *It, OutInstances);
 					}
 				}
 			}
 		}
-	}
-
-	TArray<const UFaerieItem*> GetChildrenInItem(const TNotNull<UFaerieItem*> Item)
-	{
-		TArray<const UFaerieItem*> Items;
-		GetChildrenInItem(Item, Items);
-		return Items;
-	}
-
-	TArray<const UFaerieItem*> GetChildrenInItemRecursive(const TNotNull<UFaerieItem*> Item)
-	{
-		TArray<const UFaerieItem*> Items;
-		GetChildrenInItemRecursive(Item, Items);
-		return Items;
 	}
 
 	namespace StaticPredicates
@@ -107,10 +147,34 @@ namespace Faerie::SubObject
 		}
 	}
 
-	FContainerIterator::FContainerIterator(const TNotNull<UFaerieItem*> Item)
-	  : Iterator(GetItemContainersFilter().Iterate(Item)) {}
+	TArray<TNotNull<UFaerieItemContainerBase*>> GetAllContainersInItem_Inline(const ItemData::FRequireEntityManager& EntityManager, const ItemData::FMutableReference& Item)
+	{
+		TArray<TNotNull<UFaerieItemContainerBase*>> Containers;
+		GetContainersInInstanceDirect(EntityManager, Item, Containers);
+		return Containers;
+	}
 
-	FRecursiveContainerIterator::FRecursiveContainerIterator(const TNotNull<UFaerieItem*> Item)
-	  : Containers(GetAllContainersInItemRecursive(Item)),
+	TArray<TNotNull<UFaerieItemContainerBase*>> GetAllContainersInItemRecursive_Inline(const ItemData::FRequireEntityManager& EntityManager, const ItemData::FMutableReference& Item)
+	{
+		TArray<TNotNull<UFaerieItemContainerBase*>> Containers;
+		GetContainersInInstanceRecursive(EntityManager, Item, Containers);
+		return Containers;
+	}
+
+	FContainerIterator::FContainerIterator(const ItemData::FRequireEntityManager& EntityManager, const ItemData::FMutableReference& Item)
+	  : Containers(GetAllContainersInItem_Inline(EntityManager, Item)),
+		Iterator(Containers.CreateIterator()) {}
+
+	void FContainerIterator::operator++()
+	{
+		do
+		{
+			++Iterator;
+		}
+		while (Iterator && !IsValid(NotNullGet(Iterator.operator*())));
+	}
+
+	FRecursiveContainerIterator::FRecursiveContainerIterator(const ItemData::FRequireEntityManager& EntityManager, const ItemData::FMutableReference& Item)
+	  : Containers(GetAllContainersInItemRecursive_Inline(EntityManager, Item)),
 		Iterator(Containers.CreateIterator()) {}
 }

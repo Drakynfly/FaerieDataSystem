@@ -10,7 +10,7 @@
  * The result of a faerie hashing operation.
  * This is just a uint32 wrapped for type-safety and Blueprint access.
  */
-USTRUCT(BlueprintType, meta = (HasNativeBreak = "/Script/FaerieItemData.FaerieItemDataStructsLibrary.BreakFaerieHash"))
+USTRUCT(BlueprintType, meta = (HasNativeBreak = "/Script/FaerieItemData.FaerieItemDataLibrary.BreakFaerieHash"))
 struct FAERIEITEMDATA_API FFaerieHash
 {
 	GENERATED_BODY()

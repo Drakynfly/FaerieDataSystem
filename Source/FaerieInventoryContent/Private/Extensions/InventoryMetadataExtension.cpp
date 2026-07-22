@@ -20,20 +20,22 @@ namespace Faerie::Inventory::Tags
 		"Fae.Inventory.Meta.CannotSplit", "Denies permission to split a stack. Typically used to mark required quest item stacks.")
 }
 
+using namespace Faerie;
+
 EEventExtensionResponse UInventoryMetadataExtension::AllowsRemoval(const TNotNull<const UFaerieItemContainerBase*> Container,
-	const FFaerieAddress Address, const FFaerieInventoryTag Reason) const
+	const ItemData::TNonNullViewPtr<Container::IAddressView> DataView, const FFaerieInventoryTag Reason) const
 {
 	// Tags that always deny removal.
 	static FGameplayTagContainer RemovalDenyingTags = FGameplayTagContainer::CreateFromArray(
 		TArray<FGameplayTag>{
-			Faerie::Inventory::Tags::CannotRemove
+			Inventory::Tags::CannotRemove
 		});
 
 	// Tags that deny a specific reason
 	static TMap<FFaerieInventoryTag, FFaerieInventoryTag> OtherDenialTags = {
-		{ Faerie::Inventory::Tags::RemovalDeletion, Faerie::Inventory::Tags::CannotDelete },
-		{Faerie::Inventory::Tags::RemovalMoving, Faerie::Inventory::Tags::CannotMove },
-		{ Faerie::Inventory::Tags::RemovalEject, Faerie::Inventory::Tags::CannotEject }
+		{ Inventory::Tags::RemovalDeletion, Inventory::Tags::CannotDelete },
+		{Inventory::Tags::RemovalMoving, Inventory::Tags::CannotMove },
+		{ Inventory::Tags::RemovalEject, Inventory::Tags::CannotEject }
 	};
 
 	FGameplayTagContainer ThisEventTags = RemovalDenyingTags;
@@ -44,14 +46,10 @@ EEventExtensionResponse UInventoryMetadataExtension::AllowsRemoval(const TNotNul
 		ThisEventTags.AddTag(*DenialTag);
 	}
 
-	FFaerieAddressableHandle Handle;
-	Handle.Container = ConstCast(ObjectPtrWrap(Container.operator->()));
-	Handle.Address = Address;
-
-	if (const FConstStructView DataView = GetDataForHandle(Handle);
-		DataView.IsValid())
+	if (const FConstStructView AddressData = GetDataForHandle(Container, DataView->ResolveAddress());
+		AddressData.IsValid())
 	{
-		if (DataView.Get<const FInventoryEntryMetadata>().Tags.HasAny(ThisEventTags))
+		if (AddressData.Get<const FFaerieStorageEntryMetadata>().Tags.HasAny(ThisEventTags))
 		{
 			return EEventExtensionResponse::Disallowed;
 		}
@@ -62,61 +60,54 @@ EEventExtensionResponse UInventoryMetadataExtension::AllowsRemoval(const TNotNul
 
 UScriptStruct* UInventoryMetadataExtension::GetDataScriptStruct() const
 {
-	return FInventoryEntryMetadata::StaticStruct();
+	return FFaerieStorageEntryMetadata::StaticStruct();
 }
 
-bool UInventoryMetadataExtension::DoesEntryHaveTag(const FFaerieAddressableHandle Handle, const FFaerieInventoryMetaTag Tag) const
+bool UInventoryMetadataExtension::DoesEntryHaveTag(const TNotNull<const UFaerieItemContainerBase*> Container,
+	const FFaerieAddress Address, const FFaerieInventoryMetaTag Tag) const
 {
-	const FConstStructView DataView = GetDataForHandle(Handle);
-	if (!DataView.IsValid())
+	const FConstStructView AddressData = GetDataForHandle(Container, Address);
+	if (!AddressData.IsValid())
 	{
 		return false;
 	}
 
-	return DataView.Get<const FInventoryEntryMetadata>().Tags.HasTag(Tag);
+	return AddressData.Get<const FFaerieStorageEntryMetadata>().Tags.HasTag(Tag);
 }
 
-bool UInventoryMetadataExtension::CanSetEntryTag(const FFaerieAddressableHandle Handle,
-												 const FFaerieInventoryMetaTag Tag, const bool StateToSetTo) const
+bool UInventoryMetadataExtension::CanSetEntryTag(const TNotNull<const UFaerieItemContainerBase*> Container,
+	const FFaerieAddress Address, const FFaerieInventoryMetaTag Tag, const bool StateToSetTo) const
 {
-	return DoesEntryHaveTag(Handle, Tag) != StateToSetTo;
+	return DoesEntryHaveTag(Container, Address, Tag) != StateToSetTo;
 }
 
-bool UInventoryMetadataExtension::MarkStackWithTag(const FFaerieAddressableHandle Handle, const FFaerieInventoryMetaTag Tag)
+bool UInventoryMetadataExtension::MarkStackWithTag(const TNotNull<const UFaerieItemContainerBase*> Container,
+	const FFaerieAddress Address, const FFaerieInventoryMetaTag Tag)
 {
-	if (!Handle.IsValid())
-	{
-		return false;
-	}
-
 	if (!Tag.IsValid())
 	{
 		return false;
 	}
 
-	if (!CanSetEntryTag(Handle, Tag, true))
+	if (!CanSetEntryTag(Container, Address, Tag, true))
 	{
 		return false;
 	}
 
-	return EditDataForHandle(Handle,
+	return EditDataForHandle(Container, Address,
 		[Tag](const FStructView Data)
 		{
-			Data.Get<FInventoryEntryMetadata>().Tags.AddTag(Tag);
+			Data.Get<FFaerieStorageEntryMetadata>().Tags.AddTag(Tag);
 		});
 }
 
-void UInventoryMetadataExtension::TrySetTags(const FFaerieAddressableHandle Handle, const FGameplayTagContainer& Tags)
+void UInventoryMetadataExtension::TrySetTags(TNotNull<const UFaerieItemContainerBase*> Container,
+	FFaerieAddress Address, const FGameplayTagContainer& Tags)
 {
-	if (!Handle.IsValid())
-	{
-		return;
-	}
-
-	EditDataForHandle(Handle,
-		[Tags, this, Handle](const FStructView Data)
+	EditDataForHandle(Container, Address,
+		[Tags, this, Container, Address](const FStructView Data)
 		{
-			auto& Metadata = Data.Get<FInventoryEntryMetadata>().Tags;
+			auto& Metadata = Data.Get<FFaerieStorageEntryMetadata>().Tags;
 
 			for (auto&& Tag : Tags)
 			{
@@ -127,7 +118,7 @@ void UInventoryMetadataExtension::TrySetTags(const FFaerieAddressableHandle Hand
 
 				const FFaerieInventoryMetaTag MetaTag = FFaerieInventoryMetaTag::ConvertChecked(Tag);
 
-				if (!CanSetEntryTag(Handle, MetaTag, true))
+				if (!CanSetEntryTag(Container, Address, MetaTag, true))
 				{
 					continue;
 				}
@@ -137,21 +128,22 @@ void UInventoryMetadataExtension::TrySetTags(const FFaerieAddressableHandle Hand
 		});
 }
 
-bool UInventoryMetadataExtension::ClearTagFromStack(const FFaerieAddressableHandle Handle, const FFaerieInventoryMetaTag Tag)
+bool UInventoryMetadataExtension::ClearTagFromStack(const TNotNull<const UFaerieItemContainerBase*> Container,
+	const FFaerieAddress Address, const FFaerieInventoryMetaTag Tag)
 {
 	if (!Tag.IsValid())
 	{
 		return false;
 	}
 
-	if (!CanSetEntryTag(Handle, Tag, false))
+	if (!CanSetEntryTag(Container, Address, Tag, false))
 	{
 		return false;
 	}
 
-	return EditDataForHandle(Handle,
+	return EditDataForHandle(Container, Address,
 		[Tag](const FStructView Data)
 		{
-			Data.Get<FInventoryEntryMetadata>().Tags.RemoveTag(Tag);
+			Data.Get<FFaerieStorageEntryMetadata>().Tags.RemoveTag(Tag);
 		});
 }

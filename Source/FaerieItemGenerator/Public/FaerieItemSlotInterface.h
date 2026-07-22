@@ -47,7 +47,7 @@ struct FFaerieItemCraftingSlots
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ItemCraftingSlots")
-	TArray<FFaerieItemCraftingCostElement> RequiredSlots;
+	TArray<FFaerieItemCraftingCostElement> Slots;
 };
 
 
@@ -75,18 +75,19 @@ class FAERIEITEMGENERATOR_API IFaerieItemSlotInterface
 	GENERATED_BODY()
 
 public:
-	// @todo deprecate this in favor of more fine grain functions so we aren't allocating/copying arrays wildly
-	virtual FFaerieItemCraftingSlots GetCraftingSlots() const PURE_VIRTUAL(IFaerieItemSlotInterface::GetCraftingSlots, return FFaerieItemCraftingSlots(); )
+	virtual const FFaerieItemCraftingSlots* GetCraftingSlots() const PURE_VIRTUAL(IFaerieItemSlotInterface::GetCraftingSlots, return nullptr; )
 };
 
 namespace Faerie::Generation
 {
-	FAERIEITEMGENERATOR_API bool ValidateFilledSlots(const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemCraftingSlots& CraftingSlots);
+	FAERIEITEMGENERATOR_API bool ForEachCraftingSlot(const FFaerieItemCraftingSlots& Slots, const TFunctionRef<bool(const FFaerieItemCraftingCostElement& Slot)>& Predicate);
 
-	// Remove items and durability from the entries in Slots used to fund this action.
-	FAERIEITEMGENERATOR_API bool ConsumeSlotCosts(const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemCraftingSlots& CraftingSlots);
+	FAERIEITEMGENERATOR_API bool ValidateFilledSlots(TNotNull<const UObject*> WorldContext, const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemCraftingSlots& Slots);
 
-	FAERIEITEMGENERATOR_API const FFaerieItemCraftingCostElement* FindSlot(TNotNull<const IFaerieItemSlotInterface*> Interface, const FFaerieItemSlotHandle& Name);
+	// Remove items/uses from the entries in Slots used to fund this action.
+	FAERIEITEMGENERATOR_API bool ConsumeSlotCosts(const ItemData::FOptionalEntityManager& EntityManager, const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemCraftingSlots& Slots);
 
-	FAERIEITEMGENERATOR_API bool IsSlotOptional(TNotNull<const IFaerieItemSlotInterface*> Interface, const FFaerieItemSlotHandle& Name);
+	FAERIEITEMGENERATOR_API const FFaerieItemCraftingCostElement* FindSlot(const FFaerieItemCraftingSlots& Slots, const FFaerieItemSlotHandle& Name);
+
+	FAERIEITEMGENERATOR_API bool IsSlotOptional(const FFaerieItemCraftingSlots& Slots, const FFaerieItemSlotHandle& Name);
 }

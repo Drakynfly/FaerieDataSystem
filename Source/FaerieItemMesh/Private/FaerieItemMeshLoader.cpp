@@ -2,20 +2,16 @@
 
 #include "FaerieItemMeshLoader.h"
 #include "FaerieItem.h"
-#include "Tokens/FaerieMeshToken.h"
 
-#include "Engine/StaticMeshSocket.h"
-#//include "Engine/SkeletalMeshSocket.h"
-
+#include "EntityManagerHelpers.h"
+#include "FaerieItemDataView.h"
 #include "FaerieItemMeshLog.h"
-#include "UDynamicMesh.h" // For creating static meshes at runtime
 #include "Engine/AssetManager.h"
 #include "Engine/StaticMesh.h"
-#include "Materials/MaterialInterface.h"
 
-#include "GeometryScript/MeshAssetFunctions.h"
-#include "GeometryScript/MeshBasicEditFunctions.h"
-#include "GeometryScript/MeshMaterialFunctions.h"
+#include "Fragments/FaerieMeshFragment.h"
+
+#include "Materials/MaterialInterface.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemMeshLoader)
 
@@ -23,101 +19,7 @@ using namespace Faerie;
 
 namespace Faerie::Mesh
 {
-	FFaerieItemMesh GetDynamicStaticMeshForData(const FFaerieDynamicStaticMesh& MeshData)
-	{
-		if (MeshData.Fragments.IsEmpty())
-		{
-			return FFaerieItemMesh();
-		}
-
-		// The final mesh we will return.
-		UDynamicMesh* OutMesh = NewObject<UDynamicMesh>();
-		TArray<FFaerieItemMaterial> Materials;
-
-		TMap<FName, UStaticMeshSocket*> Sockets;
-
-		UDynamicMesh* AppendMesh = NewObject<UDynamicMesh>();
-
-		for (const FFaerieDynamicStaticMeshFragment& Fragment : MeshData.Fragments)
-		{
-			if (!Fragment.StaticMesh.IsValid())
-			{
-				UE_LOG(LogFaerieItemMesh, Error, TEXT("%hs: Invalid Static Mesh detected while building dynamic mesh!"), __FUNCTION__)
-				continue;
-			}
-
-			// Copy mesh data
-			const FGeometryScriptCopyMeshFromAssetOptions AssetOptions;
-			const FGeometryScriptMeshReadLOD RequestedLOD;
-			EGeometryScriptOutcomePins Outcome;
-			UGeometryScriptLibrary_StaticMeshFunctions::CopyMeshFromStaticMesh(Fragment.StaticMesh.LoadSynchronous(), AppendMesh, AssetOptions, RequestedLOD, Outcome);
-
-			for (auto&& Socket : Fragment.StaticMesh->Sockets)
-			{
-				Sockets.Add(Socket->SocketName, Socket);
-			}
-
-			// Figure out mesh transform
-
-			FTransform AppendTransform = Fragment.Attachment.Offset;
-
-			if (!Fragment.Attachment.Socket.IsNone())
-			{
-				if (auto&& Socket = Sockets.Find(Fragment.Attachment.Socket);
-					Socket && IsValid(*Socket))
-				{
-					AppendTransform *= FTransform((*Socket)->RelativeRotation, (*Socket)->RelativeLocation, (*Socket)->RelativeScale);
-				}
-			}
-
-			// Align material IDs
-
-			const int32 NumStaticMaterials = Fragment.StaticMesh->GetStaticMaterials().Num();
-			const int32 NumDynamicMaterials = Fragment.Materials.Num();
-			const int32 MaterialOverrideNum = FMath::Min(NumStaticMaterials, NumDynamicMaterials);
-
-			for (int32 MatOverrideIndex = 0; MatOverrideIndex < MaterialOverrideNum; ++MatOverrideIndex)
-			{
-				if (const int32 ExistingIndex = Materials.IndexOfByPredicate(
-					[&](const FFaerieItemMaterial& IndexedMat)
-					{
-						return IndexedMat.Material == Fragment.StaticMesh->GetMaterial(MatOverrideIndex);
-					});
-					ExistingIndex != INDEX_NONE)
-				{
-					UGeometryScriptLibrary_MeshMaterialFunctions::RemapMaterialIDs(AppendMesh, MatOverrideIndex, ExistingIndex);
-				}
-				else
-				{
-					const int32 NewIndex = Materials.Emplace(Fragment.Materials[MatOverrideIndex].Material.LoadSynchronous());
-					UGeometryScriptLibrary_MeshMaterialFunctions::RemapMaterialIDs(AppendMesh, MatOverrideIndex, NewIndex);
-				}
-			}
-
-			// Commit new mesh
-			UGeometryScriptLibrary_MeshBasicEditFunctions::AppendMesh(OutMesh, AppendMesh, AppendTransform);
-
-			AppendMesh->Reset();
-		}
-
-		// Trash temp dynamic mesh.
-		AppendMesh->MarkAsGarbage();
-
-		return FFaerieItemMesh::MakeDynamic(OutMesh, Materials);
-	}
-
-	FFaerieItemMesh GetDynamicSkeletalMeshForData(const FFaerieDynamicSkeletalMesh& MeshData)
-	{
-		// @todo implement
-		UE_LOG(LogFaerieItemMesh, Warning, TEXT("%hs: GetDynamicSkeletalMeshForData is not implemented."), __FUNCTION__)
-
-		FSkeletonAndAnimation OutSkeletonAndAnimation;
-		TArray<FFaerieItemMaterial> Materials;
-
-		return FFaerieItemMesh::MakeSkeletal(OutSkeletonAndAnimation, Materials);
-	}
-
-	bool LoadMeshFromTokenSynchronous(const TNotNull<const UFaerieMeshTokenBase*> Token, const FGameplayTag Purpose, FFaerieItemMesh& Mesh)
+	bool LoadMeshFromFragmentSynchronous(const TConstStructView<FFaerieMeshContainer> Fragment, const FGameplayTag Purpose, FFaerieItemMesh& Mesh)
 	{
 		FGameplayTagContainer PurposeHierarchy;
 		if (Purpose != Tags::MeshPurpose_Default)
@@ -126,41 +28,16 @@ namespace Faerie::Mesh
 		}
 		PurposeHierarchy.AddTagFast(Tags::MeshPurpose_Default);
 
-		// Check for the presence of a custom dynamic mesh to build.
-
-		if (auto&& DynamicMeshToken = Cast<UFaerieMeshToken_Dynamic>(Token))
-		{
-			if (auto&& SkeletalMesh = DynamicMeshToken->GetDynamicSkeletalItemMesh(PurposeHierarchy);
-				SkeletalMesh.IsValid())
-			{
-				Mesh = GetDynamicSkeletalMeshForData(SkeletalMesh.Get());
-				if (Mesh.IsSkeletal())
-				{
-					return true;
-				}
-			}
-
-			if (auto&& StaticMesh = DynamicMeshToken->GetDynamicStaticItemMesh(PurposeHierarchy);
-				StaticMesh.IsValid())
-			{
-				Mesh = GetDynamicStaticMeshForData(StaticMesh.Get());
-				if (Mesh.IsDynamic())
-				{
-					return true;
-				}
-			}
-		}
-
 		// Otherwise, scan and load pre-defined mesh data.
 
-		if (const TConstStructView<FFaerieSkeletalMeshData> SkelMeshData = Token->GetSkeletalItemMesh(PurposeHierarchy);
+		if (const TConstStructView<FFaerieSkeletalMeshData> SkelMeshData = Fragment->GetSkeletalItemMesh(PurposeHierarchy);
 			SkelMeshData.IsValid())
 		{
 			Mesh = FFaerieItemMesh::MakeSkeletal(SkelMeshData.Get());
 			return true;
 		}
 
-		if (const TConstStructView<FFaerieStaticMeshData> StaticMeshData = Token->GetStaticItemMesh(PurposeHierarchy);
+		if (const TConstStructView<FFaerieStaticMeshData> StaticMeshData = Fragment->GetStaticItemMesh(PurposeHierarchy);
 			StaticMeshData.IsValid())
 		{
 			Mesh = FFaerieItemMesh::MakeStatic(StaticMeshData.Get());
@@ -170,57 +47,51 @@ namespace Faerie::Mesh
 		UE_LOG(LogFaerieItemMesh, Error, TEXT("%hs: Asset does not contain a mesh suitable for the purpose."), __FUNCTION__)
 		return false;
 	}
+}
 
-	bool LoadMeshFromProxySynchronous(const FFaerieItemProxy Proxy, const FGameplayTag Purpose, FFaerieItemMesh& Mesh)
+bool UFaerieItemMeshLoader::LoadMeshFromProxySynchronous(const FFaerieItemProxy& InProxy, const FGameplayTag Purpose,
+														 FFaerieItemMesh& Mesh)
+{
+	if (!InProxy.IsValid())
 	{
-		if (!ensure(Proxy.IsValid()))
-		{
-			UE_LOG(LogFaerieItemMesh, Warning, TEXT("%hs: Invalid proxy!"), __FUNCTION__)
-			return false;
-		}
-
-		const UFaerieItem* Item = Proxy->GetItemObject();
-		if (!IsValid(Item))
-		{
-			UE_LOG(LogFaerieItemMesh, Error, TEXT("%hs: Invalid item object!"), __FUNCTION__)
-			return false;
-		}
-
-		if (auto&& MeshToken = Item->GetToken<UFaerieMeshTokenBase>())
-		{
-			return LoadMeshFromTokenSynchronous(MeshToken, Purpose, Mesh);
-		}
+		UE_LOG(LogFaerieItemMesh, Error, TEXT("%hs: Invalid proxy!"), __FUNCTION__)
 		return false;
 	}
+
+	const FFaerieItemInstance Instance = InProxy->GetItemInstance().GetValue();
+	ItemData::FOptionalEntityManager EntityManager(InProxy.GetProxyObject());
+	auto MeshFragment = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieMeshFragment>(EntityManager, Instance);
+	if (!MeshFragment.IsValid())
+	{
+		UE_LOG(LogFaerieItemMesh, Error, TEXT("%hs: Invalid fragment!"), __FUNCTION__)
+		return false;
+	}
+
+	return Mesh::LoadMeshFromFragmentSynchronous(MeshFragment->Container, Purpose, Mesh);
 }
 
-FFaerieItemMesh UFaerieItemMeshLoader::GetDynamicStaticMeshForData(const FFaerieDynamicStaticMesh& MeshData)
-{
-	return Mesh::GetDynamicStaticMeshForData(MeshData);
-}
-
-FFaerieItemMesh UFaerieItemMeshLoader::GetDynamicSkeletalMeshForData(const FFaerieDynamicSkeletalMesh& MeshData)
-{
-	return Mesh::GetDynamicSkeletalMeshForData(MeshData);
-}
-
-bool UFaerieItemMeshLoader::LoadMeshFromTokenSynchronous(const TNotNull<const UFaerieMeshTokenBase*> Token, const FGameplayTag Purpose,
-														 FFaerieItemMesh& Mesh)
-{
-	return Mesh::LoadMeshFromTokenSynchronous(Token, Purpose, Mesh);
-}
-
-bool UFaerieItemMeshLoader::LoadMeshFromProxySynchronous(const FFaerieItemProxy Proxy, const FGameplayTag Purpose,
-														 FFaerieItemMesh& Mesh)
-{
-	return Mesh::LoadMeshFromProxySynchronous(Proxy, Purpose, Mesh);
-}
-
-TSharedPtr<FStreamableHandle> UFaerieItemMeshLoader::LoadMeshFromTokenAsynchronous(const TNotNull<const UFaerieMeshTokenBase*> Token,
+TSharedPtr<FStreamableHandle> UFaerieItemMeshLoader::LoadMeshFromProxyAsynchronous(const FFaerieItemProxy& InProxy,
 	const FGameplayTag Purpose, Mesh::FAsyncLoadResult Callback)
 {
+	if (!InProxy.IsValid())
+	{
+		UE_LOG(LogFaerieItemMesh, Error, TEXT("%hs: Invalid proxy!"), __FUNCTION__)
+		(void)Callback.ExecuteIfBound(false, {});
+		return nullptr;
+	}
+
+	const FFaerieItemInstance Instance = InProxy->GetItemInstance().GetValue();
+	ItemData::FOptionalEntityManager EntityManager(InProxy.GetProxyObject());
+	auto MeshFragment = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieMeshFragment>(EntityManager, Instance);
+	if (!MeshFragment.IsValid())
+	{
+		UE_LOG(LogFaerieItemMesh, Error, TEXT("%hs: Invalid fragment!"), __FUNCTION__)
+		(void)Callback.ExecuteIfBound(false, {});
+		return nullptr;
+	}
+
 	Mesh::FAsyncLoadRequest LoadRequest;
-	LoadRequest.Token = Token;
+	LoadRequest.WeakProxy = InProxy.GetProxyObject();
 	LoadRequest.Purpose = Purpose;
 	LoadRequest.Callback = MoveTemp(Callback);
 
@@ -234,84 +105,9 @@ TSharedPtr<FStreamableHandle> UFaerieItemMeshLoader::LoadMeshFromTokenAsynchrono
 	}
 	PurposeHierarchy.AddTagFast(Mesh::Tags::MeshPurpose_Default);
 
-	// Check for the presence of a custom dynamic mesh to build.
-
-	if (auto&& DynamicMeshToken = Cast<UFaerieMeshToken_Dynamic>(Token))
-	{
-		if (auto&& SkeletalMesh = DynamicMeshToken->GetDynamicSkeletalItemMesh(PurposeHierarchy);
-			SkeletalMesh.IsValid())
-		{
-			const FFaerieDynamicSkeletalMesh& MeshData = SkeletalMesh.Get();
-			TArray<FSoftObjectPath> AssetsToLoad;
-
-			for (auto&& Fragment : MeshData.Fragments)
-			{
-				if (Fragment.SkeletonAndAnimation.Mesh.IsPending())
-				{
-					AssetsToLoad.Add(Fragment.SkeletonAndAnimation.Mesh.ToSoftObjectPath());
-				}
-				if (Fragment.SkeletonAndAnimation.AnimClass.IsPending())
-				{
-					AssetsToLoad.Add(Fragment.SkeletonAndAnimation.AnimClass.ToSoftObjectPath());
-				}
-				for (auto&& Material : Fragment.Materials)
-				{
-					if (Material.Material.IsPending())
-					{
-						AssetsToLoad.Add(Material.Material.ToSoftObjectPath());
-					}
-				}
-			}
-
-			if (AssetsToLoad.IsEmpty())
-			{
-				OnAsyncDynamicSkeletalMeshLoaded(SkeletalMesh, MoveTemp(LoadRequest));
-			}
-			else
-			{
-				return UAssetManager::GetStreamableManager().RequestAsyncLoad(MoveTemp(AssetsToLoad),
-					FStreamableDelegate::CreateUObject(this, &ThisClass::OnAsyncDynamicSkeletalMeshLoaded, SkeletalMesh, LoadRequest));
-			}
-			return nullptr;
-		}
-
-		if (auto&& StaticMesh = DynamicMeshToken->GetDynamicStaticItemMesh(PurposeHierarchy);
-			StaticMesh.IsValid())
-		{
-			const FFaerieDynamicStaticMesh& MeshData = StaticMesh.Get();
-			TArray<FSoftObjectPath> AssetsToLoad;
-
-			for (auto&& Fragment : MeshData.Fragments)
-			{
-				if (Fragment.StaticMesh.IsPending())
-				{
-					AssetsToLoad.Add(Fragment.StaticMesh.ToSoftObjectPath());
-				}
-				for (auto&& Material : Fragment.Materials)
-				{
-					if (Material.Material.IsPending())
-					{
-						AssetsToLoad.Add(Material.Material.ToSoftObjectPath());
-					}
-				}
-			}
-
-			if (AssetsToLoad.IsEmpty())
-			{
-				OnAsyncDynamicStaticMeshLoaded(StaticMesh, MoveTemp(LoadRequest));
-			}
-			else
-			{
-				return UAssetManager::GetStreamableManager().RequestAsyncLoad(MoveTemp(AssetsToLoad),
-					FStreamableDelegate::CreateUObject(this, &ThisClass::OnAsyncDynamicStaticMeshLoaded, StaticMesh, LoadRequest));
-			}
-			return nullptr;
-		}
-	}
-
 	// Otherwise, scan and load pre-defined mesh data.
 
-	if (const TConstStructView<FFaerieSkeletalMeshData> SkelMeshData = Token->GetSkeletalItemMesh(PurposeHierarchy);
+	if (const TConstStructView<FFaerieSkeletalMeshData> SkelMeshData = MeshFragment->Container.GetSkeletalItemMesh(PurposeHierarchy);
 		SkelMeshData.IsValid())
 	{
 		const FFaerieSkeletalMeshData& MeshData = SkelMeshData.Get();
@@ -344,7 +140,7 @@ TSharedPtr<FStreamableHandle> UFaerieItemMeshLoader::LoadMeshFromTokenAsynchrono
 		return nullptr;
 	}
 
-	if (const TConstStructView<FFaerieStaticMeshData> StaticMeshData = Token->GetStaticItemMesh(PurposeHierarchy);
+	if (const TConstStructView<FFaerieStaticMeshData> StaticMeshData = MeshFragment->Container.GetStaticItemMesh(PurposeHierarchy);
 		StaticMeshData.IsValid())
 	{
 		const FFaerieStaticMeshData& MeshData = StaticMeshData.Get();
@@ -378,33 +174,6 @@ TSharedPtr<FStreamableHandle> UFaerieItemMeshLoader::LoadMeshFromTokenAsynchrono
 	return nullptr;
 }
 
-TSharedPtr<FStreamableHandle> UFaerieItemMeshLoader::LoadMeshFromProxyAsynchronous(const FFaerieItemProxy Proxy, const FGameplayTag Purpose,
-														  Mesh::FAsyncLoadResult Callback)
-{
-	if (!ensure(Proxy.IsValid()))
-	{
-		UE_LOG(LogFaerieItemMesh, Warning, TEXT("%hs: Invalid proxy!"), __FUNCTION__)
-		(void)Callback.ExecuteIfBound(false, {});
-		return nullptr;
-	}
-
-	const UFaerieItem* Item = Proxy->GetItemObject();
-
-	if (!IsValid(Item))
-	{
-		UE_LOG(LogFaerieItemMesh, Error, TEXT("%hs: Invalid item object!"), __FUNCTION__)
-		(void)Callback.ExecuteIfBound(false, {});
-		return nullptr;
-	}
-
-	if (auto&& MeshToken = Item->GetToken<UFaerieMeshTokenBase>())
-	{
-		return LoadMeshFromTokenAsynchronous(MeshToken, Purpose, MoveTemp(Callback));
-	}
-
-	return nullptr;
-}
-
 void UFaerieItemMeshLoader::OnAsyncStaticMeshLoaded(const TConstStructView<FFaerieStaticMeshData> MeshData,
 	Mesh::FAsyncLoadRequest Request)
 {
@@ -419,28 +188,15 @@ void UFaerieItemMeshLoader::OnAsyncSkeletalMeshLoaded(const TConstStructView<FFa
 	HandleAsyncLoadResult(MoveTemp(Mesh), MoveTemp(Request));
 }
 
-void UFaerieItemMeshLoader::OnAsyncDynamicStaticMeshLoaded(const TConstStructView<FFaerieDynamicStaticMesh> MeshData,
-	Mesh::FAsyncLoadRequest Request)
-{
-	FFaerieItemMesh Mesh = GetDynamicStaticMeshForData(MeshData.Get());
-	HandleAsyncLoadResult(MoveTemp(Mesh), MoveTemp(Request));
-}
-
-void UFaerieItemMeshLoader::OnAsyncDynamicSkeletalMeshLoaded(const TConstStructView<FFaerieDynamicSkeletalMesh> MeshData,
-	Mesh::FAsyncLoadRequest Request)
-{
-	FFaerieItemMesh Mesh = GetDynamicSkeletalMeshForData(MeshData.Get());
-	HandleAsyncLoadResult(MoveTemp(Mesh), MoveTemp(Request));
-}
-
 void UFaerieItemMeshLoader::HandleAsyncLoadResult(FFaerieItemMesh&& Mesh, Mesh::FAsyncLoadRequest&& Request)
 {
 	(void)Request.Callback.ExecuteIfBound(true, MoveTemp(Mesh));
 }
 
-bool UFaerieItemMeshLoader_Cached::LoadMeshFromTokenSynchronous(const TNotNull<const UFaerieMeshTokenBase*> Token, const FGameplayTag Purpose, FFaerieItemMesh& Mesh)
+bool UFaerieItemMeshLoader_Cached::LoadMeshFromProxySynchronous(const FFaerieItemProxy& InProxy, const FGameplayTag Purpose,
+	FFaerieItemMesh& Mesh)
 {
-	const FFaerieCachedMeshKey Key = {Token, Purpose};
+	const FFaerieCachedMeshKey Key = {InProxy.GetProxyObject(), Purpose};
 
 	// If we have already generated this mesh, return that one.
 	if (auto&& CachedMesh = GeneratedMeshes.Find(Key))
@@ -449,7 +205,7 @@ bool UFaerieItemMeshLoader_Cached::LoadMeshFromTokenSynchronous(const TNotNull<c
 		return true;
 	}
 
-	const bool SuperResult = Super::LoadMeshFromTokenSynchronous(Token, Purpose, Mesh);
+	const bool SuperResult = Super::LoadMeshFromProxySynchronous(InProxy, Purpose, Mesh);
 
 	// If the mesh load succeeded, cache the result.
 	if (SuperResult)
@@ -460,10 +216,9 @@ bool UFaerieItemMeshLoader_Cached::LoadMeshFromTokenSynchronous(const TNotNull<c
 	return SuperResult;
 }
 
-void UFaerieItemMeshLoader_Cached::HandleAsyncLoadResult(FFaerieItemMesh&& Mesh,
-	Mesh::FAsyncLoadRequest&& Request)
+void UFaerieItemMeshLoader_Cached::HandleAsyncLoadResult(FFaerieItemMesh&& Mesh, Mesh::FAsyncLoadRequest&& Request)
 {
-	const FFaerieCachedMeshKey Key = {Request.Token, Request.Purpose};
+	const FFaerieCachedMeshKey Key = {Request.WeakProxy, Request.Purpose};
 	GeneratedMeshes.Add(Key, Mesh);
 	Super::HandleAsyncLoadResult(MoveTemp(Mesh), MoveTemp(Request));
 }
@@ -473,8 +228,8 @@ void UFaerieItemMeshLoader_Cached::ResetCache()
 	GeneratedMeshes.Reset();
 }
 
-void UFaerieItemMeshLoader_Cached::ResetCacheByKey(const UFaerieMeshTokenBase* Token, const FGameplayTag Purpose)
+void UFaerieItemMeshLoader_Cached::ResetCacheByKey(const FFaerieItemProxy& Proxy, const FGameplayTag Purpose)
 {
-	const FFaerieCachedMeshKey Key = {Token, Purpose};
+	const FFaerieCachedMeshKey Key = {Proxy.GetProxyObject(), Purpose};
 	GeneratedMeshes.Remove(Key);
 }

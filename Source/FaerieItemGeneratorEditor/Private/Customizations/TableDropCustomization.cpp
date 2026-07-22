@@ -81,8 +81,8 @@ void FTableDropCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> Prop
     // Only display the slots property if the asset is a graph that needs them, or a value has already been set.
     if (auto&& SlotInterface = Cast<IFaerieItemSlotInterface>(ObjectValue))
     {
-    	const FFaerieItemCraftingSlots Slots = SlotInterface->GetCraftingSlots();
-    	if (Slots.RequiredSlots.IsEmpty())
+    	const FFaerieItemCraftingSlots* Slots = SlotInterface->GetCraftingSlots();
+    	if (!Slots || Slots->Slots.IsEmpty())
     	{
     		return;
     	}
@@ -91,7 +91,7 @@ void FTableDropCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> Prop
 
     	FScriptMapHelper MapHelper(CastField<FMapProperty>(SlotsHandle->GetProperty()), SlotsAddress);
 
-    	for (auto&& Slot : Slots.RequiredSlots)
+    	for (auto&& Slot : Slots->Slots)
     	{
     		MapHelper.FindOrAdd(&Slot.Name);
     		MapHelper.Rehash();

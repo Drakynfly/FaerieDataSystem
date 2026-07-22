@@ -37,7 +37,7 @@ public class FaerieItemDataEditor : ModuleRules
                 "Slate",
                 "SlateCore",
                 "UnrealEd",
-                "FaerieInventoryContent" // Temp, for FaerieCapacityToken in FaerieItemAssetPreviewScene
+                "FaerieInventoryContent" // Temp, for FaerieCapacity in FaerieItemAssetPreviewScene
             }
         );
     }

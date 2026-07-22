@@ -2,9 +2,10 @@
 
 #pragma once
 
-#include "FaerieItemAsset.h"
 #include "FaerieItemSlotInterface.h"
 #include "FaerieItemRecipe.generated.h"
+
+class IFaerieItemSource;
 
 /**
  * A wrapper around an item source that requires being fed crafting data to generate an item instance
@@ -16,12 +17,13 @@ class FAERIEITEMGENERATOR_API UFaerieItemRecipe : public UObject, public IFaerie
 
 public:
 	//~ IFaerieItemSlotInterface
-	virtual FFaerieItemCraftingSlots GetCraftingSlots() const override;
+	UE_REWRITE virtual const FFaerieItemCraftingSlots* GetCraftingSlots() const override { return &CraftingSlots; }
 	//~ IFaerieItemSlotInterface
 
-	TScriptInterface<IFaerieItemSource> GetItemSource() const { return ItemSource; }
+	UE_REWRITE TScriptInterface<IFaerieItemSource> GetItemSource() const { return ItemSource; }
 
 protected:
+	// @todo replace with FFaerieItemSourceObject
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Faerie|ItemRecipe")
 	TScriptInterface<IFaerieItemSource> ItemSource;
 

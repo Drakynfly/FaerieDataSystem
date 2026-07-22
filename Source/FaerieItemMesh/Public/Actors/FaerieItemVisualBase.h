@@ -26,11 +26,20 @@ public:
 
 	//~ AActor
 	virtual USceneComponent* GetDefaultAttachComponent() const override;
+
+protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	//~ AActor
 
+public:
 	// As this class is abstract it doesn't implement IFaerieItemDataProxy's interface, it just requires that it's children will.
+	//~ IFaerieItemDataProxy
+	virtual TOptional<FFaerieItemInstance> GetItemInstance() const override;
+	virtual int32 GetCopies() const override PURE_VIRTUAL(AFaerieItemVisualBase::GetCopies, return -1; )
+	virtual IFaerieItemOwnerInterface* GetItemOwner() const override PURE_VIRTUAL(AFaerieItemVisualBase::GetItemOwner, return nullptr; )
+	virtual Faerie::ItemData::FProxyChangeEvent::RegistrationType& GetOnProxyChangeEvent() override;
+	//~ IFaerieItemDataProxy
 
 	Faerie::Mesh::FOnVisualActorDisplayFinished::RegistrationType& GetOnDisplayFinished() { return OnDisplayFinished; }
 

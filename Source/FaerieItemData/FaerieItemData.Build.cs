@@ -7,14 +7,20 @@ public class FaerieItemData : ModuleRules
     public FaerieItemData(ReadOnlyTargetRules Target) : base(Target)
     {
         FaerieDataUtils.ApplySharedModuleSetup(this, Target);
+        SetupIrisSupport(Target);
 
         PublicDependencyModuleNames.AddRange(
             new []
             {
                 "Core",
+                "DeveloperSettings",
                 "GameplayTags",
                 "FaerieDataUtils",
-                "NetCore"
+                "MassCore",
+                "MassEntity",
+                "MassSpawner", // For UMassEntityConfigAsset
+                "ModelViewViewModel",
+                "NetCore",
             }
         );
 
@@ -31,7 +37,5 @@ public class FaerieItemData : ModuleRules
 		{
 			PublicDependencyModuleNames.Add("UnrealEd"); // For USceneThumbnailInfo in FaerieItemAsset.h
 		}
-
-        SetupIrisSupport(Target);
     }
 }

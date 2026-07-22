@@ -7,7 +7,7 @@
 
 namespace Faerie::Editor
 {
-	FItemAssetPreviewSceneThumbnail::FItemAssetPreviewSceneThumbnail(const IFaerieItemDataProxy* Proxy)
+	FItemAssetPreviewSceneThumbnail::FItemAssetPreviewSceneThumbnail(const FFaerieItemProxy& Proxy)
 		: SceneData(this)
 	{
 		SceneData.ItemProxy = Proxy;
@@ -64,7 +64,7 @@ namespace Faerie::Editor
 		return SceneData.GetBounds();
 	}
 
-	void FItemAssetPreviewSceneThumbnail::SetItemProxy(const IFaerieItemDataProxy* Proxy)
+	void FItemAssetPreviewSceneThumbnail::SetItemProxy(const FFaerieItemProxy& Proxy)
 	{
 		SceneData.SetProxy(Proxy);
 	}

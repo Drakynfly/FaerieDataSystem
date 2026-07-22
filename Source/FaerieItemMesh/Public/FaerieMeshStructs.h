@@ -7,8 +7,6 @@
 #include "StructUtils/StructView.h"
 #include "FaerieMeshStructs.generated.h"
 
-class UDynamicMesh;
-
 namespace Faerie::Mesh::Tags
 {
 	FAERIEITEMMESH_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(MeshPurpose_Default)
@@ -130,19 +128,16 @@ struct FAERIEITEMMESH_API FFaerieItemMesh
 
 	static FFaerieItemMesh MakeStatic(UStaticMesh* Mesh, const TArray<FFaerieItemMaterial>& Materials);
 
-	static FFaerieItemMesh MakeDynamic(UDynamicMesh* Mesh, const TArray<FFaerieItemMaterial>& Materials);
-
 	// Warning: This causes a Synchronous Load if the mesh is not preloaded.
 	static FFaerieItemMesh MakeSkeletal(const FFaerieSkeletalMeshData& MeshData);
 
 	static FFaerieItemMesh MakeSkeletal(const FSkeletonAndAnimation& Mesh, const TArray<FFaerieItemMaterial>& Materials);
 
+	TArray<UMaterialInterface*> ToObjectArray();
+
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FaerieItemMesh")
 	TObjectPtr<const UStaticMesh> StaticMesh = nullptr;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FaerieItemMesh")
-	TObjectPtr<UDynamicMesh> DynamicStaticMesh = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FaerieItemMesh")
 	FSkeletonAndAnimation SkeletonAndAnimation;
@@ -152,7 +147,6 @@ public:
 	TArray<FFaerieItemMaterial> Materials;
 
 	bool IsStatic() const;
-	bool IsDynamic() const;
 	bool IsSkeletal() const;
 
 	const UStaticMesh* GetStatic() const
@@ -166,11 +160,6 @@ public:
 		return ConstCast(StaticMesh);
 	}
 
-	UDynamicMesh* GetDynamic() const
-	{
-		return DynamicStaticMesh;
-	}
-
 	FSkeletonAndAnimation GetSkeletal() const
 	{
 		return SkeletonAndAnimation;
@@ -181,11 +170,6 @@ public:
 		StaticMesh = Mesh;
 	}
 
-	void SetDynamic(UDynamicMesh* Mesh)
-	{
-		DynamicStaticMesh = Mesh;
-	}
-
 	void SetSkeletal(const FSkeletonAndAnimation& Mesh)
 	{
 		SkeletonAndAnimation = Mesh;
@@ -194,7 +178,6 @@ public:
 	[[nodiscard]] UE_REWRITE bool UEOpEquals(const FFaerieItemMesh& Other) const
 	{
 		return StaticMesh == Other.StaticMesh
-			&& DynamicStaticMesh == Other.DynamicStaticMesh
 			&& SkeletonAndAnimation == Other.SkeletonAndAnimation
 			&& Materials == Other.Materials;
 	}

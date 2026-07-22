@@ -3,10 +3,14 @@
 #pragma once
 
 #include "FaerieHash.h"
+#include "FaerieMassFragment.h"
 #include "FaerieItemStackHashInstruction.h"
+
+#include "Templates/SubclassOf.h"
+#include "Templates/SubScriptStructOf.h"
+
 #include "BasicItemHashInstructions.generated.h"
 
-class UFaerieItemToken;
 class UFaerieItemDataFilter;
 
 
@@ -19,25 +23,12 @@ class UFISHI_Literial : public UFaerieItemStackHashInstruction
 	GENERATED_BODY()
 
 public:
-	virtual uint32 Hash(FFaerieItemStackView StackView) const override;
+	virtual uint32 Hash(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const override;
 
 protected:
 	UPROPERTY(EditAnywhere, Category = "FISHI")
 	FFaerieHash Value;
 };
-
-/**
- * Inject a manually defined hash.
- */
-UCLASS(DisplayName = "Validate (FISHI)")
-class UFISHI_IsValid : public UFaerieItemStackHashInstruction
-{
-	GENERATED_BODY()
-
-public:
-	virtual uint32 Hash(FFaerieItemStackView StackView) const override;
-};
-
 
 /**
  * Performs a Hash Combine of multiple instructions.
@@ -48,7 +39,7 @@ class UFISHI_And : public UFaerieItemStackHashInstruction
 	GENERATED_BODY()
 
 public:
-	virtual uint32 Hash(FFaerieItemStackView StackView) const override;
+	virtual uint32 Hash(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const override;
 
 protected:
 	UPROPERTY(EditAnywhere, Instanced, Category = "FISHI")
@@ -65,7 +56,7 @@ class UFISHI_Or : public UFaerieItemStackHashInstruction
 	GENERATED_BODY()
 
 public:
-	virtual uint32 Hash(FFaerieItemStackView StackView) const override;
+	virtual uint32 Hash(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const override;
 
 protected:
 	UPROPERTY(EditAnywhere, Instanced, Category = "FISHI")
@@ -82,7 +73,7 @@ class UFISHI_BooleanFilter : public UFaerieItemStackHashInstruction
 	GENERATED_BODY()
 
 public:
-	virtual uint32 Hash(FFaerieItemStackView StackView) const override;
+	virtual uint32 Hash(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const override;
 
 protected:
 	// Pattern used to determine if an item qualifies as fitting this template.
@@ -99,7 +90,7 @@ class UFISHI_BooleanSelect : public UFaerieItemStackHashInstruction
 	GENERATED_BODY()
 
 public:
-	virtual uint32 Hash(FFaerieItemStackView StackView) const override;
+	virtual uint32 Hash(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const override;
 
 protected:
 	// Pattern used to determine if an item qualifies as fitting this template.
@@ -115,18 +106,17 @@ protected:
 
 
 /**
- * Hashes a set of tokens together by their object hash.
+ * Hashes a set of fragments together by their object hash.
  */
-UCLASS(DisplayName = "Tokens (FISHI)")
-class UFISHI_Tokens : public UFaerieItemStackHashInstruction
+UCLASS(DisplayName = "Fragments (FISHI)")
+class UFISHI_Fragments : public UFaerieItemStackHashInstruction
 {
 	GENERATED_BODY()
 
 public:
-	virtual uint32 Hash(FFaerieItemStackView StackView) const override;
+	virtual uint32 Hash(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const override;
 
 protected:
-	// Pattern used to determine if an item qualifies as fitting this template.
 	UPROPERTY(EditInstanceOnly, Category = "FISHI", meta = (DisplayThumbnail = false))
-	TArray<TSubclassOf<UFaerieItemToken>> TokenClasses;
+	TArray<TSubScriptStructOf<FFaerieMassFragment>> FragmentTypes;
 };

@@ -49,6 +49,8 @@ void UContentHashExtension::RecalcContainerHash(const TNotNull<const UFaerieItem
 
 void UContentHashExtension::RecalcLocalChecksum()
 {
+	static_assert(sizeof(FFaerieHash) == sizeof(uint32));
+
 	TArray<uint32> Hashes;
 	PerContainerHash.GenerateValueArray(*Faerie::Utils::Cast<TArray<FFaerieHash>*>(&Hashes));
 

@@ -2,8 +2,8 @@
 
 #include "FaerieMeshSubsystem.h"
 #include "FaerieItemMeshLoader.h"
+#include "FaerieItemMeshLog.h"
 #include "FaerieMeshSettings.h"
-#include "Tokens/FaerieMeshToken.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieMeshSubsystem)
 
@@ -17,30 +17,22 @@ void UFaerieMeshSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
 
+	// Create default mesh loader object.
 	Loader = NewObject<UFaerieItemMeshLoader_Cached>(this);
 }
 
-bool UFaerieMeshSubsystem::LoadMeshFromTokenSynchronous(const UFaerieMeshTokenBase* Token, FGameplayTag Purpose,
+bool UFaerieMeshSubsystem::LoadMeshFromProxySynchronous(const FFaerieItemProxy& Proxy, FGameplayTag Purpose,
 														FFaerieItemMesh& Mesh)
 {
 	// This is a stupid fix for an issue with blueprints, where impure nodes will cache their output across multiple executions.
 	// The result without this line, is that a mesh value put into Mesh in one call will persist for successive calls.
 	Mesh = FFaerieItemMesh();
 
-	if (!Purpose.IsValid())
+	if (!Proxy.IsValid())
 	{
-		Purpose = GetDefault<UFaerieMeshSettings>()->FallbackPurpose;
+		UE_LOG(LogFaerieItemMesh, Warning, TEXT("Invalid Proxy passed to UFaerieMeshSubsystem::LoadMeshFromProxySynchronous!"))
+		return false;
 	}
-
-	return Loader->LoadMeshFromTokenSynchronous(Token, Purpose, Mesh);
-}
-
-bool UFaerieMeshSubsystem::LoadMeshFromProxySynchronous(const FFaerieItemProxy Proxy, FGameplayTag Purpose,
-														FFaerieItemMesh& Mesh)
-{
-	// This is a stupid fix for an issue with blueprints, where impure nodes will cache their output across multiple executions.
-	// The result without this line, is that a mesh value put into Mesh in one call will persist for successive calls.
-	Mesh = FFaerieItemMesh();
 
 	if (!Purpose.IsValid())
 	{
@@ -50,41 +42,16 @@ bool UFaerieMeshSubsystem::LoadMeshFromProxySynchronous(const FFaerieItemProxy P
 	return Loader->LoadMeshFromProxySynchronous(Proxy, Purpose, Mesh);
 }
 
-void UFaerieMeshSubsystem::LoadMeshFromTokenAsynchronous(const UFaerieMeshTokenBase* Token, FGameplayTag Purpose,
+void UFaerieMeshSubsystem::LoadMeshFromProxyAsynchronous(const FFaerieItemProxy& Proxy, FGameplayTag Purpose,
 														 const FFaerieItemMeshAsyncLoadResult& Callback)
 {
-	if (!Purpose.IsValid())
+	if (!Proxy.IsValid())
 	{
-		Purpose = GetDefault<UFaerieMeshSettings>()->FallbackPurpose;
-	}
-
-	if (!IsValid(Token))
-	{
+		UE_LOG(LogFaerieItemMesh, Warning, TEXT("Invalid Proxy passed to UFaerieMeshSubsystem::LoadMeshFromProxyAsynchronous!"))
+		Callback.Execute(false, FFaerieItemMesh());
 		return;
 	}
 
-	(void)Loader->LoadMeshFromTokenAsynchronous(Token, Purpose,
-		Faerie::Mesh::FAsyncLoadResult::CreateLambda(
-			[Callback](const bool Success, FFaerieItemMesh&& Mesh)
-			{
-				(void)Callback.ExecuteIfBound(Success, Mesh);
-			}));
-}
-
-TSharedPtr<FStreamableHandle> UFaerieMeshSubsystem::LoadMeshFromTokenAsynchronous(const TNotNull<const UFaerieMeshTokenBase*> Token,
-	FGameplayTag Purpose, const Faerie::Mesh::FAsyncLoadResult& Callback)
-{
-	if (!Purpose.IsValid())
-	{
-		Purpose = GetDefault<UFaerieMeshSettings>()->FallbackPurpose;
-	}
-
-	return Loader->LoadMeshFromTokenAsynchronous(Token, Purpose, Callback);
-}
-
-void UFaerieMeshSubsystem::LoadMeshFromProxyAsynchronous(const FFaerieItemProxy Proxy, FGameplayTag Purpose,
-														 const FFaerieItemMeshAsyncLoadResult& Callback)
-{
 	if (!Purpose.IsValid())
 	{
 		Purpose = GetDefault<UFaerieMeshSettings>()->FallbackPurpose;
@@ -98,7 +65,7 @@ void UFaerieMeshSubsystem::LoadMeshFromProxyAsynchronous(const FFaerieItemProxy 
 			}));
 }
 
-TSharedPtr<FStreamableHandle> UFaerieMeshSubsystem::LoadMeshFromProxyAsynchronous(const FFaerieItemProxy Proxy, FGameplayTag Purpose,
+TSharedPtr<FStreamableHandle> UFaerieMeshSubsystem::LoadMeshFromProxyAsynchronous(const FFaerieItemProxy& Proxy, FGameplayTag Purpose,
 	const Faerie::Mesh::FAsyncLoadResult& Callback)
 {
 	if (!Purpose.IsValid())

@@ -43,7 +43,7 @@ class TTypedTagStaticImpl2
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	/** Intended for console commands/cheats: not for shipping code! */
-	static FORCEINLINE TagT FindFromString_DebugOnly(const FString& PartialTagName)
+	static inline TagT FindFromString_DebugOnly(const FString& PartialTagName)
 	{
 		return UGameplayTagsManager::Get().FindGameplayTagFromPartialString_Slow(PartialTagName);
 	}
@@ -70,13 +70,21 @@ class TTypedTagStaticImpl2
 
 	TTypedTagStaticImpl2()
 	{
-		UGameplayTagsManager::OnLastChanceToAddNativeTags().AddLambda([this]()
+		OnLastChanceToAddNativeTagsHandle = UGameplayTagsManager::CallOrRegister_OnAddNativeTagsDelegate(
+			FSimpleMulticastDelegate::FDelegate::CreateLambda([this]()
 			{
 				StaticImpl.RootTag = UGameplayTagsManager::Get().AddNativeGameplayTag(TagT::GetRootTagStr());
-			});
+			}));
 	}
+
+	~TTypedTagStaticImpl2()
+	{
+		UGameplayTagsManager::UnregisterNativeTagDelegate(OnLastChanceToAddNativeTagsHandle);
+	}
+
 	TagT RootTag;
 	static TTypedTagStaticImpl2 StaticImpl;
+	FDelegateHandle OnLastChanceToAddNativeTagsHandle;
 };
 
 template <typename TagT>

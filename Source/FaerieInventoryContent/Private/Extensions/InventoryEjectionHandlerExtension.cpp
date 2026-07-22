@@ -1,12 +1,13 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "Extensions/InventoryEjectionHandlerExtension.h"
+#include "EntityManagerHelpers.h"
 #include "FaerieInventoryContentLog.h"
 #include "FaerieItemStorage.h"
 #include "ItemContainerEvent.h"
 #include "Actions/FaerieInventoryClient.h"
 #include "Actors/FaerieItemOwningActorBase.h"
-#include "Tokens/FaerieVisualActorClassToken.h"
+#include "Fragments/FaerieActorFragment.h"
 #include "Engine/AssetManager.h"
 #include "Engine/World.h"
 
@@ -20,8 +21,8 @@ namespace Faerie::Inventory::Tags
 		"Fae.Inventory.Removal.Ejection", "Remove an item and eject it from the inventory as a pickup/visual")
 }
 
-EEventExtensionResponse UInventoryEjectionHandlerExtension::AllowsRemoval(TNotNull<const UFaerieItemContainerBase*> Container, const FFaerieAddress Address,
-                                                                          const FFaerieInventoryTag Reason) const
+EEventExtensionResponse UInventoryEjectionHandlerExtension::AllowsRemoval(TNotNull<const UFaerieItemContainerBase*> Container,
+	const ItemData::TNonNullViewPtr<Container::IAddressView> DataView, const FFaerieInventoryTag Reason) const
 {
 	if (Reason == Inventory::Tags::RemovalEject)
 	{
@@ -39,19 +40,18 @@ void UInventoryEjectionHandlerExtension::PostEventBatch(const TNotNull<const UFa
 	for (auto&& Event : Events.Data)
 	{
 		// Cannot eject null item
-		if (!Event.Item.IsValid()) continue;
+		if (!Event.Instance.IsValid()) continue;
 
-		if (Event.Item->CanMutate())
+		if (Event.Instance.IsMutable())
 		{
-			check(Event.Amount == 1);
+			check(Event.Copies == 1);
 		}
 
-		const FFaerieItemStack Stack { Event.Item.Get(), Event.Amount };
-		Enqueue(Stack);
+		Enqueue(FFaerieUnownedItemStack(Event.Instance, Event.Copies));
 	}
 }
 
-void UInventoryEjectionHandlerExtension::Enqueue(const FFaerieItemStack& Stack)
+void UInventoryEjectionHandlerExtension::Enqueue(const FFaerieUnownedItemStack& Stack)
 {
 	PendingEjectionQueue.Add(Stack);
 
@@ -67,9 +67,15 @@ void UInventoryEjectionHandlerExtension::HandleNextInQueue()
 
 	TSoftClassPtr<AFaerieItemOwningActorBase> ClassToSpawn;
 
-	if (auto&& ClassToken = PendingEjectionQueue[0].Item->GetToken<UFaerieVisualActorClassToken>())
+	// Extensions should live inside an
+	UWorld* World = GetWorld();
+	check(World);
+
+	ItemData::FOptionalEntityManager EntityManager(World);
+	auto ActorClassFragment = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieActorFragment>(EntityManager, PendingEjectionQueue[0].Instance);
+	if (ActorClassFragment.IsValid())
 	{
-		ClassToSpawn = ClassToken->GetOwningActorClass();
+		ClassToSpawn = ActorClassFragment->OwningActorClass;
 	}
 
 	if (ClassToSpawn.IsNull())
@@ -132,7 +138,7 @@ void UInventoryEjectionHandlerExtension::SpawnVisualizer(const TSubclassOf<AFaer
 	if (AFaerieItemOwningActorBase* NewPickup = OwningActor->GetWorld()->SpawnActor<AFaerieItemOwningActorBase>(Class, SpawnTransform, Args);
 		IsValid(NewPickup))
 	{
-		NewPickup->Possess(PendingEjectionQueue[0]);
+		NewPickup->SetOwnedStack(PendingEjectionQueue[0]);
 	}
 
 	PendingEjectionQueue.RemoveAt(0);
@@ -140,7 +146,7 @@ void UInventoryEjectionHandlerExtension::SpawnVisualizer(const TSubclassOf<AFaer
 	HandleNextInQueue();
 }
 
-bool FFaerieClientAction_EjectEntry::Server_Execute(const UFaerieInventoryClient* Client) const
+bool FFaerieClientAction_EjectEntry::Server_Execute(const TNotNull<const UFaerieInventoryClient*> Client) const
 {
 	if (!ItemStorage.IsValid()) return false;
 	if (!Client->CanAccessContainer(ItemStorage.Get(), StaticStruct())) return false;
@@ -148,21 +154,21 @@ bool FFaerieClientAction_EjectEntry::Server_Execute(const UFaerieInventoryClient
 	return ItemStorage->RemoveStack(Address, Inventory::Tags::RemovalEject, Amount);
 }
 
-bool FFaerieClientAction_EjectViaRelease::Server_Execute(const UFaerieInventoryClient* Client) const
+bool FFaerieClientAction_EjectViaRelease::Server_Execute(const TNotNull<const UFaerieInventoryClient*> Client) const
 {
 	if (!Handle.IsValid()) return false;
 	if (!Client->CanAccessContainer(Handle.Container.Get(), StaticStruct())) return false;
 
-	UInventoryEjectionHandlerExtension* Ejector = Extensions::Get<UInventoryEjectionHandlerExtension>(Handle.Container.Get(), true);
+	UInventoryEjectionHandlerExtension* Ejector = Extensions::Get<UInventoryEjectionHandlerExtension>(Handle.Container->GetExtensions(), true);
 	if (!IsValid(Ejector))
 	{
 		return false;
 	}
 
-	if (const FFaerieItemStack Stack = Handle.Container->Release(Handle.Address, Amount);
-		Stack.IsValid())
+	if (const TOptional<FFaerieUnownedItemStack> Stack = Handle.Container->Release(Handle.Address, Amount);
+		Stack.IsSet())
 	{
-		Ejector->Enqueue(Stack);
+		Ejector->Enqueue(Stack.GetValue());
 		return true;
 	}
 	return false;

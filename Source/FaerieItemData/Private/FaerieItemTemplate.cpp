@@ -2,12 +2,12 @@
 
 #include "FaerieItemTemplate.h"
 #include "FaerieItemDataFilter.h"
-#include "FaerieItemStackView.h"
 
 #if WITH_EDITOR
 #include "Misc/DataValidation.h"
 #endif
 
+#include "FaerieItemDataView.h"
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemTemplate)
 
 #define LOCTEXT_NAMESPACE "FaerieItemTemplate"
@@ -31,7 +31,16 @@ EDataValidationResult UFaerieItemTemplate::IsDataValid(FDataValidationContext& C
 
 #endif
 
-bool UFaerieItemTemplate::TryMatchWithDescriptions(const FFaerieItemStackView View, TArray<FText>& Errors) const
+bool UFaerieItemTemplate::TryMatch(const TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const
+{
+	if (ensure(IsValid(Pattern)))
+	{
+		return Pattern->Exec(WorldContextObj, View);
+	}
+	return false;
+}
+
+bool UFaerieItemTemplate::TryMatchWithDescriptions(const TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View, TArray<FText>& Errors) const
 {
 	if (!ensure(IsValid(Pattern)))
 	{
@@ -45,7 +54,7 @@ bool UFaerieItemTemplate::TryMatchWithDescriptions(const FFaerieItemStackView Vi
 	}
 
 	if (Faerie::ItemData::FFilterLogger Logger;
-		!Pattern->ExecWithLog(View, Logger))
+		!Pattern->ExecWithLog(WorldContextObj, View, Logger))
 	{
 		if (Logger.Errors.IsEmpty())
 		{
@@ -67,11 +76,11 @@ bool UFaerieItemTemplate::TryMatchWithDescriptions(const FFaerieItemStackView Vi
 	return true;
 }
 
-bool UFaerieItemTemplate::TryMatch(const FFaerieItemStackView View) const
+bool UFaerieItemTemplate::TryMatch(UObject* WorldContextObj, const FFaerieItemDataView& View) const
 {
 	if (ensure(IsValid(Pattern)))
 	{
-		return Pattern->Exec(View);
+		return Pattern->Exec(WorldContextObj, Faerie::ItemData::FValidatedDataView(View));
 	}
 	return false;
 }

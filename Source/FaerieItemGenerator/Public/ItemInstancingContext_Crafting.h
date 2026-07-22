@@ -2,8 +2,9 @@
 
 #pragma once
 
+#include "FaerieUnownedItemStack.h"
 #include "FaerieItemSlotInterface.h"
-#include "FaerieItemSource.h"
+#include "FaerieItemInstancingContext.h"
 #include "ItemInstancingContext_Crafting.generated.h"
 
 class USquirrel;
@@ -13,21 +14,20 @@ struct FAERIEITEMGENERATOR_API FFaerieItemInstancingContext_Crafting : public FF
 {
 	GENERATED_BODY()
 
-public:
 	// Used to fill Required & Optional Slots (via inputs)
 	UPROPERTY()
 	FFaerieCraftingFilledSlots InputEntryData;
 
 	// Used to fill Required & Optional Slots (generated instances)
 	UPROPERTY()
-	TMap<FFaerieItemSlotHandle, FFaerieItemStack> GeneratedChildren;
+	TMap<FFaerieItemSlotHandle, FFaerieUnownedItemStack> GeneratedChildren;
 
 	// When valid, this context can generate seeded output, otherwise implementations may choose to either fail or
 	// resolve to non-seeded output.
 	UPROPERTY()
 	TObjectPtr<USquirrel> Squirrel = nullptr;
 
-	virtual const UScriptStruct* GetScriptStruct() const override
+	UE_REWRITE virtual const UScriptStruct* GetScriptStruct() const override
 	{
 		return FFaerieItemInstancingContext_Crafting::StaticStruct();
 	}

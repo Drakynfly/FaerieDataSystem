@@ -3,6 +3,7 @@
 #pragma once
 
 #include "FaerieGenerationStructs.h"
+#include "Engine/DataAsset.h"
 #include "StructUtils/InstancedStruct.h"
 #include "FaerieItemGenerationConfig.generated.h"
 
@@ -14,7 +15,7 @@ class FAERIEITEMGENERATOR_API UFaerieItemGenerationConfig : public UDataAsset
 {
 	GENERATED_BODY()
 
-	friend class UFaerieCraftingLibrary;
+	friend class UFaerieGenerationLibrary;
 
 public:
 	UFaerieItemGenerationConfig();

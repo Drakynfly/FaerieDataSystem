@@ -27,7 +27,7 @@ void UInventoryItemLimitExtension::DeinitializeExtension(const TNotNull<const UF
 }
 
 EEventExtensionResponse UInventoryItemLimitExtension::AllowsAddition(const TNotNull<const UFaerieItemContainerBase*>,
-                                                                     const TConstArrayView<FFaerieItemStackView> Views,
+                                                                     const TConstArrayView<FFaerieItemDataView> Views,
                                                                      const FFaerieExtensionAllowsAdditionArgs Args) const
 {
 	int32 TestCount = 0;
@@ -39,7 +39,7 @@ EEventExtensionResponse UInventoryItemLimitExtension::AllowsAddition(const TNotN
 			// Find the largest stack
 			for (auto&& View : Views)
 			{
-				TestCount = FMath::Max(TestCount, View.Copies);
+				TestCount = FMath::Max(TestCount, View.GetCopies());
 			}
 		}
 		break;
@@ -48,7 +48,7 @@ EEventExtensionResponse UInventoryItemLimitExtension::AllowsAddition(const TNotN
 			// Sum all stacks
 			for (auto&& View : Views)
 			{
-				TestCount += View.Copies;
+				TestCount += View.GetCopies();
 			}
 		}
 		break;
@@ -120,7 +120,7 @@ bool UInventoryItemLimitExtension::CanContain(const int32 Count) const
 	return true;
 }
 
-void UInventoryItemLimitExtension::UpdateCacheForEntry(const TNotNull<const UFaerieItemContainerBase*> Container, const FEntryKey Key)
+void UInventoryItemLimitExtension::UpdateCacheForEntry(const TNotNull<const UFaerieItemContainerBase*> Container, const FFaerieEntryKey Key)
 {
 	int32 PrevEntryAmount = 0;
 	if (auto&& ExistingCache = EntryAmountCache.Find(Key))
@@ -128,14 +128,15 @@ void UInventoryItemLimitExtension::UpdateCacheForEntry(const TNotNull<const UFae
 		PrevEntryAmount = *ExistingCache;
 	}
 
-	if (!Container->Contains(Key))
+	const FFaerieItemDataView View = Container->ViewEntry(Key);
+	if (!View.IsValid())
 	{
 		CurrentTotalItemCopies -= PrevEntryAmount;
 		EntryAmountCache.Remove(Key);
 		return;
 	}
 
-	const int32 StackAtKey = Container->GetStack(Key);
+	const int32 StackAtKey = View.GetCopies();
 	const int32 Diff = StackAtKey - PrevEntryAmount;
 
 	EntryAmountCache.Add(Key, StackAtKey);

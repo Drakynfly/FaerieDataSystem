@@ -17,91 +17,89 @@ namespace Faerie::Inventory::Tags
 
 UScriptStruct* UInventoryUserdataExtension::GetDataScriptStruct() const
 {
-	return FInventoryEntryUserdata::StaticStruct();
+	return FFaerieStorageEntryUserdata::StaticStruct();
 }
 
-bool UInventoryUserdataExtension::DoesStackHaveTag(const FFaerieAddressableHandle Handle, const FFaerieInventoryUserTag Tag) const
+bool UInventoryUserdataExtension::DoesStackHaveTag(const UFaerieItemContainerBase* Container,
+	const FFaerieAddress Address, const FFaerieInventoryUserTag Tag) const
 {
-	const FConstStructView DataView = GetDataForHandle(Handle);
-	if (!DataView.IsValid())
+	const FConstStructView AddressData = GetDataForHandle(Container, Address);
+	if (!AddressData.IsValid())
 	{
 		return false;
 	}
 
-	return DataView.Get<const FInventoryEntryUserdata>().Tags.HasTag(Tag);
+	return AddressData.Get<const FFaerieStorageEntryUserdata>().Tags.HasTag(Tag);
 }
 
-bool UInventoryUserdataExtension::CanSetStackTag(const FFaerieAddressableHandle Handle, const FFaerieInventoryUserTag Tag,
-                                                  const bool StateToSetTo) const
+bool UInventoryUserdataExtension::CanSetStackTag(const UFaerieItemContainerBase* Container,
+	const FFaerieAddress Address, const FFaerieInventoryUserTag Tag, const bool StateToSetTo) const
 {
-	return DoesStackHaveTag(Handle, Tag) != StateToSetTo;
+	return DoesStackHaveTag(Container, Address, Tag) != StateToSetTo;
 }
 
-bool UInventoryUserdataExtension::MarkStackWithTag(const FFaerieAddressableHandle Handle, const FFaerieInventoryUserTag Tag)
-{
-	if (!Handle.IsValid())
-	{
-		return false;
-	}
-
-	if (!Tag.IsValid())
-	{
-		return false;
-	}
-
-	if (!CanSetStackTag(Handle, Tag, true))
-	{
-		return false;
-	}
-
-	return EditDataForHandle(Handle,
-		[Tag](const FStructView Data)
-		{
-			Data.Get<FInventoryEntryUserdata>().Tags.AddTag(Tag);
-		});
-}
-
-bool UInventoryUserdataExtension::ClearTagFromStack(const FFaerieAddressableHandle Handle, const FFaerieInventoryUserTag Tag)
+bool UInventoryUserdataExtension::MarkStackWithTag(const TNotNull<const UFaerieItemContainerBase*> Container,
+	const FFaerieAddress Address, const FFaerieInventoryUserTag Tag)
 {
 	if (!Tag.IsValid())
 	{
 		return false;
 	}
 
-	if (!CanSetStackTag(Handle, Tag, false))
+	if (!CanSetStackTag(Container, Address, Tag, true))
 	{
 		return false;
 	}
 
-	return EditDataForHandle(Handle,
+	return EditDataForHandle(Container, Address,
 		[Tag](const FStructView Data)
 		{
-			Data.Get<FInventoryEntryUserdata>().Tags.RemoveTag(Tag);
+			Data.Get<FFaerieStorageEntryUserdata>().Tags.AddTag(Tag);
 		});
 }
 
-bool FFaerieClientAction_MarkStackWithTag::Server_Execute(const UFaerieInventoryClient* Client) const
+bool UInventoryUserdataExtension::ClearTagFromStack(const TNotNull<const UFaerieItemContainerBase*> Container,
+	const FFaerieAddress Address, const FFaerieInventoryUserTag Tag)
+{
+	if (!Tag.IsValid())
+	{
+		return false;
+	}
+
+	if (!CanSetStackTag(Container, Address, Tag, false))
+	{
+		return false;
+	}
+
+	return EditDataForHandle(Container, Address,
+		[Tag](const FStructView Data)
+		{
+			Data.Get<FFaerieStorageEntryUserdata>().Tags.RemoveTag(Tag);
+		});
+}
+
+bool FFaerieClientAction_MarkStackWithTag::Server_Execute(const TNotNull<const UFaerieInventoryClient*> Client) const
 {
 	auto&& Container = Handle.Container.Get();
 	if (!IsValid(Container)) return false;
 	if (!Client->CanAccessContainer(Container, StaticStruct())) return false;
 
-	if (auto&& Userdata = Extensions::Get<UInventoryUserdataExtension>(Container, true))
+	if (auto&& Userdata = Extensions::Get<UInventoryUserdataExtension>(Container->GetExtensions(), true))
 	{
-		return Userdata->MarkStackWithTag(Handle, Tag);
+		return Userdata->MarkStackWithTag(Handle.Container.Get(), Handle.Address, Tag);
 	}
 	return false;
 }
 
-bool FFaerieClientAction_ClearTagFromStack::Server_Execute(const UFaerieInventoryClient* Client) const
+bool FFaerieClientAction_ClearTagFromStack::Server_Execute(const TNotNull<const UFaerieInventoryClient*> Client) const
 {
 	auto&& Storage = Handle.Container.Get();
 	if (!IsValid(Storage)) return false;
 	if (!Client->CanAccessContainer(Storage, StaticStruct())) return false;
 
-	if (auto&& Userdata = Extensions::Get<UInventoryUserdataExtension>(Storage, true))
+	if (auto&& Userdata = Extensions::Get<UInventoryUserdataExtension>(Storage->GetExtensions(), true))
 	{
-		return Userdata->ClearTagFromStack(Handle, Tag);
+		return Userdata->ClearTagFromStack(Handle.Container.Get(), Handle.Address, Tag);
 	}
 	return false;
 }

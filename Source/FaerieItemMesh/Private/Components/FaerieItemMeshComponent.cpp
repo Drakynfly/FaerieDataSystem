@@ -5,17 +5,18 @@
 #include "FaerieItemMeshLog.h"
 #include "FaerieMeshStructs.h"
 #include "FaerieMeshSubsystem.h"
-#include "Tokens/FaerieMeshToken.h"
 
-#include "Components/DynamicMeshComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Components/StaticMeshComponent.h"
+
 #include "ConversionUtils/SceneComponentToDynamicMesh.h"
+
+#include "DynamicMesh/DynamicMesh3.h"
+
 #include "Engine/SkeletalMesh.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/StreamableManager.h"
 #include "Engine/World.h"
-#include "GeometryScript/MeshQueryFunctions.h"
-#include "Libraries/FaerieMeshStructsLibrary.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
 
@@ -38,7 +39,6 @@ void UFaerieItemMeshComponent::GetLifetimeReplicatedProps(TArray<class FLifetime
 	FDoRepLifetimeParams SharedParams;
 	SharedParams.bIsPushBased = true;
 
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, SourceMeshToken, SharedParams)
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, SkeletalMeshLeader, SharedParams)
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, PreferredTag, SharedParams)
 }
@@ -84,9 +84,9 @@ void UFaerieItemMeshComponent::UpdateCachedBounds()
 	}
 }
 
-void UFaerieItemMeshComponent::LoadMeshFromToken(const bool Async)
+void UFaerieItemMeshComponent::LoadMeshFromSource(const bool Async)
 {
-	if (!IsValid(SourceMeshToken))
+	if (!SourceProxy.IsValid())
 	{
 		return;
 	}
@@ -105,12 +105,12 @@ void UFaerieItemMeshComponent::LoadMeshFromToken(const bool Async)
 		auto Loader = GetMutableDefault<UFaerieItemMeshLoader>();
 		if (Async)
 		{
-			AsyncMeshLoadingHandle = Loader->LoadMeshFromTokenAsynchronous(SourceMeshToken, PreferredTag,
+			AsyncMeshLoadingHandle = Loader->LoadMeshFromProxyAsynchronous(SourceProxy, PreferredTag,
 				Mesh::FAsyncLoadResult::CreateUObject(this, &ThisClass::AsyncLoadMeshReturn));
 		}
 		else
 		{
-			Loader->LoadMeshFromTokenSynchronous(SourceMeshToken, PreferredTag, MeshData);
+			Loader->LoadMeshFromProxySynchronous(SourceProxy, PreferredTag, MeshData);
 			RebuildMesh();
 		}
 #endif
@@ -119,12 +119,12 @@ void UFaerieItemMeshComponent::LoadMeshFromToken(const bool Async)
 
 	if (Async)
 	{
-		AsyncMeshLoadingHandle = MeshSubsystem->LoadMeshFromTokenAsynchronous(SourceMeshToken, PreferredTag,
+		AsyncMeshLoadingHandle = MeshSubsystem->LoadMeshFromProxyAsynchronous(SourceProxy, PreferredTag,
 			Mesh::FAsyncLoadResult::CreateUObject(this, &ThisClass::AsyncLoadMeshReturn));
 	}
 	else
 	{
-		MeshSubsystem->LoadMeshFromTokenSynchronous(SourceMeshToken, PreferredTag, MeshData);
+		MeshSubsystem->LoadMeshFromProxySynchronous(SourceProxy, PreferredTag, MeshData);
 		RebuildMesh();
 	}
 }
@@ -157,13 +157,6 @@ void UFaerieItemMeshComponent::RebuildMesh()
 	{
 	case EItemMeshType::None:
 		// Fallthrough to first valid mesh.
-	case EItemMeshType::Dynamic:
-		// Check dynamic first
-		if (MeshData.IsDynamic())
-		{
-			NewMeshType = EItemMeshType::Dynamic;
-			break;
-		}
 	case EItemMeshType::Skeletal:
 		// Check skeletal next
 		if (MeshData.IsSkeletal())
@@ -188,10 +181,6 @@ void UFaerieItemMeshComponent::RebuildMesh()
 		if (MeshData.IsStatic())
 		{
 			NewMeshType = EItemMeshType::Static;
-		}
-		else if (MeshData.IsDynamic())
-		{
-			NewMeshType = EItemMeshType::Dynamic;
 		}
 		else if (MeshData.IsSkeletal())
 		{
@@ -246,9 +235,6 @@ void UFaerieItemMeshComponent::RebuildMesh()
 		case EItemMeshType::Static:
 			MeshComponent = NewObject<UStaticMeshComponent>(Outer);
 			break;
-		case EItemMeshType::Dynamic:
-			MeshComponent = NewObject<UDynamicMeshComponent>(Outer);
-			break;
 		case EItemMeshType::Skeletal:
 			MeshComponent = NewObject<USkeletalMeshComponent>(Outer);
 			break;
@@ -273,15 +259,12 @@ void UFaerieItemMeshComponent::RebuildMesh()
 			StaticMesh->SetStaticMesh(MeshData.GetStatic_Unsafe());
 			for (int32 i = 0; i < MeshData.Materials.Num(); ++i)
 			{
-				StaticMesh->SetMaterial(i, MeshData.Materials[i].Material);
+				const TObjectPtr<UMaterialInterface> MaterialOverride = MeshData.Materials[i].Material;
+				if (IsValid(MaterialOverride))
+				{
+					StaticMesh->SetMaterial(i, MaterialOverride);
+				}
 			}
-		}
-		break;
-	case EItemMeshType::Dynamic:
-		if (UDynamicMeshComponent* DynamicMesh = Cast<UDynamicMeshComponent>(MeshComponent))
-		{
-			DynamicMesh->SetDynamicMesh(MeshData.GetDynamic());
-			DynamicMesh->ConfigureMaterialSet(UFaerieMeshStructsLibrary::FaerieItemMaterialsToObjectArray(MeshData.Materials));
 		}
 		break;
 	case EItemMeshType::Skeletal:
@@ -311,7 +294,11 @@ void UFaerieItemMeshComponent::RebuildMesh()
 			// Setup Materials
 			for (int32 i = 0; i < MeshData.Materials.Num(); ++i)
 			{
-				SkeletalMesh->SetMaterial(i, MeshData.Materials[i].Material);
+				const TObjectPtr<UMaterialInterface> MaterialOverride = MeshData.Materials[i].Material;
+				if (IsValid(MaterialOverride))
+				{
+					SkeletalMesh->SetMaterial(i, MaterialOverride);
+				}
 			}
 
 			if (CacheSkeletalBoundsInPose)
@@ -337,11 +324,6 @@ void UFaerieItemMeshComponent::RebuildMesh()
 	OnMeshRebuilt.Broadcast();
 }
 
-void UFaerieItemMeshComponent::OnRep_SourceMeshToken()
-{
-	LoadMeshFromToken(true);
-}
-
 void UFaerieItemMeshComponent::OnRep_SkeletalMeshLeader()
 {
 	if (USkeletalMeshComponent* SkeletalMesh = Cast<USkeletalMeshComponent>(MeshComponent))
@@ -360,27 +342,24 @@ void UFaerieItemMeshComponent::OnRep_SkeletalMeshLeader()
 void UFaerieItemMeshComponent::OnRep_PreferredTag()
 {
 	RebuildMesh();
-	LoadMeshFromToken(true);
+	LoadMeshFromSource(true);
+}
+
+void UFaerieItemMeshComponent::SetItemMeshFromProxy(const FFaerieItemProxy& InProxy)
+{
+	//if (SourceProxy != InProxy)
+	{
+		SourceProxy = InProxy;
+		LoadMeshFromSource(true);
+	}
 }
 
 void UFaerieItemMeshComponent::SetItemMesh(const FFaerieItemMesh& InMeshData)
 {
 	if (MeshData != InMeshData)
 	{
-		COMPARE_ASSIGN_AND_MARK_PROPERTY_DIRTY(ThisClass, SourceMeshToken, nullptr, this);
-
 		MeshData = InMeshData;
 		RebuildMesh();
-	}
-}
-
-void UFaerieItemMeshComponent::SetItemMeshFromToken(const UFaerieMeshTokenBase* InMeshToken)
-{
-	if (SourceMeshToken != InMeshToken)
-	{
-		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, SourceMeshToken, this);
-		SourceMeshToken = InMeshToken;
-		LoadMeshFromToken(true);
 	}
 }
 
@@ -400,8 +379,7 @@ void UFaerieItemMeshComponent::ClearItemMesh()
 	ActualType = EItemMeshType::None;
 	MeshData = FFaerieItemMesh();
 
-	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, SourceMeshToken, this);
-	SourceMeshToken = nullptr;
+	SourceProxy = FFaerieItemProxy();
 
 	if (IsValid(MeshComponent))
 	{
@@ -416,7 +394,7 @@ void UFaerieItemMeshComponent::SetPreferredTag(const FGameplayTag MeshTag)
 	{
 		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, PreferredTag, this);
 		PreferredTag = MeshTag;
-		LoadMeshFromToken(true);
+		LoadMeshFromSource(true);
 	}
 }
 
@@ -434,7 +412,6 @@ FBoxSphereBounds UFaerieItemMeshComponent::GetBounds() const
 	switch (ActualType)
 	{
 	case EItemMeshType::Static: return MeshData.GetStatic()->GetBounds();
-	case EItemMeshType::Dynamic: return UGeometryScriptLibrary_MeshQueryFunctions::GetMeshBoundingBox(MeshData.GetDynamic());
 	case EItemMeshType::Skeletal:
 		{
 			if (CacheSkeletalBoundsInPose && CachedBounds.IsSet())

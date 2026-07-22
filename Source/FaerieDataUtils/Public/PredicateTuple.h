@@ -47,31 +47,31 @@ namespace Faerie::Utils
 
 		// Returns true if the object passes every predicate
 		template <typename ObjectType>
-		[[nodiscard]] bool TestAll(ObjectType Object) const
+		[[nodiscard]] bool TestAll(TNotNull<const UObject*> WorldContextObj, ObjectType Object) const
 		{
-			return PredicateTuple.ApplyAfter([Object](const Predicates&... TupleValues)
+			return PredicateTuple.ApplyAfter([WorldContextObj, Object](const Predicates&... TupleValues)
 				{
-					auto Run = [](ObjectType InObject, const auto& InPredicate)
+					auto Run = [](TNotNull<const UObject*> InWorldContextObj, ObjectType InObject, const auto& InPredicate)
 					{
-						return InPredicate.Exec(InObject);
+						return InPredicate.Exec(InWorldContextObj, InObject);
 					};
 
-					return (Run(Object, TupleValues) && ...);
+					return (Run(WorldContextObj, Object, TupleValues) && ...);
 				});
 		}
 
 		// Returns true if the object passes any predicate
 		template <typename ObjectType>
-		[[nodiscard]] bool TestAny(ObjectType Object) const
+		[[nodiscard]] bool TestAny(TNotNull<const UObject*> WorldContextObj, ObjectType Object) const
 		{
-			return PredicateTuple.ApplyAfter([Object](const Predicates&... TupleValues)
+			return PredicateTuple.ApplyAfter([WorldContextObj, Object](const Predicates&... TupleValues)
 				{
-					auto Run = [](ObjectType InObject, const auto& InPredicate)
+					auto Run = [](TNotNull<const UObject*> InWorldContextObj, ObjectType InObject, const auto& InPredicate)
 					{
-						return InPredicate.Exec(InObject);
+						return InPredicate.Exec(InWorldContextObj, InObject);
 					};
 
-					return (Run(Object, TupleValues) || ...);
+					return (Run(WorldContextObj, Object, TupleValues) || ...);
 				});
 		}
 

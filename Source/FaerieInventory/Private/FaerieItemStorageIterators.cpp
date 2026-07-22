@@ -6,99 +6,101 @@
 namespace Faerie::Storage
 {
 	// ReSharper disable once CppMemberFunctionMayBeStatic
-	const FInventoryContent& FStorageDataAccess::ReadInventoryContent(const TNotNull<const UFaerieItemStorage*> Storage)
+	const FFaerieStorageContent& FStorageDataAccess::ReadInventoryContent(const TNotNull<const UFaerieItemStorage*> Storage)
 	{
 		return Storage->EntryMap;
 	}
 
 	FIterator_AllEntries::FIterator_AllEntries(const TNotNull<const UFaerieItemStorage*> Storage)
-	  : Content(&ReadInventoryContent(Storage))
+	  : Content(ReadInventoryContent(Storage))
 	{
-		Content->LockWriteAccess();
+#if FAERIE_DEBUG
+		Content.LockWriteAccess();
+#endif
 		AdvanceEntry();
 	}
 
 	FIterator_AllEntries::~FIterator_AllEntries()
 	{
-		Content->UnlockWriteAccess();
-	}
-
-	TUniquePtr<Container::IIterator> FIterator_AllEntries::ToInterface() const
-	{
-		return TUniquePtr<Container::IIterator>(MakeUnique<FIterator_AllEntries_ForInterface>(Content->GetOuterItemStorage()));
+#if FAERIE_DEBUG
+		Content.UnlockWriteAccess();
+#endif
 	}
 
 	void FIterator_AllEntries::AdvanceEntry()
 	{
 		EntryIndex++;
-		if (EntryIndex >= Content->Num())
+		if (EntryIndex >= Content.Num())
 		{
 			EntryIndex = INDEX_NONE;
 		}
 	}
 
-	FEntryKey FIterator_AllEntries::GetKey() const
+	FFaerieEntryKey FIterator_AllEntries::GetKey() const
 	{
-		return Content->GetKeyAt(EntryIndex);
+		return Content.GetKeyAt(EntryIndex);
 	}
 
-	const UFaerieItem* FIterator_AllEntries::GetItem() const
+	FFaerieItemInstance FIterator_AllEntries::GetInstance() const
 	{
-		return Content->GetElementAt(EntryIndex).GetItem();
+		return Content.GetElementAt(EntryIndex).GetInstance();
 	}
 
-	FFaerieItemStackView FIterator_AllEntries::GetView() const
+	int32 FIterator_AllEntries::GetCopies() const
 	{
-		return Content->GetElementAt(EntryIndex).ToItemStackView();
+		return Content.GetElementAt(EntryIndex).StackSum();
 	}
 
 	FIterator_AllAddresses::FIterator_AllAddresses(const TNotNull<const UFaerieItemStorage*> Storage)
-	  : Content(&ReadInventoryContent(Storage))
+	  : Content(ReadInventoryContent(Storage))
 	{
-		Content->LockWriteAccess();
+#if FAERIE_DEBUG
+		Content.LockWriteAccess();
+#endif
 		AdvanceEntry();
 	}
 
 	FIterator_AllAddresses::~FIterator_AllAddresses()
 	{
-		Content->UnlockWriteAccess();
+#if FAERIE_DEBUG
+		Content.UnlockWriteAccess();
+#endif
 	}
 
 	void FIterator_AllAddresses::AdvanceEntry()
 	{
 		EntryIndex++;
-		if (EntryIndex >= Content->Num())
+		if (EntryIndex >= Content.Num())
 		{
 			EntryIndex = INDEX_NONE;
 			StackPtr = nullptr;
 			return;
 		}
 
-		const FInventoryEntry& InvEntry = Content->GetElementAt(EntryIndex);
-		const TConstArrayView<FKeyedStack> StackView = InvEntry.GetStacks();
+		const FFaerieStorageEntry& InvEntry = Content.GetElementAt(EntryIndex);
+		const TConstArrayView<FFaerieKeyedStack> StackView = InvEntry.GetStacks();
 		StackPtr = StackView.GetData();
 		NumRemaining = StackView.Num()-1;
 	}
 
-	FEntryKey FIterator_AllAddresses::GetKey() const
+	FFaerieEntryKey FIterator_AllAddresses::GetKey() const
 	{
-		return Content->GetKeyAt(EntryIndex);
+		return Content.GetKeyAt(EntryIndex);
 	}
 
 	FFaerieAddress FIterator_AllAddresses::GetAddress() const
 	{
-		return UFaerieItemStorage::MakeAddress(Content->GetKeyAt(EntryIndex), StackPtr->Key);
+		return UFaerieItemStorage::MakeAddress(Content.GetKeyAt(EntryIndex), StackPtr->Key);
 	}
 
-	const UFaerieItem* FIterator_AllAddresses::GetItem() const
+	FFaerieItemInstance FIterator_AllAddresses::GetInstance() const
 	{
-		return Content->GetElementAt(EntryIndex).GetItem();
+		return Content.GetElementAt(EntryIndex).GetInstance();
 	}
 
-	FFaerieItemStackView FIterator_AllAddresses::GetView() const
+	int32 FIterator_AllAddresses::GetCopies() const
 	{
-		auto& Entry = Content->GetElementAt(EntryIndex);
-		return FFaerieItemStackView(Entry.GetItem(), Entry.GetStack(StackPtr->Key));
+		return Content.GetElementAt(EntryIndex).GetStack(StackPtr->Key);
 	}
 
 	void FIterator_AllAddresses::operator++()
@@ -114,51 +116,51 @@ namespace Faerie::Storage
 		}
 	}
 
-	FIterator_SingleEntry::FIterator_SingleEntry(const FInventoryEntry& Entry)
-	  : EntryPtr(&Entry)
+	FIterator_SingleEntry::FIterator_SingleEntry(const FFaerieStorageEntry& Entry)
+	  : Entry(Entry)
 	{
-		const TConstArrayView<FKeyedStack> StackView = EntryPtr->GetStacks();
+		const TConstArrayView<FFaerieKeyedStack> StackView = Entry.GetStacks();
 		StackPtr = StackView.GetData();
 		NumRemaining = StackView.Num()-1;
 		checkSlow(StackPtr);
 	}
 
-	FIterator_SingleEntry::FIterator_SingleEntry(const TNotNull<const UFaerieItemStorage*> Storage, const FEntryKey Key)
-	  : EntryPtr(&ReadInventoryContent(Storage)[Key])
+	FIterator_SingleEntry::FIterator_SingleEntry(const TNotNull<const UFaerieItemStorage*> Storage, const FFaerieEntryKey Key)
+	  : Entry(ReadInventoryContent(Storage)[Key])
 	{
-		const TConstArrayView<FKeyedStack> StackView = EntryPtr->GetStacks();
+		const TConstArrayView<FFaerieKeyedStack> StackView = Entry.GetStacks();
 		StackPtr = StackView.GetData();
 		NumRemaining = StackView.Num()-1;
 		checkSlow(StackPtr);
 	}
 
 	FIterator_SingleEntry::FIterator_SingleEntry(const TNotNull<const UFaerieItemStorage*> Storage, const int32 Index)
-	  : EntryPtr(&ReadInventoryContent(Storage).GetElementAt(Index))
+	  : Entry(ReadInventoryContent(Storage).GetElementAt(Index))
 	{
-		const TConstArrayView<FKeyedStack> StackView = EntryPtr->GetStacks();
+		const TConstArrayView<FFaerieKeyedStack> StackView = Entry.GetStacks();
 		StackPtr = StackView.GetData();
 		NumRemaining = StackView.Num()-1;
 		checkSlow(StackPtr);
 	}
 
-	FEntryKey FIterator_SingleEntry::GetKey() const
+	FFaerieEntryKey FIterator_SingleEntry::GetKey() const
 	{
-		return EntryPtr->GetKey();
+		return Entry.GetKey();
 	}
 
 	FFaerieAddress FIterator_SingleEntry::GetAddress() const
 	{
-		return UFaerieItemStorage::MakeAddress(EntryPtr->GetKey(), StackPtr->Key);
+		return UFaerieItemStorage::MakeAddress(Entry.GetKey(), StackPtr->Key);
 	}
 
-	const UFaerieItem* FIterator_SingleEntry::GetItem() const
+	FFaerieItemInstance FIterator_SingleEntry::GetInstance() const
 	{
-		return EntryPtr->GetItem();
+		return Entry.GetInstance();
 	}
 
-	FFaerieItemStackView FIterator_SingleEntry::GetView() const
+	int32 FIterator_SingleEntry::GetCopies() const
 	{
-		return FFaerieItemStackView(EntryPtr->GetItem(), EntryPtr->GetStack(StackPtr->Key));
+		return Entry.GetStack(StackPtr->Key);
 	}
 
 	void FIterator_SingleEntry::operator++()
@@ -174,17 +176,17 @@ namespace Faerie::Storage
 		}
 	}
 
-	const IFaerieItemOwnerInterface* FIterator_AllEntries_ForInterface::ResolveOwner() const
+	const IFaerieItemOwnerInterface* FIterator_AllEntries_WithInterface::ResolveOwner() const
 	{
 		return Storage;
 	}
 
-	const IFaerieItemOwnerInterface* FIterator_AllAddresses_ForInterface::ResolveOwner() const
+	const IFaerieItemOwnerInterface* FIterator_AllAddresses_WithInterface::ResolveOwner() const
 	{
 		return Storage;
 	}
 
-	const IFaerieItemOwnerInterface* FIterator_SingleEntry_ForInterface::ResolveOwner() const
+	const IFaerieItemOwnerInterface* FIterator_SingleEntry_WithInterface::ResolveOwner() const
 	{
 		return Storage;
 	}

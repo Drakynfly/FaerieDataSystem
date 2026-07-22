@@ -14,11 +14,11 @@ UFaerieInventoryClient::UFaerieInventoryClient()
 	SetIsReplicatedByDefault(true);
 }
 
-bool UFaerieInventoryClient::CanAccessContainer(const TNotNull<const UFaerieItemContainerBase*> Container, const UScriptStruct* RequestType) const
+bool UFaerieInventoryClient::CanAccessContainer(const TNotNull<const UFaerieItemContainerBase*> Container, const TNotNull<const UScriptStruct*> RequestType) const
 {
 	// @todo implement
 	/*
-	if (auto&& PermissionExtensions = Extensions::Get<UInventoryClientPermissionExtensions>(Container))
+	if (auto&& PermissionExtensions = Extensions::Get<UInventoryClientPermissionExtensions>(Container->GetExtensions()))
 	{
 		if (!PermissionExtensions->AllowsClient(this))
 		{
@@ -135,13 +135,13 @@ bool UFaerieInventoryClient::PromptStackChoice(const FFaerieClientStackPromptArg
 	return false;
 }
 
-void UFaerieInventoryClient::RespondToStackPrompt(const FFaerieAddressableHandle Handle, const int32 Amount)
+void UFaerieInventoryClient::RespondToStackPrompt(const FFaerieItemProxy& Proxy, const int32 Amount)
 {
 	if (ActivePromptCallback.IsBound())
 	{
 		FFaerieClientStackPromptResult Result;
 		Result.Client = this;
-		Result.Handle = Handle;
+		Result.Proxy = Proxy;
 		Result.Amount = Amount;
 		ActivePromptCallback.Execute(Result);
 		ActivePromptCallback.Clear();
@@ -191,7 +191,7 @@ void UFaerieInventoryClient::Server_RequestMoveAction(const FFaerieClientAction_
 		return;
 	}
 
-	FFaerieItemStackView FromView;
+	FFaerieItemDataView FromView;
 	if (!MoveFrom.View(FromView))
 	{
 		return;
@@ -206,7 +206,7 @@ void UFaerieInventoryClient::Server_RequestMoveAction(const FFaerieClientAction_
 
 	if (IsSwap)
 	{
-		FFaerieItemStackView ToView;
+		FFaerieItemDataView ToView;
 		MoveTo.View(ToView);
 		if (!MoveFrom.CanMove(ToView))
 		{
@@ -216,7 +216,7 @@ void UFaerieInventoryClient::Server_RequestMoveAction(const FFaerieClientAction_
 
 	// Finished validations, initiate move:
 
-	FFaerieItemStack FromStack;
+	FFaerieUnownedItemStack FromStack;
 	if (!MoveFrom.Release(FromStack))
 	{
 		UE_LOG(LogFaerieInventory, Error, TEXT("Releasing for move failed! Validation should catch this!"))
@@ -225,7 +225,7 @@ void UFaerieInventoryClient::Server_RequestMoveAction(const FFaerieClientAction_
 
 	if (IsSwap)
 	{
-		FFaerieItemStack ToStack;
+		FFaerieUnownedItemStack ToStack;
 		if (!MoveTo.Release(ToStack))
 		{
 			// Abort! Releasing for swap failed!

@@ -3,39 +3,44 @@
 #include "AssetEditor/FaerieItemAssetPreviewScene.h"
 #include "Editor.h"
 #include "FaerieItem.h"
+#include "FaerieItemDataView.h"
 
 #include "Actors/FaerieProxyActorBase.h"
+
 #include "Components/BoxComponent.h"
 #include "Components/FaerieItemMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
 
-#include "GameFramework/WorldSettings.h"
+#include "Fragments/FaerieActorFragment.h"
+#include "Capacity/CapacityStructs.h"
 
-#include "Tokens/FaerieCapacityToken.h"
-#include "Tokens/FaerieMeshToken.h"
-#include "Tokens/FaerieVisualActorClassToken.h"
+#include "GameFramework/WorldSettings.h"
 
 namespace Faerie::Editor
 {
 	FItemPreviewSceneData::FItemPreviewSceneData(FPreviewScene* Scene)
-		: Scene(Scene)
+	  : Scene(Scene)
 	{
 		MeshPurposeTag = Mesh::Tags::MeshPurpose_Default;
 	}
 
 	FItemPreviewSceneData::~FItemPreviewSceneData()
 	{
-		if (IsValid(ItemActor))
+		if (AFaerieProxyActorBase* Actor = ItemActor.Get())
 		{
-			ItemActor->Destroy();
-			ItemActor = nullptr;
+			Actor->Destroy();
+			ItemActor.Reset();
 		}
 
-		if (IsValid(ItemMeshComponent) && !ItemMeshComponent->HasAnyFlags(RF_BeginDestroyed))
+		if (UFaerieItemMeshComponent* MeshComponent = ItemMeshComponent.Get())
 		{
-			ItemMeshComponent->ClearItemMesh();
-			ItemMeshComponent->DestroyComponent();
-			ItemMeshComponent = nullptr;
+			if (!MeshComponent->HasAnyFlags(RF_BeginDestroyed))
+			{
+				MeshComponent->ClearItemMesh();
+				MeshComponent->DestroyComponent();
+			}
+
+			ItemMeshComponent.Reset();
 		}
 	}
 
@@ -57,7 +62,7 @@ namespace Faerie::Editor
 			DefaultCube->SetVisibility(false);
 			DefaultCube->bSelectable = true;
 
-			Scene->AddComponent(DefaultCube, FTransform::Identity);
+			Scene->AddComponent(DefaultCube.Get(), FTransform::Identity);
 		}
 
 		{
@@ -65,7 +70,7 @@ namespace Faerie::Editor
 			BoundsBox->SetLineThickness(0.2f);
 			BoundsBox->SetVisibility(false);
 
-			Scene->AddComponent(BoundsBox, FTransform::Identity);
+			Scene->AddComponent(BoundsBox.Get(), FTransform::Identity);
 		}
 
 		{
@@ -73,13 +78,21 @@ namespace Faerie::Editor
 			ItemMeshComponent->CenterMeshByBounds = CenterMeshByBounds;
 			ItemMeshComponent->CacheSkeletalBoundsInPose = true;
 			ItemMeshComponent->PreferredTag = MeshPurposeTag;
+			ItemMeshComponent->OnMeshRebuiltNative.AddWeakLambda(World, [this](const TNotNull<UFaerieItemMeshComponent*> Component)
+			{
+				// Show the default cube when we do not have a valid mesh generated.
+				if (Component->GetMeshType() == EItemMeshType::None)
+				{
+					DefaultCube->SetVisibility(true);
+				}
+			});
 			//ItemMeshComponent->bSelectable = true;
 
-			Scene->AddComponent(ItemMeshComponent, FTransform::Identity);
+			Scene->AddComponent(ItemMeshComponent.Get(), FTransform::Identity);
 		}
 	}
 
-	void FItemPreviewSceneData::SetProxy(const IFaerieItemDataProxy* Proxy)
+	void FItemPreviewSceneData::SetProxy(const FFaerieItemProxy& Proxy)
 	{
 		ItemProxy = Proxy;
 		RefreshItemData();
@@ -88,7 +101,7 @@ namespace Faerie::Editor
 	void FItemPreviewSceneData::SetShowBounds(const bool InShowBounds)
 	{
 		ShowBounds = InShowBounds;
-		if (IsValid(BoundsBox))
+		if (BoundsBox.IsValid())
 		{
 			BoundsBox->SetVisibility(ShowBounds);
 		}
@@ -97,7 +110,7 @@ namespace Faerie::Editor
 	void FItemPreviewSceneData::SetMeshPurposeTag(const FGameplayTag Tag)
 	{
 		MeshPurposeTag = Tag;
-		if (IsValid(ItemMeshComponent))
+		if (ItemMeshComponent.IsValid())
 		{
 			ItemMeshComponent->SetPreferredTag(MeshPurposeTag);
 		}
@@ -105,61 +118,56 @@ namespace Faerie::Editor
 
 	void FItemPreviewSceneData::RefreshItemData()
 	{
-		if (!ensure(IsValid(ItemMeshComponent))) return;
+		if (!ensure(ItemMeshComponent.IsValid())) return;
 
 		{
 			// Reset state to default
 			DefaultCube->SetVisibility(false);
-			if (IsValid(ItemActor))
+			if (AFaerieProxyActorBase* Actor = ItemActor.Get())
 			{
-				ItemActor->Destroy();
-				ItemActor = nullptr;
+				Actor->Destroy();
+				ItemActor.Reset();
 			}
 			ItemMeshComponent->ClearItemMesh();
 		}
 
-		const UFaerieItem* FaerieItem = ItemProxy ? ItemProxy->GetItemObject() : nullptr;
+		if (!ItemProxy.IsValid()) return;
+
+		const FFaerieItemInstance Instance = ItemProxy->GetItemInstance().GetValue();
+		const UFaerieItem* FaerieItem = Instance.GetItemPtr();
 		if (!IsValid(FaerieItem)) return;
 
-		const UFaerieVisualActorClassToken* ActorClassToken = FaerieItem->GetToken<UFaerieVisualActorClassToken>();
-		const UFaerieMeshTokenBase* MeshToken = FaerieItem->GetToken<UFaerieMeshTokenBase>();
-		const UFaerieCapacityToken* CapToken = FaerieItem->GetToken<UFaerieCapacityToken>();
+		auto ProxyClassFragment = Faerie::ItemData::GetDefaultFragment<FFaerieProxyActorFragment>(FaerieItem);
+		auto Capacity = Faerie::ItemData::GetDefaultFragment<FFaerieItemCapacity>(FaerieItem);
 
 		// Draw Capacity Bounds
-		if (CapToken)
+		if (Capacity.IsValid())
 		{
 			BoundsBox->SetVisibility(ShowBounds);
-			BoundsBox->SetBoxExtent(FVector(CapToken->GetCapacity().Bounds) / 2.0);
+			BoundsBox->SetBoxExtent(FVector(Capacity->Bounds) / 2.0);
 		}
 
 		// Draw Mesh
 		{
 			// Path 1: Spawn Actor
-			if (IsValid(ActorClassToken))
+			if (ProxyClassFragment.IsValid())
 			{
-				if (auto&& ActorClass = ActorClassToken->LoadProxyActorClassSynchronous())
+				if (auto&& ActorClass = ProxyClassFragment->LoadProxyActorClassSynchronous())
 				{
 					ItemActor = Scene->GetWorld()->SpawnActor<AFaerieProxyActorBase>(ActorClass, FActorSpawnParameters());
-					if (IsValid(ItemActor))
+					if (AFaerieProxyActorBase* Actor = ItemActor.Get())
 					{
-						ItemActor->GetOnDisplayFinished().AddRaw(this, &FItemPreviewSceneData::OnDisplayFinished);
+						Actor->GetOnDisplayFinished().AddRaw(this, &FItemPreviewSceneData::OnDisplayFinished);
 
 						FEditorScriptExecutionGuard ScriptGuard;
-						ItemActor->SetSourceProxy(ItemProxy);
+						Actor->SetSourceProxy(ItemProxy);
 						return;
 					}
 				}
 			}
 
 			// Path 2: Spawn Component
-			if (IsValid(MeshToken))
-			{
-				ItemMeshComponent->SetItemMeshFromToken(MeshToken);
-				return;
-			}
-
-			// If the code above doesn't evaluate to a mesh, show the debug cube.
-			DefaultCube->SetVisibility(true);
+			ItemMeshComponent->SetItemMeshFromProxy(ItemProxy);
 		}
 	}
 
@@ -220,7 +228,7 @@ namespace Faerie::Editor
 		return SceneData.GetBounds();
 	}
 
-	void FItemDataProxyPreviewScene::SetItemProxy(const IFaerieItemDataProxy* Proxy)
+	void FItemDataProxyPreviewScene::SetItemProxy(const FFaerieItemProxy& Proxy)
 	{
 		SceneData.SetProxy(Proxy);
 	}

@@ -6,74 +6,61 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieEquipmentClientActions)
 
-bool FFaerieClientAction_SetItemInSlot::Server_Execute(const UFaerieInventoryClient* Client) const
+bool FFaerieClientAction_MoveFromSlot::IsValid(const TNotNull<const UFaerieInventoryClient*> Client) const
 {
-	if (!IsValid(Slot)) return false;
-	if (!Client->CanAccessContainer(Slot, StaticStruct()))  return false;
-	if (!IsValid(Stack.Item)) return false;
+	return ::IsValid(Slot) &&
+		Client->CanAccessContainer(Slot, StaticStruct()) &&
+		Slot->IsFilled();
+}
 
+bool FFaerieClientAction_MoveFromSlot::View(FFaerieItemDataView& View) const
+{
+	View = Slot->GetView();
+	return View.IsValid();
+}
+
+bool FFaerieClientAction_MoveFromSlot::CanMove(const FFaerieItemDataView& View) const
+{
+	return Slot->CouldSetInSlot(View);
+}
+
+bool FFaerieClientAction_MoveFromSlot::Release(FFaerieUnownedItemStack& Stack) const
+{
+	Stack = Slot->TakeItemFromSlot(Faerie::ItemData::EntireStack, Faerie::Inventory::Tags::RemovalMoving);
+	return Stack.IsValid();
+}
+
+bool FFaerieClientAction_MoveFromSlot::Possess(const FFaerieUnownedItemStack& Stack) const
+{
 	return Slot->SetItemInSlot(Stack);
 }
 
-bool FFaerieClientAction_MoveFromSlot::IsValid(const UFaerieInventoryClient* Client) const
+bool FFaerieClientAction_MoveToSlot::IsValid(const TNotNull<const UFaerieInventoryClient*> Client) const
 {
-	if (!::IsValid(Slot) ||
-		!Client->CanAccessContainer(Slot, StaticStruct()) ||
-		!Slot->IsFilled()) return false;
+	return ::IsValid(Slot) &&
+		Client->CanAccessContainer(Slot, StaticStruct());
+}
+
+bool FFaerieClientAction_MoveToSlot::View(FFaerieItemDataView& View) const
+{
+	View = Slot->GetView();
 	return true;
 }
 
-bool FFaerieClientAction_MoveFromSlot::View(FFaerieItemStackView& View) const
-{
-	View = Slot->View();
-	return true;
-}
-
-bool FFaerieClientAction_MoveFromSlot::CanMove(const FFaerieItemStackView& View) const
+bool FFaerieClientAction_MoveToSlot::CanMove(const FFaerieItemDataView& View) const
 {
 	return Slot->CouldSetInSlot(View);
 }
 
-bool FFaerieClientAction_MoveFromSlot::Release(FFaerieItemStack& Stack) const
+bool FFaerieClientAction_MoveToSlot::Release(FFaerieUnownedItemStack& Stack) const
 {
 	Stack = Slot->TakeItemFromSlot(Faerie::ItemData::EntireStack, Faerie::Inventory::Tags::RemovalMoving);
-	return ::IsValid(Stack.Item);
+	return Stack.IsValid();
 }
 
-bool FFaerieClientAction_MoveFromSlot::Possess(const FFaerieItemStack& Stack) const
+bool FFaerieClientAction_MoveToSlot::Possess(const FFaerieUnownedItemStack& Stack) const
 {
-	Slot->SetItemInSlot(Stack);
-	return true;
-}
-
-bool FFaerieClientAction_MoveToSlot::IsValid(const UFaerieInventoryClient* Client) const
-{
-	if (!::IsValid(Slot) ||
-		!Client->CanAccessContainer(Slot, StaticStruct())) return false;
-	return true;
-}
-
-bool FFaerieClientAction_MoveToSlot::View(FFaerieItemStackView& View) const
-{
-	View = Slot->View();
-	return true;
-}
-
-bool FFaerieClientAction_MoveToSlot::CanMove(const FFaerieItemStackView& View) const
-{
-	return Slot->CouldSetInSlot(View);
-}
-
-bool FFaerieClientAction_MoveToSlot::Release(FFaerieItemStack& Stack) const
-{
-	Stack = Slot->TakeItemFromSlot(Faerie::ItemData::EntireStack, Faerie::Inventory::Tags::RemovalMoving);
-	return ::IsValid(Stack.Item);
-}
-
-bool FFaerieClientAction_MoveToSlot::Possess(const FFaerieItemStack& Stack) const
-{
-	Slot->SetItemInSlot(Stack);
-	return true;
+	return Slot->SetItemInSlot(Stack);
 }
 
 bool FFaerieClientAction_MoveToSlot::IsSwap() const

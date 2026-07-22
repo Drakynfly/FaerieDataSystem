@@ -15,7 +15,7 @@ void FFaerieEquipmentEditorModule::StartupModule()
 	StructCustomizations.Add(FFaerieSlotTag::StaticStruct()->GetFName(),
 		FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FGameplayTagCustomizationPublic::MakeInstance));
 
-	RegisterPropertyCustomizations(StructCustomizations);
+	RegisterCustomizations({}, StructCustomizations);
 }
 
 void FFaerieEquipmentEditorModule::ShutdownModule()

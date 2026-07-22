@@ -3,10 +3,10 @@
 #pragma once
 
 #include "FaerieItemContainerStructs.h"
-#include "FaerieItemStack.h"
 #include "FaerieSlotTag.h"
 #include "FaerieEquipmentSlotStructs.generated.h"
 
+class UFaerieItem;
 class UFaerieEquipmentSlotDescription;
 
 USTRUCT(BlueprintType)
@@ -31,12 +31,17 @@ struct FFaerieEquipmentSlotSaveData
 {
 	GENERATED_BODY()
 
+	// The ID of the configured slot this save data belongs to.
 	UPROPERTY()
-	FFaerieEquipmentSlotConfig Config;
+	FFaerieSlotTag SlotID;
 
 	UPROPERTY()
-	FFaerieItemStack ItemStack;
+	TObjectPtr<const UFaerieItem> ItemObject;
 
 	UPROPERTY()
-	FEntryKey StoredKey;
+	int32 Copies = 0;
+
+	// Additional data stored with this item instance.
+	UPROPERTY()
+	FFaerieItemExportData ExportData;
 };

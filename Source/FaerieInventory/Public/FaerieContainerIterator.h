@@ -2,10 +2,10 @@
 
 #pragma once
 
-#include "FaerieItemContainerStructs.h"
-#include "FaerieItemDataViewBase.h"
 #include "LoopUtils.h"
 #include "DebuggingFlags.h"
+#include "FaerieItem.h"
+#include "FaerieItemContainerBase.h"
 
 namespace Faerie::Container
 {
@@ -18,12 +18,30 @@ namespace Faerie::Container
 #define LOG_ITERATOR_MESSAGE_FMT(Message, ...)
 #endif
 
-	class IIterator : public ItemData::IViewBase
+	/*
+	 * Iterators are a special kind of Data View, that can step to the "next" valid view.
+	 */
+	class IEntryIterator : public IEntryView
 	{
 	public:
-		virtual FEntryKey ResolveKey() const = 0;
-		virtual FFaerieAddress ResolveAddress() const = 0;
+		// Advance this iterator to the next valid view.
 		virtual void Advance() = 0;
+
+		// Is the iterator valid
+		virtual bool IsValid() const = 0;
+	};
+
+	/*
+	 * Iterators are a special kind of Data View, that can step to the "next" valid view.
+	 */
+	class IAddressIterator : public IAddressView
+	{
+	public:
+		// Advance this iterator to the next valid view.
+		virtual void Advance() = 0;
+
+		// Is the iterator valid
+		virtual bool IsValid() const = 0;
 	};
 
 	namespace Private
@@ -31,13 +49,13 @@ namespace Faerie::Container
 		class FIteratorAccess
 		{
 		public:
-			FAERIEINVENTORY_API static TUniquePtr<IIterator> CreateEntryIteratorImpl(const TNotNull<const UFaerieItemContainerBase*> Container);
-			FAERIEINVENTORY_API static TUniquePtr<IIterator> CreateAddressIteratorImpl(const TNotNull<const UFaerieItemContainerBase*> Container);
-			FAERIEINVENTORY_API static TUniquePtr<IIterator> CreateSingleEntryIteratorImpl(const TNotNull<const UFaerieItemContainerBase*> Container, const FEntryKey Key);
+			FAERIEINVENTORY_API static TUniquePtr<IEntryIterator> CreateEntryIteratorImpl(const TNotNull<const UFaerieItemContainerBase*> Container);
+			FAERIEINVENTORY_API static TUniquePtr<IAddressIterator> CreateAddressIteratorImpl(const TNotNull<const UFaerieItemContainerBase*> Container);
+			FAERIEINVENTORY_API static TUniquePtr<IAddressIterator> CreateSingleEntryIteratorImpl(const TNotNull<const UFaerieItemContainerBase*> Container, const FFaerieEntryKey Key);
 		};
 
 		template <bool IterateAddresses>
-		TUniquePtr<IIterator> CreateIteratorImpl(const TNotNull<const UFaerieItemContainerBase*> Container)
+		auto CreateIteratorImpl(const TNotNull<const UFaerieItemContainerBase*> Container)
 		{
 			if constexpr (IterateAddresses)
 			{
@@ -50,7 +68,13 @@ namespace Faerie::Container
 		}
 	}
 
-	template <typename ResolveType, bool SkipToNextMutable>
+	enum EIteratorMutabilityToggle
+	{
+		OnlyMutableInstances,
+		AllInstances
+	};
+
+	template <typename ResolveType, EIteratorMutabilityToggle Toggle, typename ViewInterface>
 	class TIterator
 	{
 	public:
@@ -60,9 +84,9 @@ namespace Faerie::Container
 			LOG_ITERATOR_MESSAGE("TIterator::Ctor from Container")
 
 			// When in non-const mode, jump to next mutable item
-			if constexpr (SkipToNextMutable)
+			if constexpr (Toggle == OnlyMutableInstances)
 			{
-				SkipInvalid();
+				AdvanceWhileImmutable();
 			}
 		}
 
@@ -72,31 +96,32 @@ namespace Faerie::Container
 			LOG_ITERATOR_MESSAGE("TIterator::Move Ctor");
 
 			// When in non-const mode, jump to next mutable item
-			if constexpr (SkipToNextMutable)
+			if constexpr (Toggle == OnlyMutableInstances)
 			{
-				SkipInvalid();
+				AdvanceWhileImmutable();
 			}
 		}
 
-		UE_REWRITE explicit TIterator(TUniquePtr<IIterator>&& Iterator)
+		UE_REWRITE explicit TIterator(TUniquePtr<ViewInterface>&& Iterator)
 		  : IteratorPtr(MoveTemp(Iterator))
 		{
 			LOG_ITERATOR_MESSAGE("TIterator::Move Ctor");
 
 			// When in non-const mode, jump to next mutable item
-			if constexpr (SkipToNextMutable)
+			if constexpr (Toggle == OnlyMutableInstances)
 			{
-				SkipInvalid();
+				AdvanceWhileImmutable();
 			}
 		}
 
-		[[nodiscard]] UE_REWRITE const IIterator* GetPtr() const { return IteratorPtr.Get(); }
+		// @todo if this compiles, move the FFaerieItemDataView to a member
+		[[nodiscard]] UE_REWRITE ItemData::FValidatedDataView GetPtr() const { return FFaerieItemDataView(IteratorPtr.Get()); }
 
 		[[nodiscard]] UE_REWRITE ResolveType operator*() const
 		{
 			LOG_ITERATOR_MESSAGE("TIterator::operator*");
 
-			if constexpr (std::is_same_v<ResolveType, FEntryKey>)
+			if constexpr (std::is_same_v<ResolveType, FFaerieEntryKey>)
 			{
 				return IteratorPtr->ResolveKey();
 			}
@@ -104,13 +129,14 @@ namespace Faerie::Container
 			{
 				return IteratorPtr->ResolveAddress();
 			}
-			else if constexpr (std::is_same_v<ResolveType, TNotNull<const UFaerieItem*>>)
+			else if constexpr (std::is_same_v<ResolveType, ItemData::FReference>)
 			{
 				return IteratorPtr->ResolveItem();
 			}
-			else if constexpr (std::is_same_v<ResolveType, TNotNull<UFaerieItem*>>)
+			else if constexpr (std::is_same_v<ResolveType, ItemData::FMutableReference>)
 			{
-				return IteratorPtr->ResolveItem()->MutateCast();
+				// Implicit conversion to FReference
+				return IteratorPtr->ResolveItem();
 			}
 			else
 			{
@@ -118,17 +144,33 @@ namespace Faerie::Container
 			}
 		}
 
-		void SkipInvalid()
+		void AdvanceWhileImmutable()
 		{
-			while (static_cast<bool>(*this) && !IteratorPtr->ResolveItem()->CanMutate())
+			while (static_cast<bool>(*this) && !IteratorPtr->ResolveItem()->IsMutable())
 			{
 				IteratorPtr->Advance();
 			}
 		}
 
-		[[nodiscard]] UE_REWRITE FEntryKey GetKey() const { return IteratorPtr->ResolveKey(); }
+		[[nodiscard]] UE_REWRITE FFaerieEntryKey GetKey() const { return IteratorPtr->ResolveKey(); }
 		[[nodiscard]] UE_REWRITE FFaerieAddress GetAddress() const { return IteratorPtr->ResolveAddress(); }
-		[[nodiscard]] UE_REWRITE const UFaerieItem* GetItem() const { return IteratorPtr->ResolveItem(); }
+		[[nodiscard]] UE_REWRITE int32 GetCopies() const { return IteratorPtr->ResolveCopies(); }
+		[[nodiscard]] UE_REWRITE auto GetReference() const
+		{
+			if constexpr (Toggle == OnlyMutableInstances)
+			{
+				return ItemData::FMutableReference(IteratorPtr->ResolveItem());
+			}
+			else
+			{
+				return ItemData::FReference(IteratorPtr->ResolveItem());
+			}
+		}
+
+		// As we are in FaerieInventory, we can cast to the actual UObject type.
+		[[nodiscard]] UE_REWRITE const UFaerieItemContainerBase* GetOwner() const { return CastChecked<UFaerieItemContainerBase>(IteratorPtr->ResolveOwner()); }
+
+		[[nodiscard]] UE_REWRITE FFaerieItemProxy GetProxy() const { return GetOwner()->Proxy(GetAddress()); }
 
 		UE_REWRITE void operator++()
 		{
@@ -136,10 +178,10 @@ namespace Faerie::Container
 
 			IteratorPtr->Advance();
 
-			if constexpr (SkipToNextMutable)
+			if constexpr (Toggle == OnlyMutableInstances)
 			{
 				// Then, when in non-const mode, jump to next mutable item
-				SkipInvalid();
+				AdvanceWhileImmutable();
 			}
 		}
 
@@ -161,19 +203,13 @@ namespace Faerie::Container
 		[[nodiscard]] UE_REWRITE Utils::EIteratorType end() const { return Utils::End; }
 
 	private:
-		TUniquePtr<IIterator> IteratorPtr;
+		TUniquePtr<ViewInterface> IteratorPtr;
 	};
 
-	// Typedef for the rather ungainly parameter for filter predicates.
-	using FIteratorPtr = const TNotNull<const IIterator*>;
-
-	// Typedef for delegates that consume iterator predicate functions.
-	using FIteratorPredicate = TDelegate<bool(FIteratorPtr)>;
-
-	using FKeyIterator = TIterator<FEntryKey, false>;
-	using FAddressIterator = TIterator<FFaerieAddress, false>;
-	using FItemIterator = TIterator<TNotNull<UFaerieItem*>, true>;
-	using FConstItemIterator = TIterator<TNotNull<const UFaerieItem*>, false>;
+	using FKeyIterator = TIterator<FFaerieEntryKey, AllInstances, IEntryIterator>;
+	using FAddressIterator = TIterator<FFaerieAddress, AllInstances, IAddressIterator>;
+	using FItemIterator = TIterator<ItemData::FReference, AllInstances, IEntryIterator>;
+	using FMutableItemIterator = TIterator<ItemData::FMutableReference, OnlyMutableInstances, IEntryIterator>;
 
 	// Enables ranged for-loops through each key in the container. Simple range with no filtering.
 	FAERIEINVENTORY_API FKeyIterator KeyRange(TNotNull<const UFaerieItemContainerBase*> Container);
@@ -182,11 +218,11 @@ namespace Faerie::Container
 	FAERIEINVENTORY_API FAddressIterator AddressRange(TNotNull<const UFaerieItemContainerBase*> Container);
 
 	// Enables ranged for-loops through each address in one entry. Simple range with no filtering.
-	FAERIEINVENTORY_API FAddressIterator SingleKeyRange(TNotNull<const UFaerieItemContainerBase*> Container, FEntryKey Key);
+	FAERIEINVENTORY_API FAddressIterator SingleKeyRange(TNotNull<const UFaerieItemContainerBase*> Container, FFaerieEntryKey Key);
 
 	// Enables ranged for-loops through each item in the container. Simple range with no filtering.
-	FAERIEINVENTORY_API FConstItemIterator ConstItemRange(TNotNull<const UFaerieItemContainerBase*> Container);
+	FAERIEINVENTORY_API FItemIterator ItemRange(TNotNull<const UFaerieItemContainerBase*> Container);
 
 	// Enables ranged for-loops through each mutable item in the container. Automatically filtered to only return mutable instances.
-	FAERIEINVENTORY_API FItemIterator ItemRange(TNotNull<const UFaerieItemContainerBase*> Container);
+	FAERIEINVENTORY_API FMutableItemIterator MutableItemRange(TNotNull<const UFaerieItemContainerBase*> Container);
 }

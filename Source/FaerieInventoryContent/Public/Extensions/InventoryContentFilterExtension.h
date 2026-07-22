@@ -16,12 +16,11 @@ class FAERIEINVENTORYCONTENT_API UInventoryContentFilterExtension : public UItem
 {
 	GENERATED_BODY()
 
-public:
+protected:
 	//~ UItemContainerExtensionBase
-	virtual EEventExtensionResponse AllowsAddition(TNotNull<const UFaerieItemContainerBase*> Container, TConstArrayView<FFaerieItemStackView> Views, FFaerieExtensionAllowsAdditionArgs Args) const override;
+	virtual EEventExtensionResponse AllowsAddition(TNotNull<const UFaerieItemContainerBase*> Container, TConstArrayView<FFaerieItemDataView> Views, FFaerieExtensionAllowsAdditionArgs Args) const override;
 	//~ UItemContainerExtensionBase
 
-protected:
 	// Filter used to determine if an item can be contained in the inventory
 	UPROPERTY(EditAnywhere, Category = "Config", meta = (DisplayThumbnail = false))
 	TObjectPtr<UFaerieItemDataFilter> Filter;

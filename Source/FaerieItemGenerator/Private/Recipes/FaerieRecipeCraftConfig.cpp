@@ -30,8 +30,3 @@ EDataValidationResult UFaerieRecipeCraftConfig::IsDataValid(FDataValidationConte
 #undef LOCTEXT_NAMESPACE
 
 #endif
-
-FFaerieItemCraftingSlots UFaerieRecipeCraftConfig::GetCraftingSlots() const
-{
-	return Recipe->GetCraftingSlots();
-}

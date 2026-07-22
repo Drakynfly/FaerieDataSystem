@@ -9,10 +9,10 @@
 
 using namespace Faerie;
 
-TOptional<FFaerieItemStack> FFaerieTableDrop::Resolve(const FFaerieItemInstancingContext_Crafting& Context) const
+TOptional<FFaerieUnownedItemStack> FFaerieTableDrop::Resolve(const FFaerieItemInstancingContext_Crafting& Context) const
 {
-	UObject* DropObject = Asset.Object.Get();
-	if (!ensure(::IsValid(DropObject)))
+	const UObject* DropObject = Asset.Object.Get();
+	if (!/*ensure*/(::IsValid(DropObject)))
 	{
 		UE_LOG(LogItemGeneration, Error, TEXT("FFaerieTableDrop::Resolve - Falling back to Synchronous Load for source object. Why!"))
 		DropObject = Asset.Object.LoadSynchronous();
@@ -40,16 +40,20 @@ TOptional<FFaerieItemStack> FFaerieTableDrop::Resolve(const FFaerieItemInstancin
 		//}
 
 		FFaerieItemInstancingContext_Crafting ChildContext;
+		ChildContext.ItemInstanceOuter = Context.ItemInstanceOuter;
 		ChildContext.Squirrel = Context.Squirrel;
+#if WITH_EDITORONLY_DATA
+		ChildContext.RunningInEditor = Context.RunningInEditor;
+#endif
 
-		if (auto StaticInstanceItem = ChildDrop.Resolve(ChildContext);
+		if (auto StaticInstanceItem = ChildDrop.Resolve(ChildContext); // @TODO CHECK THAT CODE PATH INITS RUNTIME
 			StaticInstanceItem.IsSet())
 		{
 			TempContext.GeneratedChildren.Add(StaticResourceSlot.Key, StaticInstanceItem.GetValue());
 		}
 	}
 
-	return ItemSource->CreateItemStack(&TempContext);
+	return ItemSource->CreateItemStack(TempContext).WithoutInitialization();
 }
 
 const FFaerieTableDrop* FFaerieWeightedPool::GetDrop(const double RanWeight) const
@@ -132,15 +136,14 @@ void FFaerieGenerationProcedure_OfAny::Resolve(const FFaerieWeightedPool& Pool, 
 {
 	for (int32 i = 0; i < Amount; ++i)
 	{
-		double RanWeight = 0.f;
-		if (IsValid(Squirrel))
+		const double RanWeight = [Squirrel]
 		{
-			RanWeight = Squirrel->NextReal();
-		}
-		else
-		{
-			RanWeight = FMath::FRand();
-		}
+			if (IsValid(Squirrel))
+			{
+				return Squirrel->NextReal();
+			}
+			return static_cast<double>(FMath::FRand());
+		}();
 
 		if (const FFaerieTableDrop* Drop = Pool.GetDrop(RanWeight))
 		{
@@ -156,27 +159,25 @@ void FFaerieGenerationProcedure_Chunked::Resolve(const FFaerieWeightedPool& Pool
 {
 	while (Amount > 0)
 	{
-		int32 ThisDropAmount = 0;
-		if (IsValid(Squirrel))
+		const int32 ThisDropAmount = [Squirrel, Amount]
 		{
-			ThisDropAmount = Squirrel->NextInt32InRange(1, Amount);
-		}
-		else
-		{
-			ThisDropAmount = FMath::RandRange(1, Amount);
-		}
+			if (IsValid(Squirrel))
+			{
+				return Squirrel->NextInt32InRange(1, Amount);
+			}
+			return FMath::RandRange(1, Amount);
+		}();
 
 		Amount -= ThisDropAmount;
 
-		double RanWeight = 0.f;
-		if (IsValid(Squirrel))
+		const double RanWeight = [Squirrel]
 		{
-			RanWeight = Squirrel->NextReal();
-		}
-		else
-		{
-			RanWeight = FMath::FRand();
-		}
+			if (IsValid(Squirrel))
+			{
+				return Squirrel->NextReal();
+			}
+			return static_cast<double>(FMath::FRand());
+		}();
 
 		if (const FFaerieTableDrop* Drop = Pool.GetDrop(RanWeight))
 		{

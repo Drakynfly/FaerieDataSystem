@@ -5,7 +5,6 @@
 #include "FaerieContainerFilterTypes.h"
 #include "FaerieFunctionTemplates.h"
 #include "FaerieItemContainerStructs.h"
-#include "FaerieItemDataViewBase.h"
 #include "UObject/Object.h"
 #include "FaerieContainerQuery.generated.h"
 
@@ -88,7 +87,7 @@ public:
 
 protected:
 	bool CompareAddresses_Impl(TNotNull<const UFaerieItemContainerBase*> Container, const FFaerieAddress AddressA, const FFaerieAddress AddressB) const;
-	bool IsIteratorFiltered(Faerie::Container::FIteratorPtr Iterator) const;
+	bool IsIteratorFiltered(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& Iterator) const;
 
 private:
 	// Filter object to keep alive.

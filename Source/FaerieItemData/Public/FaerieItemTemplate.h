@@ -2,11 +2,17 @@
 
 #pragma once
 
+#include "Fragments/FaerieAssetInfo.h"
+
 #include "UObject/Object.h"
-#include "FaerieAssetInfo.h"
 #include "FaerieItemTemplate.generated.h"
 
-struct FFaerieItemStackView;
+namespace Faerie::ItemData
+{
+	struct FValidatedDataView;
+}
+
+struct FFaerieItemDataView;
 class UFaerieItemDataFilter;
 
 /**
@@ -23,10 +29,11 @@ public:
 	virtual EDataValidationResult IsDataValid(FDataValidationContext& Context) const override;
 #endif
 
-	bool TryMatchWithDescriptions(FFaerieItemStackView View, TArray<FText>& Errors) const;
+	bool TryMatch(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const;
+	bool TryMatchWithDescriptions(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View, TArray<FText>& Errors) const;
 
-	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemTemplate")
-	bool TryMatch(FFaerieItemStackView View) const;
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemTemplate", meta = (WorldContext = "WorldContextObj"))
+	bool TryMatch(UObject* WorldContextObj, const FFaerieItemDataView& View) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemTemplate")
 	const FFaerieAssetInfo& GetDescription() const { return Info; }

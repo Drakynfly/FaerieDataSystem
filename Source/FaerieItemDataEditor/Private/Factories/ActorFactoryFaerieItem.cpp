@@ -3,9 +3,10 @@
 #include "ActorFactoryFaerieItem.h"
 #include "FaerieItem.h"
 #include "FaerieItemAsset.h"
+#include "FaerieItemStackContainer.h"
 #include "FaerieMeshSettings.h"
 #include "Actors/FaerieItemOwningActorBase.h"
-#include "Tokens/FaerieVisualActorClassToken.h"
+#include "Fragments/FaerieActorFragment.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ActorFactoryFaerieItem)
 
@@ -31,19 +32,16 @@ UClass* UActorFactoryFaerieItem::GetDefaultActorClass(const FAssetData& AssetDat
 {
 	if (auto&& ItemAsset = Cast<UFaerieItemAsset>(AssetData.GetAsset()))
 	{
-		const UFaerieItem* Item = ItemAsset->GetEditorItemView();
-		if (IsValid(Item))
+		auto ActorClassFragment = Faerie::ItemData::GetDefaultFragment<FFaerieActorFragment>(ItemAsset->GetAssetTemplateItem());
+		if (ActorClassFragment.IsValid())
 		{
-			const UFaerieVisualActorClassToken* VisualActorToken = Item->GetToken<UFaerieVisualActorClassToken>();
-			if (IsValid(VisualActorToken))
+			if (TSubclassOf<AFaerieItemOwningActorBase> OwningActorClass = ActorClassFragment->LoadOwningActorClassSynchronous())
 			{
-				if (TSubclassOf<AFaerieItemOwningActorBase> OwningActorClass = VisualActorToken->LoadOwningActorClassSynchronous())
-				{
-					return OwningActorClass;
-				}
+				return OwningActorClass;
 			}
 		}
 
+		// Note: Editor use of LoadSync is allowed here.
 		return GetDefault<UFaerieMeshSettings>()->DefaultPickupActor.LoadSynchronous();
 	}
 
@@ -65,22 +63,11 @@ void UActorFactoryFaerieItem::PostSpawnActor(UObject* Asset, AActor* NewActor)
 		return;
 	}
 
-	const FFaerieItemStack Stack
+	if (AFaerieItemOwningActorBase* OwningActor = CastChecked<AFaerieItemOwningActorBase>(NewActor))
 	{
-		ItemAsset->GetItemInstance(EFaerieItemInstancingMutability::Automatic),
-		1
-	};
-
-	if (IFaerieItemOwnerInterface* Visual = Cast<IFaerieItemOwnerInterface>(NewActor))
-	{
-		if (AFaerieItemOwningActorBase* OwningActor = Cast<AFaerieItemOwningActorBase>(Visual))
-		{
-			OwningActor->ItemSourceAsset = ItemAsset;
-			OwningActor->StackCopies = 1;
-		}
-
-		FEditorScriptExecutionGuard ScriptGuard;
-		(void)Visual->Possess(Stack);
+		OwningActor->SourceAsset = ItemAsset;
+		OwningActor->StackCopies = 1;
+		OwningActor->RegenerateStack();
 	}
 }
 

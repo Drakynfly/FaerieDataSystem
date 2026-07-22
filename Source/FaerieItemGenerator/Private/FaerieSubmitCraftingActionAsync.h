@@ -2,8 +2,9 @@
 
 #pragma once
 
-#include "ItemCraftingAction.h"
 #include "Kismet/BlueprintAsyncActionBase.h"
+
+#include "ItemCraftingRunner.h"
 #include "StructUtils/InstancedStruct.h"
 #include "FaerieSubmitCraftingActionAsync.generated.h"
 

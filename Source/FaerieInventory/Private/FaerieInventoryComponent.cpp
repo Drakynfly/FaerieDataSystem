@@ -16,8 +16,6 @@ UFaerieInventoryComponent::UFaerieInventoryComponent()
 	bReplicateUsingRegisteredSubObjectList = true;
 
 	ItemStorage = CreateDefaultSubobject<UFaerieItemStorage>(FName{TEXTVIEW("ItemStorage")});
-	Extensions = CreateDefaultSubobject<UItemContainerExtensionGroup>(FName{TEXTVIEW("Extensions")});
-	SET_NEW_IDENTIFIER(Extensions, TEXTVIEW("InventoryComponentGroup"))
 }
 
 void UFaerieInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -39,13 +37,6 @@ void UFaerieInventoryComponent::ReadyForReplication()
 
 	if (!Owner->HasAuthority()) return;
 
-	if (IsValid(Extensions))
-	{
-		Extensions->ReplicationFixup();
-		ItemStorage->GetExtensionGroup()->ReplicationFixup();
-		ItemStorage->GetExtensionGroup()->SetParentGroup(Extensions);
-	}
-
 	if (!Owner->IsUsingRegisteredSubObjectList())
 	{
 		UE_LOG(LogFaerieInventory, Warning,
@@ -54,39 +45,13 @@ void UFaerieInventoryComponent::ReadyForReplication()
 	else
 	{
 		check(IsValid(ItemStorage));
-		check(IsValid(Extensions));
 
 		AddReplicatedSubObject(ItemStorage);
 		ItemStorage->InitializeNetObject(Owner);
-		AddReplicatedSubObject(Extensions);
-		Extensions->InitializeNetObject(Owner);
 	}
 }
 
-UItemContainerExtensionGroup* UFaerieInventoryComponent::GetExtensionGroup() const
+UItemContainerExtensionGroup* UFaerieInventoryComponent::VirtualGetExtensionGroup() const
 {
-	return ItemStorage->GetExtensionGroup();
-}
-
-bool UFaerieInventoryComponent::AddExtension(UItemContainerExtensionBase* Extension)
-{
-	if (ItemStorage->AddExtension(Extension))
-	{
-		AddReplicatedSubObject(Extension);
-		Extension->InitializeNetObject(GetOwner());
-		return true;
-	}
-	return false;
-}
-
-bool UFaerieInventoryComponent::RemoveExtension(UItemContainerExtensionBase* Extension)
-{
-	if (!ensure(IsValid(Extension)))
-	{
-		return false;
-	}
-
-	Extension->DeinitializeNetObject(GetOwner());
-	RemoveReplicatedSubObject(Extension);
-	return ItemStorage->RemoveExtension(Extension);
+	return ItemStorage->GetExtensions();
 }

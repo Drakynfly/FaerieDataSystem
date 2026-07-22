@@ -6,6 +6,7 @@
 #include "FaerieItemSlotInterface.h"
 #include "FaerieItemUpgradeAction.generated.h"
 
+struct FFaerieItemDataView;
 class UFaerieItemUpgradeConfigBase;
 
 //
@@ -14,10 +15,10 @@ struct FAERIEITEMGENERATOR_API FFaerieItemUpgradeAction : public FFaerieCrafting
 {
 	GENERATED_BODY()
 
-	virtual void Run(TNotNull<UFaerieItemCraftingRunner*> Runner) override;
+	virtual void Run(const Faerie::Generation::FActionExecution& Execution) override;
 
 private:
-	void Execute(TNotNull<UFaerieItemCraftingRunner*> Runner);
+	void Execute(const Faerie::Generation::FActionExecution Execution);
 
 public:
 	UPROPERTY(BlueprintReadWrite, Category = "Upgrade Action")
@@ -40,14 +41,14 @@ struct FAERIEITEMGENERATOR_API FFaerieItemUpgradeActionBulkNoPayment : public FF
 {
 	GENERATED_BODY()
 
-	virtual void Run(TNotNull<UFaerieItemCraftingRunner*> Runner) override;
+	virtual void Run(const Faerie::Generation::FActionExecution& Execution) override;
 
 private:
-	void Execute(TNotNull<UFaerieItemCraftingRunner*> Runner);
+	void Execute(const Faerie::Generation::FActionExecution Execution);
 
 public:
 	UPROPERTY(BlueprintReadWrite, Category = "Upgrade Action Bulk No Payment")
-	TArray<FFaerieItemStack> UpgradeTargets;
+	TArray<FFaerieUnownedItemStack> UpgradeTargets;
 
 	// These should be safe to replicate, since they are (always?) sourced from cooked assets.
 	UPROPERTY(BlueprintReadWrite, Category = "Upgrade Action Bulk No Payment")
@@ -71,10 +72,10 @@ struct FAERIEITEMGENERATOR_API FFaerieItemUpgradeActionBulk : public FFaerieCraf
 {
 	GENERATED_BODY()
 
-	virtual void Run(TNotNull<UFaerieItemCraftingRunner*> Runner) override;
+	virtual void Run(const Faerie::Generation::FActionExecution& Execution) override;
 
 private:
-	void Execute(TNotNull<UFaerieItemCraftingRunner*> Runner);
+	void Execute(const Faerie::Generation::FActionExecution Execution);
 
 public:
 	UPROPERTY(BlueprintReadWrite, Category = "Upgrade Action Bulk")

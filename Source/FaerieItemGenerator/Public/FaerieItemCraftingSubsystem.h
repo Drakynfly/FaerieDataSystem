@@ -31,4 +31,7 @@ public:
 private:
 	UPROPERTY()
 	TObjectPtr<UFaerieItemCraftingRunner> Runner;
+
+	UPROPERTY()
+	TObjectPtr<USquirrel> Squirrel;
 };

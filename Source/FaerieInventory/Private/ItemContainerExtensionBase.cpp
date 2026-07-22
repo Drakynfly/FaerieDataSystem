@@ -31,16 +31,6 @@ void UItemContainerExtensionBase::PostDuplicate(const EDuplicateMode::Type Dupli
 	SET_NEW_IDENTIFIER(this, GetEditorIdentifier())
 }
 
-void UItemContainerExtensionBase::InitializeNetObject(AActor* Actor)
-{
-	Super::InitializeNetObject(Actor);
-
-	ensureAlwaysMsgf(!Faerie::Utils::HasLoadFlag(this),
-		TEXT("Extensions must not be assets loaded from disk. (DuplicateObjectFromDiskForReplication or ClearLoadFlags can fix this)"
-			LINE_TERMINATOR
-			"	Failing Extension: '%s'"), *GetFullName());
-}
-
 void UItemContainerExtensionBase::SetIdentifier(const FGuid* GuidToUse)
 {
 	if (GuidToUse)
@@ -96,7 +86,7 @@ namespace Faerie::Extensions
 					Current = Group->ParentGroup;
 					break;
 				}
-				Group = nullptr;
+				Current = nullptr;
 				break;
 			}
 		case Extensions:
@@ -120,7 +110,7 @@ namespace Faerie::Extensions
 					Current = Group->ParentGroup;
 					break;
 				}
-				Group = nullptr;
+				Current = nullptr;
 				break;
 			}
 		case DynamicExtensions:
@@ -137,21 +127,18 @@ namespace Faerie::Extensions
 					Current = Group->ParentGroup;
 					break;
 				}
-				Group = nullptr;
+				Current = nullptr;
 				break;
 			}
 		case ParentGroup:
 			{
-				Group = nullptr;
+				Current = nullptr;
 				break;
 			}
 		}
 	}
 
-	template <bool Const> TRecursiveExtensionIterator<Const>::TRecursiveExtensionIterator(InterfaceType* Interface)
-		: TRecursiveExtensionIterator(Interface->GetExtensionGroup()) {}
-
-	template <bool Const> TRecursiveExtensionIterator<Const>::TRecursiveExtensionIterator(GroupType* Group)
+	template <bool Const> TRecursiveExtensionIterator<Const>::TRecursiveExtensionIterator(TNotNull<GroupType*> Group)
 	  : Extensions(GetAllExtensions(Group)),
 		Iterator([this]()
 		{
@@ -166,17 +153,17 @@ namespace Faerie::Extensions
 		}()) {}
 
 	template <bool Const>
-	auto TRecursiveExtensionIterator<Const>::GetAllExtensions(GroupType* Group) -> TArray<ElementType*>
+	auto TRecursiveExtensionIterator<Const>::GetAllExtensions(const TNotNull<GroupType*> Group) -> TArray<TNotNull<ElementType*>>
 	{
-		TSet<ElementType*> AllExtensions;
-		TSet<GroupType*> Searched;
-		TArray<GroupType*> GroupsToSearch;
+		TSet<TNotNull<ElementType*>> AllExtensions;
+		TSet<TNotNull<GroupType*>> Searched;
+		TArray<TNotNull<GroupType*>> GroupsToSearch;
 		GroupsToSearch.Add(Group);
 		while (!GroupsToSearch.IsEmpty())
 		{
-			GroupType* GroupToSearch = GroupsToSearch.Pop();
+			const TNotNull<GroupType*> GroupToSearch = GroupsToSearch.Pop();
 			Searched.Add(GroupToSearch);
-			for (ElementType* Element : TExtensionIterator<Const>(GroupToSearch))
+			for (const TNotNull<ElementType*> Element : TExtensionIterator<Const>(GroupToSearch))
 			{
 				if (GroupType* AsGroup = Cast<UItemContainerExtensionGroup>(Element))
 				{
@@ -249,7 +236,7 @@ EDataValidationResult UItemContainerExtensionGroup::IsDataValid(FDataValidationC
 }
 #endif
 
-void UItemContainerExtensionGroup::InitializeNetObject(AActor* Actor)
+void UItemContainerExtensionGroup::InitializeNetObject(const TNotNull<AActor*> Actor)
 {
 	Super::InitializeNetObject(Actor);
 
@@ -260,7 +247,7 @@ void UItemContainerExtensionGroup::InitializeNetObject(AActor* Actor)
 	}
 }
 
-void UItemContainerExtensionGroup::DeinitializeNetObject(AActor* Actor)
+void UItemContainerExtensionGroup::DeinitializeNetObject(const TNotNull<AActor*> Actor)
 {
 	for (auto&& Extension : Extensions::FExtensionIterator(this))
 	{
@@ -309,7 +296,7 @@ void UItemContainerExtensionGroup::DeinitializeExtension(const TNotNull<const UF
 }
 
 EEventExtensionResponse UItemContainerExtensionGroup::AllowsAddition(const TNotNull<const UFaerieItemContainerBase*> Container,
-																	 const TConstArrayView<FFaerieItemStackView> Views,
+																	 const TConstArrayView<FFaerieItemDataView> Views,
 																	 const FFaerieExtensionAllowsAdditionArgs Args) const
 {
 	EEventExtensionResponse Response = EEventExtensionResponse::NoExplicitResponse;
@@ -338,23 +325,24 @@ EEventExtensionResponse UItemContainerExtensionGroup::AllowsAddition(const TNotN
 	return Response;
 }
 
-void UItemContainerExtensionGroup::PreAddition(const TNotNull<const UFaerieItemContainerBase*> Container, const FFaerieItemStackView Stack)
+void UItemContainerExtensionGroup::PreAddition(const TNotNull<const UFaerieItemContainerBase*> Container, const FFaerieItemDataView& View)
 {
 	for (auto&& Extension : Extensions::FExtensionIterator(this))
 	{
-		Extension->PreAddition(Container, Stack);
+		Extension->PreAddition(Container, View);
 	}
 }
 
 EEventExtensionResponse UItemContainerExtensionGroup::AllowsRemoval(const TNotNull<const UFaerieItemContainerBase*> Container,
-																	const FFaerieAddress Address, const FFaerieInventoryTag Reason) const
+																	const ItemData::TNonNullViewPtr<Container::IAddressView> DataView,
+																	const FFaerieInventoryTag Reason) const
 {
 	EEventExtensionResponse Response = EEventExtensionResponse::NoExplicitResponse;
 
 	// Check each extension, to see if the reason is allowed or denied.
 	for (auto&& Extension : Extensions::FConstExtensionIterator(this))
 	{
-		switch (Extension->AllowsRemoval(Container, Address, Reason))
+		switch (Extension->AllowsRemoval(Container, DataView, Reason))
 		{
 		case EEventExtensionResponse::Allowed:
 			{
@@ -375,16 +363,17 @@ EEventExtensionResponse UItemContainerExtensionGroup::AllowsRemoval(const TNotNu
 	return Response;
 }
 
-void UItemContainerExtensionGroup::PreRemoval(const TNotNull<const UFaerieItemContainerBase*> Container, const FEntryKey Key, const int32 Removal)
+void UItemContainerExtensionGroup::PreRemoval(const TNotNull<const UFaerieItemContainerBase*> Container,
+	const ItemData::TNonNullViewPtr<Container::IEntryView> DataView, const int32 Removal)
 {
 	for (auto&& Extension : Extensions::FExtensionIterator(this))
 	{
-		Extension->PreRemoval(Container, Key, Removal);
+		Extension->PreRemoval(Container, DataView, Removal);
 	}
 }
 
 EEventExtensionResponse UItemContainerExtensionGroup::AllowsEdit(const TNotNull<const UFaerieItemContainerBase*> Container,
-																 const FEntryKey Key,
+																 const ItemData::TNonNullViewPtr<Container::IAddressView> DataView,
 																 const FFaerieInventoryTag EditTag) const
 {
 	EEventExtensionResponse Response = EEventExtensionResponse::NoExplicitResponse;
@@ -392,7 +381,7 @@ EEventExtensionResponse UItemContainerExtensionGroup::AllowsEdit(const TNotNull<
 	// Check each extension, to see if the reason is allowed or denied.
 	for (auto&& Extension : Extensions::FConstExtensionIterator(this))
 	{
-		switch (Extension->AllowsEdit(Container, Key, EditTag))
+		switch (Extension->AllowsEdit(Container, DataView, EditTag))
 		{
 		case EEventExtensionResponse::Allowed:
 			{
@@ -411,15 +400,6 @@ EEventExtensionResponse UItemContainerExtensionGroup::AllowsEdit(const TNotNull<
 	}
 
 	return Response;
-}
-
-void UItemContainerExtensionGroup::PostEvent(const TNotNull<const UFaerieItemContainerBase*> Container,
-	const Inventory::FEventData& Event, const FFaerieInventoryTag Reason)
-{
-	Inventory::FEventLogBatch Batch;
-	Batch.Type = Reason;
-	Batch.Data = MakeConstArrayView(&Event, 1);
-	PostEventBatch(Container, Batch);
 }
 
 void UItemContainerExtensionGroup::PostEventBatch(const TNotNull<const UFaerieItemContainerBase*> Container,
@@ -429,11 +409,6 @@ void UItemContainerExtensionGroup::PostEventBatch(const TNotNull<const UFaerieIt
 	{
 		Extension->PostEventBatch(Container, Events);
 	}
-}
-
-UItemContainerExtensionGroup* UItemContainerExtensionGroup::GetExtensionGroup() const
-{
-	return const_cast<UItemContainerExtensionGroup*>(this);
 }
 
 #if !UE_BUILD_SHIPPING
@@ -497,7 +472,14 @@ void UItemContainerExtensionGroup::PrintDebugData() const
 		UE_LOG(LogFaerieInventory, Warning,  TEXT("	Registered Extension: '%s'"), *Extension->GetName())
 	}
 }
+
 #endif
+
+
+UItemContainerExtensionGroup* UItemContainerExtensionGroup::VirtualGetExtensionGroup() const
+{
+	return const_cast<UItemContainerExtensionGroup*>(this);
+}
 
 bool UItemContainerExtensionGroup::AddExtension(UItemContainerExtensionBase* Extension)
 {
@@ -519,6 +501,8 @@ bool UItemContainerExtensionGroup::AddExtension(UItemContainerExtensionBase* Ext
 
 	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Extensions, this);
 	DynamicExtensions.Add(Extension);
+	TryApplyUnclaimedSaveData(Extension);
+
 	for (auto&& Container : Containers)
 	{
 		if (Container.IsValid())
@@ -554,12 +538,11 @@ bool UItemContainerExtensionGroup::RemoveExtension(UItemContainerExtensionBase* 
 	return !!DynamicExtensions.Remove(Extension);
 }
 
-bool UItemContainerExtensionGroup::HasExtension(
-	const TSubclassOf<UItemContainerExtensionBase> ExtensionClass, const bool RecursiveSearch) const
+bool UItemContainerExtensionGroup::HasExtension(const TSubclassOf<UItemContainerExtensionBase> ExtensionClass, const bool RecursiveSearch) const
 {
 	if (!ensure(
-		IsValid(ExtensionClass) &&
-		ExtensionClass != UItemContainerExtensionBase::StaticClass()))
+	IsValid(ExtensionClass) &&
+	ExtensionClass != UItemContainerExtensionBase::StaticClass()))
 	{
 		return false;
 	}
@@ -590,8 +573,7 @@ bool UItemContainerExtensionGroup::HasExtension(
 	return false;
 }
 
-UItemContainerExtensionBase* UItemContainerExtensionGroup::GetExtension(
-	const TSubclassOf<UItemContainerExtensionBase> ExtensionClass, const bool RecursiveSearch) const
+UItemContainerExtensionBase* UItemContainerExtensionGroup::GetExtension(const TSubclassOf<UItemContainerExtensionBase> ExtensionClass, const bool RecursiveSearch) const
 {
 	if (!IsValid(ExtensionClass) || ExtensionClass == UItemContainerExtensionBase::StaticClass()) return nullptr;
 
@@ -619,25 +601,8 @@ UItemContainerExtensionBase* UItemContainerExtensionGroup::GetExtension(
 	return nullptr;
 }
 
-void UItemContainerExtensionGroup::SetParentGroup(UItemContainerExtensionGroup* Parent)
+void UItemContainerExtensionGroup::SetParentGroup(TNotNull<UItemContainerExtensionGroup*> Parent)
 {
-	if (!IsValid(Parent))
-	{
-		if (IsValid(ParentGroup))
-		{
-			for (auto&& Container : Containers)
-			{
-				if (Container.IsValid())
-				{
-					ParentGroup->DeinitializeExtension(Container.Get());
-				}
-			}
-			MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, ParentGroup, this);
-			ParentGroup = nullptr;
-		}
-		return;
-	}
-
 	checkf(Parent->GetIdentifier().IsValid(),
 		TEXT("Parent with invalid Identifier. Setup code-path with SetIdentifier called before SetParentGroup"))
 
@@ -654,6 +619,53 @@ void UItemContainerExtensionGroup::SetParentGroup(UItemContainerExtensionGroup* 
 		if (Container.IsValid())
 		{
 			ParentGroup->InitializeExtension(Container.Get());
+		}
+	}
+}
+
+void UItemContainerExtensionGroup::ClearParentGroup()
+{
+	if (IsValid(ParentGroup))
+	{
+		for (auto&& Container : Containers)
+		{
+			if (Container.IsValid())
+			{
+				ParentGroup->DeinitializeExtension(Container.Get());
+			}
+		}
+		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, ParentGroup, this);
+		ParentGroup = nullptr;
+	}
+}
+
+void UItemContainerExtensionGroup::SetUnclaimedExtensionData(const TSharedStruct<FFaerieItemContainerExtensionData>& ExtensionData)
+{
+	UnclaimedExtensionData = ExtensionData;
+}
+
+void UItemContainerExtensionGroup::TryApplyUnclaimedSaveData(UItemContainerExtensionBase* Extension)
+{
+	if (!UnclaimedExtensionData.IsValid())
+	{
+		return;
+	}
+
+	const FGuid ExtensionIdentifier = Extension->Identifier;
+	if (!ensure(ExtensionIdentifier.IsValid())) return;
+	const uint32 ExtensionHash = GetTypeHash(ExtensionIdentifier);
+
+	for (TWeakObjectPtr<const UFaerieItemContainerBase> Container : Containers)
+	{
+		uint32 ContainerHash = GetTypeHash(Container->GetName());
+
+		// Unique hash for the combo of this extension + container.
+		const uint32 SaveHash = HashCombine(ExtensionHash, ContainerHash);
+
+		if (auto&& SaveData = UnclaimedExtensionData.Get().Data.Find(SaveHash))
+		{
+			Extension->LoadSaveData(Container.Get(), *SaveData);
+			UnclaimedExtensionData.Get().Data.Remove(SaveHash);
 		}
 	}
 }
@@ -694,6 +706,13 @@ void UItemContainerExtensionGroup::ValidateGroup()
 			UE_LOG(LogFaerieInventory, Warning, TEXT("Invalid extension identifier for '%s'"), *Extension->GetName())
 		}
 	}
+}
+
+void Extensions::FGroupAPI::PostEvent(GroupParam Group, ContainerParam Container,
+	const Inventory::FEventData& Event, const FFaerieInventoryTag Reason)
+{
+	const Inventory::FEventLogBatch Batch(MakeConstArrayView(&Event, 1), Reason);
+	Group->PostEventBatch(Container, Batch);
 }
 
 #undef LOCTEXT_NAMESPACE

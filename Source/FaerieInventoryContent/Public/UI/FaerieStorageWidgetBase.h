@@ -21,11 +21,17 @@ public:
 	UFaerieStorageWidgetBase(const FObjectInitializer& ObjectInitializer);
 
 	virtual bool Initialize() override;
+
+protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
-protected:
+	/**
+	 * This must be called *after* this widget is added to viewport. Initialization of child widgets cannot be performed
+	 * if called while not on-screen.
+	 */
+	void InitWithStorage();
 	virtual void Reset();
 
 	void OnPostEventBatch(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Inventory::FEventLogBatch& Events);
@@ -34,16 +40,6 @@ public:
 	// Set the inventory that will be used when this widget is constructed.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|StorageWidget")
 	void SetLinkedStorage(UFaerieItemStorage* Storage);
-
-	/**
-	 * This must be called *after* this widget is added to viewport. Initialization of child widgets cannot be performed
-	 * if called while not on-screen.
-	 * Calling this multiple times with the same inventory component is intended, and has no performance hit.
-	 * It is not necessary to call this at all, unless switching inventories. Calling SetLinkedInventory when created is
-	 * sufficient.
-	 */
-	UFUNCTION(BlueprintCallable, Category = "Faerie|StorageWidget")
-	void InitWithInventory(UFaerieItemStorage* Storage);
 
 	// Adds an item to the SortedAndFilteredAddresses list. Returns the index it was added at, or INDEX_NONE if it wasn't added.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|StorageWidget")

@@ -13,18 +13,18 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemUpgradeAction)
 
-void FFaerieItemUpgradeAction::Run(TNotNull<UFaerieItemCraftingRunner*> Runner)
+void FFaerieItemUpgradeAction::Run(const Faerie::Generation::FActionExecution& Execution)
 {
-	if (!IsValid(ItemProxy.GetObject()))
+	if (!IsValid(ItemProxy.GetProxyObject()))
 	{
 		UE_LOG(LogItemGeneration, Warning, TEXT("%hs: ItemProxy is invalid!"), __FUNCTION__);
-		return Fail(Runner);
+		return Fail(Execution, this);
 	}
 
 	if (!IsValid(Config))
 	{
 		UE_LOG(LogItemGeneration, Warning, TEXT("%hs: Config is invalid!"), __FUNCTION__);
-		return Fail(Runner);
+		return Fail(Execution, this);
 	}
 
 	TArray<FSoftObjectPath> ObjectsToLoad;
@@ -42,13 +42,13 @@ void FFaerieItemUpgradeAction::Run(TNotNull<UFaerieItemCraftingRunner*> Runner)
 	if (ObjectsToLoad.IsEmpty())
 	{
 		// Nothing to wait for, run now!
-		return Execute(Runner);
+		return Execute(Execution);
 	}
 
 	UE_LOG(LogItemGeneration, Log, TEXT("- Objects to load: %i"), ObjectsToLoad.Num());
 
-	// The check for IsGameWorld forces this action to be ran in the editor synchronously
-	if (!Runner->GetWorld()->IsGameWorld())
+	// The check for IsInGameWorld forces this action to be ran in the editor synchronously
+	if (!Execution.IsInGameWorld())
 	{
 		// Immediately load all objects and continue.
 		for (const FSoftObjectPath& Object : ObjectsToLoad)
@@ -56,57 +56,50 @@ void FFaerieItemUpgradeAction::Run(TNotNull<UFaerieItemCraftingRunner*> Runner)
 			Object.TryLoad();
 		}
 
-		return Execute(Runner);
+		return Execute(Execution);
 	}
 
 	// Suspend generation to async load drop assets, then continue
 	RunningStreamHandle = UAssetManager::GetStreamableManager().RequestAsyncLoad(ObjectsToLoad,
-		 FStreamableDelegate::CreateRaw(this, &FFaerieItemUpgradeAction::Execute, Runner));
+		 FStreamableDelegate::CreateRaw(this, &FFaerieItemUpgradeAction::Execute, Execution));
 }
 
-void FFaerieItemUpgradeAction::Execute(const TNotNull<UFaerieItemCraftingRunner*> Runner)
+void FFaerieItemUpgradeAction::Execute(const Faerie::Generation::FActionExecution Execution)
 {
 	// @todo batching
 	int32 Copies = 1;
 
-	if (!Config->CanApplyUpgrade(FFaerieItemStackView(ItemProxy)))
+	if (!Config->CanApplyUpgrade(Execution.WorldContextObject, ItemProxy))
 	{
-		return Fail(Runner);
+		return Fail(Execution, this);
 	}
 
-	if (!Config->CanPayCost(Slots, FFaerieItemStackView(ItemProxy)))
+	if (!Config->CanPayCost(Execution.WorldContextObject, Slots, ItemProxy))
 	{
-		return Fail(Runner);
+		return Fail(Execution, this);
 	}
 
-	if (Config->ReleaseWhileOperating)
-	{
-		ActionData.Stacks.Add(ItemProxy->Release(Copies));
-	}
-	else
-	{
-		ActionData.Stacks.Add(FFaerieItemStack(ItemProxy.GetItemObject(), Copies));
-	}
+	ActionData.Stacks.Add( FFaerieUnownedItemStack(ItemProxy->GetItemInstance().GetValue(), Copies));
 
-	if (!Config->ApplyUpgrade(ActionData, Squirrel.Get()))
+	if (!Config->ApplyUpgrade(Execution.WorldContextObject, ActionData, Execution.Squirrel.Get()))
 	{
-		return Fail(Runner);
+		return Fail(Execution, this);
 	}
 
 	if (RunConsumeStep)
 	{
-		Config->PayCost(Slots, FFaerieItemStackView(ItemProxy));
+		Config->PayCost(Execution.WorldContextObject, Slots, ItemProxy);
 	}
 
-	Complete(Runner);
+	Complete(Execution, this);
 }
 
-void FFaerieItemUpgradeActionBulkNoPayment::Run(TNotNull<UFaerieItemCraftingRunner*> Runner)
+void FFaerieItemUpgradeActionBulkNoPayment::Run(const Faerie::Generation::FActionExecution& Execution)
 {
 	if (!IsValid(Config))
 	{
 		UE_LOG(LogItemGeneration, Warning, TEXT("%hs: Config is invalid!"), __FUNCTION__);
-		return Fail(Runner);
+		return Fail(Execution, this);
 	}
 
 	TArray<FSoftObjectPath> ObjectsToLoad;
@@ -124,13 +117,13 @@ void FFaerieItemUpgradeActionBulkNoPayment::Run(TNotNull<UFaerieItemCraftingRunn
 	if (ObjectsToLoad.IsEmpty())
 	{
 		// Nothing to wait for, run now!
-		return Execute(Runner);
+		return Execute(Execution);
 	}
 
 	UE_LOG(LogItemGeneration, Log, TEXT("- Objects to load: %i"), ObjectsToLoad.Num());
 
-	// The check for IsGameWorld forces this action to be ran in the editor synchronously
-	if (!Runner->GetWorld()->IsGameWorld())
+	// The check for IsInGameWorld forces this action to be ran in the editor synchronously
+	if (!Execution.IsInGameWorld())
 	{
 		// Immediately load all objects and continue.
 		for (const FSoftObjectPath& Object : ObjectsToLoad)
@@ -138,33 +131,33 @@ void FFaerieItemUpgradeActionBulkNoPayment::Run(TNotNull<UFaerieItemCraftingRunn
 			Object.TryLoad();
 		}
 
-		return Execute(Runner);
+		return Execute(Execution);
 	}
 
 	// Suspend generation to async load drop assets, then continue
 	RunningStreamHandle = UAssetManager::GetStreamableManager().RequestAsyncLoad(ObjectsToLoad,
-		 FStreamableDelegate::CreateRaw(this, &FFaerieItemUpgradeActionBulkNoPayment::Execute, Runner));
+		 FStreamableDelegate::CreateRaw(this, &FFaerieItemUpgradeActionBulkNoPayment::Execute, Execution));
 }
 
-void FFaerieItemUpgradeActionBulkNoPayment::Execute(const TNotNull<UFaerieItemCraftingRunner*> Runner)
+void FFaerieItemUpgradeActionBulkNoPayment::Execute(const Faerie::Generation::FActionExecution Execution)
 {
 	// Prepare Stacks
 	ActionData.Stacks = UpgradeTargets;
 
-	if (!Config->ApplyUpgrade(ActionData, Squirrel.Get()))
+	if (!Config->ApplyUpgrade(Execution.WorldContextObject, ActionData, Execution.Squirrel.Get()))
 	{
-		return Fail(Runner);
+		return Fail(Execution, this);
 	}
 
-	Complete(Runner);
+	Complete(Execution, this);
 }
 
-void FFaerieItemUpgradeActionBulk::Run(TNotNull<UFaerieItemCraftingRunner*> Runner)
+void FFaerieItemUpgradeActionBulk::Run(const Faerie::Generation::FActionExecution& Execution)
 {
 	if (!IsValid(Config))
 	{
 		UE_LOG(LogItemGeneration, Warning, TEXT("%hs: Config is invalid!"), __FUNCTION__);
-		return Fail(Runner);
+		return Fail(Execution, this);
 	}
 
 	TArray<FSoftObjectPath> ObjectsToLoad;
@@ -182,13 +175,13 @@ void FFaerieItemUpgradeActionBulk::Run(TNotNull<UFaerieItemCraftingRunner*> Runn
 	if (ObjectsToLoad.IsEmpty())
 	{
 		// Nothing to wait for, run now!
-		return Execute(Runner);
+		return Execute(Execution);
 	}
 
 	UE_LOG(LogItemGeneration, Log, TEXT("- Objects to load: %i"), ObjectsToLoad.Num());
 
-	// The check for IsGameWorld forces this action to be run in the editor synchronously
-	if (!Runner->GetWorld()->IsGameWorld())
+	// The check for IsInGameWorld forces this action to be run in the editor synchronously
+	if (!Execution.IsInGameWorld())
 	{
 		// Immediately load all objects and continue.
 		for (const FSoftObjectPath& Object : ObjectsToLoad)
@@ -196,55 +189,45 @@ void FFaerieItemUpgradeActionBulk::Run(TNotNull<UFaerieItemCraftingRunner*> Runn
 			Object.TryLoad();
 		}
 
-		return Execute(Runner);
+		return Execute(Execution);
 	}
 
 	// Suspend generation to async load drop assets, then continue
 	RunningStreamHandle = UAssetManager::GetStreamableManager().RequestAsyncLoad(ObjectsToLoad,
-		 FStreamableDelegate::CreateRaw(this, &FFaerieItemUpgradeActionBulk::Execute, Runner));
+		 FStreamableDelegate::CreateRaw(this, &FFaerieItemUpgradeActionBulk::Execute, Execution));
 }
 
-void FFaerieItemUpgradeActionBulk::Execute(const TNotNull<UFaerieItemCraftingRunner*> Runner)
+void FFaerieItemUpgradeActionBulk::Execute(const Faerie::Generation::FActionExecution Execution)
 {
 	// @todo batching
 	int32 Copies = 1;
 
 	for (auto&& UpgradeTarget : UpgradeTargets)
 	{
-		if (!Config->CanPayCost(UpgradeTarget.Slots, FFaerieItemStackView(UpgradeTarget.ItemProxy)))
+		if (!Config->CanPayCost(Execution.WorldContextObject, UpgradeTarget.Slots, UpgradeTarget.ItemProxy))
 		{
-			return Fail(Runner);
+			return Fail(Execution, this);
 		}
 	}
 
 	// Prepare Stacks
 	for (auto&& UpgradeTarget : UpgradeTargets)
 	{
-		if (Config->ReleaseWhileOperating)
-		{
-			ActionData.Stacks.Add(UpgradeTarget.ItemProxy->Release(Copies));
-		}
-		else
-		{
-			ActionData.Stacks.Add(FFaerieItemStack(UpgradeTarget.ItemProxy.GetItemObject(), Copies));
-		}
+		ActionData.Stacks.Emplace(UpgradeTarget.ItemProxy->GetItemInstance().GetValue(), Copies);
 	}
 
-	FFaerieItemMutatorContext Context;
-	Context.Squirrel = Squirrel.Get();
-
-	if (!Config->ApplyUpgrade(ActionData, Squirrel.Get()))
+	if (!Config->ApplyUpgrade(Execution.WorldContextObject, ActionData, Execution.Squirrel.Get()))
 	{
-		return Fail(Runner);
+		return Fail(Execution, this);
 	}
 
 	if (RunConsumeStep)
 	{
 		for (auto&& UpgradeTarget : UpgradeTargets)
 		{
-			Config->PayCost(UpgradeTarget.Slots, FFaerieItemStackView(UpgradeTarget.ItemProxy));
+			Config->PayCost(Execution.WorldContextObject, UpgradeTarget.Slots, UpgradeTarget.ItemProxy);
 		}
 	}
 
-	Complete(Runner);
+	Complete(Execution, this);
 }

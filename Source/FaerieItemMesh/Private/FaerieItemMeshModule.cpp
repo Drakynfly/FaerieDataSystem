@@ -5,14 +5,18 @@
 
 #define LOCTEXT_NAMESPACE "FaerieItemMeshModule"
 
-void FFaerieItemMeshModule::StartupModule()
+namespace Faerie::ItemMesh
 {
+	void FModule::StartupModule()
+    {
+    }
+
+    void FModule::ShutdownModule()
+    {
+    }
 }
 
-void FFaerieItemMeshModule::ShutdownModule()
-{
-}
 
 #undef LOCTEXT_NAMESPACE
 
-IMPLEMENT_MODULE(FFaerieItemMeshModule, FaerieItemMesh)
+IMPLEMENT_MODULE(Faerie::ItemMesh::FModule, FaerieItemMesh)

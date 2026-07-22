@@ -5,6 +5,8 @@
 #include "FaerieClientActionBase.h"
 #include "Components/ActorComponent.h"
 #include "FaerieItemContainerStructs.h"
+#include "FaerieItemProxy.h"
+
 #include "StructUtils/InstancedStruct.h"
 #include "FaerieInventoryClient.generated.h"
 
@@ -30,7 +32,7 @@ struct FFaerieClientStackPromptResult
 	TObjectPtr<UFaerieInventoryClient> Client;
 
 	UPROPERTY(BlueprintReadWrite, Category = "ClientStackPromptResult")
-	FFaerieAddressableHandle Handle;
+	FFaerieItemProxy Proxy;
 
 	UPROPERTY(BlueprintReadWrite, Category = "ClientStackPromptResult")
 	int32 Amount = 0;
@@ -44,7 +46,7 @@ struct FFaerieClientStackPromptArgs
 	GENERATED_BODY()
 
 	UPROPERTY(BlueprintReadWrite, Category = "ClientStackPromptArgs")
-	FFaerieAddressableHandle Handle;
+	FFaerieItemProxy Proxy;
 };
 
 DECLARE_DYNAMIC_DELEGATE_OneParam(FFaerieClientStackPromptHandler, const FFaerieClientStackPromptArgs&, Args);
@@ -63,7 +65,7 @@ public:
 	UFaerieInventoryClient();
 
 	// Overrides for allowing a client to run a request on the server.
-	virtual bool CanAccessContainer(TNotNull<const UFaerieItemContainerBase*> Container, const UScriptStruct* RequestType) const;
+	virtual bool CanAccessContainer(TNotNull<const UFaerieItemContainerBase*> Container, TNotNull<const UScriptStruct*> RequestType) const;
 
 	/**
 	 * Sends a request to the server to perform an inventory related edit.
@@ -87,7 +89,7 @@ public:
 	bool PromptStackChoice(const FFaerieClientStackPromptArgs& Args, const FFaerieClientStackPromptCallback& Callback);
 
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "Faerie|InventoryClient")
-	void RespondToStackPrompt(FFaerieAddressableHandle Handle, int32 Amount);
+	void RespondToStackPrompt(const FFaerieItemProxy& Proxy, int32 Amount);
 
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "Faerie|InventoryClient")
 	void SetStackChoicePromptHandler(const FFaerieClientStackPromptHandler& Handler);

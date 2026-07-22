@@ -9,4 +9,7 @@ class FFaerieInventoryEditorModule : public IFaerieDataSystemEditorModuleBase
 public:
     virtual void StartupModule() override;
     virtual void ShutdownModule() override;
+
+private:
+    static void OpenObjectEditorWindow(TNotNull<UObject*> Object);
 };

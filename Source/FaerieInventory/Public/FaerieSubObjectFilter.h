@@ -5,21 +5,73 @@
 #include "LoopUtils.h"
 #include "TypeCastingUtils.h"
 #include "FaerieInventoryConcepts.h"
-#include "FaerieItemTokenFilter.h"
+#include "FaerieItemContainerBase.h"
+#include "FaerieItemDataView.h"
+#include "PredicateTuple.h"
+
 #include "Templates/SubclassOf.h"
-#include "Tokens/FaerieItemStorageToken.h"
 
 class UFaerieItem;
 class UFaerieItemContainerBase;
 
 namespace Faerie::SubObject
 {
-	// Get all container objects from inside a FaerieItem.
-	FAERIEINVENTORY_API TArray<UFaerieItemContainerBase*> GetAllContainersInItem(const TNotNull<UFaerieItem*> Item);
-	FAERIEINVENTORY_API TArray<UFaerieItemContainerBase*> GetAllContainersInItemRecursive(const TNotNull<UFaerieItem*> Item);
+	// Returns immutable default containers.
+	FAERIEINVENTORY_API void GetTemplateContainersInInstanceDirect(const ItemData::FReference& Reference, TArray<TNotNull<const UFaerieItemContainerBase*>>& Containers, TNotNull<const UClass*> Class = UFaerieItemContainerBase::StaticClass());
 
-	FAERIEINVENTORY_API TArray<const UFaerieItem*> GetChildrenInItem(const TNotNull<UFaerieItem*> Item);
-	FAERIEINVENTORY_API TArray<const UFaerieItem*> GetChildrenInItemRecursive(const TNotNull<UFaerieItem*> Item);
+	// Returns immutable default containers.
+	FAERIEINVENTORY_API void GetTemplateContainersInInstanceRecursive(const ItemData::FReference& Reference, TArray<TNotNull<const UFaerieItemContainerBase*>>& Containers, TNotNull<const UClass*> Class = UFaerieItemContainerBase::StaticClass());
+
+	// Returns immutable default containers.
+	template <typename T, bool Recursive>
+	void GetTemplateContainersInInstance(const ItemData::FReference& Reference, TArray<TNotNull<const T*>>& Containers)
+	{
+		if constexpr (Recursive)
+		{
+			GetTemplateContainersInInstanceRecursive(Reference, Containers, T::StaticClass());
+		}
+		else
+		{
+			GetTemplateContainersInInstanceDirect(Reference, Containers, T::StaticClass());
+		}
+	}
+
+	// Returns runtime containers only. As such, requires an entity manager.
+	FAERIEINVENTORY_API void GetContainersInInstanceDirect(const ItemData::FRequireEntityManager& EntityManager, const ItemData::FMutableReference& Reference, TArray<TNotNull<UFaerieItemContainerBase*>>& Containers, TNotNull<const UClass*> Class = UFaerieItemContainerBase::StaticClass());
+
+	// Returns runtime containers only. As such, requires an entity manager.
+	FAERIEINVENTORY_API void GetContainersInInstanceRecursive(const ItemData::FRequireEntityManager& EntityManager, const ItemData::FMutableReference& Reference, TArray<TNotNull<UFaerieItemContainerBase*>>& Containers, TNotNull<const UClass*> Class = UFaerieItemContainerBase::StaticClass());
+
+	// Returns runtime containers only. As such, requires an entity manager.
+	template <typename T, bool Recursive>
+	void GetContainersInInstance(const ItemData::FRequireEntityManager& EntityManager, const ItemData::FMutableReference& Reference, TArray<TNotNull<T*>>& Containers)
+	{
+		if constexpr (Recursive)
+		{
+			GetContainersInInstanceRecursive(EntityManager, Reference, Containers, T::StaticClass());
+		}
+		else
+		{
+			GetContainersInInstanceDirect(EntityManager, Reference, Containers, T::StaticClass());
+		}
+	}
+
+	FAERIEINVENTORY_API void GetChildrenInItem(const ItemData::FRequireEntityManager& EntityManager, const ItemData::FMutableReference& Item, TArray<ItemData::FReference>& OutInstances);
+	FAERIEINVENTORY_API void GetChildrenInItemRecursive(const ItemData::FRequireEntityManager& EntityManager, const ItemData::FMutableReference& Item, TArray<ItemData::FReference>& OutInstances);
+
+	// Returns runtime containers only. As such, requires an entity manager.
+	template <bool Recursive>
+	void GetChildrenInItem(const ItemData::FRequireEntityManager& EntityManager, const ItemData::FMutableReference& Reference, TArray<ItemData::FReference>& OutInstances)
+	{
+		if constexpr (Recursive)
+		{
+			GetChildrenInItemRecursive(EntityManager, Reference, OutInstances);
+		}
+		else
+		{
+			GetChildrenInItem(EntityManager, Reference, OutInstances);
+		}
+	}
 
 	namespace StaticPredicates
 	{
@@ -28,19 +80,21 @@ namespace Faerie::SubObject
 	}
 
 	/**
-	 * Iterates over all Item Containers in a Faerie Item that are directly owned
+	 * Iterates over all item containers in a Faerie Item
 	 */
 	class FContainerIterator
 	{
+		using FStorageType = TArray<TNotNull<UFaerieItemContainerBase*>>;
+
 	public:
-		explicit FContainerIterator(const TNotNull<UFaerieItem*> Item);
+		explicit FContainerIterator(const ItemData::FRequireEntityManager& EntityManager, const ItemData::FMutableReference& Item);
 		~FContainerIterator() {}
 
-		[[nodiscard]] UE_REWRITE UFaerieItemContainerBase* operator*() const { return Iterator.operator*()->GetItemContainer(); }
+		[[nodiscard]] UE_REWRITE UFaerieItemContainerBase* operator*() const { return Iterator.operator*(); }
 
 		UE_REWRITE explicit operator bool() const { return static_cast<bool>(Iterator); }
 
-		UE_REWRITE void operator++() { ++Iterator; }
+		void operator++();
 
 		[[nodiscard]] UE_REWRITE bool operator!=(Utils::EIteratorType) const
 		{
@@ -52,7 +106,8 @@ namespace Faerie::SubObject
 		[[nodiscard]] UE_REWRITE Utils::EIteratorType end() const { return Utils::End; }
 
 	protected:
-		Token::TFilteringIterator<false, UFaerieItemContainerToken, Token::EFilterFlags::MutableOnly> Iterator;
+		FStorageType Containers;
+		FStorageType::TIterator Iterator;
 	};
 
 	/**
@@ -63,7 +118,7 @@ namespace Faerie::SubObject
 		using FStorageType = TArray<UFaerieItemContainerBase*>;
 
 	public:
-		explicit FRecursiveContainerIterator(TNotNull<UFaerieItem*> Item);
+		explicit FRecursiveContainerIterator(const ItemData::FRequireEntityManager& EntityManager, const ItemData::FMutableReference& Item);
 
 		[[nodiscard]] UE_REWRITE UFaerieItemContainerBase* operator*() const { return Iterator.operator*(); }
 
@@ -100,7 +155,7 @@ namespace Faerie::SubObject
 			Iterator(Containers.CreateIterator()) {}
 
 	public:
-		[[nodiscard]] UE_REWRITE TClass* operator*() const { return CastChecked<TClass>(Iterator.operator*()); }
+		[[nodiscard]] UE_REWRITE TNotNull<TClass*> operator*() const { return CastChecked<TClass>(Iterator.operator*()); }
 
 		UE_REWRITE explicit operator bool() const { return static_cast<bool>(Iterator); }
 
@@ -223,16 +278,16 @@ namespace Faerie::SubObject
 			return TFilter<UFaerieItemContainerBase, Flags, TPredicates..., TPredicate>(PredicateTuple.template AddPredicateAndMove<TPredicate>(TPredicate(Args...)));
 		}
 
-		[[nodiscard]] TArray<TClass*> Emit(const TNotNull<UFaerieItem*> Item) const
+		[[nodiscard]] TArray<TClass*> Emit(const ItemData::FRequireEntityManager& EntityManager, const ItemData::FMutableReference& Item) const
 		{
-			TArray<UFaerieItemContainerBase*> Containers;
+			TArray<TNotNull<UFaerieItemContainerBase*>> Containers;
 			if constexpr (EnumHasAnyFlags(Flags, EFilterFlags::Recursive))
 			{
-				Containers = GetAllContainersInItemRecursive(Item);
+				GetContainersInInstanceRecursive(EntityManager, Item, Containers);
 			}
 			else
 			{
-				Containers = GetAllContainersInItem(Item);
+				GetContainersInInstanceDirect(EntityManager, Item, Containers);
 			}
 
 			for (auto It(Containers.CreateIterator()); It; ++It)
@@ -246,7 +301,7 @@ namespace Faerie::SubObject
 					}
 				}
 
-				if (!PredicateTuple.TestAll(*It))
+				if (!PredicateTuple.TestAll(*It, *It))
 				{
 					It.RemoveCurrent();
 				}
@@ -256,17 +311,17 @@ namespace Faerie::SubObject
 		}
 
 		// Create an iterator from this filter.
-		[[nodiscard]] UE_REWRITE auto Iterate(const TNotNull<UFaerieItem*> Item) const &
+		[[nodiscard]] UE_REWRITE auto Iterate(const ItemData::FRequireEntityManager& EntityManager, const ItemData::FMutableReference& Item) const &
 		{
 			// @TODO FIX THIS
-			return TFilteredArrayIterator<TClass>(Emit(Item));
+			return TFilteredArrayIterator<TClass>(Emit(EntityManager, Item));
 		}
 
 		// Create an iterator from this filter.
-		[[nodiscard]] UE_REWRITE auto Iterate(const TNotNull<UFaerieItem*> Item) &&
+		[[nodiscard]] UE_REWRITE auto Iterate(const ItemData::FRequireEntityManager& EntityManager, const ItemData::FMutableReference& Item) &&
 		{
 			// @TODO FIX THIS
-			return TFilteredArrayIterator<TClass>(Emit(Item));
+			return TFilteredArrayIterator<TClass>(Emit(EntityManager, Item));
 		}
 
 	private:
@@ -277,16 +332,16 @@ namespace Faerie::SubObject
 	template <Container::CItemContainerBase TClass = UFaerieItemContainerBase, EFilterFlags Flags = EFilterFlags::None, typename... Filter>
 	class TFilter;
 
-	// Iterate over the direct subobject containers in an item.
-	UE_REWRITE FContainerIterator Iterate(const TNotNull<UFaerieItem*> Item)
+	// Iterate over the direct containers in an item.
+	UE_REWRITE FContainerIterator Iterate(const ItemData::FRequireEntityManager& EntityManager, const ItemData::FMutableReference& Item)
 	{
-		return FContainerIterator(Item);
+		return FContainerIterator(EntityManager, Item);
 	}
 
-	// Iterate over the all subobject containers in an item recursively.
-	UE_REWRITE FRecursiveContainerIterator IterateRecursive(const TNotNull<UFaerieItem*> Item)
+	// Iterate over the all containers in an item recursively.
+	UE_REWRITE FRecursiveContainerIterator IterateRecursive(const ItemData::FRequireEntityManager& EntityManager, const ItemData::FMutableReference& Item)
 	{
-		return FRecursiveContainerIterator(Item);
+		return FRecursiveContainerIterator(EntityManager, Item);
 	}
 
 	UE_REWRITE TFilter<UFaerieItemContainerBase> Filter()

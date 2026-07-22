@@ -4,6 +4,9 @@
 
 #include "GameplayTagContainer.h"
 #include "Engine/DeveloperSettings.h"
+
+#include "UObject/SoftObjectPtr.h"
+
 #include "FaerieMeshSettings.generated.h"
 
 class AFaerieItemOwningActorBase;

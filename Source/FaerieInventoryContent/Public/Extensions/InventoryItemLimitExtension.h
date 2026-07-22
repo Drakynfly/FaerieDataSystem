@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "FaerieItemContainerStructs.h"
 #include "ItemContainerExtensionBase.h"
 #include "InventoryItemLimitExtension.generated.h"
 
@@ -17,7 +18,7 @@ protected:
 	//~ UItemContainerExtensionBase
 	virtual void InitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
 	virtual void DeinitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
-	virtual EEventExtensionResponse AllowsAddition(TNotNull<const UFaerieItemContainerBase*> Container, TConstArrayView<FFaerieItemStackView> Views, FFaerieExtensionAllowsAdditionArgs Args) const override;
+	virtual EEventExtensionResponse AllowsAddition(TNotNull<const UFaerieItemContainerBase*> Container, TConstArrayView<FFaerieItemDataView> Views, FFaerieExtensionAllowsAdditionArgs Args) const override;
 	virtual void PostEventBatch(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Inventory::FEventLogBatch& Events) override;
 	//~ UItemContainerExtensionBase
 
@@ -37,7 +38,7 @@ public:
 private:
 	bool CanContain(const int32 Count) const;
 
-	void UpdateCacheForEntry(TNotNull<const UFaerieItemContainerBase*> Container, FEntryKey Key);
+	void UpdateCacheForEntry(TNotNull<const UFaerieItemContainerBase*> Container, FFaerieEntryKey Key);
 
 protected:
 	// Maximum number of entries the storage can contain. A value of zero doesn't apply any limit.
@@ -50,7 +51,7 @@ protected:
 
 private:
 	UPROPERTY()
-	TMap<FEntryKey, int32> EntryAmountCache;
+	TMap<FFaerieEntryKey, int32> EntryAmountCache;
 
 	UPROPERTY()
 	int32 CurrentTotalItemCopies = 0;

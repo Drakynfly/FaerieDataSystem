@@ -4,24 +4,34 @@
 #include "FaerieItemGenerationLog.h"
 #include "FaerieItemRecipe.h"
 #include "FaerieItemSource.h"
+#include "ItemCraftingRunner.h"
 #include "ItemInstancingContext_Crafting.h"
 #include "Recipes/FaerieRecipeCraftConfig.h"
+#include "EntityManagerHelpers.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieCraftRecipeAction)
 
-void FFaerieCraftRecipeAction::Run(const TNotNull<UFaerieItemCraftingRunner*> Runner)
+void FFaerieCraftRecipeAction::Run(const Faerie::Generation::FActionExecution& Execution)
 {
 	if (!IsValid(Config))
 	{
 		UE_LOG(LogItemGeneration, Warning, TEXT("%hs: Config is invalid!"), __FUNCTION__);
-		return Fail(Runner);
+		return Fail(Execution, this);
 	}
 
-	const FFaerieItemCraftingSlots CraftingSlots = Config->GetCraftingSlots();
-	if (!Faerie::Generation::ValidateFilledSlots(Slots, CraftingSlots))
+	if (NewInstancesOuter == nullptr)
 	{
-		return Fail(Runner);
+		NewInstancesOuter = GetTransientPackageAsObject();
 	}
+
+	if (const FFaerieItemCraftingSlots* SlotsPtr = Config->Recipe->GetCraftingSlots())
+	{
+		if (!Faerie::Generation::ValidateFilledSlots(Execution.WorldContextObject, Slots, *SlotsPtr))
+		{
+			return Fail(Execution, this);
+		}
+	}
+
 
 	UE_LOG(LogItemGeneration, Log, TEXT("Running RecipeCraft"));
 
@@ -31,23 +41,27 @@ void FFaerieCraftRecipeAction::Run(const TNotNull<UFaerieItemCraftingRunner*> Ru
 	}
 
 	FFaerieItemInstancingContext_Crafting Context;
-	Context.Squirrel = Squirrel.Get();
+	Context.ItemInstanceOuter = NewInstancesOuter;
+	Context.Squirrel = Execution.Squirrel.Get();
 	Context.InputEntryData = Slots;
 
-	const TOptional<FFaerieItemStack> NewStack = Config->Recipe->GetItemSource()->CreateItemStack(&Context);
-	if (!NewStack.IsSet())
+	const Faerie::ItemData::FGetInstanceResult Result = Config->Recipe->GetItemSource()->CreateItemStack(Context);
+	if (!Result.IsValid())
 	{
 		UE_LOG(LogItemGeneration, Error, TEXT("Item Instancing failed for Craft Item!"));
-		return Fail(Runner);
+		return Fail(Execution, this);
 	}
 
-	ActionData.Stacks.Add(NewStack.GetValue());
+	ActionData.Stacks.Add(Result.WithInitialization());
 
-	if (RunConsumeStep && Config->Recipe->Implements<UFaerieItemSlotInterface>())
+	if (RunConsumeStep)
 	{
-		const FFaerieItemCraftingSlots SlotsView = Config->Recipe->GetCraftingSlots();
-		Faerie::Generation::ConsumeSlotCosts(Slots, SlotsView);
+		Faerie::ItemData::FOptionalEntityManager EntityManager(Execution.WorldContextObject);
+		if (const FFaerieItemCraftingSlots* SlotsPtr = Config->Recipe->GetCraftingSlots())
+		{
+			Faerie::Generation::ConsumeSlotCosts(EntityManager, Slots, *SlotsPtr);
+		}
 	}
 
-	return Complete(Runner);
+	return Complete(Execution, this);
 }

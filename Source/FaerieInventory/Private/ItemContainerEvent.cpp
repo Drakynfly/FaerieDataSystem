@@ -16,6 +16,8 @@ namespace Faerie::Inventory::Tags
 		"Fae.Inventory.Removal.Moving", "Remove an item for the purpose of moving it elsewhere")
 	UE_DEFINE_GAMEPLAY_TAG_TYPED_COMMENT(FFaerieInventoryTag, EditBase,
 		"Fae.Inventory.Edit", "Inventory item data changed event")
+	UE_DEFINE_GAMEPLAY_TAG_TYPED_COMMENT(FFaerieInventoryTag, ReplicationEdit,
+		"Fae.Inventory.Edit.Replication", "Inventory item data changed by replication")
 	UE_DEFINE_GAMEPLAY_TAG_TYPED_COMMENT(FFaerieInventoryTag, Merge,
 		"Fae.Inventory.Edit.Merge", "An entry was edited to merge two stacks")
 	UE_DEFINE_GAMEPLAY_TAG_TYPED_COMMENT(FFaerieInventoryTag, Split,
@@ -42,4 +44,30 @@ namespace Faerie::Inventory::Tags
 
 		return StaticTags;
 	}
+}
+
+FFaerieBlueprintInventoryEvent FFaerieBlueprintInventoryEvent::FromNativeEvent(const TNotNull<const UFaerieItemContainerBase*>& Container,
+	const FFaerieInventoryTag Type, const Faerie::Inventory::FEventData& Data, const FDateTime Timestamp)
+{
+	return FFaerieBlueprintInventoryEvent(
+		Timestamp,
+		Container,
+		Type,
+		Data.Instance,
+		Data.Copies,
+		Data.EntryTouched,
+		Data.AddressesTouched);
+}
+
+FFaerieBlueprintInventoryEvent FFaerieBlueprintInventoryEvent::FromNativeEvent(const TNotNull<const UFaerieItemContainerBase*>& Container,
+	const Faerie::Inventory::FEventLogSingle& Event)
+{
+	return FFaerieBlueprintInventoryEvent(
+		Event.GetTimestamp(),
+		Container,
+		Event.Type,
+		Event.Data.Instance,
+		Event.Data.Copies,
+		Event.Data.EntryTouched,
+		Event.Data.AddressesTouched);
 }

@@ -15,6 +15,7 @@ struct FFaerieVisualKey
 {
 	GENERATED_BODY()
 
+	UPROPERTY()
 	FFaerieItemProxy Proxy;
 
 	[[nodiscard]] UE_REWRITE bool IsValid() const
@@ -26,7 +27,7 @@ struct FFaerieVisualKey
 
 	friend [[nodiscard]] UE_REWRITE uint32 GetTypeHash(const FFaerieVisualKey& VisualKey)
 	{
-		return GetTypeHash(VisualKey.Proxy.GetObject());
+		return GetTypeHash(VisualKey.Proxy);
 	}
 };
 
@@ -70,7 +71,7 @@ struct FEquipmentVisualMetadata
 
 namespace Faerie::Equipment
 {
-	using FVisualSpawned = TMulticastDelegate<void(FFaerieVisualKey, UObject*)>;
+	using FVisualSpawned = TMulticastDelegate<void(FFaerieVisualKey, TNotNull<UObject*>)>;
 	using FVisualDestroyed = TMulticastDelegate<void(FFaerieVisualKey)>;
 }
 
@@ -158,9 +159,9 @@ public:
 
 	// Determine how a visual should attach
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentVisualizer")
-	FEquipmentVisualAttachment FindAttachment(const FFaerieItemProxy Proxy) const;
+	FEquipmentVisualAttachment FindAttachment(const FFaerieItemProxy& Proxy) const;
 
-	FEquipmentVisualAttachment FindAttachment(const FFaerieItemProxy Proxy, const class UVisualSlotExtension*& SlotExtension) const;
+	FEquipmentVisualAttachment FindAttachment(const FFaerieItemProxy& Proxy, const class UVisualSlotExtension*& SlotExtension) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentVisualizer")
 	void ResetAttachment(FFaerieVisualKey Key);
@@ -176,8 +177,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentVisualizer")
 	void AwaitOrReceiveUpdate(FFaerieVisualKey Key, FEquipmentVisualizerCallback Callback);
 
-	UFUNCTION(BlueprintPure)
-	static FFaerieVisualKey MakeVisualKeyFromProxy(const TScriptInterface<IFaerieItemDataProxy>& Proxy);
+	UFUNCTION(BlueprintPure, Category = "Faerie|EquipmentVisualizer")
+	static FFaerieVisualKey MakeVisualKey(const FFaerieItemProxy& Proxy);
 
 protected:
 	UFUNCTION(/* Dynamic Callback */)

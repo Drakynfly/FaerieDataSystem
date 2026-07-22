@@ -15,7 +15,7 @@ DECLARE_CYCLE_STAT(TEXT("BSOA Index Of"), STAT_BSOA_IndexOf, STATGROUP_FaerieDat
  * The goal of this template is to accelerate lookups/addition/removal with binary search.
  * This is to somewhat alleviate performance concerns when using TArrays for things that should be TMaps in networked
  * situations that forbid the latter.
- * See FInventoryContent for an example of this implemented.
+ * See FFaerieStorageContent for an example of this implemented.
  * TArrayType must implement a function with the signature `TArray<TElementType>& GetArray()`, and TElementType must have a
  * member named Key. The Key type must have operator< implemented.
  */
@@ -32,7 +32,12 @@ private:
 public:
 	int32 IndexOf(const KeyType Key) const
 	{
-		checkf(IsSorted(), TEXT("Array got out of order. BinarySearch will not function. Determine why Array is not sorted!"));
+#if DO_ENSURE
+		if (!ensureAlwaysMsgf(IsSorted(), TEXT("Array got out of order! Determine why Array was not sorted!")))
+		{
+			const_cast<BSOA*>(this)->Sort();
+		}
+#endif
 		SCOPE_CYCLE_COUNTER(STAT_BSOA_IndexOf);
 		// Search for Key in the Items. Since those do not share Type, we project by the element key.
 		return Algo::BinarySearchBy(GetArray_Internal(), Key, &TElementType::Key);
@@ -54,7 +59,7 @@ public:
 		return nullptr;
 	}
 
-	FORCEINLINE const TElementType& GetElement(const KeyType Key) const
+	UE_REWRITE const TElementType& GetElement(const KeyType Key) const
 	{
 		return GetArray_Internal()[IndexOf(Key)];
 	}

@@ -350,20 +350,20 @@ bool UEquipmentVisualizer::DestroyVisualByKey(const FFaerieVisualKey Key, const 
 	return false;
 }
 
-FEquipmentVisualAttachment UEquipmentVisualizer::FindAttachment(const FFaerieItemProxy Proxy) const
+FEquipmentVisualAttachment UEquipmentVisualizer::FindAttachment(const FFaerieItemProxy& Proxy) const
 {
 	const UVisualSlotExtension* SlotExtension;
 	return FindAttachment(Proxy, SlotExtension);
 }
 
-FEquipmentVisualAttachment UEquipmentVisualizer::FindAttachment(const FFaerieItemProxy Proxy, const UVisualSlotExtension*& SlotExtension) const
+FEquipmentVisualAttachment UEquipmentVisualizer::FindAttachment(const FFaerieItemProxy& Proxy, const UVisualSlotExtension*& SlotExtension) const
 {
 	FEquipmentVisualAttachment Attachment;
 
-	const IFaerieContainerExtensionInterface* Container = Cast<IFaerieContainerExtensionInterface>(Proxy->GetItemOwner().GetObject());
+	const UFaerieItemContainerBase* Container = Cast<UFaerieItemContainerBase>(Proxy->GetItemOwner());
 
 	// If there is a VisualSlotExtension on this container, then defer to it.
-	SlotExtension = Extensions::Get<UVisualSlotExtension>(Container, true);
+	SlotExtension = Extensions::Get<UVisualSlotExtension>(Container->GetExtensions(), true);
 
 	AActor* ParentActor = nullptr;
 	USceneComponent* ParentComponent = nullptr;
@@ -372,7 +372,7 @@ FEquipmentVisualAttachment UEquipmentVisualizer::FindAttachment(const FFaerieIte
 	const UFaerieEquipmentSlot* OwningSlot = Cast<UObject>(Container)->GetTypedOuter<UFaerieEquipmentSlot>();
 	if (IsValid(OwningSlot))
 	{
-		UObject* Visual = GetSpawnedVisualByKey({ OwningSlot->Proxy() });
+		UObject* Visual = GetSpawnedVisualByKey({ FFaerieItemProxy(OwningSlot) });
 
 		if (AActor* Actor = Cast<AActor>(Visual))
 		{
@@ -510,9 +510,9 @@ void UEquipmentVisualizer::AwaitOrReceiveUpdate(const FFaerieVisualKey Key, cons
 	}
 }
 
-FFaerieVisualKey UEquipmentVisualizer::MakeVisualKeyFromProxy(const TScriptInterface<IFaerieItemDataProxy>& Proxy)
+FFaerieVisualKey UEquipmentVisualizer::MakeVisualKey(const FFaerieItemProxy& Proxy)
 {
-	return { Proxy.GetInterface() };
+	return { Proxy };
 }
 
 void UEquipmentVisualizer::OnVisualActorDestroyed(AActor* DestroyedActor)

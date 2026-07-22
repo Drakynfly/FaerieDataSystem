@@ -35,10 +35,10 @@ void UFaerieItemAssetThumbnailRenderer::Draw(UObject* Object, const int32 X, con
 	{
 		if (!ThumbnailScene)
 		{
-			ThumbnailScene = new Faerie::Editor::FItemAssetPreviewSceneThumbnail(this);
+			ThumbnailScene = new Faerie::Editor::FItemAssetPreviewSceneThumbnail(FFaerieItemProxy(this));
 		}
 
-		ThumbnailScene->SetItemProxy(this);
+		ThumbnailScene->SetItemProxy(FFaerieItemProxy(this));
 		FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(RenderTarget, ThumbnailScene->GetScene(), FEngineShowFlags(ESFIM_Game))
 			.SetTime(UThumbnailRenderer::GetTime())
 			.SetAdditionalViewFamily(bAdditionalViewFamily));
@@ -48,7 +48,7 @@ void UFaerieItemAssetThumbnailRenderer::Draw(UObject* Object, const int32 X, con
 		ViewFamily.EngineShowFlags.LOD = 0;
 
 		RenderViewFamily(Canvas, &ViewFamily, ThumbnailScene->CreateView(&ViewFamily, X, Y, Width, Height));
-		ThumbnailScene->SetItemProxy(nullptr);
+		ThumbnailScene->SetItemProxy(FFaerieItemProxy());
 	}
 }
 
@@ -59,18 +59,26 @@ EThumbnailRenderFrequency UFaerieItemAssetThumbnailRenderer::GetThumbnailRenderF
 	return EThumbnailRenderFrequency::Realtime;
 }
 
-const UFaerieItem* UFaerieItemAssetThumbnailRenderer::GetItemObject() const
+TOptional<FFaerieItemInstance> UFaerieItemAssetThumbnailRenderer::GetItemInstance() const
 {
 	if (IsValid(ItemAsset))
 	{
-		return ItemAsset->GetEditorItemView();
+		return ItemAsset->GetTemplateInstance();
 	}
+	return NullOpt;
+}
+
+IFaerieItemOwnerInterface* UFaerieItemAssetThumbnailRenderer::GetItemOwner() const
+{
 	return nullptr;
 }
 
-TScriptInterface<IFaerieItemOwnerInterface> UFaerieItemAssetThumbnailRenderer::GetItemOwner() const
+Faerie::ItemData::FProxyChangeEvent::RegistrationType& UFaerieItemAssetThumbnailRenderer::GetOnProxyChangeEvent()
 {
-	return nullptr;
+	// Not implemented for now. Nothing should be able to call this anyway.
+	checkNoEntry();
+	static Faerie::ItemData::FProxyChangeEvent Blank;
+	return Blank;
 }
 
 UThumbnailInfo* UFaerieItemAssetThumbnailRenderer::GetThumbnailInfo() const

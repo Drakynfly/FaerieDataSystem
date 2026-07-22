@@ -9,7 +9,7 @@
 
 bool UFaerieCardGenerateAsync::GenerateItemCard(APlayerController* OwningPlayer,
 												const TScriptInterface<IFaerieCardGeneratorInterface> Generator,
-												const FFaerieItemProxy Proxy, const FFaerieItemCardType Tag,
+												const FFaerieItemProxy& Proxy, const FFaerieItemCardType Tag,
 												UFaerieCardBase*& Widget)
 {
 	if (Generator.GetInterface() == nullptr) return false;
@@ -26,7 +26,7 @@ bool UFaerieCardGenerateAsync::GenerateItemCard(APlayerController* OwningPlayer,
 }
 
 UFaerieCardGenerateAsync* UFaerieCardGenerateAsync::GenerateItemCardAsync(APlayerController* OwningPlayer,
-	const TScriptInterface<IFaerieCardGeneratorInterface> Generator, const FFaerieItemProxy Proxy,
+	const TScriptInterface<IFaerieCardGeneratorInterface> Generator, const FFaerieItemProxy& Proxy,
 	const FFaerieItemCardType Tag)
 {
 	if (!IsValid(Generator.GetObject()))

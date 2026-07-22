@@ -3,54 +3,39 @@
 #pragma once
 
 #include "UObject/Interface.h"
-#include "FaerieAssetInfo.h"
-#include "FaerieItemDataEnums.h"
-#include "FaerieItemStack.h"
+#include "FaerieUnownedItemStack.h"
 
 #include "FaerieItemSource.generated.h"
 
-enum class EFaerieItemInstancingMutability : uint8;
-class UFaerieItem;
+struct FFaerieItemInstancingContext;
 
-USTRUCT()
-struct FAERIEITEMDATA_API FFaerieItemInstancingContext
+namespace Faerie::ItemData
 {
-	GENERATED_BODY()
-
-public:
-	virtual ~FFaerieItemInstancingContext() = default;
-
-	// Mutability of the instanced item
-	UPROPERTY()
-	EFaerieItemInstancingMutability Mutability = EFaerieItemInstancingMutability::Automatic;
-
-	// Number of copies to generate. If unset, will default to 1.
-	UPROPERTY()
-	TOptional<int32> CopiesOverride;
-
-	// Children must implement this to allow safe casting.
-	virtual const UScriptStruct* GetScriptStruct() const { return FFaerieItemInstancingContext::StaticStruct(); }
-
-	template <typename T>
-	const T* Cast() const
+	struct FAERIEITEMDATA_API FGetInstanceResult
 	{
-		if (GetScriptStruct()->IsChildOf<T>())
-		{
-			return static_cast<const T*>(this);
-		}
-		return nullptr;
-	}
+		UE_NONCOPYABLE(FGetInstanceResult)
+		FGetInstanceResult(const TOptional<FFaerieUnownedItemStack>& Stack)
+		  : Stack(Stack) {}
+		FGetInstanceResult(FNullOpt) : Stack(NullOpt) {}
 
-	template <typename T>
-	T* Cast()
-	{
-		if (GetScriptStruct()->IsChildOf<T>())
+		// Initialize the item and return a fully valid item instance.
+		FFaerieUnownedItemStack WithInitialization() const;
+
+		// Extract the item stack without initializing the instance.
+		UE_REWRITE FFaerieUnownedItemStack WithoutInitialization() const
 		{
-			return static_cast<T*>(this);
+			return Stack.GetValue();
 		}
-		return nullptr;
-	}
-};
+
+		UE_REWRITE bool IsValid() const
+		{
+			return Stack.IsSet();
+		}
+
+	private:
+		TOptional<FFaerieUnownedItemStack> Stack;
+	};
+}
 
 UINTERFACE(BlueprintType, meta = (CannotImplementInterfaceInBlueprint))
 class FAERIEITEMDATA_API UFaerieItemSource : public UInterface
@@ -66,16 +51,16 @@ class FAERIEITEMDATA_API IFaerieItemSource
 	GENERATED_BODY()
 
 public:
-	// Can this source create mutable items?
-	virtual bool CanBeMutable() const { return false; }
+	// AssetData tag to add in GetAssetRegistryTags in implementing classes that generate mutable instances.
+	static const FName MutableSourceTag;
 
-	// Allows sources to give info about generation results
-	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemSource")
-	virtual FFaerieAssetInfo GetSourceInfo() const { return FFaerieAssetInfo(); }
+	// Can this source create mutable items? If this can return true in an implementing class, you must also override
+	// GetAssetRegistryTags and add MutableSourceTag.
+	virtual bool CanBeMutable() const { return false; }
 
 	// Create an item stack from this source.
 	// An InstancingContext may be required to provide contextual data from the requester of the stack, depending on the implementation.
-	virtual TOptional<FFaerieItemStack> CreateItemStack(const FFaerieItemInstancingContext* Context) const
+	virtual Faerie::ItemData::FGetInstanceResult CreateItemStack(const FFaerieItemInstancingContext& Context) const
 		PURE_VIRTUAL(IFaerieItemSource::CreateItemStack, return NullOpt; )
 };
 
@@ -88,7 +73,7 @@ struct FAERIEITEMDATA_API FFaerieItemSourceObject
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowedClasses = "/Script/FaerieItemData.FaerieItemSource"))
-	TSoftObjectPtr<UObject> Object;
+	TSoftObjectPtr<const UObject> Object;
 
 	[[nodiscard]] UE_REWRITE bool UEOpEquals(const FFaerieItemSourceObject& Other) const
 	{

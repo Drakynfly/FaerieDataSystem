@@ -1,42 +1,78 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieContainerFilterTypes.h"
+#include "EntityManagerHelpers.h"
 #include "FaerieContainerIterator.h"
 #include "FaerieItem.h"
-#include "Tokens/FaerieInfoToken.h"
-#include "Tokens/FaerieTagToken.h"
+
+#include "Fragments/FaerieAssetInfo.h"
+#include "Fragments/FaerieTagFragment.h"
 
 namespace Faerie::Container
 {
-	bool FMatchItemMutable::Exec(FIteratorPtr Iterator) const
+	bool FMatchItemMutable::Exec(const TNotNull<const UObject*> WorldContextObj, const ItemData::FValidatedDataView View) const
 	{
-		return Iterator->ResolveItem()->CanMutate() == MutabilityToMatch;
+		return View->GetInstance().IsMutable() == MutabilityToMatch;
 	}
 
-	bool FCompareName::Exec(FIteratorPtr Iterator) const
+	bool FCompareName::Exec(const TNotNull<const UObject*> WorldContextObj, const ItemData::FValidatedDataView View) const
 	{
-		if (const UFaerieInfoToken* Info = Iterator->ResolveItem()->GetToken<UFaerieInfoToken>())
+		const ItemData::FOptionalEntityManager EntityManager(WorldContextObj);
+		auto AssetInfo = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieAssetInfo>(EntityManager, View->GetInstance());
+		if (AssetInfo.IsValid())
 		{
-			return Info->GetItemName().CompareTo(CompareText, ComparisonType) == 0;
+			return AssetInfo->ObjectName.CompareTo(CompareText, ComparisonType) == 0;
 		}
 		return false;
 	}
 
-	bool FHasTag::Exec(FIteratorPtr Iterator) const
+	bool FHasTag::Exec(const TNotNull<const UObject*> WorldContextObj, const ItemData::FValidatedDataView View) const
 	{
-		if (const UFaerieTagToken* Tags = Iterator->ResolveItem()->GetToken<UFaerieTagToken>())
+		const ItemData::FOptionalEntityManager EntityManager(WorldContextObj);
+		auto TagFragment = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieTagFragment>(EntityManager, View->GetInstance());
+		if (TagFragment.IsValid())
 		{
 			if (HasTagExact)
 			{
-				return Tags->GetTags().HasTagExact(Tag);
+				return TagFragment->Tags.HasTagExact(Tag);
 			}
-			return Tags->GetTags().HasTag(Tag);
+			return TagFragment->Tags.HasTag(Tag);
 		}
 		return false;
 	}
 
-	bool FCallbackFilter::Exec(FIteratorPtr Iterator) const
+	bool FHasAnyTags::Exec(const TNotNull<const UObject*> WorldContextObj, const ItemData::FValidatedDataView View) const
 	{
-		return Callback.Execute(Iterator);
+		const ItemData::FOptionalEntityManager EntityManager(WorldContextObj);
+		auto TagFragment = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieTagFragment>(EntityManager, View->GetInstance());
+		if (TagFragment.IsValid())
+		{
+			if (Exact)
+			{
+				return TagFragment->Tags.HasAnyExact(Tags);
+			}
+			return TagFragment->Tags.HasAny(Tags);
+		}
+		return false;
+	}
+
+	bool FHasAllTags::Exec(const TNotNull<const UObject*> WorldContextObj, const ItemData::FValidatedDataView View) const
+	{
+		const ItemData::FOptionalEntityManager EntityManager(WorldContextObj);
+		auto TagFragment = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieTagFragment>(EntityManager, View->GetInstance());
+		if (TagFragment.IsValid())
+		{
+			if (Exact)
+			{
+				return TagFragment->Tags.HasAllExact(Tags);
+			}
+			return TagFragment->Tags.HasAll(Tags);
+		}
+		return false;
+	}
+
+	bool FCallbackFilter::Exec(const TNotNull<const UObject*> WorldContextObj, const ItemData::FValidatedDataView View) const
+	{
+		return Callback.Execute(WorldContextObj, View);
 	}
 }

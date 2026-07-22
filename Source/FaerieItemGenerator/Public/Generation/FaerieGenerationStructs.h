@@ -9,6 +9,7 @@
 
 #include "FaerieGenerationStructs.generated.h"
 
+// A unloaded asset from a drop table.
 USTRUCT(BlueprintType)
 struct FAERIEITEMGENERATOR_API FFaerieTableDrop
 {
@@ -22,7 +23,7 @@ struct FAERIEITEMGENERATOR_API FFaerieTableDrop
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TableDrop", meta = (ForceInlineRow))
 	TMap<FFaerieItemSlotHandle, TInstancedStruct<struct FFaerieTableDrop>> StaticResourceSlots;
 
-	TOptional<FFaerieItemStack> Resolve(const struct FFaerieItemInstancingContext_Crafting& Context) const;
+	TOptional<FFaerieUnownedItemStack> Resolve(const struct FFaerieItemInstancingContext_Crafting& Context) const;
 
 	bool IsValid() const
 	{
@@ -70,7 +71,7 @@ struct FFaerieWeightedPool
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, Category = "Table")
+	UPROPERTY(EditAnywhere, Category = "WeightedPool")
 	TArray<FFaerieWeightedDrop> DropList;
 
 	// Generates a drop from this pool, using the provided random weight, which must be a value between 0 and 1.

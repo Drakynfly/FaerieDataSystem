@@ -14,8 +14,11 @@ struct FFaerieClientAction_UseConsumable final : public FFaerieClientActionBase
 {
 	GENERATED_BODY()
 
-	virtual bool Server_Execute(const UFaerieInventoryClient* Client) const override;
+	virtual bool Server_Execute(TNotNull<const UFaerieInventoryClient*> Client) const override;
 
 	UPROPERTY(BlueprintReadWrite, Category = "UseConsumable")
-	FFaerieAddressableHandle Handle;
+	FFaerieItemNetworkHandle Handle;
+
+	UPROPERTY(BlueprintReadWrite, Category = "UseConsumable")
+	TObjectPtr<UScriptStruct> ConsumableType;
 };

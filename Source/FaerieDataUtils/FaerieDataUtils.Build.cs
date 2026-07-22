@@ -40,6 +40,7 @@ public class FaerieDataUtils : ModuleRules
             Module.bTreatAsEngineModule = true;
             Module.CppCompileWarningSettings.NonInlinedGenCppWarningLevel = WarningLevel.Warning;
             Module.CppCompileWarningSettings.UnsafeTypeCastWarningLevel = WarningLevel.Warning;
+            Module.CppCompileWarningSettings.DanglingWarningLevel = WarningLevel.Warning;
         }
     }
 }

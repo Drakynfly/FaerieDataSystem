@@ -9,6 +9,5 @@ enum class EItemMeshType : uint8
 {
 	None UMETA(hidden),
 	Static,
-	Dynamic,
 	Skeletal
 };

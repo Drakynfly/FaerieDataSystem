@@ -26,7 +26,7 @@ public:
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
 
-	UPROPERTY(EditAnywhere, config, transient, Category = "Token Data")
+	UPROPERTY(EditAnywhere, config, transient, Category = "Fragment Data")
 	bool ShowCapacityBounds = false;
 
 	UPROPERTY(EditAnywhere, config, transient, Category = "Visual Preview", meta = (Categories = "MeshPurpose"))

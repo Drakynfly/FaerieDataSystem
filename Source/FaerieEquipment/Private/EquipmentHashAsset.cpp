@@ -1,12 +1,13 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "EquipmentHashAsset.h"
-#include "EquipmentHashStatics.h"
+
 #include "UObject/ObjectSaveContext.h"
 #include "Squirrel.h"
 
 #if WITH_EDITOR
 #include "FaerieItemAsset.h"
+#include "FaerieItemDataView.h"
 #include "FaerieItemStackHashInstruction.h"
 #endif
 
@@ -33,7 +34,9 @@ void UFaerieEquipmentHashAsset::PreSave(FObjectPreSaveContext SaveContext)
 			if (Config.Example.IsValidIndex(i) &&
 				IsValid(Config.Example[i]))
 			{
-				TagHash = Config.Instruction->Hash({Config.Example[i]->GetEditorItemView(), 1});
+				const FFaerieItemInstance Instance = Config.Example[i]->GetTemplateInstance();
+				const FFaerieItemDataView View(Instance, 1, nullptr);
+				TagHash = Config.Instruction->Hash(this, View);
 
 				if (Config.MatchType == EGameplayContainerMatchType::Any)
 				{

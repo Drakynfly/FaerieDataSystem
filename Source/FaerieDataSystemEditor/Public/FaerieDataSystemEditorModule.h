@@ -6,6 +6,11 @@
 #include "Modules/ModuleInterface.h"
 #include "Styling/SlateStyle.h"
 
+namespace Faerie::Editor
+{
+    static void StaticUnregisterCustomizations(const TConstArrayView<FName>& ClassNames, const TConstArrayView<FName>& PropertyTypeNames);
+}
+
 class FAERIEDATASYSTEMEDITOR_API IFaerieDataSystemEditorModuleBase : public IModuleInterface
 {
 public:
@@ -17,15 +22,18 @@ public:
 protected:
     void OnPostEngineInit();
 
-    void RegisterDetailCustomizations(const TMap<FName, FOnGetDetailCustomizationInstance>& Customizations);
-    void RegisterPropertyCustomizations(const TMap<FName, FOnGetPropertyTypeCustomizationInstance>& Customizations);
+    void RegisterCustomizations(const TMap<FName, FOnGetDetailCustomizationInstance>& ClassCustomizations, const TMap<FName, FOnGetPropertyTypeCustomizationInstance>& PropertyTypeCustomizations);
+
+public:
+    void AddPropertyTypeCustomization(FName Name, FOnGetPropertyTypeCustomizationInstance LayoutDelegate);
+    void RemovePropertyTypeCustomization(FName Name);
 
 private:
-    /** Property Customization keys; Cached so they can be unregistered */
-    TSet<FName> PropertyCustomizations;
-
     /** Detail Customization keys; Cached so they can be unregistered */
-    TSet<FName> DetailCustomizations;
+    TArray<FName> CustomizedClassNames;
+
+    /** Property Customization keys; Cached so they can be unregistered */
+    TArray<FName> CustomizedPropertyTypeNames;
 };
 
 class FFaerieDataSystemEditorModule final : public IModuleInterface

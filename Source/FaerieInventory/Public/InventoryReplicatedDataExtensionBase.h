@@ -3,8 +3,10 @@
 #pragma once
 
 #include "BinarySearchOptimizedArray.h"
+#include "DebuggingFlags.h"
 #include "FaerieFastArraySerializer.h"
 #include "FaerieFastArraySerializerHack.h"
+#include "FaerieItemContainerStructs.h"
 #include "ItemContainerExtensionBase.h"
 #include "StructUtils/InstancedStruct.h"
 #include "StructUtils/StructView.h"
@@ -65,8 +67,10 @@ private:
 	// ReSharper disable once CppUE4ProbableMemoryIssuesWithUObject
 	TObjectPtr<URepDataArrayWrapper> OwningWrapper;
 
+#if FAERIE_DEBUG
 	// Is writing to Entries locked? Enabled while ItemHandles are active.
 	mutable uint32 WriteLock = 0;
+#endif
 
 public:
 	TConstArrayView<FFaerieReplicatedValue> GetView() const { return Entries; }
@@ -75,8 +79,10 @@ public:
 	FInstancedStruct& GetOrCreateValue(FFaerieAddress Address);
 	void SetValue(FFaerieAddress Address, const FInstancedStruct& Data);
 
-	struct FValueWriteScope : FNoncopyable
+	struct FValueWriteScope
 	{
+		UE_NONCOPYABLE(FValueWriteScope)
+
 		FValueWriteScope(const FFaerieAddress Address, FFaerieReplicatedSimMap& Source);
 		~FValueWriteScope();
 
@@ -171,15 +177,17 @@ class FAERIEINVENTORY_API UInventoryReplicatedDataExtensionBase : public UItemCo
 public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
+protected:
 	//~ UItemContainerExtensionBase
 	virtual FInstancedStruct MakeSaveData(TNotNull<const UFaerieItemContainerBase*> Container) const override;
 	virtual void LoadSaveData(TNotNull<const UFaerieItemContainerBase*> Container, const FInstancedStruct& SaveData) override;
 	virtual void InitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
 	virtual void DeinitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
-	//virtual void PreRemoval(TNotNull<const UFaerieItemContainerBase*> Container, FEntryKey Key, int32 Removal) override;
+	//virtual void PreRemoval(TNotNull<const UFaerieItemContainerBase*> Container, FFaerieEntryKey Key, int32 Removal) override;
 	virtual void PostEventBatch(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Inventory::FEventLogBatch& Events) override;
 	//~ UItemContainerExtensionBase
 
+public:
 	// Children must implement this. It gives the struct type instanced per item.
 	virtual UScriptStruct* GetDataScriptStruct() const PURE_VIRTUAL(UInventoryReplicatedDataExtensionBase::GetDataScriptStruct, return nullptr; )
 	virtual bool SaveRepDataArray() const { return false; }
@@ -190,9 +198,9 @@ private:
 	virtual void PreEntryDataChanged(TNotNull<const UFaerieItemContainerBase*> Container, const FFaerieReplicatedValue& Data) {}
 
 protected:
-	FConstStructView GetDataForHandle(FFaerieAddressableHandle Handle) const;
+	FConstStructView GetDataForHandle(TNotNull<const UFaerieItemContainerBase*> Container, FFaerieAddress Address) const;
 
-	bool EditDataForHandle(FFaerieAddressableHandle Handle, const TFunctionRef<void(FStructView)>& Edit);
+	bool EditDataForHandle(TNotNull<const UFaerieItemContainerBase*> Container, FFaerieAddress Address, const TFunctionRef<void(FStructView)>& Edit);
 
 private:
 	TStructView<FFaerieReplicatedSimMap> FindFastArrayForContainer(TNotNull<const UFaerieItemContainerBase*> Container);

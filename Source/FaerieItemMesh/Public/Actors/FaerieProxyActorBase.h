@@ -18,17 +18,17 @@ public:
 	AFaerieProxyActorBase();
 
 	//~ IFaerieItemDataProxy
-	virtual const UFaerieItem* GetItemObject() const override;
+	virtual TOptional<FFaerieItemInstance> GetItemInstance() const override;
 	virtual int32 GetCopies() const override;
-	virtual TScriptInterface<IFaerieItemOwnerInterface> GetItemOwner() const override;
-	virtual FFaerieItemStack Release(int32 Copies) const override;
+	virtual IFaerieItemOwnerInterface* GetItemOwner() const override;
+	virtual Faerie::ItemData::FProxyChangeEvent::RegistrationType& GetOnProxyChangeEvent() override;
 	//~ IFaerieItemDataProxy
 
 	FFaerieItemProxy GetSourceProxy() const { return DataSource; }
 
 public:
-	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemRepresentationActor")
-	void SetSourceProxy(FFaerieItemProxy Source);
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemRepresentationActor", meta = (AutoCreateRefTerm = "Source"))
+	void SetSourceProxy(const FFaerieItemProxy& Source);
 
 protected:
 	// The wrapper for the data we are going to display. By keeping the data abstracted behind a FaerieItemProxy,
@@ -37,5 +37,5 @@ protected:
 	// Proxies typically cannot replicate. If a particular child wants to replicate some or all of the data, it
 	// needs to extract out the data it needs into a separate replicated variable.
 	UPROPERTY(BlueprintReadOnly, Category = "State")
-	FFaerieItemProxy DataSource = nullptr;
+	FFaerieItemProxy DataSource;
 };

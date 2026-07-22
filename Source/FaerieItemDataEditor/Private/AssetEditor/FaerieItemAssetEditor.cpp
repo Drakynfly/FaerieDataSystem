@@ -4,6 +4,7 @@
 #include "AdvancedPreviewSceneModule.h"
 #include "FaerieAssetEditorCommands.h"
 #include "FaerieCardSettings.h"
+#include "FaerieItem.h"
 #include "FaerieItemAsset.h"
 #include "FaerieItemCardTags.h"
 #include "FaerieItemDataEditorModule.h"
@@ -15,10 +16,13 @@
 #include "AssetEditor/FaerieItemAssetViewport.h"
 #include "AssetEditor/FaerieWidgetPreview.h"
 #include "Blueprint/UserWidget.h"
-#include "CardTokens/FaerieItemCardToken.h"
+
+#include "Widgets/FaerieItemCardFragment.h"
+
 #include "Engine/Blueprint.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Modules/ModuleManager.h"
+
 #include "Widgets/Docking/SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "FaerieItemAssetEditor"
@@ -227,7 +231,7 @@ namespace Faerie::Editor
 			.IsEnabled(this, &FItemAssetEditorToolkit::ShouldUpdate);
 
 		// This is the only UObject we have easy access to that inherits from IFaerieItemProxy. Kinda hacky, because it means the widget preview has to exist for the scene preview to function.
-		PreviewScene->SetItemProxy(WidgetPreview);
+		PreviewScene->SetItemProxy(FFaerieItemProxy(WidgetPreview));
 
 		TArray<FAdvancedPreviewSceneModule::FDetailDelegates> Delegates;
 		//Delegates.Add({ OnPreviewSceneChangedDelegate });
@@ -345,9 +349,10 @@ namespace Faerie::Editor
 		{
 			FPreviewableWidgetVariant WidgetType;
 
-			if (const UFaerieItemCardToken* CardToken = ItemAsset->GetItemInstance(EFaerieItemInstancingMutability::Immutable)->GetToken<UFaerieItemCardToken>())
+			auto CardFragment = ItemData::GetDefaultFragment<FFaerieItemCardClassFragment>(ItemAsset->GetAssetTemplateItem());
+			if (CardFragment.IsValid())
 			{
-				WidgetType.ObjectPath = CardToken->GetCardClass(Card::Tags::CardType_Full).ToSoftObjectPath();
+				WidgetType.ObjectPath = CardFragment->GetCardClass(Card::Tags::CardType_Full).ToSoftObjectPath();
 			}
 
 			if (WidgetType.ObjectPath.IsNull())
@@ -567,7 +572,7 @@ namespace Faerie::Editor
 	{
 		if (MeshViewportWidget.IsValid())
 		{
-			MeshViewportWidget->OnFocusViewportToSelection();
+			MeshViewportWidget->FocusViewport();
 		}
 	}
 

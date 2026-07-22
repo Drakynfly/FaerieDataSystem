@@ -9,16 +9,19 @@ UFaerieItemProxyComponent::UFaerieItemProxyComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
-void UFaerieItemProxyComponent::SetItemProxy(const FFaerieItemProxy Proxy)
+void UFaerieItemProxyComponent::SetItemProxy(const FFaerieItemProxy& Proxy)
 {
-	ItemProxy = Proxy;
-	OnItemSetNative.Broadcast(this, ItemProxy);
-	OnItemSet.Broadcast(this, ItemProxy);
+	if (ItemProxy != Proxy)
+	{
+		ItemProxy = Proxy;
+        OnItemSetNative.Broadcast(this, ItemProxy);
+        OnItemSet.Broadcast(this, ItemProxy);
+	}
 }
 
 void UFaerieItemProxyComponent::ClearItemProxy()
 {
-	ItemProxy = nullptr;
+	ItemProxy = FFaerieItemProxy();
 	OnItemClearNative.Broadcast(this);
 	OnItemClear.Broadcast(this);
 }
