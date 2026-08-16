@@ -1,7 +1,6 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieHashStatics.h"
-#include "EntityManagerHelpers.h"
 #include "FaerieItem.h"
 #include "FaerieItemDataView.h"
 #include "Squirrel.h"
@@ -161,21 +160,20 @@ namespace Faerie::Hash
 		return HashProps(Obj, Obj->GetClass(), IncludeSuper);
 	}
 
-	FFaerieHash HashItemSet(const TNotNull<const UObject*> WorldContextObj, const TSet<ItemData::FReference>& Items, const FItemHashFunction& Function)
+	FFaerieHash HashItemSet(const FMassEntityManager* EntityManager, const TSet<TValid<const FFaerieItemInstance&>>& Items, const FItemHashFunction& Function)
 	{
 		TArray<uint32> Hashes;
 
 		for (auto&& Item : Items)
 		{
-			Hashes.Add(Function(WorldContextObj, Item));
+			Hashes.Add(Function(EntityManager, Item));
 		}
 
 		return CombineHashes(Hashes);
 	}
 
-	uint32 HashItemByName(const TNotNull<const UObject*> WorldContextObj, const ItemData::FReference& Item)
+	uint32 HashItemByName(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemInstance&> Item)
 	{
-		ItemData::FOptionalEntityManager EntityManager(WorldContextObj);
 		auto ItemInfo = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieAssetInfo>(EntityManager, Item);
 		if (ItemInfo.IsValid())
 		{

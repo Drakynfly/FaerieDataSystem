@@ -359,7 +359,7 @@ FEquipmentVisualAttachment UEquipmentVisualizer::FindAttachment(const FFaerieIte
 {
 	FEquipmentVisualAttachment Attachment;
 
-	const UFaerieItemContainerBase* Container = Cast<UFaerieItemContainerBase>(Proxy->GetItemOwner());
+	const UFaerieItemContainerBase* Container = Cast<UFaerieItemContainerBase>(Proxy.GetItemOwner());
 
 	// If there is a VisualSlotExtension on this container, then defer to it.
 	SlotExtension = Extensions::Get<UVisualSlotExtension>(Container->GetExtensions(), true);

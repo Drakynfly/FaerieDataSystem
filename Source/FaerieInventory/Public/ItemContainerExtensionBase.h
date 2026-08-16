@@ -2,12 +2,15 @@
 
 #pragma once
 
+#include "ArrayAdapter.h"
 #include "FaerieInventoryConcepts.h"
 #include "FaerieInventoryTag.h"
-#include "FaerieItemDataView.h"
 #include "LoopUtils.h"
 #include "FaerieStorageEnums.h"
+#include "FaerieUnownedItemStack.h"
 #include "NetSupportedObject.h"
+#include "ValidParameter.h"
+
 #include "StructUtils/InstancedStruct.h"
 #include "StructUtils/SharedStruct.h"
 
@@ -25,12 +28,6 @@ namespace Faerie::Inventory
 {
 	class FEventData;
 	class FEventLogBatch;
-}
-
-namespace Faerie::Extensions
-{
-	using FAddressView = ItemData::TNonNullViewPtr<Container::IAddressView>;
-	using FEntryView = ItemData::TNonNullViewPtr<Container::IEntryView>;
 }
 
 UENUM()
@@ -80,29 +77,36 @@ protected:
 	virtual FInstancedStruct MakeSaveData(TNotNull<const UFaerieItemContainerBase*> Container) const { return {}; }
 	virtual void LoadSaveData(TNotNull<const UFaerieItemContainerBase*> Container, const FInstancedStruct& SaveData) {}
 
-	/* Called at begin play or when the extension is created during runtime */
+	/* Called at begin play or when the extension is created during runtime. Server-only. */
 	virtual void InitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) {}
 	virtual void DeinitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) {}
 
-	/* Does this extension allow a stack of items, or multiple stacks, to be added to the container? */
+	/* Does this extension allow a stack of items, or multiple stacks, to be added to the container? Server-only. */
 	virtual EEventExtensionResponse AllowsAddition(TNotNull<const UFaerieItemContainerBase*> Container,
-		TConstArrayView<FFaerieItemDataView> Views, FFaerieExtensionAllowsAdditionArgs Args) const { return EEventExtensionResponse::NoExplicitResponse; }
+		const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args) const { return EEventExtensionResponse::NoExplicitResponse; }
 
-	/* Allows us to react before an item is added */
-	virtual void PreAddition(TNotNull<const UFaerieItemContainerBase*> Container, const FFaerieItemDataView& View) {}
+	/* Allows us to react before an item is added. Server-only. */
+	virtual void PreAddition(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::TValid<FFaerieUnownedItemStack>& ItemStack) {}
 
-	/* Does this extension allow removal of an address in the container? */
-	virtual EEventExtensionResponse AllowsRemoval(TNotNull<const UFaerieItemContainerBase*> Container, Faerie::Extensions::FAddressView DataView, FFaerieInventoryTag Reason) const { return EEventExtensionResponse::NoExplicitResponse; }
+	/* Does this extension allow removal of an address in the container? Server-only. */
+	virtual EEventExtensionResponse AllowsRemoval(TNotNull<const UFaerieItemContainerBase*> Container,
+												  TNotNull<const Faerie::Container::IAddressView*> DataView, FFaerieInventoryTag Reason) const { return EEventExtensionResponse::NoExplicitResponse; }
 
-	/* Allows us to react before an item is removed */
-	virtual void PreRemoval(TNotNull<const UFaerieItemContainerBase*> Container, Faerie::Extensions::FEntryView DataView, int32 Removal) {}
+	/* Allows us to react before an item is removed. Server-only. */
+	virtual void PreRemoval(TNotNull<const UFaerieItemContainerBase*> Container,
+							TNotNull<const Faerie::Container::IEntryView*> DataView, int32 Removal) {}
 
-	/* Does this extension allow this entry to be edited? */
-	virtual EEventExtensionResponse AllowsEdit(TNotNull<const UFaerieItemContainerBase*> Container, Faerie::Extensions::FAddressView DataView, FFaerieInventoryTag EditTag) const { return EEventExtensionResponse::NoExplicitResponse; }
+	/* Does this extension allow this entry to be edited? Server-only. */
+	virtual EEventExtensionResponse AllowsEdit(TNotNull<const UFaerieItemContainerBase*> Container,
+											   TNotNull<const Faerie::Container::IAddressView*> DataView, FFaerieInventoryTag EditTag) const { return EEventExtensionResponse::NoExplicitResponse; }
 
 	// @todo PreEntryChanged
 
-	/* Called after an Addition, Removal, or Change to any address, and carries a full report of each event */
+	/*
+	 * Called after an Addition, Removal, or Change to any address, and carries a full report of each event.
+	 * Runs on server, and on clients when the effects replicate. Note that the Events are reconstructed according to
+	 * the data available to the client and will not always match the events batched on the server.
+	 */
 	virtual void PostEventBatch(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Inventory::FEventLogBatch& Events) {}
 
 public:
@@ -282,11 +286,11 @@ protected:
 	//~ UItemContainerExtensionBase
 	virtual void InitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
 	virtual void DeinitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
-	virtual EEventExtensionResponse AllowsAddition(TNotNull<const UFaerieItemContainerBase*> Container, TConstArrayView<FFaerieItemDataView> Views, FFaerieExtensionAllowsAdditionArgs Args) const override;
-	virtual void PreAddition(TNotNull<const UFaerieItemContainerBase*> Container, const FFaerieItemDataView& View) override;
-	virtual EEventExtensionResponse AllowsRemoval(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Extensions::FAddressView DataView, FFaerieInventoryTag Reason) const override;
-	virtual void PreRemoval(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Extensions::FEntryView DataView, int32 Removal) override;
-	virtual EEventExtensionResponse AllowsEdit(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Extensions::FAddressView DataView, FFaerieInventoryTag EditTag) const override;
+	virtual EEventExtensionResponse AllowsAddition(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args) const override;
+	virtual void PreAddition(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::TValid<FFaerieUnownedItemStack>& ItemStack) override;
+	virtual EEventExtensionResponse AllowsRemoval(TNotNull<const UFaerieItemContainerBase*> Container, const TNotNull<const Faerie::Container::IAddressView*> DataView, FFaerieInventoryTag Reason) const override;
+	virtual void PreRemoval(TNotNull<const UFaerieItemContainerBase*> Container, const TNotNull<const Faerie::Container::IEntryView*> DataView, int32 Removal) override;
+	virtual EEventExtensionResponse AllowsEdit(TNotNull<const UFaerieItemContainerBase*> Container, const TNotNull<const Faerie::Container::IAddressView*> DataView, FFaerieInventoryTag EditTag) const override;
 	// @todo PreEntryChanged
 	virtual void PostEventBatch(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Inventory::FEventLogBatch& Events) override;
 	//~ UItemContainerExtensionBase
@@ -357,29 +361,29 @@ namespace Faerie::Extensions
 		}
 
 		[[nodiscard]] UE_REWRITE static EEventExtensionResponse AllowsAddition(GroupParam Group, ContainerParam Container,
-			const TConstArrayView<FFaerieItemDataView> Views, const FFaerieExtensionAllowsAdditionArgs Args)
+			const Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, const FFaerieExtensionAllowsAdditionArgs Args)
 		{
-			return Group->AllowsAddition(Container, Views, Args);
+			return Group->AllowsAddition(Container, Proxies, Args);
 		}
 
-		UE_REWRITE static void PreAddition(GroupParam Group, ContainerParam Container, const FFaerieItemDataView& View)
+		UE_REWRITE static void PreAddition(GroupParam Group, ContainerParam Container, const TValid<FFaerieUnownedItemStack>& ItemStack)
 		{
-			Group->PreAddition(Container, View);
+			Group->PreAddition(Container, ItemStack);
 		}
 
 		[[nodiscard]] UE_REWRITE static EEventExtensionResponse AllowsRemoval(GroupParam Group, ContainerParam Container,
-			const ItemData::TNonNullViewPtr<Container::IAddressView> DataView, const FFaerieInventoryTag Reason)
+			const TNotNull<const Container::IAddressView*> DataView, const FFaerieInventoryTag Reason)
 		{
 			return Group->AllowsRemoval(Container, DataView, Reason);
 		}
 
-		UE_REWRITE static void PreRemoval(GroupParam Group, ContainerParam Container, const ItemData::TNonNullViewPtr<Container::IEntryView> DataView, const int32 Removal)
+		UE_REWRITE static void PreRemoval(GroupParam Group, ContainerParam Container, const TNotNull<const Container::IEntryView*> DataView, const int32 Removal)
 		{
 			Group->PreRemoval(Container, DataView, Removal);
 		}
 
 		[[nodiscard]] UE_REWRITE static EEventExtensionResponse AllowsEdit(GroupParam Group, ContainerParam Container,
-			const ItemData::TNonNullViewPtr<Container::IAddressView> DataView, const FFaerieInventoryTag EditTag)
+			const TNotNull<const Container::IAddressView*> DataView, const FFaerieInventoryTag EditTag)
 		{
 			return Group->AllowsEdit(Container, DataView, EditTag);
 		}

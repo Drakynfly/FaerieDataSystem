@@ -1,12 +1,11 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "BasicItemDataFilters.h"
-#include "EntityManagerHelpers.h"
-#include "FaerieContainerFilterTypes.h"
 #include "FaerieItem.h"
 #include "FaerieItemDataView.h"
 
 #include "Fragments/FaerieStackLimitFragment.h"
+#include "Fragments/FaerieTagFragment.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(BasicItemDataFilters)
 
@@ -14,44 +13,38 @@
 
 using namespace Faerie;
 
-#if WITH_EDITOR
-EFaerieItemDataMutabilityStatus UFilterRule_LogicalOr::GetMutabilityStatus() const
+bool FFaerieItemFilter_Not::Exec(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy) const
 {
-	for (auto&& Rule : Rules)
-	{
-		if (!Rule) continue;
+	if (!InvertedFilter.IsValid()) return false;
+	return !InvertedFilter->Exec(EntityManager, Proxy);
+}
 
-		switch (Rule->GetMutabilityStatus())
-		{
-		case EFaerieItemDataMutabilityStatus::Unknown: break;
-		case EFaerieItemDataMutabilityStatus::KnownMutable: return EFaerieItemDataMutabilityStatus::KnownMutable;
-		case EFaerieItemDataMutabilityStatus::KnownImmutable: return EFaerieItemDataMutabilityStatus::KnownMutable;
-		default: ;
-		}
+#if WITH_EDITOR
+bool FFaerieItemFilter_Not::ExecWithLog(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy,
+	ItemData::FFilterLogger& Logger) const
+{
+	if (!InvertedFilter.IsValid())
+	{
+		static const FText ErrorFormat = NSLOCTEXT("FFaerieItemFilter_Not", "FFaerieItemFilter_Not_InvalidFilter", "InvertedFilter invalid for FFaerieItemFilter_Not!");
+		Logger.Errors.Add(ErrorFormat);
 	}
 
-	return Super::GetMutabilityStatus();
+	return !InvertedFilter->ExecWithLog(EntityManager, Proxy, Logger);
+}
+
+EFaerieItemDataMutabilityStatus FFaerieItemFilter_Not::GetMutabilityStatus() const
+{
+	// We can't really determine anything about this filter's mutability. We cannot use the inverted filter's status,
+	// nor can we 'invert' it's status.
+	return EFaerieItemDataMutabilityStatus::Unknown;
 }
 #endif
 
-bool UFilterRule_LogicalOr::ExecWithLog(const TNotNull<const UObject*> WorldContextObj, const ItemData::FValidatedDataView& View, ItemData::FFilterLogger& Logger) const
+bool FFaerieItemFilter_Or::Exec(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy) const
 {
 	for (auto&& Rule : Rules)
 	{
-		if (!Rule->ExecWithLog(WorldContextObj, View, Logger))
-		{
-			return false;
-		}
-	}
-
-	return true;
-}
-
-bool UFilterRule_LogicalOr::Exec(const TNotNull<const UObject*> WorldContextObj, const ItemData::FValidatedDataView& View) const
-{
-	for (auto&& Rule : Rules)
-	{
-		if (Rule->Exec(WorldContextObj, View))
+		if (Rule->Exec(EntityManager, Proxy))
 		{
 			return true;
 		}
@@ -61,31 +54,12 @@ bool UFilterRule_LogicalOr::Exec(const TNotNull<const UObject*> WorldContextObj,
 }
 
 #if WITH_EDITOR
-EFaerieItemDataMutabilityStatus UFilterRule_LogicalAnd::GetMutabilityStatus() const
+bool FFaerieItemFilter_Or::ExecWithLog(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy,
+	ItemData::FFilterLogger& Logger) const
 {
 	for (auto&& Rule : Rules)
 	{
-		if (!Rule) continue;
-
-		switch (Rule->GetMutabilityStatus())
-		{
-		case EFaerieItemDataMutabilityStatus::Unknown: break;
-		case EFaerieItemDataMutabilityStatus::KnownMutable: return EFaerieItemDataMutabilityStatus::KnownMutable;
-		case EFaerieItemDataMutabilityStatus::KnownImmutable: return EFaerieItemDataMutabilityStatus::KnownMutable;
-		default: ;
-		}
-	}
-
-	return Super::GetMutabilityStatus();
-}
-
-#endif
-
-bool UFilterRule_LogicalAnd::ExecWithLog(const TNotNull<const UObject*> WorldContextObj, const ItemData::FValidatedDataView& View, ItemData::FFilterLogger& Logger) const
-{
-	for (auto&& Rule : Rules)
-	{
-		if (!Rule->ExecWithLog(WorldContextObj, View, Logger))
+		if (!Rule->ExecWithLog(EntityManager, Proxy, Logger))
 		{
 			return false;
 		}
@@ -94,11 +68,24 @@ bool UFilterRule_LogicalAnd::ExecWithLog(const TNotNull<const UObject*> WorldCon
 	return true;
 }
 
-bool UFilterRule_LogicalAnd::Exec(const TNotNull<const UObject*> WorldContextObj, const ItemData::FValidatedDataView& View) const
+EFaerieItemDataMutabilityStatus FFaerieItemFilter_Or::GetMutabilityStatus() const
+{
+	EFaerieItemDataMutabilityStatus OutStatus = EFaerieItemDataMutabilityStatus::Unknown;
+	for (auto&& Rule : Rules)
+	{
+		if (!Rule.IsValid()) continue;
+		OutStatus = CombineStatuses(OutStatus, Rule->GetMutabilityStatus());
+	}
+
+	return OutStatus;
+}
+#endif
+
+bool FFaerieItemFilter_And::Exec(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy) const
 {
 	for (auto&& Rule : Rules)
 	{
-		if (!Rule->Exec(WorldContextObj, View))
+		if (!Rule->Exec(EntityManager, Proxy))
 		{
 			return false;
 		}
@@ -108,121 +95,159 @@ bool UFilterRule_LogicalAnd::Exec(const TNotNull<const UObject*> WorldContextObj
 }
 
 #if WITH_EDITOR
-EFaerieItemDataMutabilityStatus UFilterRule_Condition::GetMutabilityStatus() const
+bool FFaerieItemFilter_And::ExecWithLog(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy,
+	ItemData::FFilterLogger& Logger) const
 {
-	// @TODO
-	return Super::GetMutabilityStatus();
+	for (auto&& Rule : Rules)
+	{
+		if (!Rule->ExecWithLog(EntityManager, Proxy, Logger))
+		{
+			return false;
+		}
+	}
+
+	return true;
 }
+
+EFaerieItemDataMutabilityStatus FFaerieItemFilter_And::GetMutabilityStatus() const
+{
+	EFaerieItemDataMutabilityStatus OutStatus = EFaerieItemDataMutabilityStatus::Unknown;
+	for (auto&& Rule : Rules)
+	{
+		if (!Rule.IsValid()) continue;
+		OutStatus = CombineStatuses(OutStatus, Rule->GetMutabilityStatus());
+	}
+
+	return OutStatus;
+}
+
 #endif
 
-bool UFilterRule_Condition::Exec(const TNotNull<const UObject*> WorldContextObj, const ItemData::FValidatedDataView& View) const
+bool FFaerieItemFilter_Conditional::Exec(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy) const
 {
-	if (!ConditionRule) return false;
-	if (ConditionRule->Exec(WorldContextObj, View))
+	if (!ConditionRule.IsValid()) return false;
+	if (ConditionRule->Exec(EntityManager, Proxy))
 	{
-		if (!TrueBranch) return false;
-		return TrueBranch->Exec(WorldContextObj, View);
+		if (!TrueBranch.IsValid()) return false;
+		return TrueBranch->Exec(EntityManager, Proxy);
 	}
 	return FalseBranch;
 }
 
 #if WITH_EDITOR
-EFaerieItemDataMutabilityStatus UFilterRule_Ternary::GetMutabilityStatus() const
+EFaerieItemDataMutabilityStatus FFaerieItemFilter_Conditional::GetMutabilityStatus() const
 {
-	// @TODO
-	return Super::GetMutabilityStatus();
+	const EFaerieItemDataMutabilityStatus ConditionalStatus = ConditionRule.IsValid() ? ConditionRule->GetMutabilityStatus() : EFaerieItemDataMutabilityStatus::Unknown;
+	const EFaerieItemDataMutabilityStatus TrueBranchStatus = TrueBranch.IsValid() ? TrueBranch->GetMutabilityStatus() : EFaerieItemDataMutabilityStatus::Unknown;
+	return CombineStatuses(ConditionalStatus, TrueBranchStatus);
 }
 #endif
 
-bool UFilterRule_Ternary::Exec(const TNotNull<const UObject*> WorldContextObj, const ItemData::FValidatedDataView& View) const
+bool FFaerieItemFilter_Ternary::Exec(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy) const
 {
-	if (!ConditionRule) return false;
-	if (ConditionRule->Exec(WorldContextObj, View))
+	if (!ConditionRule.IsValid()) return false;
+	if (ConditionRule->Exec(EntityManager, Proxy))
 	{
-		if (!TrueBranch) return false;
-		return TrueBranch->Exec(WorldContextObj, View);
+		if (!TrueBranch.IsValid()) return false;
+		return TrueBranch->Exec(EntityManager, Proxy);
 	}
-	if (!FalseBranch) return false;
-	return FalseBranch->Exec(WorldContextObj, View);
+	if (!FalseBranch.IsValid()) return false;
+	return FalseBranch->Exec(EntityManager, Proxy);
 }
 
 #if WITH_EDITOR
-EFaerieItemDataMutabilityStatus UFilterRule_LogicalNot::GetMutabilityStatus() const
+EFaerieItemDataMutabilityStatus FFaerieItemFilter_Ternary::GetMutabilityStatus() const
 {
-	if (InvertedRule)
-	{
-		return InvertedRule->GetMutabilityStatus();
-	}
-	return Super::GetMutabilityStatus();
+	const EFaerieItemDataMutabilityStatus ConditionalStatus = ConditionRule.IsValid() ? ConditionRule->GetMutabilityStatus() : EFaerieItemDataMutabilityStatus::Unknown;
+	const EFaerieItemDataMutabilityStatus TrueBranchStatus = TrueBranch.IsValid() ? TrueBranch->GetMutabilityStatus() : EFaerieItemDataMutabilityStatus::Unknown;
+	const EFaerieItemDataMutabilityStatus FalseBranchStatus = FalseBranch.IsValid() ? FalseBranch->GetMutabilityStatus() : EFaerieItemDataMutabilityStatus::Unknown;
+	return CombineStatuses(ConditionalStatus, CombineStatuses(TrueBranchStatus, FalseBranchStatus));
 }
 #endif
 
-bool UFilterRule_LogicalNot::Exec(const TNotNull<const UObject*> WorldContextObj, const ItemData::FValidatedDataView& View) const
+bool FFaerieItemFilter_Mutability::Exec(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy) const
 {
-	return !InvertedRule->Exec(WorldContextObj, View);
+	return ValidGet(Proxy).GetItemInstanceOrInvalid().IsMutable() == RequireMutable;
 }
 
 #if WITH_EDITOR
-EFaerieItemDataMutabilityStatus UFilterRule_Mutability::GetMutabilityStatus() const
+EFaerieItemDataMutabilityStatus FFaerieItemFilter_Mutability::GetMutabilityStatus() const
 {
 	return RequireMutable ? EFaerieItemDataMutabilityStatus::KnownMutable : EFaerieItemDataMutabilityStatus::KnownImmutable;
 }
 #endif
 
-bool UFilterRule_Mutability::Exec(const TNotNull<const UObject*> WorldContextObj, const ItemData::FValidatedDataView& View) const
-{
-	return View->GetInstance().IsMutable() == RequireMutable;
-}
-
-#if WITH_EDITOR
-EFaerieItemDataMutabilityStatus UFilterRule_MatchTemplate::GetMutabilityStatus() const
+bool FFaerieItemFilter_MatchTemplate::Exec(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy) const
 {
 	if (IsValid(Template))
 	{
-		return Template->GetPattern()->GetMutabilityStatus();
+		return Template->TryMatch(EntityManager, Proxy);
 	}
-	return Super::GetMutabilityStatus();
+	return false;
 }
-#endif
 
-bool UFilterRule_MatchTemplate::ExecWithLog(const TNotNull<const UObject*> WorldContextObj, const ItemData::FValidatedDataView& View,
+#if WITH_EDITOR
+bool FFaerieItemFilter_MatchTemplate::ExecWithLog(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy,
 	ItemData::FFilterLogger& Logger) const
 {
 	if (IsValid(Template))
 	{
-		return Template->TryMatchWithDescriptions(WorldContextObj, View, Logger.Errors);
+		return Template->TryMatchWithDescriptions(EntityManager, Proxy, Logger.Errors);
 	}
 	return false;
 }
 
-bool UFilterRule_MatchTemplate::Exec(const TNotNull<const UObject*> WorldContextObj, const ItemData::FValidatedDataView& View) const
+EFaerieItemDataMutabilityStatus FFaerieItemFilter_MatchTemplate::GetMutabilityStatus() const
 {
-	if (IsValid(Template))
+	if (IsValid(Template) && Template->GetFilter().IsValid())
 	{
-		return Template->TryMatch(WorldContextObj, View);
+		return Template->GetFilter()->GetMutabilityStatus();
 	}
-	return false;
+	return EFaerieItemDataMutabilityStatus::Unknown;
 }
+#endif
 
-UFilterRule_HasFragments::UFilterRule_HasFragments()
+FFaerieItemFilter_HasFragments::FFaerieItemFilter_HasFragments()
 {
 	ReferenceTag= ItemData::Tags::ReferenceDefaults;
 }
 
-#if WITH_EDITOR
-EFaerieItemDataMutabilityStatus UFilterRule_HasFragments::GetMutabilityStatus() const
+bool FFaerieItemFilter_HasFragments::Exec(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy) const
 {
-	// @Todo we could search the traits for mutability info...
-	return Super::GetMutabilityStatus();
-}
-#endif
+	FFaerieItemInstance Instance = ValidGet(Proxy).GetItemInstanceOrInvalid();
+	if (!Instance.IsValid())
+	{
+		return false;
+	}
 
-bool UFilterRule_HasFragments::ExecWithLog(const TNotNull<const UObject*> WorldContextObj, const ItemData::FValidatedDataView& View, ItemData::FFilterLogger& Logger) const
+	TSet<TSubScriptStructOf<FFaerieMassFragment>> FragmentTypesCopy(FragmentTypes);
+
+	for (auto&& StructType : FragmentTypes)
+	{
+		if (!StructType)
+		{
+			continue;
+		}
+
+		auto FragmentView = ItemData::GetEntityFragmentOrDefault(EntityManager, Instance, StructType, ReferenceTag);
+		if (FragmentView.IsValid())
+		{
+			FragmentTypesCopy.Remove(StructType);
+		}
+	}
+
+	return FragmentTypesCopy.IsEmpty();
+}
+
+#if WITH_EDITOR
+bool FFaerieItemFilter_HasFragments::ExecWithLog(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy,
+	ItemData::FFilterLogger& Logger) const
 {
 	static const FText InvalidViewError = LOCTEXT("HasFragments_InvalidViewError", "View is invalid");
 	static const FTextFormat MissingStructErrorFormat = LOCTEXT("HasFragments_MissingClassError", "Missing required fragment of type: '{0}'");
+	static const FTextFormat InvalidTypeErrorFormat = LOCTEXT("HasFragments_InvalidType", "Invalid fragment type at index '{0}'");
 
-	const FFaerieItemInstance Instance = View->GetInstance();
+	const FFaerieItemInstance& Instance = ValidGet(Proxy).GetItemInstance().GetValue();
 	if (!Instance.IsValid())
 	{
 		Logger.Errors.Add(InvalidViewError);
@@ -231,13 +256,18 @@ bool UFilterRule_HasFragments::ExecWithLog(const TNotNull<const UObject*> WorldC
 
 	TSet<TSubScriptStructOf<FFaerieMassFragment>> FragmentTypesCopy(FragmentTypes);
 
-	const ItemData::FOptionalEntityManager EntityManager(WorldContextObj);
-	for (auto&& StructType : FragmentTypes)
+	for (auto&& It = FragmentTypes.CreateConstIterator(); It; ++It)
 	{
-		auto FragmentView = ItemData::GetEntityFragmentOrDefault(EntityManager, Instance, StructType, ReferenceTag);
+		if (!*It)
+		{
+			Logger.Errors.Add(FText::Format(InvalidTypeErrorFormat, It.GetIndex()));
+			continue;
+		}
+
+		auto FragmentView = ItemData::GetEntityFragmentOrDefault(EntityManager, Instance, *It, ReferenceTag);
 		if (FragmentView.IsValid())
 		{
-			FragmentTypesCopy.Remove(StructType);
+			FragmentTypesCopy.Remove(*It);
 		}
 	}
 
@@ -255,90 +285,51 @@ bool UFilterRule_HasFragments::ExecWithLog(const TNotNull<const UObject*> WorldC
 	return FragmentTypesCopy.IsEmpty();
 }
 
-bool UFilterRule_HasFragments::Exec(const TNotNull<const UObject*> WorldContextObj, const ItemData::FValidatedDataView& View) const
+EFaerieItemDataMutabilityStatus FFaerieItemFilter_HasFragments::GetMutabilityStatus() const
 {
-	const FFaerieItemInstance Instance = View->GetInstance();
-	if (!Instance.IsValid())
-	{
-		return false;
-	}
-
-	TSet<TSubScriptStructOf<FFaerieMassFragment>> FragmentTypesCopy(FragmentTypes);
-
-	const ItemData::FOptionalEntityManager EntityManager(WorldContextObj);
-	for (auto&& StructType : FragmentTypes)
-	{
-		auto FragmentView = ItemData::GetEntityFragmentOrDefault(EntityManager, Instance, StructType, ReferenceTag);
-		if (FragmentView.IsValid())
-		{
-			FragmentTypesCopy.Remove(StructType);
-		}
-	}
-
-	return FragmentTypesCopy.IsEmpty();
-}
-
-#if WITH_EDITOR
-EFaerieItemDataMutabilityStatus UFilterRule_Copies::GetMutabilityStatus() const
-{
-	auto&& Default = Super::GetMutabilityStatus();
-
-	// In cases where only stacks are allowed through, we know that we are only passing immutable data.
-
-	switch (Operator)
-	{
-	case EFaerieCopiesCompareOperator::Less:				return Default;
-	case EFaerieCopiesCompareOperator::LessOrEqual:		return Default;
-	case EFaerieCopiesCompareOperator::Greater:			return EFaerieItemDataMutabilityStatus::KnownImmutable;
-	case EFaerieCopiesCompareOperator::GreaterOrEqual:	return AmountToCompare > 1 ? EFaerieItemDataMutabilityStatus::KnownImmutable : Default;
-	case EFaerieCopiesCompareOperator::Equal:				return AmountToCompare > 1 ? EFaerieItemDataMutabilityStatus::KnownImmutable : Default;
-	case EFaerieCopiesCompareOperator::NotEqual:			return AmountToCompare == 1 ? EFaerieItemDataMutabilityStatus::KnownImmutable : Default;
-	default: return Default;
-	}
+	// @Todo we could search the traits for mutability info...
+	return Super::GetMutabilityStatus();
 }
 #endif
 
-bool UFilterRule_Copies::Exec(const TNotNull<const UObject*> WorldContextObj, const ItemData::FValidatedDataView& View) const
+bool FFaerieItemFilter_Copies::Exec(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy) const
 {
-	const int32 Copies = View->GetCopies();
+	const int32 Copies = ValidGet(Proxy).GetCopies();
 	switch (Operator)
 	{
-	case EFaerieCopiesCompareOperator::Less:				return Copies < AmountToCompare;
-	case EFaerieCopiesCompareOperator::LessOrEqual:			return Copies <= AmountToCompare;
-	case EFaerieCopiesCompareOperator::Greater:				return Copies > AmountToCompare;
-	case EFaerieCopiesCompareOperator::GreaterOrEqual:		return Copies >= AmountToCompare;
-	case EFaerieCopiesCompareOperator::Equal:				return Copies == AmountToCompare;
-	case EFaerieCopiesCompareOperator::NotEqual:			return Copies != AmountToCompare;
+	case EFaerieCopiesCompareOperator::Less:			return Copies < AmountToCompare;
+	case EFaerieCopiesCompareOperator::LessOrEqual:		return Copies <= AmountToCompare;
+	case EFaerieCopiesCompareOperator::Greater:			return Copies > AmountToCompare;
+	case EFaerieCopiesCompareOperator::GreaterOrEqual:	return Copies >= AmountToCompare;
+	case EFaerieCopiesCompareOperator::Equal:			return Copies == AmountToCompare;
+	case EFaerieCopiesCompareOperator::NotEqual:		return Copies != AmountToCompare;
 	default: return false;
 	}
 }
 
 #if WITH_EDITOR
-EFaerieItemDataMutabilityStatus UFilterRule_StackLimit::GetMutabilityStatus() const
+EFaerieItemDataMutabilityStatus FFaerieItemFilter_Copies::GetMutabilityStatus() const
 {
 	auto&& Default = Super::GetMutabilityStatus();
 
 	// In cases where only stacks are allowed through, we know that we are only passing immutable data.
-
 	switch (Operator)
 	{
-	case EFaerieStackCompareOperator::Less:				return Default;
-	case EFaerieStackCompareOperator::LessOrEqual:		return Default;
-	case EFaerieStackCompareOperator::Greater:			return EFaerieItemDataMutabilityStatus::KnownImmutable;
-	case EFaerieStackCompareOperator::GreaterOrEqual:	return AmountToCompare > 1 ? EFaerieItemDataMutabilityStatus::KnownImmutable : Default;
-	case EFaerieStackCompareOperator::Equal:			return AmountToCompare > 1 ? EFaerieItemDataMutabilityStatus::KnownImmutable : Default;
-	case EFaerieStackCompareOperator::NotEqual:			return AmountToCompare == 1 ? EFaerieItemDataMutabilityStatus::KnownImmutable : Default;
-	case EFaerieStackCompareOperator::HasLimit:			return Default;
-	case EFaerieStackCompareOperator::HasNoLimit:		return EFaerieItemDataMutabilityStatus::KnownImmutable;;
+	case EFaerieCopiesCompareOperator::Less:			return Default;
+	case EFaerieCopiesCompareOperator::LessOrEqual:		return Default;
+	case EFaerieCopiesCompareOperator::Greater:			return EFaerieItemDataMutabilityStatus::KnownImmutable;
+	case EFaerieCopiesCompareOperator::GreaterOrEqual:	return AmountToCompare > 1 ? EFaerieItemDataMutabilityStatus::KnownImmutable : Default;
+	case EFaerieCopiesCompareOperator::Equal:			return AmountToCompare > 1 ? EFaerieItemDataMutabilityStatus::KnownImmutable : Default;
+	case EFaerieCopiesCompareOperator::NotEqual:		return AmountToCompare == 1 ? EFaerieItemDataMutabilityStatus::KnownImmutable : Default;
 	default: return Default;
 	}
 }
+
 #endif
 
-bool UFilterRule_StackLimit::Exec(const TNotNull<const UObject*> WorldContextObj, const ItemData::FValidatedDataView& View) const
+bool FFaerieItemFilter_StackLimit::Exec(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy) const
 {
-	ItemData::FOptionalEntityManager EntityManager(WorldContextObj);
-	if (const int32 Limit = Container::GetItemStackLimit(EntityManager, View->GetInstance());
+	if (const int32 Limit = Container::GetItemStackLimit(EntityManager, ValidGet(Proxy).GetItemInstance().GetValue());
 		Limit == ItemData::UnlimitedStack)
 	{
 		switch (Operator)
@@ -371,18 +362,63 @@ bool UFilterRule_StackLimit::Exec(const TNotNull<const UObject*> WorldContextObj
 	}
 }
 
-bool UFilterRule_GameplayTagAny::Exec(const TNotNull<const UObject*> WorldContextObj, const ItemData::FValidatedDataView& View) const
+#if WITH_EDITOR
+EFaerieItemDataMutabilityStatus FFaerieItemFilter_StackLimit::GetMutabilityStatus() const
 {
-	Container::FHasAnyTags HasTag;
-	HasTag.Tags = Tags;
-	return HasTag.Exec(WorldContextObj, View);
+	auto&& Default = Super::GetMutabilityStatus();
+
+	// In cases where only stacks are allowed through, we know that we are only passing immutable data.
+	switch (Operator)
+	{
+	case EFaerieStackCompareOperator::Less:				return Default;
+	case EFaerieStackCompareOperator::LessOrEqual:		return Default;
+	case EFaerieStackCompareOperator::Greater:			return EFaerieItemDataMutabilityStatus::KnownImmutable;
+	case EFaerieStackCompareOperator::GreaterOrEqual:	return AmountToCompare > 1 ? EFaerieItemDataMutabilityStatus::KnownImmutable : Default;
+	case EFaerieStackCompareOperator::Equal:			return AmountToCompare > 1 ? EFaerieItemDataMutabilityStatus::KnownImmutable : Default;
+	case EFaerieStackCompareOperator::NotEqual:			return AmountToCompare == 1 ? EFaerieItemDataMutabilityStatus::KnownImmutable : Default;
+	case EFaerieStackCompareOperator::HasLimit:			return Default;
+	case EFaerieStackCompareOperator::HasNoLimit:		return EFaerieItemDataMutabilityStatus::KnownImmutable;;
+	default: return Default;
+	}
+}
+#endif
+
+bool FFaerieItemFilter_CompareName::Exec(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy) const
+{
+	auto AssetInfo = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieAssetInfo>(EntityManager, ValidGet(Proxy).GetItemInstance().GetValue());
+	if (AssetInfo.IsValid())
+	{
+		return AssetInfo->ObjectName.CompareTo(CompareText, ComparisonType) == 0;
+	}
+	return false;
 }
 
-bool UFilterRule_GameplayTagAll::Exec(const TNotNull<const UObject*> WorldContextObj, const ItemData::FValidatedDataView& View) const
+bool FFaerieItemFilter_GameplayTagAny::Exec(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy) const
 {
-	Container::FHasAllTags HasTag;
-	HasTag.Tags = Tags;
-	return HasTag.Exec(WorldContextObj, View);
+	auto TagFragment = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieTagFragment>(EntityManager, ValidGet(Proxy).GetItemInstance().GetValue());
+	if (TagFragment.IsValid())
+	{
+		if (Exact)
+		{
+			return TagFragment->Tags.HasAnyExact(Tags);
+		}
+		return TagFragment->Tags.HasAny(Tags);
+	}
+	return false;
+}
+
+bool FFaerieItemFilter_GameplayTagAll::Exec(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy) const
+{
+	auto TagFragment = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieTagFragment>(EntityManager, ValidGet(Proxy).GetItemInstance().GetValue());
+	if (TagFragment.IsValid())
+	{
+		if (Exact)
+		{
+			return TagFragment->Tags.HasAllExact(Tags);
+		}
+		return TagFragment->Tags.HasAll(Tags);
+	}
+	return false;
 }
 
 #undef LOCTEXT_NAMESPACE

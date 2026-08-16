@@ -327,7 +327,7 @@ void UInventoryReplicatedDataExtensionBase::DeinitializeExtension(const TNotNull
 
 /*
 void UInventoryReplicatedDataExtensionBase::PreRemoval(const TNotNull<const UFaerieItemContainerBase*> Container,
-	const Faerie::Extensions::FEntryView DataView, const int32 Removal)
+	const TNotNull<const Container::IEntryView*> DataView, const int32 Removal)
 {
 	Super::PreRemoval(Container, Key, Removal);
 

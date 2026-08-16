@@ -2,10 +2,12 @@
 
 #pragma once
 
+#include "FaerieItemProxy.h"
+#include "FaerieUnownedItemStack.h"
+#include "ValidParameter.h"
+
 #include "FaerieClientActionBase.generated.h"
 
-struct FFaerieUnownedItemStack;
-struct FFaerieItemDataView;
 class UFaerieInventoryClient;
 
 USTRUCT()
@@ -30,17 +32,26 @@ struct FAERIEINVENTORY_API FFaerieClientAction_MoveHandlerBase
 
 	virtual ~FFaerieClientAction_MoveHandlerBase() = default;
 
+	// Called on any Move before attempting.
 	virtual bool IsValid(TNotNull<const UFaerieInventoryClient*> Client) const
 		PURE_VIRTUAL(FFaerieClientAction_MoveHandlerBase::IsValid, return false; )
-	virtual bool View(FFaerieItemDataView& View) const
+
+	// Called on any MoveFrom. Called on MoveTo only when attempting a Swap.
+	virtual bool View(Faerie::ItemData::FScopeProxy& Proxy) const
 		PURE_VIRTUAL(FFaerieClientAction_MoveHandlerBase::View, return false; )
-	virtual bool CanMove(const FFaerieItemDataView& View) const
+
+	// Called on any MoveTo. Called on MoveFrom only when attempting a Swap.
+	virtual bool CanMove(Faerie::TValid<const FFaerieItemProxy&> Proxy) const
 		PURE_VIRTUAL(FFaerieClientAction_MoveHandlerBase::CanMove, return false; )
-	virtual bool Possess(const FFaerieUnownedItemStack& Stack) const
+
+	// Called on any MoveTo. Called on MoveFrom only when attempting a Swap.
+	virtual bool Possess(Faerie::TValid<const FFaerieUnownedItemStack&> Stack) const
 		PURE_VIRTUAL(FFaerieClientAction_MoveHandlerBase::Possess, return false; )
+
+	// Called on any MoveFrom. Called on MoveTo only when attempting a Swap.
 	virtual bool Release(FFaerieUnownedItemStack& Stack) const
 		PURE_VIRTUAL(FFaerieClientAction_MoveHandlerBase::Release, return false; )
 
-	// Only needs to be implemented for Target handlers
+	// Only needs to be implemented for MoveTo handlers. Requires all functions to be implemented.
 	virtual bool IsSwap() const { return false; }
 };

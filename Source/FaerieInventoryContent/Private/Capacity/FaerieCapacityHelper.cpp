@@ -1,9 +1,6 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "Capacity/FaerieCapacityHelper.h"
-
-#include "EntityManagerHelpers.h"
-
 #include "Capacity/InventoryCapacityExtension.h"
 
 #include "FaerieItem.h"
@@ -17,66 +14,66 @@ using namespace Faerie;
 
 namespace Faerie::ItemData
 {
-	static const FName FieldNames[3]
+	namespace
 	{
-		GET_MEMBER_NAME_CHECKED(FFaerieItemCapacity, Weight),
-		GET_MEMBER_NAME_CHECKED(FFaerieItemCapacity, Bounds),
-		GET_MEMBER_NAME_CHECKED(FFaerieItemCapacity, Efficiency)
-	};
+		const FName FieldNames[3]
+		{
+			GET_MEMBER_NAME_CHECKED(FFaerieItemCapacity, Weight),
+			GET_MEMBER_NAME_CHECKED(FFaerieItemCapacity, Bounds),
+			GET_MEMBER_NAME_CHECKED(FFaerieItemCapacity, Efficiency)
+		};
 
-	const FFieldChange& GetWeightFieldData()
-	{
-		static const FFieldChange WeightFieldData(FFaerieItemCapacity::StaticStruct(), MakeConstArrayView(FieldNames, 1));
-		return WeightFieldData;
+		const FFieldChange& GetWeightFieldData()
+		{
+			static const FFieldChange WeightFieldData(FFaerieItemCapacity::StaticStruct(), MakeConstArrayView(FieldNames, 1));
+			return WeightFieldData;
+		}
+
+		const FFieldChange& GetBoundsFieldData()
+		{
+			static const FFieldChange BoundsFieldData(FFaerieItemCapacity::StaticStruct(), MakeConstArrayView(FieldNames+1, 1));
+			return BoundsFieldData;
+		}
+
+		const FFieldChange& GetEfficiencyFieldData()
+		{
+			static const FFieldChange EfficiencyFieldData(FFaerieItemCapacity::StaticStruct(), MakeConstArrayView(FieldNames+2, 1));
+			return EfficiencyFieldData;
+		}
+
+		const FFieldChange& GetAllCapacityFieldData()
+		{
+			static const FFieldChange AllFieldData(FFaerieItemCapacity::StaticStruct(), MakeConstArrayView(FieldNames, 3));
+			return AllFieldData;
+		}
 	}
 
-	const FFieldChange& GetBoundsFieldData()
-	{
-		static const FFieldChange BoundsFieldData(FFaerieItemCapacity::StaticStruct(), MakeConstArrayView(FieldNames+1, 1));
-		return BoundsFieldData;
-	}
-
-	const FFieldChange& GetEfficiencyFieldData()
-	{
-		static const FFieldChange EfficiencyFieldData(FFaerieItemCapacity::StaticStruct(), MakeConstArrayView(FieldNames+2, 1));
-		return EfficiencyFieldData;
-	}
-
-	const FFieldChange& GetAllCapacityFieldData()
-	{
-		static const FFieldChange AllFieldData(FFaerieItemCapacity::StaticStruct(), MakeConstArrayView(FieldNames, 3));
-		return AllFieldData;
-	}
-
-	FCapacityHelper::FCapacityHelper(const FOptionalEntityManager& InEntityManager,
-		const FReference& Instance)
-	  : EntityManager(InEntityManager.ResolvePtr()), Item(Instance)
+	FCapacityHelper::FCapacityHelper(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemInstance&> Instance)
+	  : EntityManager(EntityManager), Item(Instance)
 	{
 		// Look for a live fragment if we have an entity manager
 		if (EntityManager)
 		{
-			if (const FFaerieItemCapacity* CapacityFragment = ItemData::GetEntityFragment<FFaerieItemCapacity>(FRequireEntityManager(*EntityManager), Item->GetMassEntityHandle()))
+			if (const FFaerieItemCapacity* CapacityFragment = ItemData::GetEntityFragment<FFaerieItemCapacity>(*EntityManager, Item.GetMassEntityHandle()))
 			{
 				MassCapacity = CapacityFragment;
 			}
 		}
 
 		// For the default value.
-		if (Item->HasItemAsset())
+		if (Item.HasItemAsset())
 		{
-			if (const FFaerieItemCapacity* DefaultCapacityFragment = Item->GetItemPtr()->GetDefaultFragment<FFaerieItemCapacity>())
+			if (const FFaerieItemCapacity* DefaultCapacityFragment = Item.GetItemPtr()->GetDefaultFragment<FFaerieItemCapacity>())
             {
             	MassCapacityDefault = DefaultCapacityFragment;
             }
 		}
 	}
 
-	void FCapacityHelper::CreateCapacity(const FFaerieItemCapacity* OverrideDefault)
+	void FCapacityHelper::CreateCapacity(FMassEntityManager& InEntityManager, FFaerieItemInstance& Instance, const FFaerieItemCapacity* OverrideDefault)
 	{
 		checkfSlow(!MassCapacity, TEXT("CreateCapacity should not be called for an item that already has capacity"))
 		checkfSlow(EntityManager, TEXT("An entity manager is required to initialize mass fragments"))
-
-		FMutableReference MutableReference(Item);
 
 		FFaerieItemCapacity Capacity;
 		if (OverrideDefault)
@@ -90,19 +87,18 @@ namespace Faerie::ItemData
 
 		FInstancedStruct Fragment;
 		Fragment.InitializeAs<FFaerieItemCapacity>(Capacity);
-		const FRequireEntityManager WithEntityManager(*EntityManager);
-		MutableReference->AddFragment(WithEntityManager.Resolve(), MoveTemp(Fragment));
-		if (const FFaerieItemCapacity* CapacityStruct = ItemData::GetEntityFragment<FFaerieItemCapacity>(WithEntityManager, Item->GetMassEntityHandle()))
+		Instance.AddFragment(InEntityManager, MoveTemp(Fragment));
+		if (const FFaerieItemCapacity* CapacityStruct = ItemData::GetEntityFragment<FFaerieItemCapacity>(InEntityManager, Item.GetMassEntityHandle()))
 		{
 			MassCapacity = CapacityStruct;
 		}
 	}
 
-	void FCapacityHelper::CreateCapacityIfMissing(const FFaerieItemCapacity* OverrideDefault)
+	void FCapacityHelper::CreateCapacityIfMissing(FMassEntityManager& InEntityManager, FFaerieItemInstance& Instance, const FFaerieItemCapacity* OverrideDefault)
 	{
 		if (!MassCapacity)
 		{
-			CreateCapacity(OverrideDefault);
+			CreateCapacity(InEntityManager, Instance, OverrideDefault);
 		}
 	}
 
@@ -197,20 +193,19 @@ namespace Faerie::ItemData
 		if (MassCapacity)
 		{
 			EntityManager->Defer().PushCommand<FMassDeferredSetCommand>(
-				[Instance = Item.GetInstance(), NewValue](FMassEntityManager& InEntityManager)
+				[Instance = Item, NewValue](FMassEntityManager& InEntityManager)
 				{
 					if (!Instance.IsValid()) return;
 
 					// Get fragment
-					FMutableReference Item(Instance);
-					auto& Fragment = InEntityManager.GetFragmentDataChecked<FFaerieItemCapacity>(Item->GetMassEntityHandle());
+					auto& Fragment = InEntityManager.GetFragmentDataChecked<FFaerieItemCapacity>(Instance.GetMassEntityHandle());
 
 					// Assign new value
 					Fragment.Weight = NewValue;
 
 					// Broadcast change and tell replication to pass this along to clients.
 					const TConstStructView<FFaerieMassFragment> FragmentView = Fragment;
-					Item->OnItemFragmentEdited(InEntityManager, FragmentView, GetWeightFieldData());
+					Instance.OnItemFragmentEdited(InEntityManager, FragmentView, GetWeightFieldData());
 				});
 
 			return;
@@ -224,20 +219,19 @@ namespace Faerie::ItemData
 		if (MassCapacity)
 		{
 			EntityManager->Defer().PushCommand<FMassDeferredSetCommand>(
-				[Instance = Item.GetInstance(), NewValue](FMassEntityManager& InEntityManager)
+				[Instance = Item, NewValue](FMassEntityManager& InEntityManager)
 				{
 					if (!Instance.IsValid()) return;
 
 					// Get fragment
-					FMutableReference Item(Instance);
-					auto& Fragment = InEntityManager.GetFragmentDataChecked<FFaerieItemCapacity>(Item->GetMassEntityHandle());
+					auto& Fragment = InEntityManager.GetFragmentDataChecked<FFaerieItemCapacity>(Instance.GetMassEntityHandle());
 
 					// Assign new value
 					Fragment.Bounds = NewValue;
 
 					// Broadcast change and tell replication to pass this along to clients.
 					const TConstStructView<FFaerieMassFragment> FragmentView = Fragment;
-					Item->OnItemFragmentEdited(InEntityManager, FragmentView, GetBoundsFieldData());
+					Instance.OnItemFragmentEdited(InEntityManager, FragmentView, GetBoundsFieldData());
 				});
 
 			return;
@@ -251,20 +245,19 @@ namespace Faerie::ItemData
 		if (MassCapacity)
 		{
 			EntityManager->Defer().PushCommand<FMassDeferredSetCommand>(
-				[Instance = Item.GetInstance(), NewValue](FMassEntityManager& InEntityManager)
+				[Instance = Item, NewValue](FMassEntityManager& InEntityManager)
 				{
 					if (!Instance.IsValid()) return;
 
 					// Get fragment
-					FMutableReference Item(Instance);
-					auto& Fragment = InEntityManager.GetFragmentDataChecked<FFaerieItemCapacity>(Item->GetMassEntityHandle());
+					auto& Fragment = InEntityManager.GetFragmentDataChecked<FFaerieItemCapacity>(Instance.GetMassEntityHandle());
 
 					// Assign new value
 					Fragment.Efficiency = NewValue;
 
 					// Broadcast change and tell replication to pass this along to clients.
 					const TConstStructView<FFaerieMassFragment> FragmentView = Fragment;
-					Item->OnItemFragmentEdited(InEntityManager, FragmentView, GetEfficiencyFieldData());
+					Instance.OnItemFragmentEdited(InEntityManager, FragmentView, GetEfficiencyFieldData());
 				});
 
 			return;
@@ -278,20 +271,19 @@ namespace Faerie::ItemData
 		if (MassCapacity)
 		{
 			EntityManager->Defer().PushCommand<FMassDeferredSetCommand>(
-				[Instance = Item.GetInstance(), NewValue](FMassEntityManager& InEntityManager)
+				[Instance = Item, NewValue](FMassEntityManager& InEntityManager)
 				{
 					if (!Instance.IsValid()) return;
 
 					// Get fragment
-					FMutableReference Item(Instance);
-					auto& Fragment = InEntityManager.GetFragmentDataChecked<FFaerieItemCapacity>(Item->GetMassEntityHandle());
+					auto& Fragment = InEntityManager.GetFragmentDataChecked<FFaerieItemCapacity>(Instance.GetMassEntityHandle());
 
 					// Assign new value
 					Fragment = NewValue;
 
 					// Broadcast change and tell replication to pass this along to clients.
 					const TConstStructView<FFaerieMassFragment> FragmentView = Fragment;
-					Item->OnItemFragmentEdited(InEntityManager, FragmentView, GetAllCapacityFieldData());
+					Instance.OnItemFragmentEdited(InEntityManager, FragmentView, GetAllCapacityFieldData());
 				});
 
 			return;
@@ -305,20 +297,19 @@ namespace Faerie::ItemData
 		if (MassCapacity && MassCapacityDefault)
 		{
 			EntityManager->Defer().PushCommand<FMassDeferredSetCommand>(
-				[Instance = Item.GetInstance(), NewValue = GetDefaultCapacity()](FMassEntityManager& InEntityManager)
+				[Instance = Item, NewValue = GetDefaultCapacity()](FMassEntityManager& InEntityManager)
 				{
 					if (!Instance.IsValid()) return;
 
 					// Get fragment
-					FMutableReference Item(Instance);
-					auto& Fragment = InEntityManager.GetFragmentDataChecked<FFaerieItemCapacity>(Item->GetMassEntityHandle());
+					auto& Fragment = InEntityManager.GetFragmentDataChecked<FFaerieItemCapacity>(Instance.GetMassEntityHandle());
 
 					// Assign new value
 					Fragment = NewValue;
 
 					// Broadcast change and tell replication to pass this along to clients.
 					const TConstStructView<FFaerieMassFragment> FragmentView = Fragment;
-					Item->OnItemFragmentEdited(InEntityManager, FragmentView, GetAllCapacityFieldData());
+					Instance.OnItemFragmentEdited(InEntityManager, FragmentView, GetAllCapacityFieldData());
 				});
 
 			return;

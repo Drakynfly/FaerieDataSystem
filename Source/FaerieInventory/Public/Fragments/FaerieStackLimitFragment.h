@@ -5,11 +5,6 @@
 #include "FaerieMassFragment.h"
 #include "FaerieStackLimitFragment.generated.h"
 
-namespace Faerie::ItemData
-{
-	struct FReference;
-}
-
 USTRUCT(Blueprintable)
 struct FFaerieStackLimitFragment : public FFaerieMassFragment
 {
@@ -24,5 +19,5 @@ struct FFaerieStackLimitFragment : public FFaerieMassFragment
 
 namespace Faerie::Container
 {
-	FAERIEINVENTORY_API int32 GetItemStackLimit(const ItemData::FOptionalEntityManager& EntityManager, const ItemData::FReference& Item);
+	FAERIEINVENTORY_API int32 GetItemStackLimit(const FMassEntityManager* EntityManager, TValid<const FFaerieItemInstance&> Item);
 }

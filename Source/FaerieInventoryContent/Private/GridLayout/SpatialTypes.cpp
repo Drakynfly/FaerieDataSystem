@@ -13,235 +13,238 @@ FFaerieGridShape FFaerieGridShape::Square1(TArray<FIntPoint>{0, 0});
 // of their functions, we can write them once as a template, and avoid lots of copied boilerplate.
 namespace Faerie::Shape
 {
-	template <typename T>
-	bool IsValid(const T& Shape)
+	namespace
 	{
-		return !Shape.Points.IsEmpty();
-	}
-
-	template <typename T, typename OtherT>
-	bool UEOpEquals(const T& Shape, const OtherT& Other)
-	{
-		// Mismatching point numbers; auto-fail
-		if (Shape.Points.Num() != Other.Points.Num()) return false;
-
-		// @todo points have to be found individually, instead of just comparing the arrays, because the same points are not guaranteed to be in the same order.
-		// to fix this, Points would have to be sorted. until then, this is really slow!!
-		for (auto&& Point : Shape.Points)
+		template <typename T>
+		bool IsValid(const T& Shape)
 		{
-			if (!Other.Points.Contains(Point)) return false;
+			return !Shape.Points.IsEmpty();
 		}
 
-		return true;
-	}
-
-	template <typename T>
-	FIntPoint GetSize(const T& Shape)
-	{
-		if (Shape.Points.IsEmpty())
+		template <typename T, typename OtherT>
+		bool UEOpEquals(const T& Shape, const OtherT& Other)
 		{
-			return FIntPoint::ZeroValue;
-		}
+			// Mismatching point numbers; auto-fail
+			if (Shape.Points.Num() != Other.Points.Num()) return false;
 
-		FIntPoint Size{TNumericLimits<int32>::Min()};
-		for (auto&& Point : Shape.Points)
-		{
-			Size = Size.ComponentMax(Point);
-		}
+			// @todo points have to be found individually, instead of just comparing the arrays, because the same points are not guaranteed to be in the same order.
+			// to fix this, Points would have to be sorted. until then, this is really slow!!
+			for (auto&& Point : Shape.Points)
+			{
+				if (!Other.Points.Contains(Point)) return false;
+			}
 
-		// Add one to account for 0-indexing of points
-		return Size + FIntPoint(1);
-	}
-
-	template <typename T>
-	FIntRect GetBounds(const T& Shape)
-	{
-		if (Shape.Points.IsEmpty())
-		{
-			return FIntRect{0, 0};
-		}
-
-		FIntRect Bounds{ TNumericLimits<int32>::Max(), TNumericLimits<int32>::Min() };
-
-		for (auto&& Point : Shape.Points)
-		{
-			Bounds.Include(Point);
-		}
-
-		return Bounds;
-	}
-
-	template <typename T>
-	FIntPoint GetShapeCenter(const T& Shape)
-	{
-		return Shape.GetSize() / 2;
-	}
-
-	template <typename T>
-	FIntPoint GetShapeAverageCenter(const T& Shape)
-	{
-		if (Shape.Points.IsEmpty())
-		{
-			return FIntPoint::ZeroValue;
-		}
-
-		// To offset for 0-indexed points, initialize Sum with Points Num.
-		// This is equivalent to adding 1,1 to every point.
-		FIntPoint Sum(Shape.Points.Num());
-		for (const FIntPoint& Point : Shape.Points)
-		{
-			Sum += Point;
-		}
-
-		return Sum / Shape.Points.Num();
-	}
-
-	template <typename T>
-	bool IsSymmetrical(const T& Shape)
-	{
-		if (Shape.Points.IsEmpty())
-		{
 			return true;
 		}
 
-		// Create shape copy to compare against
-		FFaerieGridShape ShapeCopy = Shape.Copy();
-		ShapeCopy.RotateAround_90(ShapeCopy.GetShapeCenter());
-		ShapeCopy.Normalize();
-		// Compare the shapes
-		return UEOpEquals(ShapeCopy, Shape);
-	}
-
-	template <typename T>
-	bool Contains(const T& Shape, const FIntPoint& Position)
-	{
-		// @todo if we make Points sorted, then we can replace this with a binary search, instead of linear
-		return Shape.Points.Contains(Position);
-	}
-
-	template <typename T, typename OtherT>
-	bool Overlaps(const T& Shape, const OtherT& Other)
-	{
-		TSet<FIntPoint> SeenPoints;
-		SeenPoints.Append(Shape.Points);
-
-		for (const FIntPoint& OtherPoint : Other.Points)
+		template <typename T>
+		FIntPoint GetSize(const T& Shape)
 		{
-			bool AlreadySeen;
-			SeenPoints.Add(OtherPoint, &AlreadySeen);
-			if (AlreadySeen)
+			if (Shape.Points.IsEmpty())
+			{
+				return FIntPoint::ZeroValue;
+			}
+
+			FIntPoint Size{TNumericLimits<int32>::Min()};
+			for (auto&& Point : Shape.Points)
+			{
+				Size = Size.ComponentMax(Point);
+			}
+
+			// Add one to account for 0-indexing of points
+			return Size + FIntPoint(1);
+		}
+
+		template <typename T>
+		FIntRect GetBounds(const T& Shape)
+		{
+			if (Shape.Points.IsEmpty())
+			{
+				return FIntRect{0, 0};
+			}
+
+			FIntRect Bounds{ TNumericLimits<int32>::Max(), TNumericLimits<int32>::Min() };
+
+			for (auto&& Point : Shape.Points)
+			{
+				Bounds.Include(Point);
+			}
+
+			return Bounds;
+		}
+
+		template <typename T>
+		FIntPoint GetShapeCenter(const T& Shape)
+		{
+			return Shape.GetSize() / 2;
+		}
+
+		template <typename T>
+		FIntPoint GetShapeAverageCenter(const T& Shape)
+		{
+			if (Shape.Points.IsEmpty())
+			{
+				return FIntPoint::ZeroValue;
+			}
+
+			// To offset for 0-indexed points, initialize Sum with Points Num.
+			// This is equivalent to adding 1,1 to every point.
+			FIntPoint Sum(Shape.Points.Num());
+			for (const FIntPoint& Point : Shape.Points)
+			{
+				Sum += Point;
+			}
+
+			return Sum / Shape.Points.Num();
+		}
+
+		template <typename T>
+		bool IsSymmetrical(const T& Shape)
+		{
+			if (Shape.Points.IsEmpty())
 			{
 				return true;
 			}
+
+			// Create shape copy to compare against
+			FFaerieGridShape ShapeCopy = Shape.Copy();
+			ShapeCopy.RotateAround_90(ShapeCopy.GetShapeCenter());
+			ShapeCopy.Normalize();
+			// Compare the shapes
+			return UEOpEquals(ShapeCopy, Shape);
 		}
 
-		return false;
-	}
-
-	template <typename T>
-	FFaerieGridShape Copy(const T& Shape)
-	{
-		return FFaerieGridShape{TArray<FIntPoint>(Shape.Points)};
-	}
-
-	template <typename T>
-	T& Translate(T& Shape, const FIntPoint& Position)
-	{
-		for (FIntPoint& Coord : Shape.Points)
+		template <typename T>
+		bool Contains(const T& Shape, const FIntPoint& Position)
 		{
-			Coord += Position;
+			// @todo if we make Points sorted, then we can replace this with a binary search, instead of linear
+			return Shape.Points.Contains(Position);
 		}
-		return Shape;
-	}
 
-	template <typename T>
-	T& RotateAround_90(T& Shape, const FIntPoint& PivotPoint)
-	{
-		for (FIntPoint& Point : Shape.Points)
+		template <typename T, typename OtherT>
+		bool Overlaps(const T& Shape, const OtherT& Other)
 		{
-			// Rebase to pivot
-			Point -= PivotPoint;
+			TSet<FIntPoint> SeenPoints;
+			SeenPoints.Append(Shape.Points);
 
-			// Trade places
-			Swap(Point.X, Point.Y);
+			for (const FIntPoint& OtherPoint : Other.Points)
+			{
+				bool AlreadySeen;
+				SeenPoints.Add(OtherPoint, &AlreadySeen);
+				if (AlreadySeen)
+				{
+					return true;
+				}
+			}
 
-			// Flip X - Clockwise
-			Point.X *= -1;
-
-			// Remove rebase
-			Point += PivotPoint;
+			return false;
 		}
-		return Shape;
-	}
 
-	template <typename T>
-	T& RotateAround_180(T& Shape, const FIntPoint& PivotPoint)
-	{
-		for (FIntPoint& Point : Shape.Points)
+		template <typename T>
+		FFaerieGridShape Copy(const T& Shape)
 		{
-			// Rebase to pivot
-			Point -= PivotPoint;
-
-			// Flip
-			Point *= -1;
-
-			// Remove rebase
-			Point += PivotPoint;
+			return FFaerieGridShape{TArray<FIntPoint>(Shape.Points)};
 		}
-		return Shape;
-	}
 
-	template <typename T>
-	T& RotateAround_270(T& Shape, const FIntPoint& PivotPoint)
-	{
-		for (FIntPoint& Point : Shape.Points)
+		template <typename T>
+		T& Translate(T& Shape, const FIntPoint& Position)
 		{
-			// Rebase to pivot
-			Point -= PivotPoint;
-
-			// Trade places
-			Swap(Point.X, Point.Y);
-
-			// Flip Y - Clockwise
-			Point.Y *= -1;
-
-			// Remove rebase
-			Point += PivotPoint;
-		}
-		return Shape;
-	}
-
-	template <typename T>
-	T& RotateAroundCenter(T& Shape)
-	{
-		if (!Shape.Points.IsEmpty())
-		{
-			// Use existing rotation logic with calculated center
-			RotateAround_90(Shape, GetShapeCenter(Shape));
-		}
-		return Shape;
-	}
-
-	template <typename T>
-	T& Normalize(T& Shape)
-	{
-		if (Shape.Points.IsEmpty())
-		{
+			for (FIntPoint& Coord : Shape.Points)
+			{
+				Coord += Position;
+			}
 			return Shape;
 		}
 
-		FIntPoint Min(TNumericLimits<int32>::Max());
-
-		for (const FIntPoint& Point : Shape.Points)
+		template <typename T>
+		T& RotateAround_90(T& Shape, const FIntPoint& PivotPoint)
 		{
-			Min = Min.ComponentMin(Point);
+			for (FIntPoint& Point : Shape.Points)
+			{
+				// Rebase to pivot
+				Point -= PivotPoint;
+
+				// Trade places
+				Swap(Point.X, Point.Y);
+
+				// Flip X - Clockwise
+				Point.X *= -1;
+
+				// Remove rebase
+				Point += PivotPoint;
+			}
+			return Shape;
 		}
 
-		for (FIntPoint& Point : Shape.Points)
+		template <typename T>
+		T& RotateAround_180(T& Shape, const FIntPoint& PivotPoint)
 		{
-			Point -= Min;
+			for (FIntPoint& Point : Shape.Points)
+			{
+				// Rebase to pivot
+				Point -= PivotPoint;
+
+				// Flip
+				Point *= -1;
+
+				// Remove rebase
+				Point += PivotPoint;
+			}
+			return Shape;
 		}
-		return Shape;
+
+		template <typename T>
+		T& RotateAround_270(T& Shape, const FIntPoint& PivotPoint)
+		{
+			for (FIntPoint& Point : Shape.Points)
+			{
+				// Rebase to pivot
+				Point -= PivotPoint;
+
+				// Trade places
+				Swap(Point.X, Point.Y);
+
+				// Flip Y - Clockwise
+				Point.Y *= -1;
+
+				// Remove rebase
+				Point += PivotPoint;
+			}
+			return Shape;
+		}
+
+		template <typename T>
+		T& RotateAroundCenter(T& Shape)
+		{
+			if (!Shape.Points.IsEmpty())
+			{
+				// Use existing rotation logic with calculated center
+				RotateAround_90(Shape, GetShapeCenter(Shape));
+			}
+			return Shape;
+		}
+
+		template <typename T>
+		T& Normalize(T& Shape)
+		{
+			if (Shape.Points.IsEmpty())
+			{
+				return Shape;
+			}
+
+			FIntPoint Min(TNumericLimits<int32>::Max());
+
+			for (const FIntPoint& Point : Shape.Points)
+			{
+				Min = Min.ComponentMin(Point);
+			}
+
+			for (FIntPoint& Point : Shape.Points)
+			{
+				Point -= Min;
+			}
+			return Shape;
+		}
 	}
 }
 
@@ -385,9 +388,10 @@ FFaerieGridShape& FFaerieGridShape::Translate(const FIntPoint& Position)
 	return Faerie::Shape::Translate(*this, Position);
 }
 
-FFaerieGridShape& FFaerieGridShape::Rotate(const EFaerieSpatialItemRotation Rotation, const bool Reset)
+// @todo why is this different from FFaerieGridShapeView::Rotate. they should be the same. what was this suppose to fix exactly?
+FFaerieGridShape& FFaerieGridShape::Rotate(const EFaerieSpatialItemRotation Rotation)
 {
-	if (!Reset && Rotation == EFaerieSpatialItemRotation::None) return *this;
+	if (Rotation == EFaerieSpatialItemRotation::None) return *this;
 
 	Faerie::Extensions::FBitMatrix Matrix = ToMatrix();
 	RotateMatrixClockwise(Matrix, Rotation);

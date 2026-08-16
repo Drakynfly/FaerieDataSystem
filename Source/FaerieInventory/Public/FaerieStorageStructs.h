@@ -55,8 +55,8 @@ struct FFaerieStorageEntry : public FFastArraySerializerItem
 	friend Faerie::Hacks::TFaerieFastArraySerializeHelper;
 
 	FFaerieStorageEntry() = default;
-	FFaerieStorageEntry(FFaerieEntryKey EntryKey, const Faerie::ItemData::FReference& Item, int32 StackLimit, int32 Amount, TArray<FFaerieAddress>& OutNewAddresses);
-	FFaerieStorageEntry(FFaerieEntryKey EntryKey, const Faerie::ItemData::FReference& Item, int32 StackLimit, TConstArrayView<FFaerieKeyedStack> Stacks);
+	FFaerieStorageEntry(FFaerieEntryKey EntryKey, FFaerieItemInstance& Item, int32 StackLimit, int32 Amount, TArray<FFaerieAddress>& OutNewAddresses);
+	FFaerieStorageEntry(FFaerieEntryKey EntryKey, FFaerieItemInstance& Item, int32 StackLimit, TConstArrayView<FFaerieKeyedStack> Stacks);
 
 private:
 	// Unique key to identify this entry.
@@ -82,7 +82,7 @@ private:
 
 	struct FStorageContentAccess
 	{
-		static const IFaerieItemOwnerInterface* Resolve(const FFaerieStorageContent& Source);
+		static const IFaerieItemOwnerInterface* GetListener(const FFaerieStorageContent& Source);
 #if FAERIE_DEBUG
 		static uint32& GetWriteLock(const FFaerieStorageContent& Source);
 #endif
@@ -91,7 +91,6 @@ private:
 public:
 	UE_REWRITE FFaerieEntryKey GetKey() const { return Key; }
 	UE_REWRITE const FFaerieItemInstance& GetInstance() const { return ItemInstance; }
-	UE_REWRITE Faerie::ItemData::FReference GetReference() const { return ItemInstance; }
 	UE_REWRITE TConstArrayView<FFaerieKeyedStack> GetStacks() const { return Stacks; }
 
 	UE_REWRITE int32 NumStacks() const { return Stacks.Num(); }
@@ -99,8 +98,8 @@ public:
 	UE_REWRITE int32 GetCachedStackLimit() const { return CachedLimit; }
 
 	// Update the cached limit value for stacking mutable items. This usually doesn't need to be called, unless when
-	// changing or setting the value in an instance that already exists in storage. This is currently no plumbing for this.
-	void UpdateCachedStackLimit(const Faerie::ItemData::FOptionalEntityManager& EntityManager);
+	// changing or setting the value in an instance that already exists in storage. There is currently no plumbing for this.
+	void UpdateCachedStackLimit(const FMassEntityManager& EntityManager);
 
 	bool Contains(FFaerieStackKey Key) const;
 
@@ -134,17 +133,17 @@ public:
 		  : Entry(Entry), Source(Source) {}
 
 		//~ ItemData::IViewBase
-		virtual Faerie::ItemData::FReference ResolveItem() const override { return Entry.ItemInstance; }
-		virtual int32 ResolveCopies() const override { return Entry.StackSum(); }
-		virtual const IFaerieItemOwnerInterface* ResolveOwner() const override;
+		UE_REWRITE virtual TOptional<FFaerieItemInstance> GetItemInstance() const override { return Entry.ItemInstance; }
+		UE_REWRITE virtual int32 GetCopies() const override { return Entry.StackSum(); }
+		virtual const IFaerieItemOwnerInterface* GetItemOwner() const override;
 		//~ ItemData::IViewBase
 
 		//~ Container::IEntryView
-		virtual FFaerieEntryKey ResolveKey() const override { return Entry.Key; }
+		UE_REWRITE virtual FFaerieEntryKey ResolveKey() const override { return Entry.Key; }
 		//~ Container::IEntryView
 
-		const FFaerieStorageEntry* operator->() const { return &Entry; }
-		const FFaerieStorageEntry& Get() const { return Entry; }
+		UE_REWRITE const FFaerieStorageEntry* operator->() const { return &Entry; }
+		UE_REWRITE const FFaerieStorageEntry& Get() const { return Entry; }
 
 	protected:
 		const FFaerieStorageEntry& Entry;
@@ -161,21 +160,21 @@ public:
 		  : Entry(Entry), Stack(Stack), Source(Source) {}
 
 		//~ ItemData::IViewBase
-		virtual Faerie::ItemData::FReference ResolveItem() const override { return Entry.ItemInstance; }
-		virtual int32 ResolveCopies() const override { return Stack.Stack; }
-		virtual const IFaerieItemOwnerInterface* ResolveOwner() const override;
+		UE_REWRITE virtual TOptional<FFaerieItemInstance> GetItemInstance() const override { return Entry.ItemInstance; }
+		UE_REWRITE virtual int32 GetCopies() const override { return Stack.Stack; }
+		virtual const IFaerieItemOwnerInterface* GetItemOwner() const override;
 		//~ ItemData::IViewBase
 
 		//~ Container::IEntryView
-		virtual FFaerieEntryKey ResolveKey() const override { return Entry.Key; }
+		UE_REWRITE virtual FFaerieEntryKey ResolveKey() const override { return Entry.Key; }
 		//~ Container::IEntryView
 
 		//~ Container::IAddressView
 		virtual FFaerieAddress ResolveAddress() const override;
 		//~ Container::IAddressView
 
-		const FFaerieStorageEntry* operator->() const { return &Entry; }
-		const FFaerieStorageEntry& Get() const { return Entry; }
+		UE_REWRITE const FFaerieStorageEntry* operator->() const { return &Entry; }
+		UE_REWRITE const FFaerieStorageEntry& Get() const { return Entry; }
 
 	protected:
 		const FFaerieStorageEntry& Entry;
@@ -203,7 +202,7 @@ public:
 
 		// Add the Amount to the stacks, adding new stacks as needed.
 		// ReturnValue is 0 if Amount was successfully added, or the remainder, otherwise.
-		void AddToAnyStack(int32 Amount, TArray<FFaerieAddress>& OutNewAddresses);
+		void AddToAnyStack(int32 Amount, TArray<FFaerieAddress>& OutAddressesTouched);
 
 		// Add the Amount as new stacks.
 		// ReturnValue is 0 if Amount was successfully added, or the remainder, otherwise.
@@ -274,6 +273,7 @@ struct FFaerieStorageContent : public FFaerieFastArraySerializer
 {
 	GENERATED_BODY()
 
+	friend FFaerieStorageEntry;
 	friend FFaerieStorageEntry::FStorageContentAccess;
 	friend TBinarySearchOptimizedArray;
 	friend UFaerieItemStorage;
@@ -341,10 +341,6 @@ public:
 	void PostReplicatedAdd(const TArrayView<int32> AddedIndices, int32 FinalSize) const;
 	void PostReplicatedChange(const TArrayView<int32> ChangedIndices, int32 FinalSize) const;
 	*/
-
-	void PreEntryReplicatedRemove(const FFaerieStorageEntry& Entry) const;
-	void PostEntryReplicatedAdd(const FFaerieStorageEntry& Entry) const;
-	void PostEntryReplicatedChange(const FFaerieStorageEntry& Entry) const;
 
 	// Only const iteration is allowed.
 	using TRangedForConstIterator = TArray<FFaerieStorageEntry>::RangedForConstIteratorType;

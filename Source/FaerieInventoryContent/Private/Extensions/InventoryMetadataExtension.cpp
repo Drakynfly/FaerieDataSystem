@@ -23,7 +23,7 @@ namespace Faerie::Inventory::Tags
 using namespace Faerie;
 
 EEventExtensionResponse UInventoryMetadataExtension::AllowsRemoval(const TNotNull<const UFaerieItemContainerBase*> Container,
-	const ItemData::TNonNullViewPtr<Container::IAddressView> DataView, const FFaerieInventoryTag Reason) const
+	const TNotNull<const Container::IAddressView*> DataView, const FFaerieInventoryTag Reason) const
 {
 	// Tags that always deny removal.
 	static FGameplayTagContainer RemovalDenyingTags = FGameplayTagContainer::CreateFromArray(

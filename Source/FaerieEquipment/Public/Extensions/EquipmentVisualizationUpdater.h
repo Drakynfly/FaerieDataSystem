@@ -21,7 +21,7 @@ protected:
 	virtual void InitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
 	virtual void DeinitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
 
-	virtual void PreRemoval(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Extensions::FEntryView DataView, int32 Removal) override;
+	virtual void PreRemoval(TNotNull<const UFaerieItemContainerBase*> Container, const TNotNull<const Faerie::Container::IEntryView*> DataView, int32 Removal) override;
 
 	virtual void PostEventBatch(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Inventory::FEventLogBatch& Events) override;
 
@@ -31,8 +31,8 @@ private:
 	void CreateVisualForEntry(const UFaerieEquipmentSlot* Slot, FFaerieEntryKey Key);
 	void RemoveVisualForEntry(const UFaerieEquipmentSlot* Slot, FFaerieEntryKey Key);
 
-	void CreateVisualImpl(UEquipmentVisualizer* Visualizer, const FFaerieItemProxy& Proxy);
-	void RemoveVisualImpl(UEquipmentVisualizer* Visualizer, const FFaerieItemProxy& Proxy);
+	void CreateVisualImpl(UEquipmentVisualizer* Visualizer, Faerie::TValid<const FFaerieItemProxy&> Proxy);
+	void RemoveVisualImpl(UEquipmentVisualizer* Visualizer, Faerie::TValid<const FFaerieItemProxy&> Proxy);
 
 	struct FPendingAttachment
 	{

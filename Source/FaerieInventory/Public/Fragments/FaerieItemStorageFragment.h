@@ -38,7 +38,7 @@ struct FFaerieItemStorageFragment : public FFaerieMassFragment
 	EDataValidationResult IsDataValid(FDataValidationContext& Context) const;
 #endif
 
-	bool InitializeRuntime(TNotNull<UObject*> Outer, const Faerie::ItemData::FMutableReference& Reference);
+	bool InitializeRuntime(TNotNull<UObject*> Outer, Faerie::TValid<const FFaerieItemInstance&> Instance);
 
 protected:
 	static void OnStorageItemChanged(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Inventory::FEventLogBatch& EventLog, FFaerieItemInstance Instance);
@@ -82,7 +82,7 @@ struct FFaerieChildStackFragment : public FFaerieMassFragment
 	UPROPERTY(EditInstanceOnly, Category = "ChildSlot")
 	TArray<FFaerieInlineStackContainer> Slots;
 
-	bool InitializeRuntime(TNotNull<UObject*> Outer, const Faerie::ItemData::FMutableReference& Reference);
+	bool InitializeRuntime(TNotNull<UObject*> Outer, Faerie::TValid<const FFaerieItemInstance&> Instance);
 
 protected:
 	static void OnSlotItemChanged(const FFaerieItemProxy& Proxy, FGameplayTag Tag, FFaerieItemInstance Instance);

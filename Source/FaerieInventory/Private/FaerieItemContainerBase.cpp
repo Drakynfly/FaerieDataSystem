@@ -4,7 +4,6 @@
 #include "AssetLoadFlagFixer.h"
 #include "EntityManagerHelpers.h"
 #include "FaerieContainerFilter.h"
-#include "FaerieInventoryLog.h"
 #include "FaerieItem.h"
 #include "FaerieSubObjectFilter.h"
 #include "ItemContainerExtensionBase.h"
@@ -48,33 +47,20 @@ void UFaerieItemContainerBase::DeinitializeNetObject(const TNotNull<AActor*> Act
 	Extensions::FGroupAPI::DeinitializeExtension(Extensions, this);
 }
 
-void UFaerieItemContainerBase::DestroyStack(const FFaerieItemProxy& Proxy, int32 Copies)
-{
-	// This function should be implemented by children.
-	checkNoEntry();
-}
-
-bool UFaerieItemContainerBase::Possess(const FFaerieUnownedItemStack& Stack)
-{
-	// This function should be implemented by children.
-	checkNoEntry();
-	return false;
-}
-
-void UFaerieItemContainerBase::OnItemDataChanged(const ItemData::FMutableReference& Instance, const TNotNull<const UScriptStruct*> Struct, const FGameplayTag EditTag)
+void UFaerieItemContainerBase::OnItemDataChanged(const TValid<const FFaerieItemInstance&> Instance, const TNotNull<const UScriptStruct*> FragmentType, const FGameplayTag EditTag)
 {
 }
 
-FFaerieItemExportData UFaerieItemContainerBase::ExportItemData(const ItemData::FRequireEntityManager& EntityManager, const ItemData::FReference& Item) const
+FFaerieItemExportData UFaerieItemContainerBase::ExportItemData(const FMassEntityManager& EntityManager, const TValid<const FFaerieItemInstance&> Item) const
 {
 	static constexpr ItemData::EMassFragmentExportOptions ExportOptions = ItemData::EMassFragmentExportOptions::OnlyFaerieMassFragments;
 
 	FFaerieItemExportData ExportData;
-	Item.GetInstance().ExportFragmentData(EntityManager, ExportData.MassInstances, ExportOptions);
+	ValidGet(Item).ExportFragmentData(EntityManager, ExportData.MassInstances, ExportOptions);
 	return ExportData;
 }
 
-FFaerieItemInstance UFaerieItemContainerBase::ImportItemData(const ItemData::FRequireEntityManager& EntityManager, const UFaerieItem* Item,
+FFaerieItemInstance UFaerieItemContainerBase::ImportItemData(FMassEntityManager& EntityManager, const UFaerieItem* Item,
 	const FFaerieItemExportData& ExportData)
 {
 	FFaerieItemInstance Instance = FFaerieItemInstance::FromPointer(Item);
@@ -159,11 +145,11 @@ bool UFaerieItemContainerBase::FindExtension(const TSubclassOf<UItemContainerExt
 
 // Note: Implementations for these PURE_VIRTUAL need to be here because TUniquePtr complains about their dtors if they are forward declared.
 TUniquePtr<Container::IEntryIterator> UFaerieItemContainerBase::CreateEntryIterator() const
-	PURE_VIRTUAL(UFaerieItemContainerBase::CreateIterator, return nullptr; )
+	PURE_VIRTUAL(UFaerieItemContainerBase::CreateEntryIterator, return nullptr; )
 
 TUniquePtr<Container::IAddressIterator> UFaerieItemContainerBase::CreateAddressIterator() const
-	PURE_VIRTUAL(UFaerieItemContainerBase::CreateIterator, return nullptr; )
+	PURE_VIRTUAL(UFaerieItemContainerBase::CreateAddressIterator, return nullptr; )
 
 TUniquePtr<Container::IAddressIterator> UFaerieItemContainerBase::CreateSingleEntryIterator(FFaerieEntryKey Key) const
-	PURE_VIRTUAL(UFaerieItemContainerBase::CreateIterator, return nullptr; )
+	PURE_VIRTUAL(UFaerieItemContainerBase::CreateSingleEntryIterator, return nullptr; )
 

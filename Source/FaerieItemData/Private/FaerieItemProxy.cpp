@@ -1,29 +1,68 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieItemProxy.h"
-#include "FaerieItem.h"
 #include "FaerieItemDataView.h"
+#include "FaerieItemOwnerInterface.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemProxy)
 
 bool FFaerieItemProxy::IsValid() const
 {
-	if (const IFaerieItemDataProxy* ProxyObj = GetInterface())
+	return !!InterfacePtr;
+}
+
+bool FFaerieItemProxy::HasValidInstance() const
+{
+	if (InterfacePtr)
 	{
-		return ProxyObj->GetItemInstance().IsSet() &&
-			Faerie::ItemData::IsValidStackAmount(ProxyObj->GetCopies());
+		return InterfacePtr->GetItemInstance().IsSet() && Faerie::ItemData::IsValidStackAmount(InterfacePtr->GetCopies());
 	}
 	return false;
 }
 
-const IFaerieItemDataProxy* FFaerieItemProxy::operator->() const
+TOptional<FFaerieItemInstance> FFaerieItemProxy::GetItemInstance() const
 {
-	return GetInterface();
+	if (InterfacePtr)
+	{
+		return InterfacePtr->GetItemInstance();
+	}
+	return NullOpt;
+}
+
+FFaerieItemInstance FFaerieItemProxy::GetItemInstanceOrInvalid() const
+{
+	if (InterfacePtr)
+	{
+		auto Option = InterfacePtr->GetItemInstance();
+		if (Option.IsSet())
+		{
+			return Option.GetValue();
+		}
+	}
+	return FFaerieItemInstance();
+}
+
+int32 FFaerieItemProxy::GetCopies() const
+{
+	if (InterfacePtr)
+	{
+		return InterfacePtr->GetCopies();
+	}
+	return 0;
+}
+
+UObject* FFaerieItemProxy::GetItemOwner() const
+{
+	if (InterfacePtr)
+	{
+		return const_cast<UObject*>(Cast<UObject>(InterfacePtr->GetItemOwner()));
+	}
+	return nullptr;
 }
 
 Faerie::ItemData::FProxyChangeEvent::RegistrationType& FFaerieItemProxy::GetOnProxyChangeEvent() const
 {
-	if (const IFaerieItemDataProxy* ProxyObj = GetInterface())
+	if (const IFaerieItemDataProxy* ProxyObj = Cast<IFaerieItemDataProxy>(ProxyObject))
 	{
 		return const_cast<IFaerieItemDataProxy*>(ProxyObj)->GetOnProxyChangeEvent();
 	}

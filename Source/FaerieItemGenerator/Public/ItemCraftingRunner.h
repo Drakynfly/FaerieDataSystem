@@ -89,11 +89,11 @@ private:
 	FFaerieCraftingActionHandle SubmitCraftingAction_Impl(TInstancedStruct<FFaerieCraftingActionBase>& Action, const Faerie::Generation::FActionResult* Callback);
 
 #if WITH_EDITOR
-	static void LogActionResult(const FDateTime TimeStarted, const EGenerationActionResult Result, FStringView ActionName);
+	static void LogActionResult(const FDateTime TimeStarted, const EGenerationActionResult Result, FStringView ActionName, const FText& Message);
 #endif
 
 	void FinishAction(FFaerieCraftingActionHandle Handle, EGenerationActionResult Result);
-	void FinishAction(TStructView<FFaerieCraftingActionBase> Action, EGenerationActionResult Result);
+	void FinishAction(TStructView<FFaerieCraftingActionBase> Action, EGenerationActionResult Result, const FText& Message);
 	void FinishActionImpl(FFaerieCraftingActionBase& Action, EGenerationActionResult Result) const;
 
 private:

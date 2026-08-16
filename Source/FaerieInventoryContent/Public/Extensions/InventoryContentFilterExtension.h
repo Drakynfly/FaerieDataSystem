@@ -6,7 +6,7 @@
 
 #include "InventoryContentFilterExtension.generated.h"
 
-class UFaerieItemDataFilter;
+struct FFaerieItemDataFilterBase;
 
 /**
  * An extension that only allows items matching a filter to be contained.
@@ -18,10 +18,10 @@ class FAERIEINVENTORYCONTENT_API UInventoryContentFilterExtension : public UItem
 
 protected:
 	//~ UItemContainerExtensionBase
-	virtual EEventExtensionResponse AllowsAddition(TNotNull<const UFaerieItemContainerBase*> Container, TConstArrayView<FFaerieItemDataView> Views, FFaerieExtensionAllowsAdditionArgs Args) const override;
+	virtual EEventExtensionResponse AllowsAddition(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args) const override;
 	//~ UItemContainerExtensionBase
 
 	// Filter used to determine if an item can be contained in the inventory
 	UPROPERTY(EditAnywhere, Category = "Config", meta = (DisplayThumbnail = false))
-	TObjectPtr<UFaerieItemDataFilter> Filter;
+	TInstancedStruct<FFaerieItemDataFilterBase> Filter;
 };

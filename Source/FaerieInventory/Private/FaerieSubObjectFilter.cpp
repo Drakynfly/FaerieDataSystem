@@ -10,10 +10,11 @@
 
 namespace Faerie::SubObject
 {
-	void GetTemplateContainersInInstanceDirect(const ItemData::FReference& Reference, TArray<TNotNull<const UFaerieItemContainerBase*>>& Containers, const TNotNull<const UClass*> Class)
+	void GetTemplateContainersInInstanceDirect(const TValid<const FFaerieItemInstance&> Item, TArray<TNotNull<const UFaerieItemContainerBase*>>& Containers, const TNotNull<const UClass*> Class)
 	{
-		auto StacksFragment = ItemData::GetDefaultFragment<FFaerieChildStackFragment>(Reference->GetItemPtr());
-		auto StorageFragment = ItemData::GetDefaultFragment<FFaerieItemStorageFragment>(Reference->GetItemPtr());
+		const UFaerieItem* ItemAsset = ValidGet(Item).GetItemPtr();
+		auto StacksFragment = ItemData::GetDefaultFragment<FFaerieChildStackFragment>(ItemAsset);
+		auto StorageFragment = ItemData::GetDefaultFragment<FFaerieItemStorageFragment>(ItemAsset);
 
 		if (StacksFragment.IsValid())
 		{
@@ -40,11 +41,11 @@ namespace Faerie::SubObject
 		}
 	}
 
-	void GetTemplateContainersInInstanceRecursive(const ItemData::FReference& Reference,
+	void GetTemplateContainersInInstanceRecursive(const TValid<const FFaerieItemInstance&> Item,
 		TArray<TNotNull<const UFaerieItemContainerBase*>>& Containers, const TNotNull<const UClass*> Class)
 	{
 		const int32 CountBeforeThisRecursion = Containers.Num();
-		GetTemplateContainersInInstanceDirect(Reference, Containers, Class);
+		GetTemplateContainersInInstanceDirect(Item, Containers, Class);
 		const int32 CountAfterThisRecursion = Containers.Num();
 		for (int32 i = CountBeforeThisRecursion; i < CountAfterThisRecursion; ++i)
 		{
@@ -55,10 +56,11 @@ namespace Faerie::SubObject
 		}
 	}
 
-	void GetContainersInInstanceDirect(const ItemData::FRequireEntityManager& EntityManager, const ItemData::FMutableReference& Reference, TArray<TNotNull<UFaerieItemContainerBase*>>& Containers, const TNotNull<const UClass*> Class)
+	void GetContainersInInstanceDirect(const FMassEntityManager& EntityManager, const TValid<const FFaerieItemInstance&> Item, TArray<TNotNull<UFaerieItemContainerBase*>>& Containers, const TNotNull<const UClass*> Class)
 	{
-		auto* StacksFragment = ItemData::GetEntityFragment<FFaerieChildStackFragment>(EntityManager, Reference->GetMassEntityHandle());
-		auto* StorageFragment = ItemData::GetEntityFragment<FFaerieItemStorageFragment>(EntityManager, Reference->GetMassEntityHandle());
+		const FMassEntityHandle Entity = ValidGet(Item).GetMassEntityHandle();
+		auto* StacksFragment = ItemData::GetEntityFragment<FFaerieChildStackFragment>(EntityManager, Entity);
+		auto* StorageFragment = ItemData::GetEntityFragment<FFaerieItemStorageFragment>(EntityManager, Entity);
 
 		if (StacksFragment)
 		{
@@ -85,12 +87,12 @@ namespace Faerie::SubObject
 		}
 	}
 
-	void GetContainersInInstanceRecursive(const ItemData::FRequireEntityManager& EntityManager,
-		const ItemData::FMutableReference& Reference, TArray<TNotNull<UFaerieItemContainerBase*>>& Containers,
+	void GetContainersInInstanceRecursive(const FMassEntityManager& EntityManager,
+		const TValid<const FFaerieItemInstance&> Item, TArray<TNotNull<UFaerieItemContainerBase*>>& Containers,
 		const TNotNull<const UClass*> Class)
 	{
 		const int32 CountBeforeThisRecursion = Containers.Num();
-		GetContainersInInstanceDirect(EntityManager, Reference, Containers, Class);
+		GetContainersInInstanceDirect(EntityManager, Item, Containers, Class);
 		const int32 CountAfterThisRecursion = Containers.Num();
 		for (int32 i = CountBeforeThisRecursion; i < CountAfterThisRecursion; ++i)
 		{
@@ -101,7 +103,7 @@ namespace Faerie::SubObject
 		}
 	}
 
-	void GetChildrenInItem(const ItemData::FRequireEntityManager& EntityManager, const ItemData::FMutableReference& Item, TArray<ItemData::FReference>& OutInstances)
+	void GetChildrenInItem(const FMassEntityManager& EntityManager, const TValid<const FFaerieItemInstance&> Item, TArray<FFaerieItemInstance>& OutInstances)
 	{
 		for (UFaerieItemContainerBase* Container : SubObject::Iterate(EntityManager, Item))
 		{
@@ -112,7 +114,7 @@ namespace Faerie::SubObject
 		}
 	}
 
-	void GetChildrenInItemRecursive(const ItemData::FRequireEntityManager& EntityManager, const ItemData::FMutableReference& Item, TArray<ItemData::FReference>& OutInstances)
+	void GetChildrenInItemRecursive(const FMassEntityManager& EntityManager, const TValid<const FFaerieItemInstance&> Item, TArray<FFaerieItemInstance>& OutInstances)
 	{
 		const int32 CountBeforeThisRecursion = OutInstances.Num();
 		GetChildrenInItem(EntityManager, Item, OutInstances);
@@ -121,7 +123,7 @@ namespace Faerie::SubObject
 		{
 			auto&& Child = OutInstances[i];
 
-			if (Child->IsMutable())
+			if (Child.IsMutable())
 			{
 				for (UFaerieItemContainerBase* Container : SubObject::Iterate(EntityManager, Child))
 				{
@@ -147,21 +149,21 @@ namespace Faerie::SubObject
 		}
 	}
 
-	TArray<TNotNull<UFaerieItemContainerBase*>> GetAllContainersInItem_Inline(const ItemData::FRequireEntityManager& EntityManager, const ItemData::FMutableReference& Item)
+	static TArray<TNotNull<UFaerieItemContainerBase*>> GetAllContainersInItem_Inline(const FMassEntityManager& EntityManager, const TValid<const FFaerieItemInstance&> Item)
 	{
 		TArray<TNotNull<UFaerieItemContainerBase*>> Containers;
 		GetContainersInInstanceDirect(EntityManager, Item, Containers);
 		return Containers;
 	}
 
-	TArray<TNotNull<UFaerieItemContainerBase*>> GetAllContainersInItemRecursive_Inline(const ItemData::FRequireEntityManager& EntityManager, const ItemData::FMutableReference& Item)
+	static TArray<TNotNull<UFaerieItemContainerBase*>> GetAllContainersInItemRecursive_Inline(const FMassEntityManager& EntityManager, const TValid<const FFaerieItemInstance&> Item)
 	{
 		TArray<TNotNull<UFaerieItemContainerBase*>> Containers;
 		GetContainersInInstanceRecursive(EntityManager, Item, Containers);
 		return Containers;
 	}
 
-	FContainerIterator::FContainerIterator(const ItemData::FRequireEntityManager& EntityManager, const ItemData::FMutableReference& Item)
+	FContainerIterator::FContainerIterator(const FMassEntityManager& EntityManager, const TValid<const FFaerieItemInstance&> Item)
 	  : Containers(GetAllContainersInItem_Inline(EntityManager, Item)),
 		Iterator(Containers.CreateIterator()) {}
 
@@ -174,7 +176,7 @@ namespace Faerie::SubObject
 		while (Iterator && !IsValid(NotNullGet(Iterator.operator*())));
 	}
 
-	FRecursiveContainerIterator::FRecursiveContainerIterator(const ItemData::FRequireEntityManager& EntityManager, const ItemData::FMutableReference& Item)
+	FRecursiveContainerIterator::FRecursiveContainerIterator(const FMassEntityManager& EntityManager, const TValid<const FFaerieItemInstance&> Item)
 	  : Containers(GetAllContainersInItemRecursive_Inline(EntityManager, Item)),
 		Iterator(Containers.CreateIterator()) {}
 }

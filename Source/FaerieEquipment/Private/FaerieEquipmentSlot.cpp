@@ -6,7 +6,6 @@
 #include "FaerieEquipmentSlotDescription.h"
 #include "FaerieEquipmentLog.h"
 #include "FaerieItem.h"
-#include "FaerieItemDataView.h"
 #include "FaerieItemOwnership.h"
 #include "FaerieItemTemplate.h"
 #include "FaerieSubObjectFilter.h"
@@ -56,7 +55,7 @@ FFaerieEquipmentSlotSaveData UFaerieEquipmentSlot::MakeSlotData(FFaerieItemConta
 	{
 		SlotSaveData.ItemObject = ItemStack.Instance.GetItemPtr();
 		SlotSaveData.Copies = ItemStack.Copies;
-		SlotSaveData.ExportData = ExportItemData(ItemData::FRequireEntityManager(this), ItemStack.Instance);
+		SlotSaveData.ExportData = ExportItemData(ItemData::GetFaerieEntityManagerChecked(), ItemStack.Instance);
 	}
 	return SlotSaveData;
 }
@@ -79,15 +78,15 @@ void UFaerieEquipmentSlot::LoadSlotData(const FFaerieEquipmentSlotSaveData& Slot
 	if (SlotData.Copies > 0)
 	{
 		// Rebuild instance from save data
-		ItemData::FRequireEntityManager EntityManager(this);
+		auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
 		const FFaerieItemInstance Instance = ImportItemData(EntityManager, SlotData.ItemObject, SlotData.ExportData);
 
 		if (Container::ValidateItemData(Instance) &&
 			SlotData.Copies > 0)
 		{
 			// If it validated, store in slot.
-			const FFaerieItemDataView DataView(Instance, SlotData.Copies, nullptr);
-			SetStoredItem_Impl(DataView);
+			const TValid<FFaerieUnownedItemStack> NewItemStack(Instance, SlotData.Copies);
+			SetStoredItem_Impl(NewItemStack);
 		}
 		else
 		{
@@ -102,11 +101,11 @@ void UFaerieEquipmentSlot::LoadSlotData(const FFaerieEquipmentSlotSaveData& Slot
 }
 //~ UFaerieItemContainerBase
 
-bool UFaerieEquipmentSlot::CouldSetInSlot(const FFaerieItemDataView& View) const
+bool UFaerieEquipmentSlot::CouldSetInSlot(const FFaerieItemProxy& Proxy) const
 {
-	if (!View.IsValid()) return false;
+	if (!Proxy.IsValid()) return false;
 
-	const int32 ViewCopies = View.GetCopies();
+	const int32 ViewCopies = Proxy.GetCopies();
 	if (Config.SingleItemSlot && ViewCopies > 1)
 	{
 		return false;
@@ -114,27 +113,28 @@ bool UFaerieEquipmentSlot::CouldSetInSlot(const FFaerieItemDataView& View) const
 
 	static constexpr FFaerieExtensionAllowsAdditionArgs Args = { EFaerieStorageAddStackBehavior::OnlyNewStacks };
 
-	if (Extensions::FGroupAPI::AllowsAddition(Extensions, this, MakeConstArrayView(&View, 1), Args) == EEventExtensionResponse::Disallowed)
+	if (Extensions::FGroupAPI::AllowsAddition(Extensions, this, MakeConstArrayView(&Proxy, 1), Args) == EEventExtensionResponse::Disallowed)
 	{
 		return false;
 	}
 
 	if (IsValid(Config.SlotDescription))
 	{
-		return Config.SlotDescription->Template->TryMatch(this, View);
+		auto* EntityManager = ItemData::GetFaerieEntityManager();
+		return Config.SlotDescription->Template->TryMatch(EntityManager, Proxy);
 	}
 
 	return false;
 }
 
-bool UFaerieEquipmentSlot::CanSetInSlot(const FFaerieItemDataView& View) const
+bool UFaerieEquipmentSlot::CanSetInSlot(const FFaerieItemProxy& Proxy) const
 {
-	if (!View.IsValid()) return false;
+	if (!Proxy.IsValid()) return false;
 
 	if (IsFilled())
 	{
 		// Cannot switch items. Remove current first.
-		if (View.GetInstance() != ItemStack.Instance)
+		if (Proxy.GetItemInstanceOrInvalid() != ItemStack.Instance)
 		{
 			return false;
 		}
@@ -147,7 +147,7 @@ bool UFaerieEquipmentSlot::CanSetInSlot(const FFaerieItemDataView& View) const
 
 	static constexpr FFaerieExtensionAllowsAdditionArgs Args = { EFaerieStorageAddStackBehavior::OnlyNewStacks };
 
-	if (Extensions::FGroupAPI::AllowsAddition(Extensions, this, MakeConstArrayView(&View, 1), Args) == EEventExtensionResponse::Disallowed)
+	if (Extensions::FGroupAPI::AllowsAddition(Extensions, this, MakeConstArrayView(&Proxy, 1), Args) == EEventExtensionResponse::Disallowed)
 	{
 		return false;
 	}
@@ -155,7 +155,8 @@ bool UFaerieEquipmentSlot::CanSetInSlot(const FFaerieItemDataView& View) const
 	if (IsValid(Config.SlotDescription) &&
 		IsValid(Config.SlotDescription->Template))
 	{
-		return Config.SlotDescription->Template->TryMatch(this, View);
+		auto* EntityManager = ItemData::GetFaerieEntityManager();
+		return Config.SlotDescription->Template->TryMatch(EntityManager, Proxy);
 	}
 
 	return true;
@@ -171,7 +172,7 @@ FFaerieAssetInfo UFaerieEquipmentSlot::GetSlotInfo() const
 	return FFaerieAssetInfo();
 }
 
-const UFaerieEquipmentSlot* UFaerieEquipmentSlot::FindSlot(const ItemData::FRequireEntityManager& EntityManager, const FFaerieSlotTag SlotTag, const bool bRecursive) const
+const UFaerieEquipmentSlot* UFaerieEquipmentSlot::FindSlot(const FMassEntityManager& EntityManager, const FFaerieSlotTag SlotTag, const bool bRecursive) const
 {
 	if (IsFilled())
 	{

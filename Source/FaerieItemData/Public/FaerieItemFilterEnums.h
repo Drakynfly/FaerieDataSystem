@@ -10,7 +10,29 @@ enum class EFaerieItemDataMutabilityStatus : uint8
 	Unknown,
 	KnownMutable,
 	KnownImmutable,
+	Conflict
 };
+
+namespace Faerie
+{
+	inline EFaerieItemDataMutabilityStatus CombineStatuses(const EFaerieItemDataMutabilityStatus A, const EFaerieItemDataMutabilityStatus B)
+	{
+		if (A == EFaerieItemDataMutabilityStatus::Conflict || B == EFaerieItemDataMutabilityStatus::Conflict)
+		{
+			return EFaerieItemDataMutabilityStatus::Conflict;
+		}
+
+		if (A == EFaerieItemDataMutabilityStatus::Unknown) return B;
+		if (B == EFaerieItemDataMutabilityStatus::Unknown) return A;
+
+		if (A == B)
+		{
+			return A;
+		}
+
+		return EFaerieItemDataMutabilityStatus::Conflict;
+	}
+}
 
 UENUM()
 enum class EFaerieCopiesCompareOperator : uint8

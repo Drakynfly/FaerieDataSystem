@@ -1,7 +1,6 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieItemOwnership.h"
-#include "EntityManagerHelpers.h"
 #include "FaerieContainerIterator.h"
 #include "FaerieItem.h"
 #include "FaerieItemContainerBase.h"
@@ -12,13 +11,13 @@
 
 namespace Faerie::Container
 {
-	bool ValidateItemData(const ItemData::FReference& Reference)
+	bool ValidateItemData(const TValid<const FFaerieItemInstance&> Instance)
 	{
 		bool HitError = false;
 
-		if (Reference->HasItemAsset())
+		if (ValidGet(Instance).HasItemAsset())
 		{
-			const UFaerieItem* Asset = Reference->GetItemPtr();
+			auto Asset = ValidGet(Instance).GetItemPtr();
 			// Check that the item version is correct.
 			if (Asset->GetAssetFormatVersion() < static_cast<int32>(ItemData::EFormatVersion::LatestVersion))
 			{
@@ -27,21 +26,21 @@ namespace Faerie::Container
 			}
 		}
 
-		if (Reference->HasMassEntity())
+		if (ValidGet(Instance).HasMassEntity())
 		{
-			const auto Entity = Reference->GetMassEntityHandle();
+			const auto Entity = ValidGet(Instance).GetMassEntityHandle();
 			// @Todo entity validation
 		}
 
 		return !HitError;
 	}
 
-	UFaerieItemContainerBase* GetItemOwner(const ItemData::FRequireEntityManager& EntityManager, const ItemData::FMutableReference& Instance)
+	UFaerieItemContainerBase* GetItemOwner(const FMassEntityManager& EntityManager, const TValid<const FFaerieItemInstance&> Instance)
 	{
-		const FMassEntityHandle Entity = Instance->GetMassEntityHandle();
-		if (EntityManager->IsEntityValid(Entity))
+		const FMassEntityHandle Entity = ValidGet(Instance).GetMassEntityHandle();
+		if (EntityManager.IsEntityValid(Entity))
 		{
-			if (const FFaerieMassItemOwner* Fragment = EntityManager->GetConstSharedFragmentDataPtr<FFaerieMassItemOwner>(Entity))
+			if (const FFaerieMassItemOwner* Fragment = EntityManager.GetConstSharedFragmentDataPtr<FFaerieMassItemOwner>(Entity))
 			{
 				return Cast<UFaerieItemContainerBase>(Fragment->GetInterface());
 			}
@@ -49,37 +48,91 @@ namespace Faerie::Container
 		return nullptr;
 	}
 
-	template <bool IsSubItem>
-	void ReleaseOwnership_Impl(const ItemData::FRequireEntityManager& EntityManager, AActor* RegisteringActor, const TNotNull<UFaerieItemContainerBase*> Owner, const ItemData::FMutableReference& Instance)
+	namespace
 	{
-		TArray<TNotNull<UFaerieItemContainerBase*>> Containers;
-		SubObject::GetContainersInInstanceDirect(EntityManager, Instance, Containers);
-		for (TNotNull<UFaerieItemContainerBase*> Container : Containers)
+		template <bool IsSubItem>
+		void ReleaseOwnership_Impl(FMassEntityManager& EntityManager, AActor* RegisteringActor, const TNotNull<UFaerieItemContainerBase*> Owner, const TValid<const FFaerieItemInstance&> Instance)
 		{
-			if (RegisteringActor)
+			TArray<TNotNull<UFaerieItemContainerBase*>> Containers;
+			SubObject::GetContainersInInstanceDirect(EntityManager, Instance, Containers);
+			for (TNotNull<UFaerieItemContainerBase*> Container : Containers)
 			{
-				Container->DeinitializeNetObject(RegisteringActor);
-				RegisteringActor->RemoveReplicatedSubObject(Container);
+				if (RegisteringActor)
+				{
+					Container->DeinitializeNetObject(RegisteringActor);
+					RegisteringActor->RemoveReplicatedSubObject(Container);
+				}
+
+				// If the object has an extension group, clear its parent.
+				Container->GetExtensions()->ClearParentGroup();
+
+				// If the object contains nested items, release ownership recursively.
+				for (auto It = Container::MutableItemRange(Container); It; ++It)
+				{
+					ReleaseOwnership_Impl<true>(EntityManager, RegisteringActor, Owner, It.GetInstance());
+				}
 			}
 
-			// If the object has an extension group, clear its parent.
-			Container->GetExtensions()->ClearParentGroup();
-
-			// If the object contains nested items, release ownership recursively.
-			for (auto It = Container::MutableItemRange(Container); It; ++It)
+			if constexpr (!IsSubItem)
 			{
-				ReleaseOwnership_Impl<true>(EntityManager, RegisteringActor, Owner, It.GetReference());
+				// Remove the owner fragment
+				EntityManager.RemoveConstSharedFragmentFromEntity<FFaerieMassItemOwner>(ValidGet(Instance).GetMassEntityHandle());
 			}
 		}
 
-		if constexpr (!IsSubItem)
+		void TakeOwnership_Impl_SubItem(FMassEntityManager& EntityManager, AActor* RegisteringActor, const TNotNull<UFaerieItemContainerBase*> Owner, const TValid<const FFaerieItemInstance&> Instance)
 		{
-			// Remove the owner fragment
-			EntityManager->RemoveConstSharedFragmentFromEntity<FFaerieMassItemOwner>(Instance->GetMassEntityHandle());
+			UItemContainerExtensionGroup* OuterExtensions = Owner->GetExtensions();
+
+			TArray<TNotNull<UFaerieItemContainerBase*>> Containers;
+			SubObject::GetContainersInInstanceDirect(EntityManager, Instance, Containers);
+			for (TNotNull<UFaerieItemContainerBase*> Container : Containers)
+			{
+				if (RegisteringActor)
+				{
+					RegisteringActor->AddReplicatedSubObject(Container);
+					Container->InitializeNetObject(RegisteringActor);
+				}
+
+				// If the object has an extension group, set its parent to ours.
+				if (IsValid(OuterExtensions))
+				{
+					Container->GetExtensions()->SetParentGroup(OuterExtensions);
+				}
+
+				// If the object contains nested items, take ownership recursively.
+				for (auto It = Container::MutableItemRange(Container); It; ++It)
+				{
+					TakeOwnership_Impl_SubItem(EntityManager, RegisteringActor, Owner, It.GetInstance());
+				}
+			}
+		}
+
+		void TakeOwnership_Impl_Root(FMassEntityManager& EntityManager, AActor* RegisteringActor, const TNotNull<UFaerieItemContainerBase*> Owner, const TValid<FFaerieItemInstance&> Instance)
+		{
+			FMassEntityHandle Entity = ValidGet(Instance).GetMassEntityHandle();
+
+			// Make sure we do not already have an owner bound to this instance.
+			if (EntityManager.IsEntityValid(Entity))
+			{
+				checkfSlow(!EntityManager.GetConstSharedFragmentDataPtr<FFaerieMassItemOwner>(Entity), TEXT("This should always have been removed by the previous owner!"))
+			}
+			else
+			{
+				ValidGet(Instance).InitializeMassEntity(EntityManager);
+				Entity = ValidGet(Instance).GetMassEntityHandle();
+			}
+
+			// Mark the instance with an owner fragment.
+			const FConstSharedStruct SharedOwner = EntityManager.GetOrCreateConstSharedFragment<FFaerieMassItemOwner>(Owner);
+			EntityManager.AddConstSharedFragmentToEntity(Entity, SharedOwner);
+
+			// Also perform subitem logic.
+			TakeOwnership_Impl_SubItem(EntityManager, RegisteringActor, Owner, Instance);
 		}
 	}
 
-	void ClearOwnership(const ItemData::FRequireEntityManager& EntityManager, const ItemData::FMutableReference& Instance)
+	void ClearOwnership(FMassEntityManager& EntityManager, const TValid<const FFaerieItemInstance&> Instance)
 	{
 		if (UFaerieItemContainerBase* Outer = GetItemOwner(EntityManager, Instance))
 		{
@@ -87,51 +140,7 @@ namespace Faerie::Container
 		}
 	}
 
-	template <bool IsSubItem>
-	void TakeOwnership_Impl(const ItemData::FRequireEntityManager& EntityManager, AActor* RegisteringActor, const TNotNull<UFaerieItemContainerBase*> Owner, const ItemData::FMutableReference& Instance)
-	{
-		// If the item is not a SubItem, mark it with an owner fragment.
-		if constexpr (!IsSubItem)
-		{
-			// Make sure we do not already have an owner bound to this instance.
-			if (EntityManager->IsEntityValid(Instance->GetMassEntityHandle()))
-			{
-				checkfSlow(!EntityManager->GetConstSharedFragmentDataPtr<FFaerieMassItemOwner>(Instance->GetMassEntityHandle()), TEXT("This should always have been removed by the previous owner!"))
-			}
-
-			Instance->InitializeMassEntityIfInvalid(EntityManager);
-
-			const FConstSharedStruct SharedOwner = EntityManager->GetOrCreateConstSharedFragment<FFaerieMassItemOwner>(Owner);
-			EntityManager->AddConstSharedFragmentToEntity(Instance->GetMassEntityHandle(), SharedOwner);
-		}
-
-		UItemContainerExtensionGroup* OuterExtensions = Owner->GetExtensions();
-
-		TArray<TNotNull<UFaerieItemContainerBase*>> Containers;
-		SubObject::GetContainersInInstanceDirect(EntityManager, Instance, Containers);
-		for (TNotNull<UFaerieItemContainerBase*> Container : Containers)
-		{
-			if (RegisteringActor)
-			{
-				RegisteringActor->AddReplicatedSubObject(Container);
-				Container->InitializeNetObject(RegisteringActor);
-			}
-
-			// If the object has an extension group, set its parent to ours.
-			if (IsValid(OuterExtensions))
-			{
-				Container->GetExtensions()->SetParentGroup(OuterExtensions);
-			}
-
-			// If the object contains nested items, take ownership recursively.
-			for (auto It = Container::MutableItemRange(Container); It; ++It)
-			{
-				TakeOwnership_Impl<true>(EntityManager, RegisteringActor, Owner, It.GetReference());
-			}
-		}
-	}
-
-	void ReleaseOwnership(const ItemData::FRequireEntityManager& EntityManager, const TNotNull<UFaerieItemContainerBase*> Owner, const ItemData::FMutableReference& Instance)
+	void ReleaseOwnership(FMassEntityManager& EntityManager, const TNotNull<UFaerieItemContainerBase*> Owner, const TValid<const FFaerieItemInstance&> Instance)
 	{
 		AActor* RegisteringActor = [Owner]() -> AActor*
 		{
@@ -146,7 +155,7 @@ namespace Faerie::Container
 		ReleaseOwnership_Impl<false>(EntityManager, RegisteringActor, Owner, Instance);
 	}
 
-	void TakeOwnership(const ItemData::FRequireEntityManager& EntityManager, const TNotNull<UFaerieItemContainerBase*> Owner, const ItemData::FMutableReference& Instance)
+	void TakeOwnership(FMassEntityManager& EntityManager, const TNotNull<UFaerieItemContainerBase*> Owner, const TValid<FFaerieItemInstance&> Instance)
 	{
 		AActor* RegisteringActor = [Owner]() -> AActor*
 		{
@@ -158,6 +167,6 @@ namespace Faerie::Container
 			return nullptr;
 		}();
 
-		TakeOwnership_Impl<false>(EntityManager, RegisteringActor, Owner, Instance);
+		TakeOwnership_Impl_Root(EntityManager, RegisteringActor, Owner, Instance);
 	}
 }

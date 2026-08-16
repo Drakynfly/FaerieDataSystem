@@ -4,7 +4,6 @@
 
 #include "LoopUtils.h"
 #include "DebuggingFlags.h"
-#include "FaerieItem.h"
 #include "FaerieItemContainerBase.h"
 
 namespace Faerie::Container
@@ -114,9 +113,6 @@ namespace Faerie::Container
 			}
 		}
 
-		// @todo if this compiles, move the FFaerieItemDataView to a member
-		[[nodiscard]] UE_REWRITE ItemData::FValidatedDataView GetPtr() const { return FFaerieItemDataView(IteratorPtr.Get()); }
-
 		[[nodiscard]] UE_REWRITE ResolveType operator*() const
 		{
 			LOG_ITERATOR_MESSAGE("TIterator::operator*");
@@ -129,14 +125,9 @@ namespace Faerie::Container
 			{
 				return IteratorPtr->ResolveAddress();
 			}
-			else if constexpr (std::is_same_v<ResolveType, ItemData::FReference>)
+			else if constexpr (std::is_same_v<ResolveType, FFaerieItemInstance>)
 			{
-				return IteratorPtr->ResolveItem();
-			}
-			else if constexpr (std::is_same_v<ResolveType, ItemData::FMutableReference>)
-			{
-				// Implicit conversion to FReference
-				return IteratorPtr->ResolveItem();
+				return IteratorPtr->GetItemInstance().GetValue();
 			}
 			else
 			{
@@ -146,7 +137,7 @@ namespace Faerie::Container
 
 		void AdvanceWhileImmutable()
 		{
-			while (static_cast<bool>(*this) && !IteratorPtr->ResolveItem()->IsMutable())
+			while (static_cast<bool>(*this) && !IteratorPtr->GetItemInstance().GetValue().IsMutable())
 			{
 				IteratorPtr->Advance();
 			}
@@ -154,23 +145,14 @@ namespace Faerie::Container
 
 		[[nodiscard]] UE_REWRITE FFaerieEntryKey GetKey() const { return IteratorPtr->ResolveKey(); }
 		[[nodiscard]] UE_REWRITE FFaerieAddress GetAddress() const { return IteratorPtr->ResolveAddress(); }
-		[[nodiscard]] UE_REWRITE int32 GetCopies() const { return IteratorPtr->ResolveCopies(); }
-		[[nodiscard]] UE_REWRITE auto GetReference() const
-		{
-			if constexpr (Toggle == OnlyMutableInstances)
-			{
-				return ItemData::FMutableReference(IteratorPtr->ResolveItem());
-			}
-			else
-			{
-				return ItemData::FReference(IteratorPtr->ResolveItem());
-			}
-		}
+		[[nodiscard]] UE_REWRITE int32 GetCopies() const { return IteratorPtr->GetCopies(); }
+		[[nodiscard]] UE_REWRITE FFaerieItemInstance GetInstance() const { return IteratorPtr->GetItemInstance().GetValue(); }
+		[[nodiscard]] UE_REWRITE TOptional<TNotNull<FFaerieItemInstance*>> GetReference() const { return IteratorPtr->ResolveReference(); }
 
 		// As we are in FaerieInventory, we can cast to the actual UObject type.
-		[[nodiscard]] UE_REWRITE const UFaerieItemContainerBase* GetOwner() const { return CastChecked<UFaerieItemContainerBase>(IteratorPtr->ResolveOwner()); }
+		[[nodiscard]] UE_REWRITE const UFaerieItemContainerBase* GetOwner() const { return CastChecked<UFaerieItemContainerBase>(IteratorPtr->GetItemOwner()); }
 
-		[[nodiscard]] UE_REWRITE FFaerieItemProxy GetProxy() const { return GetOwner()->Proxy(GetAddress()); }
+		[[nodiscard]] UE_REWRITE FFaerieItemProxy GetProxy() const { return FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, IteratorPtr.Get()); }
 
 		UE_REWRITE void operator++()
 		{
@@ -208,8 +190,8 @@ namespace Faerie::Container
 
 	using FKeyIterator = TIterator<FFaerieEntryKey, AllInstances, IEntryIterator>;
 	using FAddressIterator = TIterator<FFaerieAddress, AllInstances, IAddressIterator>;
-	using FItemIterator = TIterator<ItemData::FReference, AllInstances, IEntryIterator>;
-	using FMutableItemIterator = TIterator<ItemData::FMutableReference, OnlyMutableInstances, IEntryIterator>;
+	using FItemIterator = TIterator<FFaerieItemInstance, AllInstances, IEntryIterator>;
+	using FMutableItemIterator = TIterator<FFaerieItemInstance, OnlyMutableInstances, IEntryIterator>;
 
 	// Enables ranged for-loops through each key in the container. Simple range with no filtering.
 	FAERIEINVENTORY_API FKeyIterator KeyRange(TNotNull<const UFaerieItemContainerBase*> Container);

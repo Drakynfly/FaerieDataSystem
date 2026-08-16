@@ -44,9 +44,9 @@ void AFaerieItemOwningActorBase::InitStackFromConfig(const bool RegenerateDispla
 		IsValid(SourceAsset))
 	{
 		FFaerieItemInstancingContext Context;
-		Context.ItemInstanceOuter = ItemStack;
 		Context.CopiesOverride = StackCopies;
 		Context.RunningInEditor = true;
+		Context.Editor_ItemInstanceOuter = this;
 		Context.CreateReferencingInstance = true;
 		if (const ItemData::FGetInstanceResult Result = SourceAsset->CreateItemStack(Context);
 			Result.IsValid())
@@ -160,7 +160,7 @@ void AFaerieItemOwningActorBase::BeginPlay()
 		auto Instance = ItemStack->GetItemInstance();
 		if (Instance.IsSet() && Instance->IsMutable())
 		{
-			auto EntityManager = ItemData::FRequireEntityManager(this);
+			auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
 			Instance->InitializeMassEntity(EntityManager);
 
 			Container::TakeOwnership(EntityManager, ItemStack, Instance.GetValue());

@@ -22,17 +22,14 @@ class FAERIEITEMGENERATOR_API UFaerieItemUpgradeConfigBase : public UObject
 public:
 	virtual void GetRequiredAssets(TArray<TSoftObjectPtr<UObject>>& Array);
 
-	virtual bool CanApplyUpgrade(TNotNull<UObject*> WorldContext, const FFaerieItemProxy& Proxy) const { return true; }
+	virtual bool CanApplyUpgrade(const FMassEntityManager* EntityManager, const FFaerieItemProxy& Proxy) const { return true; }
 
-	virtual bool CanPayCost(TNotNull<UObject*> WorldContext, const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemProxy& Proxy) const { return true; }
+	virtual bool CanPayCost(const FMassEntityManager* EntityManager, const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemProxy& Proxy) const { return true; }
 
-	virtual void PayCost(TNotNull<UObject*> WorldContext, const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemProxy& Proxy) const {}
+	virtual void PayCost(FMassEntityManager* EntityManager, const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemProxy& Proxy) const {}
 
-	virtual bool ApplyUpgrade(TNotNull<UObject*> WorldContext, FFaerieCraftingActionData& Stacks, USquirrel* Squirrel) const
+	virtual bool ApplyUpgrade(FMassEntityManager* EntityManager, FFaerieCraftingActionData& Stacks, USquirrel* Squirrel) const
 		PURE_VIRTUAL(UFaerieItemUpgradeConfigBase::ApplyUpgrade, return false; )
-
-	virtual bool ApplyPayment(TNotNull<UObject*> WorldContext, FFaerieCraftingActionData& Stacks) const
-		PURE_VIRTUAL(UFaerieItemUpgradeConfigBase::ApplyPayment, return false; )
 };
 
 class UFaerieItemUpgradeConfig;
@@ -66,11 +63,11 @@ public:
 
 	virtual void GetRequiredAssets(TArray<TSoftObjectPtr<UObject>>& Array) override;
 
-	virtual bool CanPayCost(TNotNull<UObject*> WorldContext, const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemProxy& Proxy) const override;
+	virtual bool CanPayCost(const FMassEntityManager* EntityManager, const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemProxy& Proxy) const override;
 
-	virtual void PayCost(TNotNull<UObject*> WorldContext, const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemProxy& Proxy) const override;
+	virtual void PayCost(FMassEntityManager* EntityManager, const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemProxy& Proxy) const override;
 
-	virtual bool ApplyUpgrade(TNotNull<UObject*> WorldContext, FFaerieCraftingActionData& Stacks, USquirrel* Squirrel) const override;
+	virtual bool ApplyUpgrade(FMassEntityManager* EntityManager, FFaerieCraftingActionData& Stacks, USquirrel* Squirrel) const override;
 
 	// Mutators groups.
 	UPROPERTY(EditAnywhere, Category = "Upgrade Config")
@@ -90,21 +87,21 @@ class FAERIEITEMGENERATOR_API UFaerieItemUpgradeConfig_BlueprintBase final : pub
 	GENERATED_BODY()
 
 public:
-	virtual bool CanApplyUpgrade(TNotNull<UObject*> WorldContext, const FFaerieItemProxy& Proxy) const override;
-	virtual bool CanPayCost(TNotNull<UObject*> WorldContext, const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemProxy& Proxy) const override;
-	virtual void PayCost(TNotNull<UObject*> WorldContext, const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemProxy& Proxy) const override;
-	virtual bool ApplyUpgrade(TNotNull<UObject*> WorldContext, FFaerieCraftingActionData& Stacks, USquirrel* Squirrel) const override;
+	virtual bool CanApplyUpgrade(const FMassEntityManager* EntityManager, const FFaerieItemProxy& Proxy) const override;
+	virtual bool CanPayCost(const FMassEntityManager* EntityManager, const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemProxy& Proxy) const override;
+	virtual void PayCost(FMassEntityManager* EntityManager, const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemProxy& Proxy) const override;
+	virtual bool ApplyUpgrade(FMassEntityManager* EntityManager, FFaerieCraftingActionData& Stacks, USquirrel* Squirrel) const override;
 
 protected:
-	UFUNCTION(BlueprintImplementableEvent, Category = "Upgrade Config", meta = (WorldContext = "WorldContext", DisplayName = "Can Apply Upgrade"))
-	bool BP_CanApplyUpgrade(UObject* WorldContext, const FFaerieItemProxy& Proxy) const;
+	UFUNCTION(BlueprintImplementableEvent, Category = "Upgrade Config", meta = (DisplayName = "Can Apply Upgrade"))
+	bool BP_CanApplyUpgrade(const FFaerieItemProxy& Proxy) const;
 
-	UFUNCTION(BlueprintImplementableEvent, Category = "Upgrade Config", meta = (WorldContext = "WorldContext", DisplayName = "Can Pay Cost"))
-	bool BP_CanPayCost(UObject* WorldContext, const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemProxy& Proxy) const;
+	UFUNCTION(BlueprintImplementableEvent, Category = "Upgrade Config", meta = (DisplayName = "Can Pay Cost"))
+	bool BP_CanPayCost(const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemProxy& Proxy) const;
 
-	UFUNCTION(BlueprintImplementableEvent, Category = "Upgrade Config", meta = (WorldContext = "WorldContext", DisplayName = "Pay Cost"))
-	void BP_PayCost(UObject* WorldContext, const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemProxy& Proxy) const;
+	UFUNCTION(BlueprintImplementableEvent, Category = "Upgrade Config", meta = (DisplayName = "Pay Cost"))
+	void BP_PayCost(const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemProxy& Proxy) const;
 
-	UFUNCTION(BlueprintImplementableEvent, Category = "Upgrade Config", meta = (WorldContext = "WorldContext", DisplayName = "Apply Upgrade"))
-	bool BP_ApplyUpgrade(UObject* WorldContext, UPARAM(ref) FFaerieCraftingActionData& Stacks, USquirrel* Squirrel) const;
+	UFUNCTION(BlueprintImplementableEvent, Category = "Upgrade Config", meta = (DisplayName = "Apply Upgrade"))
+	bool BP_ApplyUpgrade(const FFaerieItemProxy& Proxy, USquirrel* Squirrel) const;
 };

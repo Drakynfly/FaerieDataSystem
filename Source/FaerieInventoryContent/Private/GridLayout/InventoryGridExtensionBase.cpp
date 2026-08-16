@@ -143,7 +143,7 @@ void UInventoryGridExtensionBase::InitializeExtension(const TNotNull<const UFaer
 	OccupiedCells.Reset(GridSize);
 	if (const UFaerieItemStorage* ItemStorage = Cast<UFaerieItemStorage>(Container))
 	{
-		for (Faerie::Storage::FIterator_AllAddresses It(ItemStorage); It; ++It)
+		for (Faerie::Container::FIterator_AllAddresses It(ItemStorage); It; ++It)
 		{
 			const FFaerieItemInstance Instance = It.GetInstance();
 			const FFaerieAddress Address = It.GetAddress();
@@ -182,14 +182,24 @@ void UInventoryGridExtensionBase::OnRep_GridSize()
 	GridSizeChangedDelegate.Broadcast(GridSize);
 }
 
-FFaerieItemDataView UInventoryGridExtensionBase::ViewAt(const FIntPoint& Position) const
+Faerie::ItemData::FScopeProxy UInventoryGridExtensionBase::ViewAt_Native(const FIntPoint& Position) const
 {
 	if (const FFaerieAddress Address = GetKeyAt(Position);
 		Address.IsValid())
 	{
 		return Cast<UFaerieItemStorage>(InitializedContainer)->ViewAddress(Address);
 	}
-	return FFaerieItemDataView();
+	return nullptr;
+}
+
+FFaerieItemProxy UInventoryGridExtensionBase::ViewAt(const FIntPoint& Position) const
+{
+	if (const FFaerieAddress Address = GetKeyAt(Position);
+		Address.IsValid())
+	{
+		return Cast<UFaerieItemStorage>(InitializedContainer)->Proxy(Address);
+	}
+	return FFaerieItemProxy();
 }
 
 FFaerieGridPlacement UInventoryGridExtensionBase::GetStackPlacementData(const FFaerieAddress Address) const

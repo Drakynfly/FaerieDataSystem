@@ -57,8 +57,8 @@ namespace Faerie::Generation
 		// The object that is running this execution.
 		TNotNull<UFaerieItemCraftingRunner*> Runner;
 
-		// The world context for used by the action runner.
-		TNotNull<UObject*> WorldContextObject;
+		// Entity manager used to access runtime item fragments.
+		FMassEntityManager* EntityManager = nullptr;
 
 		// The squirrel provided for deterministic generation (optional).
 		TWeakObjectPtr<USquirrel> Squirrel = nullptr;
@@ -83,24 +83,24 @@ struct FFaerieCraftingActionBase
 	virtual void Run(const Faerie::Generation::FActionExecution& Execution) PURE_VIRTUAL(FFaerieCraftingActionBase::Run, )
 
 protected:
-	static void CompleteWithResult(TStructView<FFaerieCraftingActionBase> ThisAction, const Faerie::Generation::FActionExecution& Execution, EGenerationActionResult Result);
+	static void CompleteWithResult(TStructView<FFaerieCraftingActionBase> ThisAction, const Faerie::Generation::FActionExecution& Execution, EGenerationActionResult Result, const FText& Message);
 
 	template <typename T>
-	static void Complete(const Faerie::Generation::FActionExecution& Execution, T* Action)
+	static void Complete(const Faerie::Generation::FActionExecution& Execution, T* Action, const FText& Message)
 	{
-		CompleteWithResult(TStructView<FFaerieCraftingActionBase>(*Action), Execution, EGenerationActionResult::Succeeded);
+		CompleteWithResult(TStructView<FFaerieCraftingActionBase>(*Action), Execution, EGenerationActionResult::Succeeded, Message);
 	}
 
 	template <typename T>
-	static void Fail(const Faerie::Generation::FActionExecution& Execution, T* Action)
+	static void Fail(const Faerie::Generation::FActionExecution& Execution, T* Action, const FText& Message)
 	{
-		CompleteWithResult(TStructView<FFaerieCraftingActionBase>(*Action), Execution, EGenerationActionResult::Failed);
+		CompleteWithResult(TStructView<FFaerieCraftingActionBase>(*Action), Execution, EGenerationActionResult::Failed, Message);
 	}
 
 	template <typename T>
-	static void Cancel(const Faerie::Generation::FActionExecution& Execution, T* Action)
+	static void Cancel(const Faerie::Generation::FActionExecution& Execution, T* Action, const FText& Message)
 	{
-		CompleteWithResult(TStructView<FFaerieCraftingActionBase>(*Action), Execution, EGenerationActionResult::Cancelled);
+		CompleteWithResult(TStructView<FFaerieCraftingActionBase>(*Action), Execution, EGenerationActionResult::Cancelled, Message);
 	}
 
 	// Storage for result data.

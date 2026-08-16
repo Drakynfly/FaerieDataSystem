@@ -2,9 +2,8 @@
 
 #pragma once
 
-#include "FaerieItemDataFwd.h"
-#include "FaerieItemDataDefines.h"
-#include "GameplayTagContainer.h"
+#include "FaerieItemInstance.h"
+#include "ValidParameter.h"
 #include "UObject/Interface.h"
 #include "FaerieItemOwnerInterface.generated.h"
 
@@ -23,13 +22,7 @@ class FAERIEITEMDATA_API IFaerieItemOwnerInterface
 	GENERATED_BODY()
 
 public:
-	// Call this function to destroy a item instance via a proxy.
-	virtual void DestroyStack(const FFaerieItemProxy& Proxy, int32 Copies = Faerie::ItemData::EntireStack) = 0;
-
-	// Call this function to grant ownership of a UFaerieItem stack. Returns true if ownership was accepted.
-	// It is implied, and is the responsibility of the implementing class, to either accept ownership of the whole stack,
-	// or none. Partial possession is not allowed.
-	[[nodiscard]] virtual bool Possess(const FFaerieUnownedItemStack& DataView) = 0;
-
-	virtual void OnItemDataChanged(const Faerie::ItemData::FMutableReference& Instance, TNotNull<const UScriptStruct*> Struct, FGameplayTag EditTag) = 0;
+	// Note: this should be protected, not public, but I don't have a workaround for this yet.
+	// Override to add logic when an item mutates while owned by the implementing object.
+	virtual void OnItemDataChanged(Faerie::TValid<const FFaerieItemInstance&> Instance, TNotNull<const UScriptStruct*> FragmentType, FGameplayTag EditTag) = 0;
 };

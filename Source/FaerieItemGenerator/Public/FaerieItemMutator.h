@@ -2,11 +2,13 @@
 
 #pragma once
 
-#include "FaerieItemDataFwd.h"
 #include "UObject/SoftObjectPtr.h"
-#include "FaerieItemGeneratorModule.h"
+
+#include "FaerieItemGeneratorModule.h" // Needed for FAERIE_IMPL_StructTypeCustomization macro
 #include "FaerieItemMutator.generated.h"
 
+struct FFaerieItemInstance;
+struct FMassEntityManager;
 class USquirrel;
 
 USTRUCT()
@@ -16,8 +18,8 @@ struct FFaerieItemMutatorContext
 
 	virtual ~FFaerieItemMutatorContext() = default;
 
-	UPROPERTY()
-	TObjectPtr<UObject> WorldContextObject;
+	// Entity manager used to access runtime item fragments.
+	FMassEntityManager* EntityManager = nullptr;
 
 	UPROPERTY()
 	TObjectPtr<USquirrel> Squirrel;
@@ -71,7 +73,7 @@ struct FAERIEITEMGENERATOR_API FFaerieItemMutator
 	virtual void GetRequiredAssets(TArray<TSoftObjectPtr<UObject>>& RequiredAssets) const {}
 
 	// Try to run this mutator on a stack.
-	virtual bool Apply(Faerie::ItemData::FMutableReference& Item, const FFaerieItemMutatorContext& Context) const PURE_VIRTUAL(FFaerieItemMutator::Apply, return false; )
+	virtual bool Apply(FFaerieItemInstance& Item, const FFaerieItemMutatorContext& Context) const PURE_VIRTUAL(FFaerieItemMutator::Apply, return false; )
 };
 
 // Macro to semi-automate implementation of virtual struct machinery.

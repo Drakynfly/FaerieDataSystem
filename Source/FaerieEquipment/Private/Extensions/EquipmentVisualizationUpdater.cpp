@@ -51,7 +51,7 @@ void UEquipmentVisualizationUpdater::DeinitializeExtension(const TNotNull<const 
 }
 
 void UEquipmentVisualizationUpdater::PreRemoval(const TNotNull<const UFaerieItemContainerBase*> Container,
-	const ItemData::TNonNullViewPtr<Container::IEntryView> DataView, const int32 Removal)
+	const TNotNull<const Container::IEntryView*> DataView, const int32 Removal)
 {
 	if (auto Slot = Cast<UFaerieEquipmentSlot>(Container))
 	{
@@ -166,13 +166,8 @@ void UEquipmentVisualizationUpdater::RemoveVisualForEntry(const UFaerieEquipment
 	RemoveVisualImpl(Visualizer, FFaerieItemProxy(Slot));
 }
 
-void UEquipmentVisualizationUpdater::CreateVisualImpl(UEquipmentVisualizer* Visualizer, const FFaerieItemProxy& Proxy)
+void UEquipmentVisualizationUpdater::CreateVisualImpl(UEquipmentVisualizer* Visualizer, TValid<const FFaerieItemProxy&> Proxy)
 {
-	if (!Proxy.IsValid())
-	{
-		return;
-	}
-
 	// Step 1: Figure out what we are attaching to.
 
 	const UVisualSlotExtension* SlotExtension = nullptr;
@@ -188,7 +183,7 @@ void UEquipmentVisualizationUpdater::CreateVisualImpl(UEquipmentVisualizer* Visu
 	}
 
 	// Step 2: What are we creating as a visual.
-	const TOptional<FFaerieItemInstance> InstanceOption = Proxy->GetItemInstance();
+	const TOptional<FFaerieItemInstance> InstanceOption = ValidGet(Proxy).GetItemInstance();
 	if (!InstanceOption.IsSet())
 	{
 		return;
@@ -196,13 +191,13 @@ void UEquipmentVisualizationUpdater::CreateVisualImpl(UEquipmentVisualizer* Visu
 
 	const FFaerieItemInstance& Instance = InstanceOption.GetValue();
 
-	ItemData::FRequireEntityManager EntityManager(this);
+	auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
 
 	// Path 1: A Visual Actor
 	{
 		TSoftClassPtr<AFaerieProxyActorBase> ActorClass = nullptr;
 
-		auto ProxyClassFragment = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieProxyActorFragment>(EntityManager, Instance);
+		auto ProxyClassFragment = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieProxyActorFragment>(&EntityManager, Instance);
 		if (ProxyClassFragment.IsValid())
 		{
 			ActorClass = ProxyClassFragment->ProxyActorClass;
@@ -325,13 +320,13 @@ void UEquipmentVisualizationUpdater::CreateVisualImpl(UEquipmentVisualizer* Visu
 	}
 }
 
-void UEquipmentVisualizationUpdater::RemoveVisualImpl(UEquipmentVisualizer* Visualizer, const FFaerieItemProxy& Proxy)
+void UEquipmentVisualizationUpdater::RemoveVisualImpl(UEquipmentVisualizer* Visualizer, const TValid<const FFaerieItemProxy&> Proxy)
 {
 	check(Visualizer);
 	Visualizer->DestroyVisualByKey({Proxy});
 
 	// Recurse over children
-	const TOptional<FFaerieItemInstance> Instance = Proxy->GetItemInstance();
+	const TOptional<FFaerieItemInstance> Instance = ValidGet(Proxy).GetItemInstance();
 	if (!Instance.IsSet())
 	{
 		return;
@@ -339,7 +334,7 @@ void UEquipmentVisualizationUpdater::RemoveVisualImpl(UEquipmentVisualizer* Visu
 
 	if (Instance->IsMutable())
 	{
-		ItemData::FRequireEntityManager EntityManager(this);
+		auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
         for (UFaerieEquipmentSlot* SubContainer : Equipment::SlotFilter.Iterate(EntityManager, Instance.GetValue()))
         {
         	auto Key = SubContainer->GetCurrentKey();

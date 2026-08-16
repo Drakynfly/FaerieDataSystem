@@ -17,14 +17,17 @@ class FAERIEITEMMESH_API AFaerieProxyActorBase : public AFaerieItemVisualBase
 public:
 	AFaerieProxyActorBase();
 
-	//~ IFaerieItemDataProxy
+	//~ Faerie::ItemData::IViewBase
 	virtual TOptional<FFaerieItemInstance> GetItemInstance() const override;
 	virtual int32 GetCopies() const override;
-	virtual IFaerieItemOwnerInterface* GetItemOwner() const override;
+	virtual const IFaerieItemOwnerInterface* GetItemOwner() const override;
+	//~ Faerie::ItemData::IViewBase
+
+	//~ IFaerieItemDataProxy
 	virtual Faerie::ItemData::FProxyChangeEvent::RegistrationType& GetOnProxyChangeEvent() override;
 	//~ IFaerieItemDataProxy
 
-	FFaerieItemProxy GetSourceProxy() const { return DataSource; }
+	const FFaerieItemProxy& GetSourceProxy() const { return DataSource; }
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemRepresentationActor", meta = (AutoCreateRefTerm = "Source"))

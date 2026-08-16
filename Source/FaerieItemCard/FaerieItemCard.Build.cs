@@ -13,6 +13,7 @@ public class FaerieItemCard : ModuleRules
             {
                 "Core",
                 "DeveloperSettings",
+                "FaerieDataUtils",
                 "FaerieItemData",
                 "GameplayTags",
                 "UMG"

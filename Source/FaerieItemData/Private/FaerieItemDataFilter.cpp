@@ -5,44 +5,44 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemDataFilter)
 
-bool UFaerieItemDataFilter::ExecWithLog(const TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View,
-										Faerie::ItemData::FFilterLogger& Logger) const
-{
-	const bool Result = Exec(WorldContextObj, View);
-	if (!Result)
-	{
-		static const FTextFormat ErrorFormat = NSLOCTEXT("FaerieItemDataFilter", "GenericFilterError", "Filter '{0}' failed. Implement ExecWithLog for more details.");
-		FFormatOrderedArguments Args;
+using namespace Faerie;
+
 #if WITH_EDITOR
-		Args.Add(GetClass()->GetDisplayNameText());
-#else
-		Args.Add(FText::FromString(GetClass()->GetName()));
+bool FFaerieItemDataFilterBase::ExecWithLog(const FMassEntityManager* EntityManager,
+	const TValid<const FFaerieItemProxy&> Proxy, ItemData::FFilterLogger& Logger) const
+{
+	return Exec(EntityManager, Proxy);
+}
 #endif
-		Logger.Errors.Add(FText::Format(ErrorFormat, Args));
-	}
 
-	return Result;
-}
-
-bool UFaerieItemDataFilter::K2_Exec(UObject* WorldContextObj, const FFaerieItemDataView& View) const
+bool FFaerieItemDataFilter_Blueprint::Exec(const FMassEntityManager*, const TValid<const FFaerieItemProxy&> Proxy) const
 {
-	if (!IsValid(WorldContextObj))
+	if (Blueprint)
 	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid WorldContextObj passed to UFaerieItemDataFilter::K2_Exec"), ELogVerbosity::Error);
-		return false;
+		return Blueprint.GetDefaultObject()->BP_Execute(Proxy);
 	}
-
-	return Exec(TNotNull<const UObject*>(WorldContextObj), Faerie::ItemData::FValidatedDataView(View));
+	return false;
 }
 
-bool UFaerieItemDataFilter_BlueprintBase::Exec(const TNotNull<const UObject*> WorldContextObj,
-	const Faerie::ItemData::FValidatedDataView& View) const
+#if WITH_EDITOR
+bool FFaerieItemDataFilter_Blueprint::ExecWithLog(const FMassEntityManager* EntityManager,
+	const TValid<const FFaerieItemProxy&> Proxy, ItemData::FFilterLogger& Logger) const
 {
-	return BP_Execute(const_cast<UObject*>(NotNullGet(WorldContextObj)), View);
+	if (Blueprint)
+	{
+		return Blueprint.GetDefaultObject()->BP_Execute(Proxy);
+	}
+	static const FText InvalidBlueprintError = NSLOCTEXT("FFaerieItemDataFilter_Blueprint", "InvalidBlueprint", "Blueprint class is invalid!");
+	Logger.Errors.Add(InvalidBlueprintError);
+	return false;
 }
 
-bool UFaerieItemDataFilter_BlueprintBase::ExecWithLog(const TNotNull<const UObject*> WorldContextObj,
-	const Faerie::ItemData::FValidatedDataView& View, Faerie::ItemData::FFilterLogger& Logger) const
+EFaerieItemDataMutabilityStatus FFaerieItemDataFilter_Blueprint::GetMutabilityStatus() const
 {
-	return BP_Execute(const_cast<UObject*>(NotNullGet(WorldContextObj)), View);
+	if (Blueprint)
+	{
+		return Blueprint.GetDefaultObject()->GetMutabilityStatus();
+	}
+	return EFaerieItemDataMutabilityStatus::Unknown;
 }
+#endif

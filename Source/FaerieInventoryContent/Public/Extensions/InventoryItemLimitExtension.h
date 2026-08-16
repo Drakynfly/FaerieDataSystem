@@ -18,7 +18,7 @@ protected:
 	//~ UItemContainerExtensionBase
 	virtual void InitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
 	virtual void DeinitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
-	virtual EEventExtensionResponse AllowsAddition(TNotNull<const UFaerieItemContainerBase*> Container, TConstArrayView<FFaerieItemDataView> Views, FFaerieExtensionAllowsAdditionArgs Args) const override;
+	virtual EEventExtensionResponse AllowsAddition(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args) const override;
 	virtual void PostEventBatch(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Inventory::FEventLogBatch& Events) override;
 	//~ UItemContainerExtensionBase
 

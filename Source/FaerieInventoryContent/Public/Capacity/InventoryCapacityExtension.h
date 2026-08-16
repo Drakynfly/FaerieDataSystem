@@ -5,6 +5,7 @@
 #include "ItemContainerExtensionBase.h"
 #include "CapacityStructs.h"
 #include "FaerieItemContainerStructs.h"
+#include "FaerieItemProxy.h"
 #include "InventoryCapacityExtension.generated.h"
 
 UENUM(BlueprintType, Flags, Meta = (Bitflags, UseEnumValuesAsMaskValuesInEditor = "true"))
@@ -105,7 +106,7 @@ protected:
     //~ UItemContainerExtensionBase
     virtual void InitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
     virtual void DeinitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
-    virtual EEventExtensionResponse AllowsAddition(TNotNull<const UFaerieItemContainerBase*> Container, TConstArrayView<FFaerieItemDataView> Views, FFaerieExtensionAllowsAdditionArgs Args) const override;
+    virtual EEventExtensionResponse AllowsAddition(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Views, FFaerieExtensionAllowsAdditionArgs Args) const override;
     virtual void PostEventBatch(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Inventory::FEventLogBatch& Events) override;
     //~ UItemContainerExtensionBase
 
@@ -114,7 +115,7 @@ private:
 
     void CheckCapacityLimit();
 
-    bool CanContainItem(const Faerie::ItemData::FValidatedDataView& View) const;
+    bool CanContainItem(Faerie::TValid<const FFaerieItemProxy&> Proxy) const;
 
     void AddWeightAndVolume(FFaerieWeightAndVolume Value);
 
@@ -126,11 +127,11 @@ public:
 
     // Tests if the capacity of a stack can fit in this container.
     UFUNCTION(BlueprintPure, Category = "Faerie|InventoryCapacity")
-    bool CanContain(const FFaerieItemDataView& View) const;
+    bool CanContain(const FFaerieItemProxy& Proxy) const;
 
     // Tests if the capacity of multiple stacks can fit in this container at once.
     //UFUNCTION(BlueprintPure, Category = "Faerie|InventoryCapacity")
-    bool CanContain_Multi(TConstArrayView<FFaerieItemDataView> Views) const;
+    bool CanContain_Multi(const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies) const;
 
     // Tests if the capacity of an item can fit in this container.
     UFUNCTION(BlueprintPure, Category = "Faerie|InventoryCapacity")

@@ -16,191 +16,175 @@ struct FFaerieMassFragment;
 /**
  * Automatic success when not inverted. Automatic failure when inverted.
  */
-UCLASS(meta = (DisplayName = "Literal"))
-class UFilterRule_Literal : public UFaerieItemDataFilter
+USTRUCT()
+struct FFaerieItemFilter_Literal final : public FFaerieItemDataFilterBase
 {
 	GENERATED_BODY()
 
-public:
-	virtual bool Exec(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const override { return true; }
+	virtual bool Exec(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const override { return true; }
 };
 
 /**
- * Matches when any of its rule succeeds
+ * Matches when its child does not.
  */
-UCLASS(meta = (DisplayName = "Logical Or"))
-class UFilterRule_LogicalOr : public UFaerieItemDataFilter
+USTRUCT()
+struct FFaerieItemFilter_Not final : public FFaerieItemDataFilterBase
 {
 	GENERATED_BODY()
 
-public:
+	virtual bool Exec(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
+
 #if WITH_EDITOR
+	virtual bool ExecWithLog(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy, Faerie::ItemData::FFilterLogger& Logger) const override;
 	virtual EFaerieItemDataMutabilityStatus GetMutabilityStatus() const override;
 #endif
 
-	virtual bool ExecWithLog(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View, Faerie::ItemData::FFilterLogger& Logger) const override;
-	virtual bool Exec(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const override;
-
-protected:
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Instanced, Category = "LogicalOr")
-	TArray<TObjectPtr<UFaerieItemDataFilter>> Rules;
+	UPROPERTY(EditAnywhere, Category = "Ternary")
+	TInstancedStruct<FFaerieItemDataFilterBase> InvertedFilter;
 };
 
 /**
- * Matches when all of its rule succeeds
+ * Matches when one of its rules succeeds
  */
-UCLASS(meta = (DisplayName = "Logical And"))
-class UFilterRule_LogicalAnd : public UFaerieItemDataFilter
+USTRUCT()
+struct FFaerieItemFilter_Or final : public FFaerieItemDataFilterBase
 {
 	GENERATED_BODY()
 
-public:
+	virtual bool Exec(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
+
 #if WITH_EDITOR
+	virtual bool ExecWithLog(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy, Faerie::ItemData::FFilterLogger& Logger) const override;
 	virtual EFaerieItemDataMutabilityStatus GetMutabilityStatus() const override;
 #endif
 
-	virtual bool ExecWithLog(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View, Faerie::ItemData::FFilterLogger& Logger) const override;
-	virtual bool Exec(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const override;
+	UPROPERTY(EditAnywhere, Category = "FilterOr")
+	TArray<TInstancedStruct<FFaerieItemDataFilterBase>> Rules;
+};
 
-protected:
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Instanced, Category = "LogicalAnd")
-	TArray<TObjectPtr<UFaerieItemDataFilter>> Rules;
+/**
+ * Matches when all of its rules succeeds
+ */
+USTRUCT()
+struct FFaerieItemFilter_And final : public FFaerieItemDataFilterBase
+{
+	GENERATED_BODY()
+
+	virtual bool Exec(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
+
+#if WITH_EDITOR
+	virtual bool ExecWithLog(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy, Faerie::ItemData::FFilterLogger& Logger) const override;
+	virtual EFaerieItemDataMutabilityStatus GetMutabilityStatus() const override;
+#endif
+
+	UPROPERTY(EditAnywhere, Category = "FilterAnd")
+	TArray<TInstancedStruct<FFaerieItemDataFilterBase>> Rules;
 };
 
 /**
  * Evaluates one filter, to determine if it runs another
  */
-UCLASS(meta = (DisplayName = "Condition"))
-class UFilterRule_Condition : public UFaerieItemDataFilter
+USTRUCT()
+struct FFaerieItemFilter_Conditional final : public FFaerieItemDataFilterBase
 {
 	GENERATED_BODY()
 
-public:
+	virtual bool Exec(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
+
 #if WITH_EDITOR
 	virtual EFaerieItemDataMutabilityStatus GetMutabilityStatus() const override;
 #endif
 
-	virtual bool Exec(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const override;
+	UPROPERTY(EditAnywhere, Category = "Condition")
+	TInstancedStruct<FFaerieItemDataFilterBase> ConditionRule;
 
-protected:
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Instanced, Category = "Condition")
-	TObjectPtr<UFaerieItemDataFilter> ConditionRule;
-
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Instanced, Category = "Condition")
-	TObjectPtr<UFaerieItemDataFilter> TrueBranch;
+	UPROPERTY(EditAnywhere, Category = "Condition")
+	TInstancedStruct<FFaerieItemDataFilterBase> TrueBranch;
 
 	// Result if Condition fails.
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Condition")
+	UPROPERTY(EditAnywhere, Category = "Condition")
 	bool FalseBranch = true;
 };
 
 /**
  * Evaluates one filter, to determine which of two others to run
  */
-UCLASS(meta = (DisplayName = "Ternary Condition"))
-class UFilterRule_Ternary : public UFaerieItemDataFilter
+USTRUCT()
+struct FFaerieItemFilter_Ternary final : public FFaerieItemDataFilterBase
 {
 	GENERATED_BODY()
 
-public:
+	virtual bool Exec(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
+
 #if WITH_EDITOR
 	virtual EFaerieItemDataMutabilityStatus GetMutabilityStatus() const override;
 #endif
 
-	virtual bool Exec(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const override;
+	UPROPERTY(EditAnywhere, Category = "Ternary")
+	TInstancedStruct<FFaerieItemDataFilterBase> ConditionRule;
 
-protected:
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Instanced, Category = "Ternary")
-	TObjectPtr<UFaerieItemDataFilter> ConditionRule;
+	UPROPERTY(EditAnywhere, Category = "Ternary")
+	TInstancedStruct<FFaerieItemDataFilterBase> TrueBranch;
 
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Instanced, Category = "Ternary")
-	TObjectPtr<UFaerieItemDataFilter> TrueBranch;
-
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Instanced, Category = "Ternary")
-	TObjectPtr<UFaerieItemDataFilter> FalseBranch;
-};
-
-/**
- * Matches when its child does not.
- */
-UCLASS(meta = (DisplayName = "Logical Not"))
-class UFilterRule_LogicalNot : public UFaerieItemDataFilter
-{
-	GENERATED_BODY()
-
-public:
-#if WITH_EDITOR
-	virtual EFaerieItemDataMutabilityStatus GetMutabilityStatus() const override;
-#endif
-
-	virtual bool Exec(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const override;
-
-protected:
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Instanced, Category = "LogicalNot")
-	TObjectPtr<UFaerieItemDataFilter> InvertedRule;
+	UPROPERTY(EditAnywhere, Category = "Ternary")
+	TInstancedStruct<FFaerieItemDataFilterBase> FalseBranch;
 };
 
 /**
  * Filter rule that checks against the item's data mutability status
  */
-UCLASS(meta = (DisplayName = "Mutability"))
-class UFilterRule_Mutability : public UFaerieItemDataFilter
+USTRUCT()
+struct FFaerieItemFilter_Mutability final : public FFaerieItemDataFilterBase
 {
 	GENERATED_BODY()
 
-public:
+	virtual bool Exec(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
+
 #if WITH_EDITOR
 	virtual EFaerieItemDataMutabilityStatus GetMutabilityStatus() const override;
 #endif
 
-	virtual bool Exec(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const override;
-
-protected:
 	// Enable to require a mutable entry. Leave disabled to only allow immutable entries.
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Mutability")
-	bool RequireMutable;
+	UPROPERTY(EditAnywhere, Category = "Mutability")
+	bool RequireMutable = true;
 };
 
 /**
  * Filter rule for matching a Template Asset
  */
-UCLASS(meta = (DisplayName = "Match Template"))
-class UFilterRule_MatchTemplate : public UFaerieItemDataFilter
+USTRUCT()
+struct FFaerieItemFilter_MatchTemplate final : public FFaerieItemDataFilterBase
 {
 	GENERATED_BODY()
 
-public:
+	virtual bool Exec(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
+
 #if WITH_EDITOR
+	virtual bool ExecWithLog(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy, Faerie::ItemData::FFilterLogger& Logger) const override;
 	virtual EFaerieItemDataMutabilityStatus GetMutabilityStatus() const override;
 #endif
 
-	virtual bool ExecWithLog(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View, Faerie::ItemData::FFilterLogger& Logger) const override;
-	virtual bool Exec(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const override;
-
-protected:
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "MatchTemplate", meta = (AllowAbstract))
+	UPROPERTY(EditAnywhere, Category = "MatchTemplate", meta = (AllowAbstract))
 	TObjectPtr<UFaerieItemTemplate> Template;
 };
 
 /**
  * Filter entries by their fragments
  */
-UCLASS(meta = (DisplayName = "Has Fragment(s)"))
-class UFilterRule_HasFragments : public UFaerieItemDataFilter
+USTRUCT()
+struct FFaerieItemFilter_HasFragments final : public FFaerieItemDataFilterBase
 {
 	GENERATED_BODY()
 
-public:
-	UFilterRule_HasFragments();
+	FFaerieItemFilter_HasFragments();
+
+	virtual bool Exec(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
 
 #if WITH_EDITOR
+	virtual bool ExecWithLog(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy, Faerie::ItemData::FFilterLogger& Logger) const override;
 	virtual EFaerieItemDataMutabilityStatus GetMutabilityStatus() const override;
 #endif
 
-	virtual bool ExecWithLog(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View, Faerie::ItemData::FFilterLogger& Logger) const override;
-	virtual bool Exec(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const override;
-
-protected:
 	UPROPERTY(EditAnywhere, Category = "HasFragments")
 	TArray<TSubScriptStructOf<FFaerieMassFragment>> FragmentTypes;
 
@@ -212,86 +196,92 @@ protected:
 /**
  * Filter entries by imposing requirements on its Stack.
  */
-UCLASS(meta = (DisplayName = "Compare Copies"))
-class UFilterRule_Copies : public UFaerieItemDataFilter
+USTRUCT()
+struct FFaerieItemFilter_Copies final : public FFaerieItemDataFilterBase
 {
 	GENERATED_BODY()
 
-public:
+	virtual bool Exec(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
+
 #if WITH_EDITOR
 	virtual EFaerieItemDataMutabilityStatus GetMutabilityStatus() const override;
 #endif
 
-	virtual bool Exec(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const override;
-
-protected:
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "CompareCopies")
+	UPROPERTY(EditAnywhere, Category = "CompareCopies")
 	EFaerieCopiesCompareOperator Operator;
 
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "CompareCopies", meta = (ClampMin = 1))
+	UPROPERTY(EditAnywhere, Category = "CompareCopies", meta = (ClampMin = 1))
 	int32 AmountToCompare = 1;
 };
 
 /**
  * Filter entries by its stack limit
  */
-UCLASS(meta = (DisplayName = "Compare Limit"))
-class UFilterRule_StackLimit : public UFaerieItemDataFilter
+USTRUCT()
+struct FFaerieItemFilter_StackLimit final : public FFaerieItemDataFilterBase
 {
 	GENERATED_BODY()
 
-public:
+	virtual bool Exec(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
+
 #if WITH_EDITOR
 	virtual EFaerieItemDataMutabilityStatus GetMutabilityStatus() const override;
 #endif
 
-	virtual bool Exec(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const override;
-
-protected:
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "CompareLimit")
+	UPROPERTY(EditAnywhere, Category = "CompareLimit")
 	EFaerieStackCompareOperator Operator;
 
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "CompareLimit",
+	UPROPERTY(EditAnywhere, Category = "CompareLimit",
 		meta = (ClampMin = 1, EditCondition = "Operator != EFaerieStackCompareOperator::HasLimit && Operator != EFaerieStackCompareOperator::HasNoLimit", EditConditionHides))
 	int32 AmountToCompare = 1;
 };
 
 /**
- * Filter by gameplay tag "any" query
+ * Filter by a specific asset name.
  */
-UCLASS(meta = (DisplayName = "Any Tags"))
-class UFilterRule_GameplayTagAny : public UFaerieItemDataFilter
+USTRUCT()
+struct FFaerieItemFilter_CompareName final : public FFaerieItemDataFilterBase
 {
 	GENERATED_BODY()
 
-public:
-#if WITH_EDITOR
-	//virtual EFaerieItemDataMutabilityStatus GetMutabilityStatus() const override;
-#endif
+	virtual bool Exec(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
 
-	virtual bool Exec(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const override;
+	UPROPERTY(EditAnywhere, Category = "CompareName")
+	FText CompareText;
 
-protected:
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "GameplayTagAny")
+	ETextComparisonLevel::Type ComparisonType = ETextComparisonLevel::Default;
+};
+
+/**
+ * Filter by gameplay tag "any" query
+ */
+USTRUCT()
+struct FFaerieItemFilter_GameplayTagAny final : public FFaerieItemDataFilterBase
+{
+	GENERATED_BODY()
+
+	virtual bool Exec(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
+
+	UPROPERTY(EditAnywhere, Category = "GameplayTagAny")
 	FGameplayTagContainer Tags;
+
+	UPROPERTY(EditAnywhere, Category = "GameplayTagAny")
+	bool Exact = false;
 };
 
 /**
  * Filter by gameplay tag "all" query
  */
-UCLASS(meta = (DisplayName = "All Tags"))
-class UFilterRule_GameplayTagAll : public UFaerieItemDataFilter
+USTRUCT()
+struct FFaerieItemFilter_GameplayTagAll final : public FFaerieItemDataFilterBase
 {
 	GENERATED_BODY()
 
-public:
-#if WITH_EDITOR
-	//virtual EFaerieItemDataMutabilityStatus GetMutabilityStatus() const override;
-#endif
+	virtual bool Exec(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
 
-	virtual bool Exec(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const override;
-
-protected:
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "GameplayTagAll")
+	UPROPERTY(EditAnywhere, Category = "GameplayTagAll")
 	FGameplayTagContainer Tags;
+
+	UPROPERTY(EditAnywhere, Category = "GameplayTagAll")
+	bool Exact = false;
 };

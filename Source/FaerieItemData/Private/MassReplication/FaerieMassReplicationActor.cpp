@@ -4,7 +4,6 @@
 #include "MassReplication/FaerieViewModelSubsystem.h"
 
 #include "FaerieItem.h"
-#include "FaerieItemDataView.h"
 #include "MassEntitySubsystem.h"
 #include "EntityManagerHelpers.h"
 
@@ -80,16 +79,16 @@ void AFaerieMassReplicationActor::Tick(const float DeltaSeconds)
 	}
 }
 
-void AFaerieMassReplicationActor::Server_UpdateFragment(const ItemData::FReference& Item, const TConstArrayView<TConstStructView<FFaerieMassFragment>> FragmentViews)
+void AFaerieMassReplicationActor::Server_UpdateFragment(const TValid<const FFaerieItemInstance&> Item, const TConstArrayView<TConstStructView<FFaerieMassFragment>> FragmentViews)
 {
-	const FMassEntityHandle Entity = Item->GetMassEntityHandle();
+	const FMassEntityHandle Entity = ValidGet(Item).GetMassEntityHandle();
 
 	// Try to update existing entry.
 	for (auto&& ReplicatedEntity : ReplicatedEntities.Entries)
 	{
-		ItemData::FMutableReference Mutable = ReplicatedEntity.Item.Get();
+		const FFaerieItemInstance& Instance = ReplicatedEntity.Item.Get();
 
-		if (Mutable->GetMassEntityHandle() != Entity) continue;
+		if (Instance.GetMassEntityHandle() != Entity) continue;
 
 		for (auto&& FragmentView : FragmentViews)
 		{
@@ -116,7 +115,7 @@ void AFaerieMassReplicationActor::Server_UpdateFragment(const ItemData::FReferen
 
 	// There was no existing entry for this entity.
 	FFaerieMassReplicatedEntity& NewEntry = ReplicatedEntities.Entries.AddDefaulted_GetRef();
-	NewEntry.Item = Item.GetInstance();
+	NewEntry.Item = ValidGet(Item);
 	for (auto&& FragmentView : FragmentViews)
 	{
 		NewEntry.Fragments.Emplace(FragmentView);
@@ -124,9 +123,9 @@ void AFaerieMassReplicationActor::Server_UpdateFragment(const ItemData::FReferen
 	ReplicatedEntities.MarkItemDirty(NewEntry);
 }
 
-void AFaerieMassReplicationActor::Server_RemoveFragment(const ItemData::FReference& Item, const TNotNull<const UScriptStruct*> ScriptStruct)
+void AFaerieMassReplicationActor::Server_RemoveFragment(const TValid<const FFaerieItemInstance&> Item, const TNotNull<const UScriptStruct*> ScriptStruct)
 {
-	const FMassEntityHandle Entity = Item->GetMassEntityHandle();
+	const FMassEntityHandle Entity = ValidGet(Item).GetMassEntityHandle();
 	FMassEntityManager& EntityManager = MassEntitySubsystem->GetMutableEntityManager();
 	if (!EntityManager.IsEntityValid(Entity))
 	{
@@ -150,9 +149,9 @@ void AFaerieMassReplicationActor::Server_RemoveFragment(const ItemData::FReferen
 	}
 }
 
-void AFaerieMassReplicationActor::Server_RemoveEntity(const ItemData::FReference& Item)
+void AFaerieMassReplicationActor::Server_RemoveEntity(const TValid<const FFaerieItemInstance&> Item)
 {
-	const FMassEntityHandle Entity = Item->GetMassEntityHandle();
+	const FMassEntityHandle Entity = ValidGet(Item).GetMassEntityHandle();
 	FMassEntityManager& EntityManager = MassEntitySubsystem->GetMutableEntityManager();
 	if (!EntityManager.IsEntityValid(Entity))
 	{
@@ -188,8 +187,8 @@ void AFaerieMassReplicationActor::Client_RemoveEntity(FFaerieMassReplicatedEntit
 {
 	if (Entity.Item.IsValid())
 	{
-		ItemData::FMutableReference Mutable = Entity.Item.Get();
-		Mutable->DestroyMassEntity(MassEntitySubsystem->GetMutableEntityManager());
+		FFaerieItemInstance& Instance = Entity.Item.Get();
+		Instance.DestroyMassEntity(MassEntitySubsystem->GetMutableEntityManager());
 	}
 	else
 	{
@@ -199,32 +198,31 @@ void AFaerieMassReplicationActor::Client_RemoveEntity(FFaerieMassReplicatedEntit
 
 void AFaerieMassReplicationActor::Client_ProcessUpdateData(FFaerieMassReplicatedEntity& Entity)
 {
-	const ItemData::FRequireEntityManager WithEntityManager(MassEntitySubsystem->GetMutableEntityManager());
+	auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
 
-	// Item can be valid but not yet have its flags replicated...
-	ItemData::FMutableReference Mutable(ItemData::FMutableReference::ECtor::BypassMutateCast, Entity.Item.Get());
+	FFaerieItemInstance& Instance = Entity.Item.Get();
 
-	if (Mutable->GetMassEntityHandle().IsValid())
+	if (Instance.GetMassEntityHandle().IsValid())
 	{
 		// @todo figure out what changed and only broadcast for them
 
 		// Local item has already been initialized, apply delta.
-		Mutable->DestroyMassEntity(WithEntityManager);
+		Instance.DestroyMassEntity(EntityManager);
 
-		Mutable->ImportFragmentData(WithEntityManager, Entity.Fragments);
+		Instance.ImportFragmentData(EntityManager, Entity.Fragments);
 
 		for (auto&& Fragment : Entity.Fragments)
 		{
-			ViewModelSubsystem->Client_PostReplicationChange(Mutable, Fragment);
+			ViewModelSubsystem->Client_PostReplicationChange(Instance, Fragment);
 		}
 	}
 	else
 	{
 		// Local item does not exist in mass, initialize.
-		Mutable->ImportFragmentData(WithEntityManager, Entity.Fragments);
+		Instance.ImportFragmentData(EntityManager, Entity.Fragments);
 		for (auto&& Fragment : Entity.Fragments)
 		{
-			ViewModelSubsystem->Client_PostReplicationChange(Mutable, Fragment);
+			ViewModelSubsystem->Client_PostReplicationChange(Instance, Fragment);
 		}
 	}
 }

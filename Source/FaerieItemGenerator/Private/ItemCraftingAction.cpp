@@ -2,6 +2,7 @@
 
 #include "ItemCraftingAction.h"
 #include "ItemCraftingRunner.h"
+#include "MassEntityManager.h"
 
 #include "Engine/World.h"
 
@@ -9,10 +10,14 @@
 
 bool Faerie::Generation::FActionExecution::IsInGameWorld() const
 {
-	return WorldContextObject->GetWorld()->IsGameWorld();
+	if (!EntityManager || !EntityManager->GetWorld())
+	{
+		return false;
+	}
+	return EntityManager->GetWorld()->IsGameWorld();
 }
 
-void FFaerieCraftingActionBase::CompleteWithResult(const TStructView<FFaerieCraftingActionBase> ThisAction, const Faerie::Generation::FActionExecution& Execution, const EGenerationActionResult Result)
+void FFaerieCraftingActionBase::CompleteWithResult(const TStructView<FFaerieCraftingActionBase> ThisAction, const Faerie::Generation::FActionExecution& Execution, const EGenerationActionResult Result, const FText& Message)
 {
-	Execution.Runner->FinishAction(ThisAction, Result);
+	Execution.Runner->FinishAction(ThisAction, Result, Message);
 }

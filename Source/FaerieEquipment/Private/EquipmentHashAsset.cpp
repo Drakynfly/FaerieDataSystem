@@ -3,12 +3,12 @@
 #include "EquipmentHashAsset.h"
 
 #include "UObject/ObjectSaveContext.h"
-#include "Squirrel.h"
 
 #if WITH_EDITOR
+#include "EntityManagerHelpers.h"
 #include "FaerieItemAsset.h"
 #include "FaerieItemDataView.h"
-#include "FaerieItemStackHashInstruction.h"
+#include "Squirrel.h"
 #endif
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(EquipmentHashAsset)
@@ -20,13 +20,10 @@ void UFaerieEquipmentHashAsset::PreSave(FObjectPreSaveContext SaveContext)
 #if WITH_EDITOR
 	CheckHash = 0;
 
+	auto* EntityManager = Faerie::ItemData::GetFaerieEntityManager();
+
 	for (auto&& Config : Configs)
 	{
-		if (!IsValid(Config.Instruction))
-		{
-			continue;
-		}
-
 		for (int32 i = 0; i < Config.Slots.Num(); ++i)
 		{
 			int32 TagHash = 0;
@@ -34,9 +31,8 @@ void UFaerieEquipmentHashAsset::PreSave(FObjectPreSaveContext SaveContext)
 			if (Config.Example.IsValidIndex(i) &&
 				IsValid(Config.Example[i]))
 			{
-				const FFaerieItemInstance Instance = Config.Example[i]->GetTemplateInstance();
-				const FFaerieItemDataView View(Instance, 1, nullptr);
-				TagHash = Config.Instruction->Hash(this, View);
+				const Faerie::ItemData::FScopeProxy StackProxy(Config.Example[i]->GetTemplateInstance(), 1, nullptr);
+				TagHash = Config.Instruction.Hash(EntityManager, FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, &StackProxy));
 
 				if (Config.MatchType == EGameplayContainerMatchType::Any)
 				{

@@ -40,7 +40,7 @@ TOptional<FFaerieUnownedItemStack> FFaerieTableDrop::Resolve(const FFaerieItemIn
 		//}
 
 		FFaerieItemInstancingContext_Crafting ChildContext;
-		ChildContext.ItemInstanceOuter = Context.ItemInstanceOuter;
+		ChildContext.EntityManager = Context.EntityManager;
 		ChildContext.Squirrel = Context.Squirrel;
 #if WITH_EDITORONLY_DATA
 		ChildContext.RunningInEditor = Context.RunningInEditor;

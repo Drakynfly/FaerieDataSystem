@@ -3,6 +3,9 @@
 #include "AssetEditor/FaerieItemAssetThumbnailScene.h"
 #include "Editor.h"
 #include "FaerieItemProxy.h"
+
+#include "ThumbnailRenderers/FaerieItemAssetThumbnailRenderer.h"
+
 #include "ThumbnailRendering/SceneThumbnailInfo.h"
 
 namespace Faerie::Editor
@@ -40,7 +43,8 @@ namespace Faerie::Editor
 		const float BoundsZOffset = GetBoundsZOffset(Bounds);
 		const float TargetDistance = HalfMeshSize / FMath::Tan(HalfFOVRadians);
 
-		USceneThumbnailInfo* ThumbnailInfo = Cast<USceneThumbnailInfo>(SceneData.ItemProxy->GetThumbnailInfo());
+		const UFaerieItemAssetThumbnailRenderer* ProxyAsThumbnailRenderer = Cast<UFaerieItemAssetThumbnailRenderer>(SceneData.ItemProxy.GetProxyObject());
+		USceneThumbnailInfo* ThumbnailInfo = Cast<USceneThumbnailInfo>(ProxyAsThumbnailRenderer->GetThumbnailInfo());
 		if (IsValid(ThumbnailInfo))
 		{
 			if (TargetDistance + ThumbnailInfo->OrbitZoom < 0)

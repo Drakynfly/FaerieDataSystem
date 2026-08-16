@@ -5,8 +5,7 @@
 #include "FaerieItemDataView.h"
 #include "Mass/EntityElementTypes.h"
 #include "FaerieItemDataConcepts.h"
-
-#include "Templates/SubScriptStructOf.h"
+#include "ValidParameter.h"
 
 #include "UObject/ObjectMacros.h"
 #include "FaerieMassFragment.generated.h"
@@ -43,9 +42,9 @@ namespace Faerie::ItemData
 
 	// Concept to look for InitializeRuntime function on fragments types.
 	template<typename T>
-	concept CHasInitializeRuntime = requires(T& Value, TNotNull<UObject*> Outer, const FMutableReference& Reference)
+	concept CHasInitializeRuntime = requires(T& Value, TNotNull<UObject*> Outer, TValid<const FFaerieItemInstance&> Instance)
 	{
-		{ Value.InitializeRuntime(Outer, Reference) } -> UE::CSameAs<bool>;
+		{ Value.InitializeRuntime(Outer, Instance) } -> UE::CSameAs<bool>;
 	};
 
 #if WITH_EDITOR
@@ -60,11 +59,11 @@ namespace Faerie::ItemData
 	namespace Private
 	{
 		template <CFragmentImpl TFragment>
-		bool ExInitializeRuntime(TNotNull<void*> Value, TNotNull<UObject*> Outer, const FMutableReference& Reference)
+		bool ExInitializeRuntime(TNotNull<void*> Value, TNotNull<UObject*> Outer, TValid<const FFaerieItemInstance&> Instance)
 		{
 			if constexpr (CHasInitializeRuntime<TFragment>)
 			{
-				return static_cast<TFragment*>(NotNullGet(Value))->InitializeRuntime(Outer, Reference);
+				return static_cast<TFragment*>(NotNullGet(Value))->InitializeRuntime(Outer, Instance);
 			}
 			else
 			{
@@ -102,7 +101,7 @@ namespace Faerie::ItemData
 		// This requires template magic I don't feel like
 		struct ITraitOps
 		{
-			bool (*InitializeRuntimePtr)(TNotNull<void*>, TNotNull<UObject*>, const FMutableReference&) = nullptr;
+			bool (*InitializeRuntimePtr)(TNotNull<void*>, TNotNull<UObject*>, TValid<const FFaerieItemInstance&>) = nullptr;
 #if WITH_EDITOR
 			EDataValidationResult (*IsDataValidPtr)(const TNotNull<const void*>, class FDataValidationContext& Context) = nullptr;
 #endif
@@ -128,11 +127,11 @@ namespace Faerie::ItemData
 #endif
 		const ITraitOps* Ops;
 
-		bool InitializeRuntime(TNotNull<void*> Value, const TNotNull<UObject*> Outer, const FMutableReference& Reference) const
+		bool InitializeRuntime(TNotNull<void*> Value, const TNotNull<UObject*> Outer, TValid<const FFaerieItemInstance&> Instance) const
 		{
 			if (HasInitializeRuntime)
 			{
-				return Ops->InitializeRuntimePtr(Value, Outer, Reference);
+				return Ops->InitializeRuntimePtr(Value, Outer, Instance);
 			}
 			return false;
 		}

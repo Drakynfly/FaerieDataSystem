@@ -32,7 +32,7 @@ class FAERIEINVENTORYCONTENT_API UInventoryEjectionHandlerExtension : public UIt
 protected:
 	//~ UItemContainerExtensionBase
 	virtual EEventExtensionResponse AllowsRemoval(TNotNull<const UFaerieItemContainerBase*> Container,
-		const Faerie::Extensions::FAddressView DataView, FFaerieInventoryTag Reason) const override;
+												  const TNotNull<const Faerie::Container::IAddressView*> DataView, FFaerieInventoryTag Reason) const override;
 	virtual void PostEventBatch(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Inventory::FEventLogBatch& Events) override;
 	//~ UItemContainerExtensionBase
 

@@ -19,66 +19,63 @@
 
 using namespace Faerie;
 
-namespace Faerie::Inventory::Tags
-{
-	UE_DEFINE_GAMEPLAY_TAG_TYPED_COMMENT(FFaerieInventoryTag, SlotItemMutated, "Fae.Inventory.SlotItemMutated", "Event tag when the item in a container mutates")
-	UE_DEFINE_GAMEPLAY_TAG_TYPED_COMMENT(FFaerieInventoryTag, SlotClientReplication, "Fae.Inventory.ClientReplication", "Event tag when item data is replicated to the client. Could have been caused by a Set/Take/Mutate from the server.")
-}
-
 namespace Faerie::Container
 {
-	/**
-	 * Not really an iterator, this just exists to implement the Container::IEntryIterator, so we can transparently interop
-	 * with generic Container API that consumes iterators.
-	 */
-	class FEntryContainerIteratorStub final : public IEntryIterator
+	namespace
 	{
-	public:
-		UE_REWRITE explicit FEntryContainerIteratorStub(const UFaerieItemStackContainer* Stack)
-		  : Stack(Stack) {}
+		/**
+		 * Not really an iterator, this just exists to implement the Container::IEntryIterator, so we can transparently interop
+		 * with generic Container API that consumes iterators.
+		 */
+		class FEntryContainerIteratorStub final : public IEntryIterator
+		{
+		public:
+			UE_REWRITE explicit FEntryContainerIteratorStub(const UFaerieItemStackContainer* Stack)
+				: Stack(Stack) {}
 
-		//~ ItemData::IViewBase
-		UE_REWRITE virtual FFaerieEntryKey ResolveKey() const override { return Stack->GetCurrentKey(); }
-		UE_REWRITE virtual ItemData::FReference ResolveItem() const override { return Stack->GetItemInstance().GetValue(); }
-		UE_REWRITE virtual int32 ResolveCopies() const override { return Stack->GetStackCopies(); }
-		UE_REWRITE virtual const IFaerieItemOwnerInterface* ResolveOwner() const override { return Stack; }
-		//~ ItemData::IViewBase
+			//~ ItemData::IViewBase
+			UE_REWRITE virtual FFaerieEntryKey ResolveKey() const override { return Stack->GetCurrentKey(); }
+			UE_REWRITE virtual TOptional<FFaerieItemInstance> GetItemInstance() const override { return Stack->GetItemInstance(); }
+			UE_REWRITE virtual int32 GetCopies() const override { return Stack->GetStackCopies(); }
+			UE_REWRITE virtual const IFaerieItemOwnerInterface* GetItemOwner() const override { return Stack; }
+			//~ ItemData::IViewBase
 
-		//~ Container::IEntryIterator
-		UE_REWRITE virtual void Advance() override { Stack = nullptr; }
-		UE_REWRITE virtual bool IsValid() const override { return ::IsValid(Stack) && Stack->IsFilled(); }
-		//~ Container::IEntryIterator
+			//~ Container::IEntryIterator
+			UE_REWRITE virtual void Advance() override { Stack = nullptr; }
+			UE_REWRITE virtual bool IsValid() const override { return ::IsValid(Stack) && Stack->IsFilled(); }
+			//~ Container::IEntryIterator
 
-	private:
-		const UFaerieItemStackContainer* Stack;
-	};
+		private:
+			const UFaerieItemStackContainer* Stack;
+		};
 
-	/**
-	 * Not really an iterator, this just exists to implement the Container::IAddressIterator, so we can transparently interop
-	 * with generic Container API that consumes iterators or views.
-	 */
-	class FStackContainerIteratorStub final : public IAddressIterator
-	{
-	public:
-		UE_REWRITE explicit FStackContainerIteratorStub(const UFaerieItemStackContainer* Stack)
-		  : Stack(Stack) {}
+		/**
+		 * Not really an iterator, this just exists to implement the Container::IAddressIterator, so we can transparently interop
+		 * with generic Container API that consumes iterators or views.
+		 */
+		class FStackContainerIteratorStub final : public IAddressIterator
+		{
+		public:
+			UE_REWRITE explicit FStackContainerIteratorStub(const UFaerieItemStackContainer* Stack)
+				: Stack(Stack) {}
 
-		//~ ItemData::IViewBase
-		UE_REWRITE virtual FFaerieEntryKey ResolveKey() const override { return Stack->GetCurrentKey(); }
-		UE_REWRITE virtual FFaerieAddress ResolveAddress() const override { return Stack->GetCurrentAddress(); }
-		UE_REWRITE virtual ItemData::FReference ResolveItem() const override { return Stack->GetItemInstance().GetValue(); }
-		UE_REWRITE virtual int32 ResolveCopies() const override { return Stack->GetStackCopies(); }
-		UE_REWRITE virtual const IFaerieItemOwnerInterface* ResolveOwner() const override { return Stack; }
-		//~ ItemData::IViewBase
+			//~ ItemData::IViewBase
+			UE_REWRITE virtual FFaerieEntryKey ResolveKey() const override { return Stack->GetCurrentKey(); }
+			UE_REWRITE virtual FFaerieAddress ResolveAddress() const override { return Stack->GetCurrentAddress(); }
+			UE_REWRITE virtual TOptional<FFaerieItemInstance> GetItemInstance() const override { return Stack->GetItemInstance(); }
+			UE_REWRITE virtual int32 GetCopies() const override { return Stack->GetStackCopies(); }
+			UE_REWRITE virtual const IFaerieItemOwnerInterface* GetItemOwner() const override { return Stack; }
+			//~ ItemData::IViewBase
 
-		//~ Container::IAddressIterator
-		UE_REWRITE virtual void Advance() override { Stack = nullptr; }
-		UE_REWRITE virtual bool IsValid() const override { return ::IsValid(Stack) && Stack->IsFilled(); }
-		//~ Container::IAddressIterator
+			//~ Container::IAddressIterator
+			UE_REWRITE virtual void Advance() override { Stack = nullptr; }
+			UE_REWRITE virtual bool IsValid() const override { return ::IsValid(Stack) && Stack->IsFilled(); }
+			//~ Container::IAddressIterator
 
-	private:
-		const UFaerieItemStackContainer* Stack;
-	};
+		private:
+			const UFaerieItemStackContainer* Stack;
+		};
+	}
 }
 
 void UFaerieItemStackContainer::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -92,7 +89,6 @@ void UFaerieItemStackContainer::GetLifetimeReplicatedProps(TArray<FLifetimePrope
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, StoredKey, SharedParams)
 }
 
-//~ UFaerieItemContainerBase
 FInstancedStruct UFaerieItemStackContainer::MakeSaveData(FFaerieItemContainerExtensionData& ExtensionData) const
 {
 	RavelExtensionData(ExtensionData);
@@ -102,7 +98,7 @@ FInstancedStruct UFaerieItemStackContainer::MakeSaveData(FFaerieItemContainerExt
 	{
 		SlotSaveData.ItemObject = ItemStack.Instance.GetItemPtr();
 		SlotSaveData.Copies = ItemStack.Copies;
-		SlotSaveData.ExportData = ExportItemData(ItemData::FRequireEntityManager(this), ItemStack.Instance);
+		SlotSaveData.ExportData = ExportItemData(ItemData::GetFaerieEntityManagerChecked(), ItemStack.Instance);
 	}
 	return FInstancedStruct::Make(SlotSaveData);
 }
@@ -124,14 +120,14 @@ void UFaerieItemStackContainer::LoadSaveData(const FConstStructView ItemData, co
 	if (SaveData->Copies > 0)
 	{
 		// Rebuild instance from save data
-		const FFaerieItemInstance Instance = ImportItemData(ItemData::FRequireEntityManager(this), SaveData->ItemObject, SaveData->ExportData);
+		const FFaerieItemInstance Instance = ImportItemData(ItemData::GetFaerieEntityManagerChecked(), SaveData->ItemObject, SaveData->ExportData);
 
 		if (Container::ValidateItemData(Instance) &&
 			SaveData->Copies > 0)
 		{
 			// If it validated, store in slot.
-			const FFaerieItemDataView DataView(Instance, SaveData->Copies, nullptr);
-			SetStoredItem_Impl(DataView);
+			const TValid<FFaerieUnownedItemStack> Stack(Instance, SaveData->Copies);
+			SetStoredItem_Impl(Stack);
 		}
 		else
 		{
@@ -171,22 +167,22 @@ FFaerieItemInstance UFaerieItemStackContainer::ViewInstance(const FFaerieAddress
 	return FFaerieItemInstance();
 }
 
-FFaerieItemDataView UFaerieItemStackContainer::ViewEntry(const FFaerieEntryKey Key) const
+ItemData::FScopeProxy UFaerieItemStackContainer::ViewEntry(const FFaerieEntryKey Key) const
 {
 	if (IsOurKey(Key))
 	{
 		return GetView();
 	}
-	return FFaerieItemDataView();
+	return nullptr;
 }
 
-FFaerieItemDataView UFaerieItemStackContainer::ViewAddress(const FFaerieAddress Address) const
+ItemData::FScopeProxy UFaerieItemStackContainer::ViewAddress(const FFaerieAddress Address) const
 {
 	if (IsOurAddress(Address))
 	{
 		return GetView();
 	}
-	return FFaerieItemDataView();
+	return nullptr;
 }
 
 FFaerieItemProxy UFaerieItemStackContainer::Proxy(const FFaerieAddress Address) const
@@ -196,6 +192,11 @@ FFaerieItemProxy UFaerieItemStackContainer::Proxy(const FFaerieAddress Address) 
 		return FFaerieItemProxy(this);
 	}
 	return FFaerieItemProxy();
+}
+
+bool UFaerieItemStackContainer::Possess(const FFaerieUnownedItemStack& Stack)
+{
+	return SetItemInSlot(Stack);
 }
 
 void UFaerieItemStackContainer::DestroyStack(const FFaerieEntryKey Key, const int32 Copies)
@@ -209,6 +210,14 @@ void UFaerieItemStackContainer::DestroyStack(const FFaerieEntryKey Key, const in
 void UFaerieItemStackContainer::DestroyStack(const FFaerieAddress Address, const int32 Copies)
 {
 	if (IsOurAddress(Address))
+	{
+		TakeItemFromSlot(Copies, Inventory::Tags::RemovalDeletion);
+	}
+}
+
+void UFaerieItemStackContainer::DestroyStack(const FFaerieItemProxy& Proxy, const int32 Copies)
+{
+	if (Proxy.GetProxyObject() == this && IsFilled())
 	{
 		TakeItemFromSlot(Copies, Inventory::Tags::RemovalDeletion);
 	}
@@ -232,9 +241,9 @@ TOptional<FFaerieUnownedItemStack> UFaerieItemStackContainer::Release(const FFae
 	return NullOpt;
 }
 
-bool UFaerieItemStackContainer::CanPossess(const FFaerieItemDataView& View) const
+bool UFaerieItemStackContainer::CanPossess(const FFaerieItemProxy& Proxy) const
 {
-	return CanSetInSlot(View);
+	return CanSetInSlot(Proxy);
 }
 
 void UFaerieItemStackContainer::GetAllAddresses(TArray<FFaerieAddress>& Addresses) const
@@ -265,9 +274,6 @@ TUniquePtr<Container::IAddressIterator> UFaerieItemStackContainer::CreateSingleE
 	return MakeUnique<Container::FStackContainerIteratorStub>(this);
 }
 
-//~ UFaerieItemContainerBase
-
-//~ IFaerieItemDataProxy
 TOptional<FFaerieItemInstance> UFaerieItemStackContainer::GetItemInstance() const
 {
 	if (ItemStack.Instance.IsValid())
@@ -297,36 +303,18 @@ FFaerieItemNetworkHandle UFaerieItemStackContainer::Proxy_GetNetworkHandle() con
 	return GetNetworkHandle();
 }
 
-//~ IFaerieItemDataProxy
+void UFaerieItemStackContainer::OnItemDataChanged(const TValid<const FFaerieItemInstance&> Instance, const TNotNull<const UScriptStruct*> FragmentType, const FGameplayTag EditTag)
+{
+	Super::OnItemDataChanged(Instance, FragmentType, EditTag);
+	check(ItemStack.Instance == Instance);
 
-//~ IFaerieItemOwnerInterface
+	BroadcastChange(Inventory::Tags::ReplicationEdit);
+}
 
 FFaerieAddress UFaerieItemStackContainer::GetAddress() const
 {
 	return GetCurrentAddress();
 }
-
-bool UFaerieItemStackContainer::Possess(const FFaerieUnownedItemStack& View)
-{
-	return SetItemInSlot(View);
-}
-
-void UFaerieItemStackContainer::DestroyStack(const FFaerieItemProxy& Proxy, const int32 Copies)
-{
-	if (Proxy.GetProxyObject() == this && IsFilled())
-	{
-		TakeItemFromSlot(Copies, Inventory::Tags::RemovalDeletion);
-	}
-}
-
-void UFaerieItemStackContainer::OnItemDataChanged(const ItemData::FMutableReference& Instance, const TNotNull<const UScriptStruct*> Struct, const FGameplayTag EditTag)
-{
-	Super::OnItemDataChanged(Instance, Struct, EditTag);
-	check(ItemStack.Instance == Instance);
-
-	BroadcastChange(Inventory::Tags::SlotItemMutated);
-}
-//~ IFaerieItemOwnerInterface
 
 void UFaerieItemStackContainer::BroadcastChange(const FFaerieInventoryTag Event)
 {
@@ -344,49 +332,53 @@ bool UFaerieItemStackContainer::IsOurAddress(const FFaerieAddress Address) const
 	return static_cast<int32>(Address.Address) == StoredKey.Value();
 }
 
-void UFaerieItemStackContainer::SetStoredItem_Impl(const ItemData::FValidatedDataView View)
+void UFaerieItemStackContainer::SetStoredItem_Impl(const TValid<FFaerieUnownedItemStack>& NewItemStack)
 {
-	Extensions::FGroupAPI::PreAddition(Extensions, this, View.DataView);
+	Extensions::FGroupAPI::PreAddition(Extensions, this, NewItemStack);
+
+	const FFaerieItemInstance Instance = ValidGet(NewItemStack).Instance;
+	const int32 Copies = ValidGet(NewItemStack).Copies;
 
 	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, ItemStack, this);
-	if (View->GetInstance() != ItemStack.Instance)
+	if (Instance != ItemStack.Instance)
 	{
 		// Increment key when stored item changes. This is only going to happen if ItemStack.Item is currently nullptr.
 		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, StoredKey, this);
 		StoredKey = KeyGen.NextKey();
 
-		ItemStack.Instance = View->GetInstance();
-		ItemStack.Copies = View->GetCopies();
+		ItemStack.Instance = Instance;
+		ItemStack.Copies = Copies;
 
 		// Take ownership of the new item if it's mutable
 		if (ItemStack.Instance.IsMutable())
 		{
-			Container::TakeOwnership(ItemData::FRequireEntityManager(this), this, ItemStack.Instance);
+			auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
+			Container::TakeOwnership(EntityManager, this, ItemStack.Instance);
 		}
 	}
 	else
 	{
-		ItemStack.Copies += View->GetCopies();
+		ItemStack.Copies += Copies;
 	}
 
 	const FFaerieAddress CurrentAddress = GetCurrentAddress();
-	const Inventory::FEventData Event(View->GetInstance(), View->GetCopies(), StoredKey, MakeConstArrayView(&CurrentAddress, 1));
+	const Inventory::FEventData Event(Instance, Copies, StoredKey, MakeConstArrayView(&CurrentAddress, 1));
 
 	Extensions::FGroupAPI::PostEvent(Extensions, this, Event, Inventory::Tags::Addition);
 
 	BroadcastChange(Inventory::Tags::Addition);
 }
 
-FFaerieItemDataView UFaerieItemStackContainer::GetView() const
+ItemData::FScopeProxy UFaerieItemStackContainer::GetView() const
 {
-	return FFaerieItemDataView(ItemStack.Instance, ItemStack.Copies, this);
+	return ItemData::FScopeProxy(ItemStack.Instance, ItemStack.Copies, this);
 }
 
-bool UFaerieItemStackContainer::CouldSetInSlot(const FFaerieItemDataView& View) const
+bool UFaerieItemStackContainer::CouldSetInSlot(const FFaerieItemProxy& Proxy) const
 {
-	if (!View.IsValid()) return false;
+	if (!Proxy.IsValid()) return false;
 
-	const int32 ViewCopies = View.GetCopies();
+	const int32 ViewCopies = Proxy.GetCopies();
 	if (ViewCopies > 1)
 	{
 		return false;
@@ -394,7 +386,7 @@ bool UFaerieItemStackContainer::CouldSetInSlot(const FFaerieItemDataView& View) 
 
 	static constexpr FFaerieExtensionAllowsAdditionArgs Args = { EFaerieStorageAddStackBehavior::OnlyNewStacks };
 
-	if (Extensions::FGroupAPI::AllowsAddition(Extensions, this, MakeConstArrayView(&View, 1), Args) == EEventExtensionResponse::Disallowed)
+	if (Extensions::FGroupAPI::AllowsAddition(Extensions, this, MakeConstArrayView(&Proxy, 1), Args) == EEventExtensionResponse::Disallowed)
 	{
 		return false;
 	}
@@ -402,11 +394,16 @@ bool UFaerieItemStackContainer::CouldSetInSlot(const FFaerieItemDataView& View) 
 	return false;
 }
 
-bool UFaerieItemStackContainer::CanSetInSlot(const FFaerieItemDataView& View) const
+bool UFaerieItemStackContainer::CanSetInSlot(const FFaerieItemProxy& Proxy) const
 {
-	if (!View.IsValid()) return false;
+	if (!Proxy.IsValid()) return false;
 
-	const FFaerieItemInstance Instance = View.GetInstance();
+	const FFaerieItemInstance Instance = Proxy.GetItemInstanceOrInvalid();
+	if (!Instance.IsValid())
+	{
+		return false;
+	}
+
 	if (IsFilled())
 	{
 		// Cannot switch items. Remove current first.
@@ -418,7 +415,7 @@ bool UFaerieItemStackContainer::CanSetInSlot(const FFaerieItemDataView& View) co
 
 	static constexpr FFaerieExtensionAllowsAdditionArgs Args = { EFaerieStorageAddStackBehavior::OnlyNewStacks };
 
-	if (Extensions::FGroupAPI::AllowsAddition(Extensions, this, MakeConstArrayView(&View, 1), Args) == EEventExtensionResponse::Disallowed)
+	if (Extensions::FGroupAPI::AllowsAddition(Extensions, this, MakeConstArrayView(&Proxy, 1), Args) == EEventExtensionResponse::Disallowed)
 	{
 		return false;
 	}
@@ -436,8 +433,8 @@ bool UFaerieItemStackContainer::CanTakeFromSlot(const int32 Copies, const FFaeri
 		return false;
 	}
 
-	const Container::FStackContainerIteratorStub ViewStub(this);
-	if (Extensions::FGroupAPI::AllowsRemoval(Extensions, this, ViewStub, Reason) == EEventExtensionResponse::Disallowed)
+	Container::FStackContainerIteratorStub ViewStub(this);
+	if (Extensions::FGroupAPI::AllowsRemoval(Extensions, this, &ViewStub, Reason) == EEventExtensionResponse::Disallowed)
 	{
 		return false;
 	}
@@ -447,8 +444,8 @@ bool UFaerieItemStackContainer::CanTakeFromSlot(const int32 Copies, const FFaeri
 
 bool UFaerieItemStackContainer::SetItemInSlot(const FFaerieUnownedItemStack& Stack)
 {
-	const FFaerieItemDataView StackView(Stack.Instance, Stack.Copies, nullptr);
-	if (!CanSetInSlot(StackView))
+	const ItemData::FScopeProxy StackProxy(Stack.Instance, Stack.Copies, nullptr);
+	if (!CanSetInSlot(FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, &StackProxy)))
 	{
 		UE_LOG(LogFaerieInventory, Warning,
 			TEXT("Invalid request to set into container '%s'!"), *GetPathName())
@@ -456,7 +453,7 @@ bool UFaerieItemStackContainer::SetItemInSlot(const FFaerieUnownedItemStack& Sta
 	}
 
 	// If the above check passes, then either the Stack's item is the same as ours, or we are currently empty!
-	SetStoredItem_Impl(StackView);
+	SetStoredItem_Impl(Stack);
 	return true;
 }
 
@@ -495,7 +492,7 @@ FFaerieUnownedItemStack UFaerieItemStackContainer::TakeItemFromSlot(int32 Copies
 	}
 
 	const Container::FEntryContainerIteratorStub ViewStub(this);
-	Extensions::FGroupAPI::PreRemoval(Extensions, this, ViewStub, Copies);
+	Extensions::FGroupAPI::PreRemoval(Extensions, this, &ViewStub, Copies);
 
 	const FFaerieAddress CurrentAddress = GetCurrentAddress();
 	Inventory::FEventData Event(ItemStack.Instance, Copies, StoredKey, MakeConstArrayView(&CurrentAddress, 1));
@@ -515,7 +512,8 @@ FFaerieUnownedItemStack UFaerieItemStackContainer::TakeItemFromSlot(int32 Copies
 		// Release ownership of this item.
 		if (Event.Instance.IsMutable())
 		{
-			Container::ReleaseOwnership(ItemData::FRequireEntityManager(this), this, Event.Instance);
+			auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
+			Container::ReleaseOwnership(EntityManager, this, Event.Instance);
 		}
 	}
 	else
@@ -530,7 +528,8 @@ FFaerieUnownedItemStack UFaerieItemStackContainer::TakeItemFromSlot(int32 Copies
 	// Destroy the mass entity, if this stack is being deleted.
 	if (Reason == Inventory::Tags::RemovalDeletion && Event.EntryRemoved)
 	{
-		ItemStack.Instance.DestroyMassEntity(ItemData::FRequireEntityManager(this));
+		auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
+		ItemStack.Instance.DestroyMassEntity(EntityManager);
 		return FFaerieUnownedItemStack();
 	}
 
@@ -571,7 +570,28 @@ bool UFaerieItemStackContainer::IsFilled() const
 	return ItemStack.Instance.IsValid() && ItemStack.Copies > 0;
 }
 
-void UFaerieItemStackContainer::OnRep_ItemStack()
+void UFaerieItemStackContainer::OnRep_ItemStack(const FFaerieStackContainerContent& OldValue)
 {
-	BroadcastChange(Inventory::Tags::SlotClientReplication);
+	if (ItemStack.Copies > OldValue.Copies)
+	{
+		BroadcastChange(Inventory::Tags::Addition);
+	}
+	else if (ItemStack.Copies < OldValue.Copies)
+	{
+		/*
+		 * Note: the server doesn't know if the items were moved or deleted, so better to treat them as deleted downstream.
+		 * From the clients perspective they may as well have been deleted, because the server may have moved them out of
+		 * the sight of the client.
+		 */
+		BroadcastChange(Inventory::Tags::RemovalDeletion);
+	}
+	else if (ItemStack.Instance != OldValue.Instance)
+	{
+		// @todo: the broadcast system doesn't differentiate between adding to a new stack versus an existing one.
+		BroadcastChange(Inventory::Tags::Addition);
+	}
+	else
+	{
+		UE_LOG(LogFaerieInventory, Error, TEXT("Client received OnRep, but doesn't know what changed..."))
+	}
 }

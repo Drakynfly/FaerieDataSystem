@@ -13,15 +13,19 @@ bool FFaerieClientAction_MoveFromSlot::IsValid(const TNotNull<const UFaerieInven
 		Slot->IsFilled();
 }
 
-bool FFaerieClientAction_MoveFromSlot::View(FFaerieItemDataView& View) const
+bool FFaerieClientAction_MoveFromSlot::View(Faerie::ItemData::FScopeProxy& Proxy) const
 {
-	View = Slot->GetView();
-	return View.IsValid();
+	if (Slot->IsFilled())
+	{
+		Proxy = Slot->GetView();
+		return true;
+	}
+	return false;
 }
 
-bool FFaerieClientAction_MoveFromSlot::CanMove(const FFaerieItemDataView& View) const
+bool FFaerieClientAction_MoveFromSlot::CanMove(const Faerie::TValid<const FFaerieItemProxy&> Proxy) const
 {
-	return Slot->CouldSetInSlot(View);
+	return Slot->CouldSetInSlot(Proxy);
 }
 
 bool FFaerieClientAction_MoveFromSlot::Release(FFaerieUnownedItemStack& Stack) const
@@ -30,7 +34,7 @@ bool FFaerieClientAction_MoveFromSlot::Release(FFaerieUnownedItemStack& Stack) c
 	return Stack.IsValid();
 }
 
-bool FFaerieClientAction_MoveFromSlot::Possess(const FFaerieUnownedItemStack& Stack) const
+bool FFaerieClientAction_MoveFromSlot::Possess(const Faerie::TValid<const FFaerieUnownedItemStack&> Stack) const
 {
 	return Slot->SetItemInSlot(Stack);
 }
@@ -41,15 +45,19 @@ bool FFaerieClientAction_MoveToSlot::IsValid(const TNotNull<const UFaerieInvento
 		Client->CanAccessContainer(Slot, StaticStruct());
 }
 
-bool FFaerieClientAction_MoveToSlot::View(FFaerieItemDataView& View) const
+bool FFaerieClientAction_MoveToSlot::View(Faerie::ItemData::FScopeProxy& Proxy) const
 {
-	View = Slot->GetView();
-	return true;
+	if (Slot->IsFilled())
+	{
+		Proxy = Slot->GetView();
+		return true;
+	}
+	return false;
 }
 
-bool FFaerieClientAction_MoveToSlot::CanMove(const FFaerieItemDataView& View) const
+bool FFaerieClientAction_MoveToSlot::CanMove(const Faerie::TValid<const FFaerieItemProxy&> Proxy) const
 {
-	return Slot->CouldSetInSlot(View);
+	return Slot->CouldSetInSlot(Proxy);
 }
 
 bool FFaerieClientAction_MoveToSlot::Release(FFaerieUnownedItemStack& Stack) const
@@ -58,7 +66,7 @@ bool FFaerieClientAction_MoveToSlot::Release(FFaerieUnownedItemStack& Stack) con
 	return Stack.IsValid();
 }
 
-bool FFaerieClientAction_MoveToSlot::Possess(const FFaerieUnownedItemStack& Stack) const
+bool FFaerieClientAction_MoveToSlot::Possess(const Faerie::TValid<const FFaerieUnownedItemStack&> Stack) const
 {
 	return Slot->SetItemInSlot(Stack);
 }

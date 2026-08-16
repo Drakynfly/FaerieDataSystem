@@ -1,6 +1,7 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "MassReplication/FaerieViewModelBase.h"
+#include "EntityManagerHelpers.h"
 
 void UFaerieViewModelBase::SetItemProxy(const FFaerieItemProxy& Item)
 {
@@ -10,7 +11,7 @@ void UFaerieViewModelBase::SetItemProxy(const FFaerieItemProxy& Item)
 		ItemProxy = Item;
 		UFaerieViewModelSubsystem* ViewModelSubsystem = GetTypedOuter<UFaerieViewModelSubsystem>();
 		ViewModelSubsystem->UpdateViewModelAssociation(this, OldProxy);
-		OnProxySet();
+		OnProxySet(Faerie::ItemData::GetFaerieEntityManagerChecked());
 	}
 }
 
@@ -26,5 +27,5 @@ void UFaerieViewModelBase::SetItemProxyDirect(const FFaerieItemProxy& Item)
 {
 	// This is called by the ViewModelSubsystem so we skip updating it, just set and call child impl.
 	ItemProxy = Item;
-	OnProxySet();
+	OnProxySet(Faerie::ItemData::GetFaerieEntityManagerChecked());
 }

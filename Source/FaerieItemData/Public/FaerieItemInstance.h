@@ -39,7 +39,7 @@ public:
 		return FFaerieItemInstance(Item);
 	}
 
-	static FFaerieItemInstance FromFragments(const Faerie::ItemData::FRequireEntityManager& EntityManager, const TArrayView<FInstancedStruct> Fragments)
+	static FFaerieItemInstance FromFragments(FMassEntityManager& EntityManager, const TArrayView<FInstancedStruct> Fragments)
 	{
 		FFaerieItemInstance Instance;
 		Instance.ImportFragmentData(EntityManager, Fragments);
@@ -54,9 +54,9 @@ protected:
 	FMassEntityHandle EntityHandle;
 
 private:
-	void InitializeMassEntityImpl(const Faerie::ItemData::FRequireEntityManager& EntityManager, TArrayView<FInstancedStruct> Fragments);
-	void UpdateTimestamp(bool CreateIfMissing);
-	void NotifyOwnerOfChange(const Faerie::ItemData::FRequireEntityManager& EntityManager, TNotNull<const UScriptStruct*> FragmentType, FGameplayTag Tag);
+	void InitializeMassEntityImpl(FMassEntityManager& EntityManager, TArrayView<FInstancedStruct> Fragments);
+	void UpdateTimestamp(bool CreateIfMissing) const;
+	void NotifyOwnerOfChange(const FMassEntityManager& EntityManager, TNotNull<const UScriptStruct*> FragmentType, FGameplayTag Tag) const;
 
 public:
 	UE_REWRITE bool HasItemAsset() const { return !!Item; }
@@ -69,28 +69,29 @@ public:
 
 	bool IsMutable() const;
 
-	void InitializeMassEntity(const Faerie::ItemData::FRequireEntityManager& EntityManager, TArrayView<FInstancedStruct> Fragments = {});
-	void InitializeMassEntityIfInvalid(const Faerie::ItemData::FRequireEntityManager& EntityManager);
+	void InitializeMassEntity(FMassEntityManager& EntityManager, TArrayView<FInstancedStruct> Fragments = {});
+	void InitializeMassEntityIfInvalid(FMassEntityManager& EntityManager);
 
-	void DestroyMassEntity(const Faerie::ItemData::FRequireEntityManager& EntityManager);
+	void DestroyMassEntity(FMassEntityManager& EntityManager);
 
 	/*
 	 * Import mass fragments to this item instance.
 	 */
-	void ImportFragmentData(const Faerie::ItemData::FRequireEntityManager& EntityManager, TArrayView<FInstancedStruct> Fragments);
+	void ImportFragmentData(FMassEntityManager& EntityManager, TArrayView<FInstancedStruct> Fragments);
 
 	/*
 	 * Export a list of all mass fragments for this item instance.
 	 */
-	void ExportFragmentData(const Faerie::ItemData::FRequireEntityManager& EntityManager, TArray<FInstancedStruct>& OutStructs, Faerie::ItemData::EMassFragmentExportOptions Options) const;
+	void ExportFragmentData(const FMassEntityManager& EntityManager, TArray<FInstancedStruct>& OutStructs, Faerie::ItemData::EMassFragmentExportOptions Options) const;
 
+	// @todo do we need to make Deferred command versions of these?
 	void AddFragment(FMassEntityManager& EntityManager, FInstancedStruct&& Fragment);
 	void AddFragments(FMassEntityManager& EntityManager, TArrayView<FInstancedStruct> Fragments);
 
-	void RemoveFragment(const Faerie::ItemData::FRequireEntityManager& EntityManager, TNotNull<const UScriptStruct*> FragmentType);
+	void RemoveFragment(FMassEntityManager& EntityManager, TNotNull<const UScriptStruct*> FragmentType);
 
-	void OnItemFragmentEdited(const Faerie::ItemData::FRequireEntityManager& EntityManager, TNotNull<const UScriptStruct*> FragmentType, FGameplayTag Tag);
-	void OnItemFragmentEdited(const Faerie::ItemData::FRequireEntityManager& EntityManager, TConstStructView<FFaerieMassFragment> FragmentView, const Faerie::ItemData::FFieldChange& FieldChange);
+	void OnItemFragmentEdited(const FMassEntityManager& EntityManager, TNotNull<const UScriptStruct*> FragmentType, FGameplayTag Tag) const;
+	void OnItemFragmentEdited(const FMassEntityManager& EntityManager, TConstStructView<FFaerieMassFragment> FragmentView, const Faerie::ItemData::FFieldChange& FieldChange) const;
 
 	//~		INTEROP FUNCTIONS WHILE UPGRADING	 ~/
 
@@ -119,6 +120,7 @@ struct FFaerieItemStableHandle
 
 	bool IsValid() const { return Item.IsValid(); }
 
+		  FFaerieItemInstance& Get() { return Item; }
 	const FFaerieItemInstance& Get() const { return Item; }
 
 protected:

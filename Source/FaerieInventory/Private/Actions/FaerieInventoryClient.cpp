@@ -191,13 +191,13 @@ void UFaerieInventoryClient::Server_RequestMoveAction(const FFaerieClientAction_
 		return;
 	}
 
-	FFaerieItemDataView FromView;
+	Faerie::ItemData::FScopeProxy FromView(nullptr);
 	if (!MoveFrom.View(FromView))
 	{
 		return;
 	}
 
-	if (!MoveTo.CanMove(FromView))
+	if (!MoveTo.CanMove(FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, &FromView)))
 	{
 		return;
 	}
@@ -206,9 +206,9 @@ void UFaerieInventoryClient::Server_RequestMoveAction(const FFaerieClientAction_
 
 	if (IsSwap)
 	{
-		FFaerieItemDataView ToView;
+		Faerie::ItemData::FScopeProxy ToView(nullptr);
 		MoveTo.View(ToView);
-		if (!MoveFrom.CanMove(ToView))
+		if (!MoveFrom.CanMove(FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, &ToView)))
 		{
 			return;
 		}

@@ -17,10 +17,10 @@ protected:
 	 * We are making our own make-shift "vtable" here consisting of one single function pointer, because FFaerieMassFragment
 	 * isn't allowed to have virtual children.
 	 */
-	void (*OnLastUseFuncPtr)(const FFaerieItemLastUseLogicBase*, const FFaerieItemProxy&, bool) = nullptr;
+	void (*OnLastUseFuncPtr)(const FFaerieItemLastUseLogicBase*, FMassEntityManager&, const FFaerieItemProxy&, bool) = nullptr;
 
 public:
-	void HandleOnLastUse(const FFaerieItemLastUseLogicBase* ThisBase, const FFaerieItemProxy& Proxy, bool ProcessAsync) const;
+	void HandleOnLastUse(const FFaerieItemLastUseLogicBase* ThisBase, FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy, bool ProcessAsync) const;
 };
 
 // Destroys the item when uses run out.
@@ -31,7 +31,7 @@ struct FFaerieItemLastUseLogic_Destroy : public FFaerieItemLastUseLogicBase
 
 	FFaerieItemLastUseLogic_Destroy();
 
-	static void OnLastUse_Destroy(const FFaerieItemLastUseLogicBase* ThisBase, const FFaerieItemProxy& Proxy, bool ProcessAsync);
+	static void OnLastUse_Destroy(const FFaerieItemLastUseLogicBase* ThisBase, FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy, bool ProcessAsync);
 };
 
 // Swaps an item for a new instance on last use.
@@ -42,7 +42,7 @@ struct FFaerieItemLastUseLogic_Replace : public FFaerieItemLastUseLogicBase
 
 	FFaerieItemLastUseLogic_Replace();
 
-	static void OnLastUse_Replace(const FFaerieItemLastUseLogicBase* ThisBase, const FFaerieItemProxy& Proxy, bool ProcessAsync);
+	static void OnLastUse_Replace(const FFaerieItemLastUseLogicBase* ThisBase, FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy, bool ProcessAsync);
 
 protected:
 	UPROPERTY(EditAnywhere, Category = "LastUseLogicReplace")
@@ -79,14 +79,14 @@ namespace Faerie::ItemData
 	{
 		UE_NONCOPYABLE(FUsesHelper)
 
-		FUsesHelper(const FOptionalEntityManager& InEntityManager UE_LIFETIMEBOUND, const FReference& Instance);
+		FUsesHelper(const FMassEntityManager& EntityManager UE_LIFETIMEBOUND, TValid<const FFaerieItemInstance&> Instance);
 
 		/*
 		 * Adds uses to the item if it doesn't have it.
 		 * MaxUses will default to 1 if not provided.
 		 * InitialUses will default to MaxUses if not provided.
 		 */
-		void CreateFragment(const TOptional<int32>& MaxUses = NullOpt, const TOptional<int32>& InitialUses = NullOpt);
+		void CreateFragment(FMassEntityManager& EntityManager, FFaerieItemInstance& Instance, const TOptional<int32>& MaxUses = NullOpt, const TOptional<int32>& InitialUses = NullOpt);
 
 		bool HasUsesRemaining(int32 Amount) const;
 
@@ -105,7 +105,7 @@ namespace Faerie::ItemData
 		void SetMaxUses(int32 Value, bool ClampRemainingIfOverMax);
 
 	private:
-		FMassEntityManager* EntityManager;
-		const FReference Item;
+		const FMassEntityManager* EntityManager;
+		const FFaerieItemInstance& Item;
 	};
 }

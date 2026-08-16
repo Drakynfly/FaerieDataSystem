@@ -11,8 +11,8 @@ namespace Faerie::Generation
 	FAERIEITEMGENERATOR_API bool CanConsume(const FFaerieItemProxy& Proxy, TNotNull<const UScriptStruct*> FragmentType, const TNotNull<const AActor*> Consumer, const int32 Cost);
 	FAERIEITEMGENERATOR_API bool TryConsume(const FFaerieItemProxy& Proxy, TNotNull<const UScriptStruct*> FragmentType, const TNotNull<AActor*> Consumer, const int32 Cost);
 
-	FAERIEITEMGENERATOR_API bool CanRemoveUses(const FFaerieItemProxy& Proxy, const ItemData::FRequireEntityManager& EntityManager, int32 Cost, bool ResultIfNoUsesFragment);
-	FAERIEITEMGENERATOR_API void RemoveUses(const FFaerieItemProxy& Proxy, const ItemData::FRequireEntityManager& EntityManager, int32 Cost);
+	FAERIEITEMGENERATOR_API bool CanRemoveUses(const FFaerieItemProxy& Proxy, const FMassEntityManager& EntityManager, int32 Cost, bool ResultIfNoUsesFragment);
+	FAERIEITEMGENERATOR_API void RemoveUses(const FFaerieItemProxy& Proxy, FMassEntityManager& EntityManager, int32 Cost);
 }
 
 // Extension point for implementation of consumption logic.

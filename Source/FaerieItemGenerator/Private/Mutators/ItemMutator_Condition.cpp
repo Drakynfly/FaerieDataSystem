@@ -2,6 +2,7 @@
 
 #include "Mutators/ItemMutator_Condition.h"
 #include "FaerieItemDataView.h"
+#include "FaerieItemProxy.h"
 #include "FaerieItemTemplate.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ItemMutator_Condition)
@@ -13,12 +14,12 @@ void FFaerieItemMutator_TemplateCondition::GetRequiredAssets(TArray<TSoftObjectP
 	Mutators.GetRequiredAssets(RequiredAssets);
 }
 
-bool FFaerieItemMutator_TemplateCondition::Apply(Faerie::ItemData::FMutableReference& Item, const FFaerieItemMutatorContext& Context) const
+bool FFaerieItemMutator_TemplateCondition::Apply(FFaerieItemInstance& Item, const FFaerieItemMutatorContext& Context) const
 {
 	if (IsValid(ItemTemplate))
 	{
-		const FFaerieItemDataView View(Item, 1, nullptr);
-		if (!ItemTemplate->TryMatch(Context.WorldContextObject, View))
+		const Faerie::ItemData::FScopeProxy StackProxy(Item, 1, nullptr);
+		if (!ItemTemplate->TryMatch(Context.EntityManager, FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, &StackProxy)))
 		{
 			// Template failed, cannot apply.
 			return false;

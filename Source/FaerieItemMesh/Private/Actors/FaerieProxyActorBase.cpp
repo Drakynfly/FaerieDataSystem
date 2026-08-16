@@ -2,6 +2,7 @@
 
 #include "Actors/FaerieProxyActorBase.h"
 #include "FaerieItem.h"
+#include "FaerieItemOwnerInterface.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieProxyActorBase)
 
@@ -13,32 +14,21 @@ AFaerieProxyActorBase::AFaerieProxyActorBase()
 
 TOptional<FFaerieItemInstance> AFaerieProxyActorBase::GetItemInstance() const
 {
-	if (!DataSource.IsValid())
-	{
-		return NullOpt;
-	}
-
-	return DataSource->GetItemInstance();
+	return DataSource.GetItemInstance();
 }
 
 int32 AFaerieProxyActorBase::GetCopies() const
 {
-	if (!DataSource.IsValid())
-	{
-		return -1;
-	}
-
-	return DataSource->GetCopies();
+	return DataSource.GetCopies();
 }
 
-IFaerieItemOwnerInterface* AFaerieProxyActorBase::GetItemOwner() const
+const IFaerieItemOwnerInterface* AFaerieProxyActorBase::GetItemOwner() const
 {
 	if (!DataSource.IsValid())
 	{
 		return nullptr;
 	}
-
-	return DataSource->GetItemOwner();
+	return Cast<IFaerieItemOwnerInterface>(DataSource.GetItemOwner());
 }
 
 Faerie::ItemData::FProxyChangeEvent::RegistrationType& AFaerieProxyActorBase::GetOnProxyChangeEvent()

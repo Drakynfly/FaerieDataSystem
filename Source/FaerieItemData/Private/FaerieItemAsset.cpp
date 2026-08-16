@@ -134,11 +134,10 @@ EDataValidationResult UFaerieItemAsset::IsDataValid(FDataValidationContext& Cont
 		}
 		else
 		{
-			const FFaerieItemInstance Instance = FFaerieItemInstance::FromPointer(Item);
-			const FFaerieItemDataView View(Instance, 1, nullptr);
+			const ItemData::FScopeProxy Proxy(FFaerieItemInstance::FromPointer(Item), 1, nullptr);
 
 			if (TArray<FText> TemplateMatchErrors;
-				!Template->TryMatchWithDescriptions(this, View, TemplateMatchErrors))
+				!Template->TryMatchWithDescriptions(nullptr, FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, &Proxy), TemplateMatchErrors))
 			{
 				Context.AddError(LOCTEXT("PatternMatchFailed", "Item failed to match the pattern of its Template!"));
 
@@ -183,17 +182,16 @@ ItemData::FGetInstanceResult UFaerieItemAsset::CreateItemStack(const FFaerieItem
 
 	if (Context.CreateReferencingInstance)
 	{
-		check(Context.ItemInstanceOuter);
-
 #if WITH_EDITOR
 		if (Context.RunningInEditor)
 		{
-			OutStack.Instance = CreateReferencingInstance_Editor(Context.ItemInstanceOuter);
+			check(Context.Editor_ItemInstanceOuter);
+			OutStack.Instance = CreateReferencingInstance_Editor(Context.Editor_ItemInstanceOuter);
 		}
 		else
 #endif
 		{
-			OutStack.Instance = CreateReferencingInstance_Runtime(Context.ItemInstanceOuter);
+			OutStack.Instance = CreateReferencingInstance_Runtime();
 		}
 	}
 	else
@@ -233,7 +231,7 @@ FFaerieItemInstance UFaerieItemAsset::CreateReferencingInstance_Editor(const TNo
 }
 #endif
 
-FFaerieItemInstance UFaerieItemAsset::CreateReferencingInstance_Runtime(const TNotNull<const UObject*> WorldContextObj) const
+FFaerieItemInstance UFaerieItemAsset::CreateReferencingInstance_Runtime() const
 {
 	const FFaerieTaggedReference Reference
 	{
@@ -247,8 +245,7 @@ FFaerieItemInstance UFaerieItemAsset::CreateReferencingInstance_Runtime(const TN
 	FInstancedStruct FragmentStruct;
 	FragmentStruct.InitializeAs<FFaerieReferenceFragment>(ReferenceFragment);
 
-	ItemData::FRequireEntityManager EntityManager(WorldContextObj);
-	return FFaerieItemInstance::FromFragments(EntityManager, MakeArrayView(&FragmentStruct, 1));
+	return FFaerieItemInstance::FromFragments(ItemData::GetFaerieEntityManagerChecked(), MakeArrayView(&FragmentStruct, 1));
 }
 
 FFaerieItemInstance UFaerieItemAsset::GetTemplateInstance() const

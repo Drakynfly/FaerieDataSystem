@@ -3,19 +3,21 @@
 #include "Extensions/InventoryContentFilterExtension.h"
 #include "FaerieItemContainerBase.h"
 #include "FaerieItemDataFilter.h"
-#include "FaerieItemDataView.h"
+#include "EntityManagerHelpers.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventoryContentFilterExtension)
 
 EEventExtensionResponse UInventoryContentFilterExtension::AllowsAddition(const TNotNull<const UFaerieItemContainerBase*> Container,
-                                                                         const TConstArrayView<FFaerieItemDataView> Views,
+                                                                         const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies,
                                                                          FFaerieExtensionAllowsAdditionArgs) const
 {
-	if (ensure(IsValid(Filter)))
+	if (ensure(Filter.IsValid()))
 	{
-		for (const FFaerieItemDataView& View : Views)
+		const FMassEntityManager* EntityManager = Faerie::ItemData::GetFaerieEntityManager();
+		for (int32 i = 0; i < Proxies.Num(); ++i)
 		{
-			if (!Filter->Exec(Container, View))
+			const FFaerieItemProxy Proxy = Proxies[i];
+			if (!Filter->Exec(EntityManager, Proxy))
 			{
 				return EEventExtensionResponse::Disallowed;
 			}

@@ -6,7 +6,6 @@
 #include "FaerieItemSlotInterface.h"
 #include "FaerieItemUpgradeAction.generated.h"
 
-struct FFaerieItemDataView;
 class UFaerieItemUpgradeConfigBase;
 
 //

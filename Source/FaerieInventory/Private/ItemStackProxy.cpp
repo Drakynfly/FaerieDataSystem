@@ -51,11 +51,6 @@ IFaerieItemOwnerInterface* UFaerieItemStackProxy::GetItemOwner() const
 	return GetStorage();
 }
 
-FFaerieItemNetworkHandle UFaerieItemStackProxy::Proxy_GetNetworkHandle() const
-{
-	return GetNetworkHandle();
-}
-
 FFaerieEntryKey UFaerieItemStackProxy::GetKey() const
 {
 	return UFaerieItemStorage::GetAddressEntry(Address);

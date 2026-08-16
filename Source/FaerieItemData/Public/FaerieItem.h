@@ -65,7 +65,7 @@ public:
 	static TNotNull<const UFaerieItem*> CreateNewInstance(TConstArrayView<FInstancedStruct> Fragments, TNotNull<UObject*> InstanceOuter, EFaerieItemInstancingMutability Mutability = EFaerieItemInstancingMutability::Automatic);
 
 	// Creates a new faerie item object using this instance as a template. Duplicates are instance-mutable by default.
-	TNotNull<const UFaerieItem*> CreateDuplicate(TNotNull<UObject*> WorldContextObject, EFaerieItemInstancingMutability Mutability = EFaerieItemInstancingMutability::Automatic) const;
+	TNotNull<const UFaerieItem*> CreateDuplicate(TNotNull<UObject*> InstanceOuter, EFaerieItemInstancingMutability Mutability = EFaerieItemInstancingMutability::Automatic) const;
 #endif
 
 	UE_REWRITE TConstArrayView<FInstancedStruct> GetFragmentDefaults() const { return FragmentDefaults; }
@@ -116,15 +116,12 @@ protected:
 
 namespace Faerie::ItemData
 {
-	FAERIEITEMDATA_API FMassEntityManager& GetEntityManager(const FRequireEntityManager& EntityManager);
-
 	template <CFragmentImpl T>
-	[[nodiscard]] UE_REWRITE const T* GetEntityFragment(const FRequireEntityManager& EntityManager, const FMassEntityHandle ItemHandle)
+	[[nodiscard]] UE_REWRITE const T* GetEntityFragment(const FMassEntityManager& EntityManager, const FMassEntityHandle ItemHandle)
 	{
-		FMassEntityManager& Manager = GetEntityManager(EntityManager);
-		if (Manager.IsEntityValid(ItemHandle))
+		if (EntityManager.IsEntityValid(ItemHandle))
 		{
-			if (const T* Fragment = Manager.GetFragmentDataPtr<T>(ItemHandle))
+			if (const T* Fragment = EntityManager.GetFragmentDataPtr<T>(ItemHandle))
 			{
 				return Fragment;
 			}
@@ -133,16 +130,16 @@ namespace Faerie::ItemData
 		return nullptr;
 	}
 
-	[[nodiscard]] FAERIEITEMDATA_API FConstStructView GetEntityFragment(const FRequireEntityManager& EntityManager, FMassEntityHandle ItemHandle, TNotNull<const UScriptStruct*> FragmentType);
+	[[nodiscard]] FAERIEITEMDATA_API FConstStructView GetEntityFragment(const FMassEntityManager& EntityManager, FMassEntityHandle ItemHandle, TNotNull<const UScriptStruct*> FragmentType);
 
 
-	[[nodiscard]] FAERIEITEMDATA_API TConstStructView<FFaerieMassFragment> GetEntityFragmentOrDefault(const FOptionalEntityManager& EntityManager, const FReference& Reference, TNotNull<const UScriptStruct*> FragmentType, FGameplayTag ReferenceTag = Tags::ReferenceDefaults);
+	[[nodiscard]] FAERIEITEMDATA_API TConstStructView<FFaerieMassFragment> GetEntityFragmentOrDefault(const FMassEntityManager* EntityManager, TValid<const FFaerieItemInstance&> Instance, TNotNull<const UScriptStruct*> FragmentType, FGameplayTag ReferenceTag = Tags::ReferenceDefaults);
 
 
 	template <CFragmentImpl T>
-	[[nodiscard]] UE_REWRITE TConstStructView<T> GetEntityFragmentOrDefault(const FOptionalEntityManager& EntityManager, const FReference& Reference, FGameplayTag ReferenceTag = Tags::ReferenceDefaults)
+	[[nodiscard]] UE_REWRITE TConstStructView<T> GetEntityFragmentOrDefault(const FMassEntityManager* EntityManager, TValid<const FFaerieItemInstance&> Instance, FGameplayTag ReferenceTag = Tags::ReferenceDefaults)
 	{
-		TConstStructView<FFaerieMassFragment> FragmentCopy = GetEntityFragmentOrDefault(EntityManager, Reference, T::StaticStruct(), ReferenceTag);
+		TConstStructView<FFaerieMassFragment> FragmentCopy = GetEntityFragmentOrDefault(EntityManager, Instance, T::StaticStruct(), ReferenceTag);
 		return *reinterpret_cast<TConstStructView<T>*>(&FragmentCopy);
 	}
 

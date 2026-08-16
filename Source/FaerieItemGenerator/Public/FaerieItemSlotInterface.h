@@ -82,10 +82,11 @@ namespace Faerie::Generation
 {
 	FAERIEITEMGENERATOR_API bool ForEachCraftingSlot(const FFaerieItemCraftingSlots& Slots, const TFunctionRef<bool(const FFaerieItemCraftingCostElement& Slot)>& Predicate);
 
-	FAERIEITEMGENERATOR_API bool ValidateFilledSlots(TNotNull<const UObject*> WorldContext, const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemCraftingSlots& Slots);
+	template <bool LogFailure>
+	bool ValidateFilledSlots(const FMassEntityManager* EntityManager, const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemCraftingSlots& Slots);
 
 	// Remove items/uses from the entries in Slots used to fund this action.
-	FAERIEITEMGENERATOR_API bool ConsumeSlotCosts(const ItemData::FOptionalEntityManager& EntityManager, const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemCraftingSlots& Slots);
+	FAERIEITEMGENERATOR_API bool ConsumeSlotCosts(FMassEntityManager& EntityManager, const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemCraftingSlots& Slots);
 
 	FAERIEITEMGENERATOR_API const FFaerieItemCraftingCostElement* FindSlot(const FFaerieItemCraftingSlots& Slots, const FFaerieItemSlotHandle& Name);
 

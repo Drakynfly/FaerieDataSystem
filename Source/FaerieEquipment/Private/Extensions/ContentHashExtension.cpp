@@ -7,6 +7,7 @@
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "TypeCastingUtils.h"
+#include "EntityManagerHelpers.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ContentHashExtension)
 
@@ -43,7 +44,7 @@ void UContentHashExtension::PostEventBatch(const TNotNull<const UFaerieItemConta
 void UContentHashExtension::RecalcContainerHash(const TNotNull<const UFaerieItemContainerBase*> Container)
 {
 	FFaerieHash& Hash = PerContainerHash.FindOrAdd(Container);
-	Hash = Faerie::Hash::HashContainer(Container, &Faerie::Hash::HashItemByName);
+	Hash = Faerie::Hash::HashContainer(Container, Faerie::ItemData::GetFaerieEntityManager(), &Faerie::Hash::HashItemByName);
 	RecalcLocalChecksum();
 }
 

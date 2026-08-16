@@ -340,7 +340,7 @@ void UItemContainerExtensionGroup::DeinitializeExtension(const TNotNull<const UF
 }
 
 EEventExtensionResponse UItemContainerExtensionGroup::AllowsAddition(const TNotNull<const UFaerieItemContainerBase*> Container,
-																	 const TConstArrayView<FFaerieItemDataView> Views,
+																	 const Utils::TArrayAdapter<FFaerieItemProxy>& Proxies,
 																	 const FFaerieExtensionAllowsAdditionArgs Args) const
 {
 	EEventExtensionResponse Response = EEventExtensionResponse::NoExplicitResponse;
@@ -348,7 +348,7 @@ EEventExtensionResponse UItemContainerExtensionGroup::AllowsAddition(const TNotN
 	// Check each extension, to see if the reason is allowed or denied.
 	for (auto&& Extension : Extensions::FConstExtensionIterator(this))
 	{
-		switch (Extension->AllowsAddition(Container, Views, Args))
+		switch (Extension->AllowsAddition(Container, Proxies, Args))
 		{
 		case EEventExtensionResponse::Allowed:
 			{
@@ -369,16 +369,16 @@ EEventExtensionResponse UItemContainerExtensionGroup::AllowsAddition(const TNotN
 	return Response;
 }
 
-void UItemContainerExtensionGroup::PreAddition(const TNotNull<const UFaerieItemContainerBase*> Container, const FFaerieItemDataView& View)
+void UItemContainerExtensionGroup::PreAddition(const TNotNull<const UFaerieItemContainerBase*> Container, const TValid<FFaerieUnownedItemStack>& ItemStack)
 {
 	for (auto&& Extension : Extensions::FExtensionIterator(this))
 	{
-		Extension->PreAddition(Container, View);
+		Extension->PreAddition(Container, ItemStack);
 	}
 }
 
 EEventExtensionResponse UItemContainerExtensionGroup::AllowsRemoval(const TNotNull<const UFaerieItemContainerBase*> Container,
-																	const ItemData::TNonNullViewPtr<Container::IAddressView> DataView,
+																	const TNotNull<const Container::IAddressView*> DataView,
 																	const FFaerieInventoryTag Reason) const
 {
 	EEventExtensionResponse Response = EEventExtensionResponse::NoExplicitResponse;
@@ -408,7 +408,7 @@ EEventExtensionResponse UItemContainerExtensionGroup::AllowsRemoval(const TNotNu
 }
 
 void UItemContainerExtensionGroup::PreRemoval(const TNotNull<const UFaerieItemContainerBase*> Container,
-	const ItemData::TNonNullViewPtr<Container::IEntryView> DataView, const int32 Removal)
+											  const TNotNull<const Container::IEntryView*> DataView, const int32 Removal)
 {
 	for (auto&& Extension : Extensions::FExtensionIterator(this))
 	{
@@ -417,7 +417,7 @@ void UItemContainerExtensionGroup::PreRemoval(const TNotNull<const UFaerieItemCo
 }
 
 EEventExtensionResponse UItemContainerExtensionGroup::AllowsEdit(const TNotNull<const UFaerieItemContainerBase*> Container,
-																 const ItemData::TNonNullViewPtr<Container::IAddressView> DataView,
+																 const TNotNull<const Container::IAddressView*> DataView,
 																 const FFaerieInventoryTag EditTag) const
 {
 	EEventExtensionResponse Response = EEventExtensionResponse::NoExplicitResponse;

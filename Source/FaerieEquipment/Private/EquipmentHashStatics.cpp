@@ -4,11 +4,10 @@
 #include "EquipmentHashAsset.h"
 #include "FaerieEquipmentManager.h"
 #include "FaerieEquipmentSlot.h"
-#include "FaerieItemStackHashInstruction.h"
 
 namespace Faerie::Hash
 {
-	FFaerieHash HashEquipment(const TNotNull<const UFaerieEquipmentManager*> Manager,
+	FFaerieHash HashEquipment(const TNotNull<const UFaerieEquipmentManager*> Manager, const FMassEntityManager* EntityManager,
 							  const TSet<FFaerieSlotTag>& Slots, const FItemHashFunction& Function)
 	{
 		TArray<uint32> Hashes;
@@ -18,14 +17,14 @@ namespace Faerie::Hash
 		{
 			if (const UFaerieEquipmentSlot* Slot = Manager->FindSlot(SlotTag, true))
 			{
-				Hashes.Add(Function(Slot, Slot->GetItemInstance().GetValue()));
+				Hashes.Add(Function(EntityManager, Slot->GetItemInstance().GetValue()));
 			}
 		}
 
 		return CombineHashes(Hashes);
 	}
 
-	bool ExecuteHashInstructions(const TNotNull<const UFaerieEquipmentManager*> Manager, const TNotNull<const UFaerieEquipmentHashAsset*> Asset)
+	bool ExecuteHashInstructions(const TNotNull<const UFaerieEquipmentManager*> Manager, const FMassEntityManager* EntityManager, const TNotNull<const UFaerieEquipmentHashAsset*> Asset)
 	{
 		uint32 FinalHash = 0;
 
@@ -43,8 +42,7 @@ namespace Faerie::Hash
 				{
 					if (Slot->IsFilled())
 					{
-						FFaerieItemDataView View(Slot);
-						TagHash = Config.Instruction->Hash(Slot, View);
+						TagHash = Config.Instruction.Hash(EntityManager, FFaerieItemProxy(Slot));
 
 						if (BreakAfterFirstFilled)
 						{

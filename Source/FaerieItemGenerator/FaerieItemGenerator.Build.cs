@@ -21,6 +21,7 @@ public class FaerieItemGenerator : ModuleRules
             new []
             {
                 "FaerieItemData",
+                "FaerieInventory",
                 "FaerieDataUtils"
             }
         );
@@ -32,7 +33,7 @@ public class FaerieItemGenerator : ModuleRules
                 "Engine",
                 "MassEntity",
                 "NetCore",
-                "Squirrel"
+                "Squirrel",
             }
         );
     }

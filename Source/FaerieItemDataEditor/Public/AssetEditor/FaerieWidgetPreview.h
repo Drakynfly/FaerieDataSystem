@@ -17,10 +17,13 @@ class FAERIEITEMDATAEDITOR_API UFaerieWidgetPreview : public UWidgetPreview, pub
 	GENERATED_BODY()
 
 public:
-	//~ IFaerieItemDataProxy
+	//~ Faerie::ItemData::IViewBase
 	virtual TOptional<FFaerieItemInstance> GetItemInstance() const override;
 	virtual int32 GetCopies() const override { return 1; }
 	virtual IFaerieItemOwnerInterface* GetItemOwner() const override;
+	//~ Faerie::ItemData::IViewBase
+
+	//~ IFaerieItemDataProxy
 	virtual Faerie::ItemData::FProxyChangeEvent::RegistrationType& GetOnProxyChangeEvent() override;
 	//~ IFaerieItemDataProxy
 

@@ -3,7 +3,6 @@
 #pragma once
 
 #include "FaerieHash.h"
-#include "FaerieItem.h"
 #include "FaerieItemDataFwd.h"
 #include "GameplayTagContainer.h"
 
@@ -13,7 +12,7 @@
 
 #include "FaerieItemDataLibrary.generated.h"
 
-struct FFaerieItemDataView;
+struct FFaerieItemInstance;
 struct FMassEntityHandle;
 class UFaerieItemAsset;
 
@@ -28,38 +27,37 @@ class UFaerieItemDataLibrary : public UBlueprintFunctionLibrary
 	GENERATED_BODY()
 
 public:
-	UFUNCTION(BlueprintPure, Category = "Faerie|ItemData", DisplayName = "Is Valid (Instance)")
-	static bool IsValid_ItemInstance(const FFaerieItemInstance& Instance);
+	UFUNCTION(BlueprintPure, Category = "Faerie|ItemData")
+	static bool IsItemMutable(const FFaerieItemProxy& Proxy);
 
 	UFUNCTION(BlueprintPure, Category = "Faerie|ItemData")
-	static bool EqualEqual_ItemInstance(const FFaerieItemInstance& A, const FFaerieItemInstance& B);
-
-	UFUNCTION(BlueprintPure, Category = "Faerie|ItemData")
-	static bool IsItemMutable(const FFaerieItemInstance& Item);
-
-	UFUNCTION(BlueprintPure, Category = "Faerie|ItemData")
-	static FDateTime GetItemLastModified(const FFaerieItemInstance& Item);
+	static FDateTime GetItemLastModified(const FFaerieItemProxy& Proxy);
 
 	// Get the item instance this asset represents.
 	UFUNCTION(BlueprintPure, Category = "Faerie|ItemData")
-	static FFaerieItemInstance GetItemInstance(const UFaerieItemAsset* Asset);
+	static FFaerieUnownedItemStack GetTemplateInstance(const UFaerieItemAsset* Asset);
 
-	UFUNCTION(BlueprintPure, Category = "Faerie|ItemData", meta = (AdvancedDisplay = 1, WorldContext = "WorldContextObject", DefaultToSelf = "WorldContextObject"))
-	static FFaerieItemInstance NewItemInstance(UObject* WorldContextObject, UPARAM(ref) TArray<FInstancedStruct>& Fragments);
+	UFUNCTION(BlueprintPure, Category = "Faerie|ItemData", meta = (AdvancedDisplay = 1))
+	static FFaerieUnownedItemStack NewItemInstance(UPARAM(ref) TArray<FInstancedStruct>& Fragments);
 
-	UFUNCTION(BlueprintPure, Category = "Faerie|ItemData", meta = (WorldContext = "WorldContextObject", DefaultToSelf = "WorldContextObject"))
-	static bool HasItemFragment(UObject* WorldContextObject, const FFaerieItemInstance& Instance, /*TSubScriptStructOf<FFaerieMassFragment>*/ UScriptStruct* FragmentType);
+	UFUNCTION(BlueprintPure, Category = "Faerie|ItemData")
+	static bool HasItemFragment(const FFaerieItemProxy& Proxy, /*TSubScriptStructOf<FFaerieMassFragment>*/ UScriptStruct* FragmentType);
 
-	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemData", meta = (WorldContext = "WorldContextObject", DefaultToSelf = "WorldContextObject"))
-	static bool AddFragment(UObject* WorldContextObject, FFaerieItemInstance& Instance, FInstancedStruct Fragment);
+	//UFUNCTION(BlueprintCallable, Category = "Faerie|ItemData")
+	//static bool AddFragment(FFaerieItemInstance& Instance, FInstancedStruct Fragment);
 
-	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemData", meta = (WorldContext = "WorldContextObject", DefaultToSelf = "WorldContextObject"))
-	static bool RemoveFragment(UObject* WorldContextObject, FFaerieItemInstance& Instance, const UScriptStruct* FragmentType);
+	//UFUNCTION(BlueprintCallable, Category = "Faerie|ItemData")
+	//static bool RemoveFragment(FFaerieItemInstance& Instance, const UScriptStruct* FragmentType);
 
 	// Gets the fragment of the given type if it exists in the either the asset's defaults or runtime entity.
 	// @Todo replace with a version that auto-cast's the output to Fragment type.
-	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Faerie|ItemData", meta = (WorldContext = "WorldContextObject", DefaultToSelf = "WorldContextObject", ExpandBoolAsExecs = "ReturnValue"))
-	static bool FindFragment(UObject* WorldContextObject, const FFaerieItemInstance& Instance, /*TSubScriptStructOf<FFaerieMassFragment>*/ UScriptStruct* Struct, TInstancedStruct<FFaerieMassFragment>& FoundFragment);
+	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Faerie|ItemData", meta = (ExpandBoolAsExecs = "ReturnValue"))
+	static bool FindFragment(const FFaerieItemInstance& Instance, /*TSubScriptStructOf<FFaerieMassFragment>*/ UScriptStruct* FragmentType, TInstancedStruct<FFaerieMassFragment>& FoundFragment);
+
+	// Gets the fragment of the given type if it exists in the either the asset's defaults or runtime entity.
+	// @Todo replace with a version that auto-cast's the output to Fragment type.
+	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Faerie|ItemData", meta = (ExpandBoolAsExecs = "ReturnValue", DisplayName = "Find Fragment (Proxy)"))
+	static bool FindFragment_Proxy(const FFaerieItemProxy& Proxy, /*TSubScriptStructOf<FFaerieMassFragment>*/ UScriptStruct* FragmentType, TInstancedStruct<FFaerieMassFragment>& FoundFragment);
 
 	// Get the inventory system Unlimited Stack.
 	UFUNCTION(BlueprintPure, Category = "Faerie|ItemData|Macros")
@@ -72,14 +70,8 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Faerie|Hash")
 	static int64 BreakFaerieHash(const FFaerieHash Hash) { return Hash.Hash; }
 
-	UFUNCTION(BlueprintPure, Category = "Faerie|ItemData", meta = (DisplayName = "Get Item Object"))
-	static FFaerieItemInstance GetViewItem(const FFaerieItemDataView& View);
-
 	UFUNCTION(BlueprintPure, Category = "Faerie|ItemData", meta = (DisplayName = "Get Item Copies"))
-	static int32 GetViewCopies(const FFaerieItemDataView& View);
-
-	UFUNCTION(BlueprintPure, Category = "Faerie|ItemData", meta = (DisplayName = "Get Item Owner"))
-	static TScriptInterface<IFaerieItemOwnerInterface> GetViewOwner(const FFaerieItemDataView& View);
+	static int32 GetViewCopies(const FFaerieItemProxy& Proxy);
 
 	UFUNCTION(BlueprintPure, Category = "Faerie|ItemData", meta = (DisplayName = "Equal (Faerie Item Proxy)", CompactNodeTitle = "==", Keywords = "== equal compare", ScriptOperator = "=="))
 	static bool EqualEqual_ItemProxy(const FFaerieItemProxy& A, const FFaerieItemProxy& B);
@@ -102,14 +94,6 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Faerie|ItemData", meta = (DisplayName = "Is Valid (Proxy)"))
 	static bool IsValid_ItemProxy(const FFaerieItemProxy& Proxy);
 
-	// Get the Item Instance UObject that this proxy represents. Failable, as not all instances have an Item.
-	UFUNCTION(BlueprintPure, Category = "Faerie|ItemData", meta = (DisplayName = "Get Item Instance"))
-	static FFaerieItemInstance GetProxyItemInstance(const FFaerieItemProxy& Proxy);
-
-	// Get the Proxy Interface Object that points to the item this proxy represents.
-	UFUNCTION(BlueprintPure, Category = "Faerie|ItemData", meta = (DisplayName = "Get Item Owner"))
-	static TScriptInterface<IFaerieItemOwnerInterface> GetProxyItemOwner(const FFaerieItemProxy& Proxy);
-
 	// Get the number of copies this proxy may access.
 	UFUNCTION(BlueprintPure, Category = "Faerie|ItemData", meta = (DisplayName = "Get Item Copies"))
 	static int32 GetProxyCopies(const FFaerieItemProxy& Proxy);
@@ -120,31 +104,27 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemData")
 	static void UnbindAllFromItemDataChanged(const FFaerieItemProxy& Proxy, const UObject* Object);
 
-	// Convert an Item Proxy into a Stack View.
-	UFUNCTION(BlueprintPure, Category = "Faerie|ItemData")
-	static FFaerieItemDataView ProxyToView(const FFaerieItemProxy& Proxy);
-
 	/**
 	 * Test if an item is mutable
 	 */
-	UFUNCTION(/* Item Data Predicate */ meta = (DisplayName = "Is Mutable", WorldContext = "WorldContextObj"))
-	static bool ItemIsMutablePredicate(UObject* WorldContextObj, const FFaerieItemDataView& View);
+	UFUNCTION(/* Item Data Predicate */ meta = (DisplayName = "Is Mutable"))
+	static bool ItemIsMutablePredicate(const FFaerieItemProxy& Proxy);
 
 	/**
 	 * Test if an item is immutable
 	 */
-	UFUNCTION(/* Item Data Predicate */ meta = (DisplayName = "Is Immutable", WorldContext = "WorldContextObj"))
-	static bool ItemIsImmutablePredicate(UObject* WorldContextObj, const FFaerieItemDataView& View);
+	UFUNCTION(/* Item Data Predicate */ meta = (DisplayName = "Is Immutable"))
+	static bool ItemIsImmutablePredicate(const FFaerieItemProxy& Proxy);
 
 	/**
 	 * Compares two items by their name (from info fragment)
 	 */
-	UFUNCTION(/* Item Data Predicate */ meta = (DisplayName = "Lexographic Comparison", WorldContext = "WorldContextObj"))
-	static bool ItemLexicographicNameComparator(UObject* WorldContextObj, const FFaerieItemDataView& ViewA, const FFaerieItemDataView& ViewB);
+	UFUNCTION(/* Item Data Predicate */ meta = (DisplayName = "Lexographic Comparison"))
+	static bool ItemLexicographicNameComparator(const FFaerieItemProxy& ProxyA, const FFaerieItemProxy& ProxyB);
 
 	/**
 	 * Compares two items by their last modified date.
 	 */
-	UFUNCTION(/* Item Data Predicate */ meta = (DisplayName = "Last Modified Comparison", WorldContext = "WorldContextObj"))
-	static bool ItemDateModifiedComparator(UObject* WorldContextObj, const FFaerieItemDataView& ViewA, const FFaerieItemDataView& ViewB);
+	UFUNCTION(/* Item Data Predicate */ meta = (DisplayName = "Last Modified Comparison"))
+	static bool ItemDateModifiedComparator(const FFaerieItemProxy& ProxyA, const FFaerieItemProxy& ProxyB);
 };

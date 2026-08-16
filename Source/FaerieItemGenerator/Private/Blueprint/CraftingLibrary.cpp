@@ -6,11 +6,12 @@
 #include "FaerieItemSlotInterface.h"
 
 #include "Consumable/FaerieConsumableFragment.h"
-#include "Generation/FaerieItemGenerationConfig.h"
 
 #include "GameFramework/Actor.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(CraftingLibrary)
+
+using namespace Faerie;
 
 void UFaerieGenerationLibrary::GetCraftingSlots(const TScriptInterface<IFaerieItemSlotInterface> Interface, FFaerieItemCraftingSlots& Slots)
 {
@@ -36,15 +37,9 @@ void UFaerieGenerationLibrary::GetCraftingSlots_Message(UObject* Object, FFaerie
     }
 }
 
-bool UFaerieGenerationLibrary::TestCraftingSlots(const UObject* WorldContextObj, const TScriptInterface<IFaerieItemSlotInterface> Interface,
+bool UFaerieGenerationLibrary::TestCraftingSlots(const TScriptInterface<IFaerieItemSlotInterface> Interface,
     const FFaerieCraftingFilledSlots& FilledSlots)
 {
-    if (!IsValid(WorldContextObj))
-    {
-        FFrame::KismetExecutionMessage(TEXT("Invalid WorldContextObj passed to UFaerieGenerationLibrary::TestCraftingSlots"), ELogVerbosity::Error);
-        return false;
-    }
-
     if (!Interface.GetInterface())
     {
         FFrame::KismetExecutionMessage(TEXT("Invalid Interface passed to UFaerieGenerationLibrary::TestCraftingSlots"), ELogVerbosity::Error);
@@ -55,18 +50,19 @@ bool UFaerieGenerationLibrary::TestCraftingSlots(const UObject* WorldContextObj,
     {
         if (const FFaerieItemCraftingSlots* SlotsPtr = InterfacePtr->GetCraftingSlots())
         {
-            return Faerie::Generation::ValidateFilledSlots(WorldContextObj, FilledSlots, *SlotsPtr);
+            auto* EntityManager = ItemData::GetFaerieEntityManager();
+            return Generation::ValidateFilledSlots<false>(EntityManager, FilledSlots, *SlotsPtr);
         }
     }
     return false;
 }
 
-bool UFaerieGenerationLibrary::ConsumeSlotCosts(const UObject* WorldContextObj, const FFaerieCraftingFilledSlots& FilledSlots,
+bool UFaerieGenerationLibrary::ConsumeSlotCosts(const FFaerieCraftingFilledSlots& FilledSlots,
     const TScriptInterface<IFaerieItemSlotInterface>& CraftingSlots)
 {
-    if (!IsValid(WorldContextObj))
+    if (!ItemData::HasFaerieEntityManagerBeenAssigned())
     {
-        FFrame::KismetExecutionMessage(TEXT("Invalid WorldContextObj passed to UFaerieGenerationLibrary::ConsumeSlotCosts"), ELogVerbosity::Error);
+        FFrame::KismetExecutionMessage(TEXT("Cannot consume slots without valid Entity Manager in UFaerieGenerationLibrary::ConsumeSlotCosts"), ELogVerbosity::Error);
         return false;
     }
 
@@ -80,8 +76,8 @@ bool UFaerieGenerationLibrary::ConsumeSlotCosts(const UObject* WorldContextObj, 
     {
         if (const FFaerieItemCraftingSlots* SlotsPtr = InterfacePtr->GetCraftingSlots())
         {
-            Faerie::ItemData::FOptionalEntityManager EntityManager(WorldContextObj);
-            return Faerie::Generation::ConsumeSlotCosts(EntityManager, FilledSlots, *SlotsPtr);
+            auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
+            return Generation::ConsumeSlotCosts(EntityManager, FilledSlots, *SlotsPtr);
         }
     }
     return false;
@@ -99,7 +95,7 @@ bool UFaerieGenerationLibrary::IsSlotOptional(const TScriptInterface<IFaerieItem
     {
         if (const FFaerieItemCraftingSlots* SlotsPtr = InterfacePtr->GetCraftingSlots())
         {
-            return Faerie::Generation::IsSlotOptional(*SlotsPtr, Name);
+            return Generation::IsSlotOptional(*SlotsPtr, Name);
         }
     }
     return false;
@@ -118,7 +114,7 @@ bool UFaerieGenerationLibrary::FindSlot(const TScriptInterface<IFaerieItemSlotIn
     {
         if (const FFaerieItemCraftingSlots* SlotsPtr = InterfacePtr->GetCraftingSlots())
         {
-            if (const FFaerieItemCraftingCostElement* Slot = Faerie::Generation::FindSlot(*SlotsPtr, Name))
+            if (const FFaerieItemCraftingCostElement* Slot = Generation::FindSlot(*SlotsPtr, Name))
             {
                 OutSlot = *Slot;
                 return true;
@@ -149,7 +145,7 @@ bool UFaerieGenerationLibrary::CanConsume(const FFaerieItemProxy& Proxy, UScript
         return false;
     }
 
-    return Faerie::Generation::CanConsume(Proxy, ConsumableType, Consumer, Cost);
+    return Generation::CanConsume(Proxy, ConsumableType, Consumer, Cost);
 }
 
 bool UFaerieGenerationLibrary::TryConsume(const FFaerieItemProxy& Proxy, UScriptStruct* ConsumableType,
@@ -173,5 +169,5 @@ bool UFaerieGenerationLibrary::TryConsume(const FFaerieItemProxy& Proxy, UScript
         return false;
     }
 
-    return Faerie::Generation::TryConsume(Proxy, ConsumableType, Consumer, Cost);
+    return Generation::TryConsume(Proxy, ConsumableType, Consumer, Cost);
 }

@@ -16,7 +16,20 @@ bool FFaerieClientAction_MoveToGrid::IsValid(const TNotNull<const UFaerieInvento
 		Client->CanAccessContainer(Storage, StaticStruct());
 }
 
-bool FFaerieClientAction_MoveToGrid::CanMove(const FFaerieItemDataView& View) const
+bool FFaerieClientAction_MoveToGrid::View(ItemData::FScopeProxy& Proxy) const
+{
+	if (auto&& GridExtension = Extensions::Get<UInventoryGridExtensionBase>(Storage->GetExtensions(), true))
+	{
+		if (GridExtension->IsCellOccupied(Position))
+		{
+			Proxy = GridExtension->ViewAt_Native(Position);
+			return true;
+		}
+	}
+	return false;
+}
+
+bool FFaerieClientAction_MoveToGrid::CanMove(const TValid<const FFaerieItemProxy&> Proxy) const
 {
 	// Fetch the Grid Extension and ensure it exists
 	auto&& GridExtension = Extensions::Get<UInventoryGridExtensionBase>(Storage->GetExtensions(), true);
@@ -25,10 +38,10 @@ bool FFaerieClientAction_MoveToGrid::CanMove(const FFaerieItemDataView& View) co
 		return false;
 	}
 
-	return GridExtension->CanAddAtLocation(View, Position);
+	return GridExtension->CanAddAtLocation(Proxy, Position);
 }
 
-bool FFaerieClientAction_MoveToGrid::Possess(const FFaerieUnownedItemStack& Stack) const
+bool FFaerieClientAction_MoveToGrid::Possess(const TValid<const FFaerieUnownedItemStack&> Stack) const
 {
 	auto&& GridExtension = Extensions::Get<UInventoryGridExtensionBase>(Storage->GetExtensions(), true);
 	check(GridExtension);
@@ -45,19 +58,6 @@ bool FFaerieClientAction_MoveToGrid::Possess(const FFaerieUnownedItemStack& Stac
 
 	// Finally, move item to the cell client requested.
 	return GridExtension->MoveItem(TargetAddress, Position);
-}
-
-bool FFaerieClientAction_MoveToGrid::View(FFaerieItemDataView& View) const
-{
-	if (auto&& GridExtension = Extensions::Get<UInventoryGridExtensionBase>(Storage->GetExtensions(), true))
-	{
-		if (GridExtension->IsCellOccupied(Position))
-		{
-			View = GridExtension->ViewAt(Position);
-			return true;
-		}
-	}
-	return false;
 }
 
 bool FFaerieClientAction_MoveToGrid::Release(FFaerieUnownedItemStack& Stack) const

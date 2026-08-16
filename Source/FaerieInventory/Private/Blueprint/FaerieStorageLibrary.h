@@ -12,7 +12,7 @@ class UFaerieItemStackProxy;
 class UFaerieItemStorage;
 
 // We need to expose this delegate to the global namespace or UHT will cry.
-using FFaerieViewPredicate = UFaerieFunctionTemplates::FFaerieViewPredicate;
+using FFaerieProxyPredicate = UFaerieFunctionTemplates::FFaerieProxyPredicate;
 
 /**
  * 
@@ -81,21 +81,29 @@ public:
 
 	// Query function to filter for the first matching entry.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|Storage Library")
-	static FFaerieAddress QueryFirst(UFaerieItemStorage* Storage, const UFaerieFunctionTemplates::FFaerieViewPredicate& Filter);
+	static FFaerieAddress QueryFirst(UFaerieItemStorage* Storage, const UFaerieFunctionTemplates::FFaerieProxyPredicate& Filter);
+
+	// Gets the owner of an item from a proxy, if one exists.
+	UFUNCTION(BlueprintCallable, Category = "Faerie|Storage Library", meta = (DisplayName = "Get Owning Container (Proxy)"))
+	static UFaerieItemContainerBase* GetOwningContainer_Proxy(const FFaerieItemProxy& Proxy);
+
+	// Gets the owner of an item from a view, if one exists.
+	UFUNCTION(BlueprintCallable, Category = "Faerie|Storage Library", meta = (DisplayName = "Get Owning Container (View)"))
+	static UFaerieItemContainerBase* GetOwningContainer_View(const FFaerieItemProxy& Proxy);
 
 	// Gets the first subobject of the given class
-	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Faerie|Subobject", meta = (WorldContext = "WorldContextObject", DeterminesOutputType = "Class", DynamicOutputParam = "FoundContainers", ExpandBoolAsExecs = "ReturnValue"))
-	static bool FindSubobject(UObject* WorldContextObject, const FFaerieItemInstance& Instance, TSubclassOf<UFaerieItemContainerBase> Class, UFaerieItemContainerBase*& FoundContainers, const bool Recursive);
+	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Faerie|Subobject", meta = (DeterminesOutputType = "Class", DynamicOutputParam = "FoundContainers", ExpandBoolAsExecs = "ReturnValue"))
+	static bool FindSubobject(const FFaerieItemProxy& Proxy, TSubclassOf<UFaerieItemContainerBase> Class, UFaerieItemContainerBase*& FoundContainers, const bool Recursive);
 
 	// Gets all subobjects of the given class
-	UFUNCTION(BlueprintCallable, Category = "Faerie|SubObjects", meta = (WorldContext = "WorldContextObject", DeterminesOutputType = "Class", DynamicOutputParam = "FoundContainers"))
-	static void FindSubObjectsByClass(UObject* WorldContextObject, const FFaerieItemInstance& Instance, TSubclassOf<UFaerieItemContainerBase> Class, TArray<UFaerieItemContainerBase*>& FoundContainers, const bool Recursive);
+	UFUNCTION(BlueprintCallable, Category = "Faerie|SubObjects", meta = (DeterminesOutputType = "Class", DynamicOutputParam = "FoundContainers"))
+	static void FindSubObjectsByClass(const FFaerieItemProxy& Proxy, TSubclassOf<UFaerieItemContainerBase> Class, TArray<UFaerieItemContainerBase*>& FoundContainers, const bool Recursive);
 
 	// Get all container objects.
-	UFUNCTION(BlueprintCallable, Category = "Faerie|SubObjects", meta = (WorldContext = "WorldContextObject"))
-	static void GetAllContainersInItem(UObject* WorldContextObject, const FFaerieItemInstance& Instance, TArray<UFaerieItemContainerBase*>& FoundContainers, bool Recursive);
+	UFUNCTION(BlueprintCallable, Category = "Faerie|SubObjects")
+	static void GetAllContainersInItem(const FFaerieItemProxy& Proxy, TArray<UFaerieItemContainerBase*>& FoundContainers, bool Recursive);
 
 	// Get all child items from an item.
-	UFUNCTION(BlueprintCallable, Category = "Faerie|SubObjects", meta = (WorldContext = "WorldContextObject"))
-	static void GetItemChildren(UObject* WorldContextObject, const FFaerieItemInstance& Instance, TArray<FFaerieItemInstance>& FoundInstances, bool Recursive);
+	UFUNCTION(BlueprintCallable, Category = "Faerie|SubObjects")
+	static void GetItemChildren(const FFaerieItemProxy& Proxy, TArray<FFaerieItemInstance>& FoundInstances, bool Recursive);
 };

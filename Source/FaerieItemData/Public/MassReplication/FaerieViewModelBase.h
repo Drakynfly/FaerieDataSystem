@@ -39,9 +39,9 @@ protected:
 	void SetItemProxyDirect(const FFaerieItemProxy& Item);
 
 	// Called by UFaerieViewModelSubsystem
-	virtual void OnProxySet() {}
-	virtual void OnFieldChange(const Faerie::ItemData::FFieldChange& Data) {}
-	virtual void CheckForFieldChange(const Faerie::ItemData::FReference& Item, const FConstStructView FragmentView) {}
+	virtual void OnProxySet(const FMassEntityManager& EntityManager) {}
+	virtual void OnFieldChange(const FMassEntityManager& EntityManager, const Faerie::ItemData::FFieldChange& Data) {}
+	virtual void CheckForFieldChange(Faerie::TValid<const FFaerieItemInstance&> Item, const FConstStructView FragmentView) {}
 
 protected:
 	UPROPERTY()

@@ -5,6 +5,7 @@
 #include "FaerieGridEnums.h"
 #include "FaerieGridStructs.h"
 #include "FaerieItemDataView.h"
+#include "FaerieItemProxy.h"
 #include "ItemContainerExtensionBase.h"
 #include "InventoryGridExtensionBase.generated.h"
 
@@ -70,7 +71,7 @@ protected:
 	//~ UItemContainerExtensionBase
 
 	virtual void PreStackRemove_Client(const FFaerieGridKeyedStack& Stack) {}
-	virtual void PreStackRemove_Server(const FFaerieGridKeyedStack& Stack, const Faerie::ItemData::FReference& Item) {}
+	virtual void PreStackRemove_Server(const FFaerieGridKeyedStack& Stack, Faerie::TValid<const FFaerieItemInstance&> Item) {}
 
 	virtual void PostStackAdd(const FFaerieGridKeyedStack& Stack) {}
 	virtual void PostStackChange(const FFaerieGridKeyedStack& Stack) {}
@@ -78,7 +79,7 @@ protected:
 public:
 	// Publicly accessible actions. Only call on server.
 	virtual FFaerieAddress GetKeyAt(const FIntPoint& Position) const PURE_VIRTUAL(UInventoryGridExtensionBase::GetKeyAt, return FFaerieAddress(); )
-	virtual bool CanAddAtLocation(const FFaerieItemDataView& View, FIntPoint IntPoint) const PURE_VIRTUAL(UInventoryGridExtensionBase::CanAddAtLocation, return false; )
+	virtual bool CanAddAtLocation(Faerie::TValid<const FFaerieItemProxy&> Proxy, FIntPoint IntPoint) const PURE_VIRTUAL(UInventoryGridExtensionBase::CanAddAtLocation, return false; )
 	virtual bool AddItemToGrid(FFaerieAddress Address, const FFaerieItemInstance& Instance) PURE_VIRTUAL(UInventoryGridExtensionBase::AddItemToGrid, return false; )
 	virtual bool MoveItem(FFaerieAddress Address, const FIntPoint& TargetPoint) PURE_VIRTUAL(UInventoryGridExtensionBase::MoveItem, return false; )
 	virtual bool RotateItem(FFaerieAddress Address, EFaerieSpatialItemRotation RotationToAdd) PURE_VIRTUAL(UInventoryGridExtensionBase::RotateItem, return false; )
@@ -90,9 +91,11 @@ protected:
 	virtual void OnRep_GridSize();
 
 public:
+	Faerie::ItemData::FScopeProxy ViewAt_Native(const FIntPoint& Position) const;
+
 	// View the stack on a specified position on the grid.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|Grid")
-	FFaerieItemDataView ViewAt(const FIntPoint& Position) const;
+	FFaerieItemProxy ViewAt(const FIntPoint& Position) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|Grid")
 	bool IsCellOccupied(const FIntPoint& Point) const;

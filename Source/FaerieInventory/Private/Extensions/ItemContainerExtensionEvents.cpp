@@ -16,12 +16,12 @@ void UItemContainerExtensionEvents::DeinitializeExtension(const TNotNull<const U
 	ExtensionEvent.Broadcast(Container, Extensions::Deinitialization);
 }
 
-void UItemContainerExtensionEvents::PreAddition(const TNotNull<const UFaerieItemContainerBase*> Container, const FFaerieItemDataView& View)
+void UItemContainerExtensionEvents::PreAddition(const TNotNull<const UFaerieItemContainerBase*> Container, const TValid<FFaerieUnownedItemStack>& ItemStack)
 {
-	PreAdditionEvent.Broadcast(Container, View);
+	PreAdditionEvent.Broadcast(Container, ItemStack);
 }
 
-void UItemContainerExtensionEvents::PreRemoval(const TNotNull<const UFaerieItemContainerBase*> Container, const ItemData::TNonNullViewPtr<Container::IEntryView> DataView, const int32 Removal)
+void UItemContainerExtensionEvents::PreRemoval(const TNotNull<const UFaerieItemContainerBase*> Container, const TNotNull<const Container::IEntryView*> DataView, const int32 Removal)
 {
 	PreRemovalEvent.Broadcast(Container, DataView, Removal);
 }

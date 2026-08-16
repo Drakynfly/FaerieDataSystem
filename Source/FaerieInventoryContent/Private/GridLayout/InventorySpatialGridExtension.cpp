@@ -28,18 +28,7 @@ namespace Faerie::Extensions
 		}
 
 		// Determine which rotations to check
-		TArray<EFaerieSpatialItemRotation, TInlineAllocator<4>> RotationRange;
-		if (Shape.IsSymmetrical())
-		{
-			RotationRange.Add(EFaerieSpatialItemRotation::None);
-		}
-		else
-		{
-			for (const EFaerieSpatialItemRotation Rotation : TEnumRange<EFaerieSpatialItemRotation>())
-			{
-				RotationRange.Add(Rotation);
-			}
-		}
+		const bool ShapeIsSymmetrical = Shape.IsSymmetrical();
 
 		// Find top left most point
 		FIntPoint FirstPoint = FIntPoint(TNumericLimits<int32>::Max());
@@ -68,10 +57,40 @@ namespace Faerie::Extensions
 				// Calculate the origin offset by the first point
 				TestPlacement.Origin = TestPoint - FirstPoint;
 
-				for (const EFaerieSpatialItemRotation Rotation : RotationRange)
+				if (ShapeIsSymmetrical)
 				{
-					TestPlacement.Rotation = Rotation;
+					// Shape is symmetrical, no need to set TestPlacement.Rotation as they are all the same.
 					const FFaerieGridShape Translated = ApplyPlacement(Shape, TestPlacement); // @todo this is *way* too many array allocations. optimize this!
+					if (FitsInGrid(Grid, Translated, EmptyExclusionSet))
+					{
+						return TestPlacement;
+					}
+				}
+				else
+				{
+					// @todo this is *way* too many array allocations. optimize this!
+					FFaerieGridShape Translated = ApplyPlacement(Shape, TestPlacement);
+					if (FitsInGrid(Grid, Translated, EmptyExclusionSet))
+					{
+						return TestPlacement;
+					}
+
+					TestPlacement.Rotation = EFaerieSpatialItemRotation::Ninety;
+					Translated = ApplyPlacement(Shape, TestPlacement);
+					if (FitsInGrid(Grid, Translated, EmptyExclusionSet))
+					{
+						return TestPlacement;
+					}
+
+					TestPlacement.Rotation = EFaerieSpatialItemRotation::One_Eighty;
+					Translated = ApplyPlacement(Shape, TestPlacement);
+					if (FitsInGrid(Grid, Translated, EmptyExclusionSet))
+					{
+						return TestPlacement;
+					}
+
+					TestPlacement.Rotation = EFaerieSpatialItemRotation::Two_Seventy;
+					Translated = ApplyPlacement(Shape, TestPlacement);
 					if (FitsInGrid(Grid, Translated, EmptyExclusionSet))
 					{
 						return TestPlacement;
@@ -83,10 +102,10 @@ namespace Faerie::Extensions
 		return FFaerieGridPlacement{FIntPoint::NoneValue};
 	}
 
-	FFaerieGridShape ApplyPlacement(const FFaerieGridShapeConstView& Shape, const FFaerieGridPlacement& Placement, const bool bNormalize, const bool Reset)
+	FFaerieGridShape ApplyPlacement(const FFaerieGridShapeConstView& Shape, const FFaerieGridPlacement& Placement, const bool bNormalize)
 	{
 		FFaerieGridShape ShapeCopy = Shape.Copy();
-		ShapeCopy.Rotate(Placement.Rotation, Reset);
+		ShapeCopy.Rotate(Placement.Rotation);
 		if (bNormalize)
 		{
 			ShapeCopy.Normalize();
@@ -161,14 +180,14 @@ namespace Faerie::Extensions
 using namespace Faerie;
 
 EEventExtensionResponse UInventorySpatialGridExtension::AllowsAddition(const TNotNull<const UFaerieItemContainerBase*> Container,
-																	   const TConstArrayView<FFaerieItemDataView> Views,
+																	   const Utils::TArrayAdapter<FFaerieItemProxy>& Proxies,
 																	   const FFaerieExtensionAllowsAdditionArgs Args) const
 {
 	// @todo add boolean in config to allow items without a shape
 
-	if (Views.Num() == 1)
+	if (Proxies.Num() == 1)
 	{
-		if (!CanAddItemToGrid(GetItemShape_Impl(Views[0].GetInstance())))
+		if (!CanAddItemToGrid(GetItemShape_Impl(Proxies[0].GetItemInstance().GetValue())))
 		{
 			return EEventExtensionResponse::Disallowed;
 		}
@@ -178,9 +197,10 @@ EEventExtensionResponse UInventorySpatialGridExtension::AllowsAddition(const TNo
 	{
 	case EFaerieStorageAddStackTestMultiType::IndividualTests:
 		{
-			for (auto&& View : Views)
+			for (int32 i = 0; i < Proxies.Num(); ++i)
 			{
-				if (!CanAddItemToGrid(GetItemShape_Impl(View.GetInstance())))
+				const FFaerieItemProxy Proxy = Proxies[i];
+				if (!CanAddItemToGrid(GetItemShape_Impl(Proxy.GetItemInstance().GetValue())))
 				{
 					return EEventExtensionResponse::Disallowed;
 				}
@@ -192,9 +212,10 @@ EEventExtensionResponse UInventorySpatialGridExtension::AllowsAddition(const TNo
 	case EFaerieStorageAddStackTestMultiType::GroupTest:
 		{
 			TArray<FFaerieGridShapeConstView> Shapes;
-			for (auto&& View : Views)
+			for (int32 i = 0; i < Proxies.Num(); ++i)
 			{
-				Shapes.Add(GetItemShape_Impl(View.GetInstance()));
+				const FFaerieItemProxy Proxy = Proxies[i];
+				Shapes.Add(GetItemShape_Impl(Proxy.GetItemInstance().GetValue()));
 			}
 
 			if (!CanAddItemsToGrid(Shapes))
@@ -210,12 +231,12 @@ EEventExtensionResponse UInventorySpatialGridExtension::AllowsAddition(const TNo
 }
 
 EEventExtensionResponse UInventorySpatialGridExtension::AllowsEdit(const TNotNull<const UFaerieItemContainerBase*> Container,
-																   const Extensions::FAddressView DataView,
+																   const TNotNull<const Container::IAddressView*> DataView,
 																   const FFaerieInventoryTag EditType) const
 {
 	if (EditType == Inventory::Tags::Split)
 	{
-		if (!CanAddItemToGrid(GetItemShape_Impl(DataView->ResolveItem())))
+		if (!CanAddItemToGrid(GetItemShape_Impl(DataView->GetItemInstance().GetValue())))
 		{
 			return EEventExtensionResponse::Disallowed;
 		}
@@ -305,7 +326,7 @@ void UInventorySpatialGridExtension::PreStackRemove_Client(const FFaerieGridKeye
 	BroadcastEvent(Stack.Key, EFaerieGridEventType::ItemRemoved);
 }
 
-void UInventorySpatialGridExtension::PreStackRemove_Server(const FFaerieGridKeyedStack& Stack, const ItemData::FReference& Item)
+void UInventorySpatialGridExtension::PreStackRemove_Server(const FFaerieGridKeyedStack& Stack, const TValid<const FFaerieItemInstance&> Item)
 {
 	// This is to account for removals through proxies that don't directly interface with the grid
 	const FFaerieGridShape Translated = Extensions::ApplyPlacement(GetItemShape_Impl(Item), Stack.Value);
@@ -346,9 +367,9 @@ FFaerieAddress UInventorySpatialGridExtension::GetKeyAt(const FIntPoint& Positio
 	return FFaerieAddress();
 }
 
-bool UInventorySpatialGridExtension::CanAddAtLocation(const FFaerieItemDataView& View, const FIntPoint IntPoint) const
+bool UInventorySpatialGridExtension::CanAddAtLocation(const TValid<const FFaerieItemProxy&> Proxy, const FIntPoint IntPoint) const
 {
-	const FFaerieGridShapeConstView Shape = GetItemShape_Impl(View.GetInstance());
+	const FFaerieGridShapeConstView Shape = GetItemShape_Impl(ValidGet(Proxy).GetItemInstanceOrInvalid());
 	return CanAddAtLocation(Shape, IntPoint);
 }
 
@@ -461,7 +482,7 @@ bool UInventorySpatialGridExtension::RotateItem(const FFaerieAddress Address, co
 
 	FFaerieGridPlacement NewPlacement = *Handle;
 	NewPlacement.Rotation = Spatial::AddRotations(NewPlacement.Rotation, RotationToAdd);
-	const FFaerieGridShape NewShape = Extensions::ApplyPlacement(ItemShape, NewPlacement, false, NewPlacement.Rotation == EFaerieSpatialItemRotation::None);
+	const FFaerieGridShape NewShape = Extensions::ApplyPlacement(ItemShape, NewPlacement);
 
 	const Extensions::FExclusionSet ExclusionSet = MakeExclusionSet(Address);
 	if (!FitsInGrid(OccupiedCells, NewShape, ExclusionSet))
@@ -486,7 +507,7 @@ bool UInventorySpatialGridExtension::RotateItem(const FFaerieAddress Address, co
 	return true;
 }
 
-void UInventorySpatialGridExtension::RemoveItem(const FFaerieAddress Address, const ItemData::FReference& Item)
+void UInventorySpatialGridExtension::RemoveItem(const FFaerieAddress Address, const TValid<const FFaerieItemInstance&> Item)
 {
 	GridContent.BSOA::Remove(Address,
 		[Item, this](const FFaerieGridKeyedStack& Stack)
@@ -495,7 +516,7 @@ void UInventorySpatialGridExtension::RemoveItem(const FFaerieAddress Address, co
 		});
 }
 
-void UInventorySpatialGridExtension::RemoveItemBatch(const TConstArrayView<FFaerieAddress>& Addresses, const ItemData::FReference& Item)
+void UInventorySpatialGridExtension::RemoveItemBatch(const TConstArrayView<FFaerieAddress>& Addresses, const TValid<const FFaerieItemInstance&> Item)
 {
 	for (const FFaerieAddress AddressToRemove : Addresses)
 	{
@@ -516,16 +537,17 @@ void UInventorySpatialGridExtension::RebuildOccupiedCells()
 		if (auto DataView = InitializedContainer->ViewAddress(SpatialEntry.Key);
 			DataView.IsValid())
 		{
-			const FFaerieGridShapeConstView Shape = GetItemShape_Impl(DataView.GetInstance());
+			const FFaerieGridShapeConstView Shape = GetItemShape_Impl(DataView.Instance);
 			const FFaerieGridShape Translated = Extensions::ApplyPlacement(Shape, SpatialEntry.Value);
 			MarkShapeCells(OccupiedCells, Translated);
 		}
 	}
 }
 
-FFaerieGridShapeConstView UInventorySpatialGridExtension::GetItemShape_Impl(const ItemData::FReference& Item) const
+FFaerieGridShapeConstView UInventorySpatialGridExtension::GetItemShape_Impl(const TValid<const FFaerieItemInstance&> Item) const
 {
-	auto ShapeFragment = ItemData::GetEntityFragmentOrDefault<FFaerieShapeFragment>(ItemData::FOptionalEntityManager(this), Item);
+	auto* EntityManager = ItemData::GetFaerieEntityManager();
+	auto ShapeFragment = ItemData::GetEntityFragmentOrDefault<FFaerieShapeFragment>(EntityManager, Item);
 	if (ShapeFragment.IsValid())
 	{
 		return ShapeFragment->Shape;

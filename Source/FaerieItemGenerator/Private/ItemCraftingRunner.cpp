@@ -1,6 +1,7 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "ItemCraftingRunner.h"
+#include "EntityManagerHelpers.h"
 #include "FaerieItemGenerationLog.h"
 #include "Squirrel.h"
 #include "TimerManager.h"
@@ -82,7 +83,7 @@ FFaerieCraftingActionHandle UFaerieItemCraftingRunner::SubmitCraftingAction_Impl
 	check(Action.GetScriptStruct() != FFaerieCraftingActionBase::StaticStruct());
 	const FFaerieCraftingActionHandle Handle(FMath::Rand());
 	Action.GetMutable().Handle = Handle;
-	const FSetElementId ElementID = ActiveActions.AddByHash(Handle.Key, {Action, Handle});
+	const FSetElementId ElementID = ActiveActions.AddByHash(Handle.Key, {.Action = Action, .Handle = Handle});
 
 	FFaerieCraftingActionBase& MutableAction = ActiveActions[ElementID].Action.GetMutable();
 
@@ -102,7 +103,7 @@ FFaerieCraftingActionHandle UFaerieItemCraftingRunner::SubmitCraftingAction_Impl
 
 	const Generation::FActionExecution Execution(
 		this,
-		GetWorld(),
+		ItemData::GetFaerieEntityManager(),
 		Squirrel
 	);
 	MutableAction.Run(Execution);
@@ -111,24 +112,30 @@ FFaerieCraftingActionHandle UFaerieItemCraftingRunner::SubmitCraftingAction_Impl
 }
 
 #if WITH_EDITORONLY_DATA
-void UFaerieItemCraftingRunner::LogActionResult(const FDateTime TimeStarted, const EGenerationActionResult Result, const FStringView ActionName)
+void UFaerieItemCraftingRunner::LogActionResult(const FDateTime TimeStarted, const EGenerationActionResult Result, const FStringView ActionName, const FText& Message)
 {
 	const FDateTime TimeFinished = FDateTime::UtcNow();
 	const FTimespan TimePassed = TimeFinished - TimeStarted;
 
+	FString MessageString;
+	if (!Message.IsEmpty())
+	{
+		MessageString = TEXT(". Message: ") + Message.ToString();
+	}
+
 	switch (Result)
 	{
 	case EGenerationActionResult::Failed:
-		UE_LOG(LogItemGeneration, Error, TEXT("+==+ Generation Action \"%s\" failed at: %s. Time passed: %s"), ActionName.GetData(), *TimeFinished.ToString(), *TimePassed.ToString());
+		UE_LOG(LogItemGeneration, Error, TEXT("+==+ Generation Action \"%s\" failed at: %s. Time passed: %s%s"), ActionName.GetData(), *TimeFinished.ToString(), *TimePassed.ToString(), *MessageString);
 		break;
 	case EGenerationActionResult::Timeout:
-		UE_LOG(LogItemGeneration, Warning, TEXT("+==+ Generation Action \"%s\" timed-out at: %s. Time passed: %s"), ActionName.GetData(), *TimeFinished.ToString(), *TimePassed.ToString());
+		UE_LOG(LogItemGeneration, Warning, TEXT("+==+ Generation Action \"%s\" timed-out at: %s. Time passed: %s%s"), ActionName.GetData(), *TimeFinished.ToString(), *TimePassed.ToString(), *MessageString);
 		break;
 	case EGenerationActionResult::Cancelled:
-		UE_LOG(LogItemGeneration, Log, TEXT("+==+ Generation Action \"%s\" cancelled at: %s. Time passed: %s"), ActionName.GetData(), *TimeFinished.ToString(), *TimePassed.ToString());
+		UE_LOG(LogItemGeneration, Log, TEXT("+==+ Generation Action \"%s\" cancelled at: %s. Time passed: %s%s"), ActionName.GetData(), *TimeFinished.ToString(), *TimePassed.ToString(), *MessageString);
 		break;
 	case EGenerationActionResult::Succeeded:
-		UE_LOG(LogItemGeneration, Log, TEXT("+==+ Generation Action \"%s\" succeeded at: %s. Time passed: %s"), ActionName.GetData(), *TimeFinished.ToString(), *TimePassed.ToString());
+		UE_LOG(LogItemGeneration, Log, TEXT("+==+ Generation Action \"%s\" succeeded at: %s. Time passed: %s%s"), ActionName.GetData(), *TimeFinished.ToString(), *TimePassed.ToString(), *MessageString);
 		break;
 	default: ;
 	}
@@ -139,14 +146,14 @@ void UFaerieItemCraftingRunner::FinishAction(const FFaerieCraftingActionHandle H
 {
 	if (FFaeriePrivate_CapturedCraftingAction* ActionPtr = ActiveActions.FindByHash(Handle.Key, Handle))
 	{
-		FinishAction(TStructView<FFaerieCraftingActionBase>(ActionPtr->Action), Result);
+		FinishAction(TStructView<FFaerieCraftingActionBase>(ActionPtr->Action), Result, FText::GetEmpty());
 	}
 }
 
-void UFaerieItemCraftingRunner::FinishAction(const TStructView<FFaerieCraftingActionBase> Action, const EGenerationActionResult Result)
+void UFaerieItemCraftingRunner::FinishAction(const TStructView<FFaerieCraftingActionBase> Action, const EGenerationActionResult Result, const FText& Message)
 {
 #if WITH_EDITOR
-	LogActionResult(Action->TimeStarted, Result, Action.GetScriptStruct()->GetName());
+	LogActionResult(Action->TimeStarted, Result, Action.GetScriptStruct()->GetName(), Message);
 #endif
 	FinishActionImpl(Action.Get(), Result);
 	ActiveActions.RemoveByHash(Action->Handle.Key, Action->Handle);

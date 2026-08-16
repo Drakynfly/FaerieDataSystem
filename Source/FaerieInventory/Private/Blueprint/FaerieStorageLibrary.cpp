@@ -27,8 +27,7 @@ int32 UFaerieStorageLibrary::GetItemStackLimit(const FFaerieItemProxy& Proxy)
 {
 	if (Proxy.IsValid())
 	{
-		ItemData::FOptionalEntityManager EntityManager(Proxy.GetProxyObject());
-		return Container::GetItemStackLimit(EntityManager, Proxy->GetItemInstance().GetValue());
+		return Container::GetItemStackLimit(ItemData::GetFaerieEntityManager(), Proxy.GetItemInstanceOrInvalid());
 	}
 	return 0;
 }
@@ -55,14 +54,14 @@ TArray<UFaerieItemStackProxy*> UFaerieStorageLibrary::GetAllStackProxies(UFaerie
 
 	TArray<UFaerieItemStackProxy*> Proxies;
 	Proxies.Reserve(Storage->GetStackCount());
-	for (auto It = Storage::FIterator_AllAddresses(Storage); It; ++It)
+	for (auto It = Container::FIterator_AllAddresses(Storage); It; ++It)
 	{
 		Proxies.Add(const_cast<UFaerieItemStackProxy*>(Storage->GetProxy(*It)));
 	}
 	return Proxies;
 }
 
-FFaerieAddress UFaerieStorageLibrary::QueryFirst(UFaerieItemStorage* Storage, const FFaerieViewPredicate& Filter)
+FFaerieAddress UFaerieStorageLibrary::QueryFirst(UFaerieItemStorage* Storage, const FFaerieProxyPredicate& Filter)
 {
 	if (!IsValid(Storage))
 	{
@@ -78,28 +77,39 @@ FFaerieAddress UFaerieStorageLibrary::QueryFirst(UFaerieItemStorage* Storage, co
 
 	return Container::FAddressFilter()
 		.By(Container::FCallbackFilter{DYNAMIC_TO_NATIVE(ItemData::FViewPredicate, Filter)})
-		.First(Storage);
+		.First(ItemData::GetFaerieEntityManager(), Storage);
 }
 
-bool UFaerieStorageLibrary::FindSubobject(UObject* WorldContextObject, const FFaerieItemInstance& Instance, const TSubclassOf<UFaerieItemContainerBase> Class,
-	UFaerieItemContainerBase*& FoundContainers, const bool Recursive)
+UFaerieItemContainerBase* UFaerieStorageLibrary::GetOwningContainer_Proxy(const FFaerieItemProxy& Proxy)
 {
-	if (!IsValid(WorldContextObject))
+	return const_cast<UFaerieItemContainerBase*>(Cast<UFaerieItemContainerBase>(Proxy.GetItemOwner()));
+}
+
+UFaerieItemContainerBase* UFaerieStorageLibrary::GetOwningContainer_View(const FFaerieItemProxy& Proxy)
+{
+	return const_cast<UFaerieItemContainerBase*>(Cast<UFaerieItemContainerBase>(Proxy.GetItemOwner()));
+}
+
+bool UFaerieStorageLibrary::FindSubobject(const FFaerieItemProxy& Proxy, const TSubclassOf<UFaerieItemContainerBase> Class,
+										  UFaerieItemContainerBase*& FoundContainers, const bool Recursive)
+{
+	if (!Proxy.IsValid())
 	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid WorldContextObject passed to UFaerieStorageLibrary::FindSubobject"), ELogVerbosity::Error);
+		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieStorageLibrary::FindSubobject"), ELogVerbosity::Error);
 		return false;
 	}
 
-	if (!Instance.IsValid())
+	auto InstanceOpt = Proxy.GetItemInstance();
+	if (!InstanceOpt.IsSet())
 	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid Instance passed to UFaerieStorageLibrary::FindSubobject"), ELogVerbosity::Error);
 		return false;
 	}
 
+	auto Instance = InstanceOpt.GetValue();
 	if (!Instance.IsMutable()) return false;
 
 #if WITH_EDITOR
-	if (WorldContextObject->GetWorld()->IsEditorWorld())
+	if (!ItemData::HasFaerieEntityManagerBeenAssigned())
 	{
 		TArray<TNotNull<const UFaerieItemContainerBase*>> Containers;
 		if (Recursive)
@@ -120,7 +130,7 @@ bool UFaerieStorageLibrary::FindSubobject(UObject* WorldContextObject, const FFa
 	else
 #endif
 	{
-		const ItemData::FRequireEntityManager EntityManager(WorldContextObject);
+		auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
 		TArray<TNotNull<UFaerieItemContainerBase*>> Containers;
 		if (Recursive)
 		{
@@ -141,25 +151,26 @@ bool UFaerieStorageLibrary::FindSubobject(UObject* WorldContextObject, const FFa
 	return false;
 }
 
-void UFaerieStorageLibrary::FindSubObjectsByClass(UObject* WorldContextObject, const FFaerieItemInstance& Instance, const TSubclassOf<UFaerieItemContainerBase> Class,
+void UFaerieStorageLibrary::FindSubObjectsByClass(const FFaerieItemProxy& Proxy, const TSubclassOf<UFaerieItemContainerBase> Class,
 	TArray<UFaerieItemContainerBase*>& FoundContainers, const bool Recursive)
 {
-	if (!IsValid(WorldContextObject))
+	if (!Proxy.IsValid())
 	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid WorldContextObject passed to UFaerieStorageLibrary::FindSubobject"), ELogVerbosity::Error);
+		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieStorageLibrary::FindSubObjectsByClass"), ELogVerbosity::Error);
 		return;
 	}
 
-	if (!Instance.IsValid())
+	auto InstanceOpt = Proxy.GetItemInstance();
+	if (!InstanceOpt.IsSet())
 	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid Instance passed to UFaerieStorageLibrary::FindSubObjectsByClass"), ELogVerbosity::Error);
 		return;
 	}
 
+	auto Instance = InstanceOpt.GetValue();
 	if (!Instance.IsMutable()) return;
 
 #if WITH_EDITOR
-	if (WorldContextObject->GetWorld()->IsEditorWorld())
+	if (!ItemData::HasFaerieEntityManagerBeenAssigned())
 	{
 		if (Recursive)
 		{
@@ -173,7 +184,7 @@ void UFaerieStorageLibrary::FindSubObjectsByClass(UObject* WorldContextObject, c
 	else
 #endif
 	{
-		const ItemData::FRequireEntityManager EntityManager(WorldContextObject);
+		auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
 		if (Recursive)
 		{
 			SubObject::GetContainersInInstanceRecursive(EntityManager, Instance, *reinterpret_cast<TArray<TNotNull<UFaerieItemContainerBase*>>*>(&FoundContainers), Class);
@@ -185,24 +196,25 @@ void UFaerieStorageLibrary::FindSubObjectsByClass(UObject* WorldContextObject, c
 	}
 }
 
-void UFaerieStorageLibrary::GetAllContainersInItem(UObject* WorldContextObject, const FFaerieItemInstance& Instance, TArray<UFaerieItemContainerBase*>& FoundContainers, const bool Recursive)
+void UFaerieStorageLibrary::GetAllContainersInItem(const FFaerieItemProxy& Proxy, TArray<UFaerieItemContainerBase*>& FoundContainers, const bool Recursive)
 {
-	if (!IsValid(WorldContextObject))
+	if (!Proxy.IsValid())
 	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid WorldContextObject passed to UFaerieStorageLibrary::GetAllContainersInItem"), ELogVerbosity::Error);
+		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieStorageLibrary::GetAllContainersInItem"), ELogVerbosity::Error);
 		return;
 	}
 
-	if (!Instance.IsValid())
+	auto InstanceOpt = Proxy.GetItemInstance();
+	if (!InstanceOpt.IsSet())
 	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid Instance passed to UFaerieStorageLibrary::GetAllContainersInItem"), ELogVerbosity::Error);
 		return;
 	}
 
+	auto Instance = InstanceOpt.GetValue();
 	if (!Instance.IsMutable()) return;
 
 #if WITH_EDITOR
-	if (WorldContextObject->GetWorld()->IsEditorWorld())
+	if (!ItemData::HasFaerieEntityManagerBeenAssigned())
 	{
 		if (Recursive)
 		{
@@ -216,7 +228,7 @@ void UFaerieStorageLibrary::GetAllContainersInItem(UObject* WorldContextObject, 
 	else
 #endif
 	{
-		const ItemData::FRequireEntityManager EntityManager(WorldContextObject);
+		auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
 		if (Recursive)
 		{
 			SubObject::GetContainersInInstanceRecursive(EntityManager, Instance, *reinterpret_cast<TArray<TNotNull<UFaerieItemContainerBase*>>*>(&FoundContainers));
@@ -228,32 +240,36 @@ void UFaerieStorageLibrary::GetAllContainersInItem(UObject* WorldContextObject, 
 	}
 }
 
-void UFaerieStorageLibrary::GetItemChildren(UObject* WorldContextObject, const FFaerieItemInstance& Instance, TArray<FFaerieItemInstance>& FoundInstances, const bool Recursive)
+void UFaerieStorageLibrary::GetItemChildren(const FFaerieItemProxy& Proxy, TArray<FFaerieItemInstance>& FoundInstances, const bool Recursive)
 {
-	if (!IsValid(WorldContextObject))
+	if (!Proxy.IsValid())
 	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid WorldContextObject passed to UFaerieStorageLibrary::GetItemChildren"), ELogVerbosity::Error);
+		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieStorageLibrary::GetItemChildren"), ELogVerbosity::Error);
 		return;
 	}
 
-	if (!Instance.IsValid())
+	auto InstanceOpt = Proxy.GetItemInstance();
+	if (!InstanceOpt.IsSet())
 	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid Instance passed to UFaerieStorageLibrary::GetItemChildren"), ELogVerbosity::Error);
 		return;
 	}
 
+	auto Instance = InstanceOpt.GetValue();
 	if (!Instance.IsMutable()) return;
 
-	static_assert(sizeof(FFaerieItemInstance) == sizeof(ItemData::FReference));
+	if (!ItemData::HasFaerieEntityManagerBeenAssigned())
+	{
+		FFrame::KismetExecutionMessage(TEXT("No Entity Manager assigned to handle UFaerieStorageLibrary::GetItemChildren"), ELogVerbosity::Error);
+		return;
+	}
 
-	const ItemData::FRequireEntityManager EntityManager(WorldContextObject);
-
+	auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
 	if (Recursive)
 	{
-		SubObject::GetChildrenInItemRecursive(EntityManager, Instance, *reinterpret_cast<TArray<ItemData::FReference>*>(&FoundInstances));
+		SubObject::GetChildrenInItemRecursive(EntityManager, Instance, FoundInstances);
 	}
 	else
 	{
-		SubObject::GetChildrenInItem(EntityManager, Instance, *reinterpret_cast<TArray<ItemData::FReference>*>(&FoundInstances));
+		SubObject::GetChildrenInItem(EntityManager, Instance, FoundInstances);
 	}
 }

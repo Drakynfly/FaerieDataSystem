@@ -13,9 +13,8 @@ struct FAERIEITEMDATA_API FFaerieItemInstancingContext
 public:
 	virtual ~FFaerieItemInstancingContext() = default;
 
-	// The object that will be used as the outer for new item instances.
-	UPROPERTY()
-	TObjectPtr<UObject> ItemInstanceOuter;
+	// Entity manager used to access runtime item fragments.
+	FMassEntityManager* EntityManager = nullptr;
 
 	// Number of copies to generate. If unset, will default to 1.
 	TOptional<int32> CopiesOverride;
@@ -32,6 +31,10 @@ public:
 #if WITH_EDITORONLY_DATA
 	// A flag to mark a context as being run by the editor.
 	bool RunningInEditor = false;
+
+	// The object that will be used as the outer for new item instances.
+	UPROPERTY()
+	TObjectPtr<UObject> Editor_ItemInstanceOuter;
 #endif
 
 	// Children must implement this to allow safe casting.

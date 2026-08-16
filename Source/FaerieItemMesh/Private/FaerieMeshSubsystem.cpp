@@ -3,6 +3,7 @@
 #include "FaerieMeshSubsystem.h"
 #include "FaerieItemMeshLoader.h"
 #include "FaerieItemMeshLog.h"
+#include "FaerieItemProxy.h"
 #include "FaerieMeshSettings.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieMeshSubsystem)

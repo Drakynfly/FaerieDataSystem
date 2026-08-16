@@ -21,8 +21,8 @@ namespace Faerie::Inventory::Tags
 		"Fae.Inventory.Removal.Ejection", "Remove an item and eject it from the inventory as a pickup/visual")
 }
 
-EEventExtensionResponse UInventoryEjectionHandlerExtension::AllowsRemoval(TNotNull<const UFaerieItemContainerBase*> Container,
-	const ItemData::TNonNullViewPtr<Container::IAddressView> DataView, const FFaerieInventoryTag Reason) const
+EEventExtensionResponse UInventoryEjectionHandlerExtension::AllowsRemoval(const TNotNull<const UFaerieItemContainerBase*> Container,
+	const TNotNull<const Container::IAddressView*> DataView, const FFaerieInventoryTag Reason) const
 {
 	if (Reason == Inventory::Tags::RemovalEject)
 	{
@@ -67,11 +67,7 @@ void UInventoryEjectionHandlerExtension::HandleNextInQueue()
 
 	TSoftClassPtr<AFaerieItemOwningActorBase> ClassToSpawn;
 
-	// Extensions should live inside an
-	UWorld* World = GetWorld();
-	check(World);
-
-	ItemData::FOptionalEntityManager EntityManager(World);
+	auto* EntityManager = ItemData::GetFaerieEntityManager();
 	auto ActorClassFragment = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieActorFragment>(EntityManager, PendingEjectionQueue[0].Instance);
 	if (ActorClassFragment.IsValid())
 	{

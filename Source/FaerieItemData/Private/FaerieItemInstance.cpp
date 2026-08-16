@@ -18,10 +18,10 @@
 
 using namespace Faerie;
 
-void FFaerieItemInstance::InitializeMassEntityImpl(const ItemData::FRequireEntityManager& EntityManager, const TArrayView<FInstancedStruct> Fragments)
+void FFaerieItemInstance::InitializeMassEntityImpl(FMassEntityManager& EntityManager, const TArrayView<FInstancedStruct> Fragments)
 {
-	const FMassEntityTemplate& EntityTemplate = EntityManager->GetWorld()->GetSubsystemChecked<UFaerieMassReplicationSubsystem>()->GetItemDataTemplate();
-	UE::Mass::FEntityBuilder Builder = EntityTemplate.CreateEntityBuilder(EntityManager->AsShared())
+	const FMassEntityTemplate& EntityTemplate = EntityManager.GetWorld()->GetSubsystemChecked<UFaerieMassReplicationSubsystem>()->GetItemDataTemplate();
+	UE::Mass::FEntityBuilder Builder = EntityTemplate.CreateEntityBuilder(EntityManager.AsShared())
 		.Add<FFaerieMassItemPointer>(Item) // Add a MassItemPointer struct to label the entity as a faerie item whether there is a valid item pointer or not.
 		.Add<FFaerieItemModificationDate>(FDateTime::UtcNow());
 
@@ -52,7 +52,7 @@ void FFaerieItemInstance::InitializeMassEntityImpl(const ItemData::FRequireEntit
 	Builder.Commit();
 }
 
-void FFaerieItemInstance::UpdateTimestamp(bool CreateIfMissing)
+void FFaerieItemInstance::UpdateTimestamp(bool CreateIfMissing) const
 {
 	// Update timestamp should only be called on instances that already have a mass equivalence
 	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked();
@@ -80,9 +80,9 @@ void FFaerieItemInstance::UpdateTimestamp(bool CreateIfMissing)
 		});
 }
 
-void FFaerieItemInstance::NotifyOwnerOfChange(const ItemData::FRequireEntityManager& EntityManager, const TNotNull<const UScriptStruct*> FragmentType, const FGameplayTag Tag)
+void FFaerieItemInstance::NotifyOwnerOfChange(const FMassEntityManager& EntityManager, const TNotNull<const UScriptStruct*> FragmentType, const FGameplayTag Tag) const
 {
-	if (const FFaerieMassItemOwner* OwnerFragment = EntityManager->GetConstSharedFragmentDataPtr<FFaerieMassItemOwner>(EntityHandle))
+	if (const FFaerieMassItemOwner* OwnerFragment = EntityManager.GetConstSharedFragmentDataPtr<FFaerieMassItemOwner>(EntityHandle))
 	{
 		OwnerFragment->GetInterface()->OnItemDataChanged(*this, FragmentType, Tag);
 	}
@@ -108,38 +108,38 @@ bool FFaerieItemInstance::UEOpEquals(const FFaerieItemInstance& Other) const
 	return Item == Other.Item && EntityHandle == Other.EntityHandle;
 }
 
-void FFaerieItemInstance::InitializeMassEntity(const ItemData::FRequireEntityManager& EntityManager, const TArrayView<FInstancedStruct> Fragments)
+void FFaerieItemInstance::InitializeMassEntity(FMassEntityManager& EntityManager, const TArrayView<FInstancedStruct> Fragments)
 {
 	// Only mutable instances are allowed to create a mass entity.
 	check(IsMutable())
 
 	// Prevent double-registration!
-	check(!EntityManager->IsEntityValid(EntityHandle));
+	check(!EntityManager.IsEntityValid(EntityHandle));
 
 	InitializeMassEntityImpl(EntityManager, Fragments);
 }
 
-void FFaerieItemInstance::InitializeMassEntityIfInvalid(const ItemData::FRequireEntityManager& EntityManager)
+void FFaerieItemInstance::InitializeMassEntityIfInvalid(FMassEntityManager& EntityManager)
 {
-	if (IsMutable() && !EntityManager->IsEntityValid(EntityHandle))
+	if (IsMutable() && !EntityManager.IsEntityValid(EntityHandle))
 	{
 		InitializeMassEntityImpl(EntityManager, {});
 	}
 }
 
-void FFaerieItemInstance::DestroyMassEntity(const ItemData::FRequireEntityManager& EntityManager)
+void FFaerieItemInstance::DestroyMassEntity(FMassEntityManager& EntityManager)
 {
-	if (EntityManager->IsEntityValid(EntityHandle))
+	if (EntityManager.IsEntityValid(EntityHandle))
 	{
 		// @Todo
 		//EntityManager->GetWorld()->GetSubsystemChecked<UFaerieViewModelSubsystem>()->HandleInstanceDestruction(*this);
-		EntityManager->GetWorld()->GetSubsystemChecked<UFaerieMassReplicationSubsystem>()->Server_RemoveEntity(*this);
-		EntityManager->DestroyEntity(EntityHandle);
+		EntityManager.GetWorld()->GetSubsystemChecked<UFaerieMassReplicationSubsystem>()->Server_RemoveEntity(*this);
+		EntityManager.DestroyEntity(EntityHandle);
 	}
 	EntityHandle.Reset();
 }
 
-void FFaerieItemInstance::ImportFragmentData(const ItemData::FRequireEntityManager& EntityManager, const TArrayView<FInstancedStruct> Fragments)
+void FFaerieItemInstance::ImportFragmentData(FMassEntityManager& EntityManager, const TArrayView<FInstancedStruct> Fragments)
 {
 	if (Fragments.IsEmpty()) return;
 
@@ -150,18 +150,18 @@ void FFaerieItemInstance::ImportFragmentData(const ItemData::FRequireEntityManag
 	}
 
 	// Prevent double-registration!
-	check(!EntityManager->IsEntityValid(EntityHandle));
+	check(!EntityManager.IsEntityValid(EntityHandle));
 
 	InitializeMassEntityImpl(EntityManager, Fragments);
 }
 
-void FFaerieItemInstance::ExportFragmentData(const ItemData::FRequireEntityManager& EntityManager,
+void FFaerieItemInstance::ExportFragmentData(const FMassEntityManager& EntityManager,
 	TArray<FInstancedStruct>& OutStructs, const ItemData::EMassFragmentExportOptions Options) const
 {
-	if (EntityManager->IsEntityValid(EntityHandle))
+	if (EntityManager.IsEntityValid(EntityHandle))
 	{
-		const FMassArchetypeHandle Archetype = EntityManager->GetArchetypeForEntity(EntityHandle);
-		EntityManager->ForEachArchetypeFragmentType(Archetype,
+		const FMassArchetypeHandle Archetype = EntityManager.GetArchetypeForEntity(EntityHandle);
+		EntityManager.ForEachArchetypeFragmentType(Archetype,
 			[this, &EntityManager, &OutStructs, Options](const UScriptStruct* FragmentType)
 			{
 				if (EnumHasAnyFlags(Options, ItemData::OnlyFaerieMassFragments))
@@ -172,7 +172,7 @@ void FFaerieItemInstance::ExportFragmentData(const ItemData::FRequireEntityManag
 					}
 				}
 
-				const FStructView StructView = EntityManager->GetFragmentDataStruct(EntityHandle, FragmentType);
+				const FStructView StructView = EntityManager.GetFragmentDataStruct(EntityHandle, FragmentType);
 				OutStructs.AddDefaulted_GetRef().InitializeAs(StructView.GetScriptStruct(), StructView.GetMemory());
 			});
 	}
@@ -218,12 +218,12 @@ void FFaerieItemInstance::AddFragments(FMassEntityManager& EntityManager, const 
 	}
 }
 
-void FFaerieItemInstance::RemoveFragment(const ItemData::FRequireEntityManager& EntityManager,
+void FFaerieItemInstance::RemoveFragment(FMassEntityManager& EntityManager,
 										  const TNotNull<const UScriptStruct*> FragmentType)
 {
-	if (EntityManager->IsEntityValid(EntityHandle))
+	if (EntityManager.IsEntityValid(EntityHandle))
 	{
-		EntityManager->RemoveFragmentFromEntity(EntityHandle, FragmentType);
+		EntityManager.RemoveFragmentFromEntity(EntityHandle, FragmentType);
 
 		UpdateTimestamp(true);
 
@@ -231,7 +231,7 @@ void FFaerieItemInstance::RemoveFragment(const ItemData::FRequireEntityManager& 
 	}
 }
 
-void FFaerieItemInstance::OnItemFragmentEdited(const ItemData::FRequireEntityManager& EntityManager, const TNotNull<const UScriptStruct*> FragmentType, FGameplayTag Tag)
+void FFaerieItemInstance::OnItemFragmentEdited(const FMassEntityManager& EntityManager, const TNotNull<const UScriptStruct*> FragmentType, FGameplayTag Tag) const
 {
 	// @todo figure out how to handle the Tag from the fragment event
 	UpdateTimestamp(true);
@@ -240,14 +240,13 @@ void FFaerieItemInstance::OnItemFragmentEdited(const ItemData::FRequireEntityMan
 	// @Todo Subsystem broadcasts...
 }
 
-void FFaerieItemInstance::OnItemFragmentEdited(const ItemData::FRequireEntityManager& EntityManager, const TConstStructView<FFaerieMassFragment> FragmentView, const ItemData::FFieldChange& FieldChange)
+void FFaerieItemInstance::OnItemFragmentEdited(const FMassEntityManager& EntityManager, const TConstStructView<FFaerieMassFragment> FragmentView, const ItemData::FFieldChange& FieldChange) const
 {
-	// @todo figure out how to handle the Tag from the fragment event
 	UpdateTimestamp(true);
 	NotifyOwnerOfChange(EntityManager, FragmentView.GetScriptStruct(), ItemData::Tags::FragmentGenericPropertyEdit);
 
-	const UWorld* World = EntityManager->GetWorld();
-	World->GetSubsystemChecked<UFaerieViewModelSubsystem>()->HandleFieldChange(*this, FieldChange);
+	const UWorld* World = EntityManager.GetWorld();
+	World->GetSubsystemChecked<UFaerieViewModelSubsystem>()->HandleFieldChange(EntityManager, *this, FieldChange);
 	World->GetSubsystemChecked<UFaerieMassReplicationSubsystem>()->Server_UpdateFragment(*this, MakeConstArrayView(&FragmentView, 1));
 }
 

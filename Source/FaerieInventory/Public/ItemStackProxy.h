@@ -32,16 +32,19 @@ public:
 	virtual UWorld* GetWorld() const override;
 	//~ UObject
 
-	//~ IFaerieItemDataProxy
+	//~ Faerie::ItemData::IViewBase
 	virtual TOptional<FFaerieItemInstance> GetItemInstance() const override;
 	virtual int32 GetCopies() const override;
 	virtual IFaerieItemOwnerInterface* GetItemOwner() const override;
+	//~ Faerie::ItemData::IViewBase
+
+	//~ IFaerieItemDataProxy
 	virtual Faerie::ItemData::FProxyChangeEvent::RegistrationType& GetOnProxyChangeEvent() override { return OnProxyEvent; }
 	//~ IFaerieItemDataProxy
 
 	//~ IFaerieContainerProxy
 	UE_REWRITE virtual FFaerieAddress Proxy_GetAddress() const override { return Address; }
-	virtual FFaerieItemNetworkHandle Proxy_GetNetworkHandle() const override;
+	UE_REWRITE virtual FFaerieItemNetworkHandle Proxy_GetNetworkHandle() const override { return GetNetworkHandle(); }
 	//~ IFaerieContainerProxy
 
 	UE_REWRITE FFaerieAddress GetAddress() const { return Address; }

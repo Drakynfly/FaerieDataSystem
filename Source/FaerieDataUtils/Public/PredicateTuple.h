@@ -47,31 +47,31 @@ namespace Faerie::Utils
 
 		// Returns true if the object passes every predicate
 		template <typename ObjectType>
-		[[nodiscard]] bool TestAll(TNotNull<const UObject*> WorldContextObj, ObjectType Object) const
+		[[nodiscard]] bool TestAll(const FMassEntityManager* EntityManager, ObjectType Object) const
 		{
-			return PredicateTuple.ApplyAfter([WorldContextObj, Object](const Predicates&... TupleValues)
+			return PredicateTuple.ApplyAfter([EntityManager, Object](const Predicates&... TupleValues)
 				{
-					auto Run = [](TNotNull<const UObject*> InWorldContextObj, ObjectType InObject, const auto& InPredicate)
+					auto Run = [](const FMassEntityManager* EntityManager, ObjectType InObject, const auto& InPredicate)
 					{
-						return InPredicate.Exec(InWorldContextObj, InObject);
+						return InPredicate.Exec(EntityManager, InObject);
 					};
 
-					return (Run(WorldContextObj, Object, TupleValues) && ...);
+					return (Run(EntityManager, Object, TupleValues) && ...);
 				});
 		}
 
 		// Returns true if the object passes any predicate
 		template <typename ObjectType>
-		[[nodiscard]] bool TestAny(TNotNull<const UObject*> WorldContextObj, ObjectType Object) const
+		[[nodiscard]] bool TestAny(const FMassEntityManager* EntityManager, ObjectType Object) const
 		{
-			return PredicateTuple.ApplyAfter([WorldContextObj, Object](const Predicates&... TupleValues)
+			return PredicateTuple.ApplyAfter([EntityManager, Object](const Predicates&... TupleValues)
 				{
-					auto Run = [](TNotNull<const UObject*> InWorldContextObj, ObjectType InObject, const auto& InPredicate)
+					auto Run = [](const FMassEntityManager* EntityManager, ObjectType InObject, const auto& InPredicate)
 					{
-						return InPredicate.Exec(InWorldContextObj, InObject);
+						return InPredicate.Exec(EntityManager, InObject);
 					};
 
-					return (Run(WorldContextObj, Object, TupleValues) || ...);
+					return (Run(EntityManager, Object, TupleValues) || ...);
 				});
 		}
 

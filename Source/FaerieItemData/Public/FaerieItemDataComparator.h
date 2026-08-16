@@ -2,7 +2,9 @@
 
 #pragma once
 
-#include "FaerieItemDataView.h"
+#include "FaerieItemProxy.h"
+#include "ValidParameter.h"
+
 #include "UObject/Object.h"
 #include "FaerieItemDataComparator.generated.h"
 
@@ -15,12 +17,12 @@ class FAERIEITEMDATA_API UFaerieItemDataComparator : public UObject
 	GENERATED_BODY()
 
 public:
-	virtual bool Exec(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& ViewA, const Faerie::ItemData::FValidatedDataView& ViewB) const
+	virtual bool Exec(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> ProxyA, Faerie::TValid<const FFaerieItemProxy&> ProxyB) const
 		PURE_VIRTUAL(UFaerieItemDataComparator::Exec, return false; )
 
 protected:
-	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataComparator", DisplayName = "Exec", meta = (WorldContext = "WorldContextObj"))
-	bool K2_Exec(UObject* WorldContextObj, const FFaerieItemDataView& A, const FFaerieItemDataView& B) const;
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataComparator", DisplayName = "Exec")
+	bool K2_Exec(const FFaerieItemProxy& A, const FFaerieItemProxy& B) const;
 };
 
 /*
@@ -32,9 +34,10 @@ class UFaerieItemDataComparator_BlueprintBase final : public UFaerieItemDataComp
 	GENERATED_BODY()
 
 public:
-	virtual bool Exec(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& ViewA, const Faerie::ItemData::FValidatedDataView& ViewB) const override;
+	virtual bool Exec(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> ProxyA,
+					  Faerie::TValid<const FFaerieItemProxy&> ProxyB) const override;
 
 protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Faerie|ItemDataComparator")
-	bool Execute(const FFaerieItemDataView& A, const FFaerieItemDataView& B) const;
+	bool Execute(const FFaerieItemProxy& A, const FFaerieItemProxy& B) const;
 };

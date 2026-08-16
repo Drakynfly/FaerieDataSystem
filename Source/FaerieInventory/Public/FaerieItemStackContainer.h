@@ -28,15 +28,6 @@ struct FFaerieSimpleItemStackSaveData
 	FFaerieItemExportData ExportData;
 };
 
-namespace Faerie::Inventory
-{
-	namespace Tags
-	{
-		FAERIEINVENTORY_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, SlotItemMutated)
-		FAERIEINVENTORY_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, SlotClientReplication)
-	}
-}
-
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FEquipmentSlotEvent, UFaerieItemStackContainer*, Slot, FFaerieInventoryTag, Event);
 
 // A struct binding a FaerieInstance to a copies value for atomic replication.
@@ -77,14 +68,16 @@ private:
 	// ReSharper disable CppOverrideWithDifferentVisibility
 	virtual FFaerieItemInstance ViewInstance(FFaerieEntryKey Key) const override;
 	virtual FFaerieItemInstance ViewInstance(FFaerieAddress Address) const override;
-	virtual FFaerieItemDataView ViewEntry(FFaerieEntryKey Key) const override;
-	virtual FFaerieItemDataView ViewAddress(FFaerieAddress Address) const override;
+	virtual Faerie::ItemData::FScopeProxy ViewEntry(FFaerieEntryKey Key) const override;
+	virtual Faerie::ItemData::FScopeProxy ViewAddress(FFaerieAddress Address) const override;
 	virtual FFaerieItemProxy Proxy(FFaerieAddress Address) const override;
+	virtual bool Possess(const FFaerieUnownedItemStack& Stack) override;
 	virtual void DestroyStack(FFaerieEntryKey Key, int32 Copies) override;
 	virtual void DestroyStack(FFaerieAddress Address, int32 Copies) override;
+	virtual void DestroyStack(const FFaerieItemProxy& Proxy, int32 Copies) override;
 	virtual TOptional<FFaerieUnownedItemStack> Release(FFaerieEntryKey Key, int32 Copies) override;
 	virtual TOptional<FFaerieUnownedItemStack> Release(FFaerieAddress Address, int32 Copies) override;
-	virtual bool CanPossess(const FFaerieItemDataView& View) const override;
+	virtual bool CanPossess(const FFaerieItemProxy& Proxy) const override;
 	virtual void GetAllAddresses(TArray<FFaerieAddress>& Addresses) const override;
 	virtual TUniquePtr<Faerie::Container::IEntryIterator> CreateEntryIterator() const override;
 	virtual TUniquePtr<Faerie::Container::IAddressIterator> CreateAddressIterator() const override;
@@ -94,10 +87,13 @@ private:
 	//~ UFaerieItemContainerBase
 
 public:
-	//~ IFaerieItemDataProxy
+	//~ Faerie::ItemData::IViewBase
 	virtual TOptional<FFaerieItemInstance> GetItemInstance() const override final;
 	virtual int32 GetCopies() const override final;
 	virtual IFaerieItemOwnerInterface* GetItemOwner() const override final;
+	//~ Faerie::ItemData::IViewBase
+
+	//~ IFaerieItemDataProxy
 	virtual Faerie::ItemData::FProxyChangeEvent::RegistrationType& GetOnProxyChangeEvent() override final { return OnItemChangedNative; }
 	//~ IFaerieItemDataProxy
 
@@ -107,14 +103,7 @@ public:
 	//~ IFaerieContainerProxy
 
 	//~ IFaerieItemOwnerInterface
-	virtual bool Possess(const FFaerieUnownedItemStack& View) override;
-
-protected:
-	// ReSharper disable once CppOverrideWithDifferentVisibility
-	virtual void DestroyStack(const FFaerieItemProxy& Proxy, int32 Copies = Faerie::ItemData::EntireStack) override;
-
-public:
-	virtual void OnItemDataChanged(const Faerie::ItemData::FMutableReference& Instance, TNotNull<const UScriptStruct*> Struct, FGameplayTag EditTag) override;
+	virtual void OnItemDataChanged(Faerie::TValid<const FFaerieItemInstance&> Instance, TNotNull<const UScriptStruct*> FragmentType, FGameplayTag EditTag) override;
 	//~ IFaerieItemOwnerInterface
 
 	FFaerieAddress GetAddress() const;
@@ -124,21 +113,21 @@ public:
 	bool IsOurKey(FFaerieEntryKey Key) const;
 	bool IsOurAddress(FFaerieAddress Address) const;
 
-	void SetStoredItem_Impl(Faerie::ItemData::FValidatedDataView View);
+	void SetStoredItem_Impl(const Faerie::TValid<FFaerieUnownedItemStack>& NewItemStack);
 
 public:
 	Faerie::ItemData::FProxyChangeEvent::RegistrationType& GetOnContainerEvent() { return OnItemChangedNative; }
 
-	FFaerieItemDataView GetView() const;
+	Faerie::ItemData::FScopeProxy GetView() const;
 
 	// This checks if the stack could ever be contained by this container, ignoring its current state.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemStackContainer")
-	virtual bool CouldSetInSlot(const FFaerieItemDataView& View) const;
+	virtual bool CouldSetInSlot(const FFaerieItemProxy& Proxy) const;
 
 	// This checks if the stack can be set to this container. This is always called during SetItemInSlot, so do not feel the
 	// need to always call this first, unless to preemptively check for User-facing purposes.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemStackContainer")
-	virtual bool CanSetInSlot(const FFaerieItemDataView& View) const;
+	virtual bool CanSetInSlot(const FFaerieItemProxy& Proxy) const;
 
 	// Use to check beforehand if a removal will go through.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemStackContainer")
@@ -178,7 +167,7 @@ public:
 
 protected:
 	UFUNCTION(/* Replication */)
-	void OnRep_ItemStack();
+	void OnRep_ItemStack(const FFaerieStackContainerContent& OldValue);
 
 	// Broadcast when the item filling this container is removed, a new item is set, or the item had its data mutated.
 	UPROPERTY(BlueprintAssignable, Category = "Events")

@@ -37,13 +37,13 @@ protected:
 public:
 	FFaerieSlotTag GetSlotID() const { return Config.SlotID; }
 
-	virtual bool CouldSetInSlot(const FFaerieItemDataView& View) const override;
-	virtual bool CanSetInSlot(const FFaerieItemDataView& View) const override;
+	virtual bool CouldSetInSlot(const FFaerieItemProxy& Proxy) const override;
+	virtual bool CanSetInSlot(const FFaerieItemProxy& Proxy) const override;
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentSlot")
 	FFaerieAssetInfo GetSlotInfo() const;
 
-	const UFaerieEquipmentSlot* FindSlot(const Faerie::ItemData::FRequireEntityManager& EntityManager, FFaerieSlotTag SlotTag, bool bRecursive) const;
+	const UFaerieEquipmentSlot* FindSlot(const FMassEntityManager& EntityManager, FFaerieSlotTag SlotTag, bool bRecursive) const;
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated, Category = "Config", meta = (ExposeOnSpawn = true))

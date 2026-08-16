@@ -2,13 +2,13 @@
 
 #include "EquipmentQueryLibrary.h"
 #include "DelegateCommon.h"
+#include "EntityManagerHelpers.h"
 #include "EquipmentHashAsset.h"
 #include "EquipmentHashStatics.h"
 #include "EquipmentQueryStatics.h"
 #include "FaerieEquipmentManager.h"
 #include "FaerieHash.h"
 #include "FaerieItem.h"
-#include "FaerieItemDataView.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(EquipmentQueryLibrary)
 
@@ -38,10 +38,12 @@ FFaerieHash UFaerieEquipmentLibrary::HashEquipment(const UFaerieEquipmentManager
 		return FFaerieHash();
 	}
 
-	return Faerie::Hash::HashEquipment(Manager, Config.Slots,
-		[&Config](const TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FReference& Item)
+	auto* EntityManager = Faerie::ItemData::GetFaerieEntityManager();
+
+	return Faerie::Hash::HashEquipment(Manager, EntityManager, Config.Slots,
+		[&Config](const FMassEntityManager*, const Faerie::TValid<const FFaerieItemInstance&> Item)
 		{
-			return Config.HashFunction.Execute(WorldContextObj, Item.GetInstance());
+			return Config.HashFunction.Execute(ValidGet(Item));
 		});
 }
 
@@ -55,11 +57,13 @@ bool UFaerieEquipmentLibrary::ExecuteHashInstructions(const UFaerieEquipmentMana
 
 	if (!IsValid(Asset))
 	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid Manager passed to UFaerieEquipmentLibrary::ExecuteHashInstructions"), ELogVerbosity::Error);
+		FFrame::KismetExecutionMessage(TEXT("Invalid Asset passed to UFaerieEquipmentLibrary::ExecuteHashInstructions"), ELogVerbosity::Error);
 		return false;
 	}
 
-	return Faerie::Hash::ExecuteHashInstructions(Manager, Asset);
+	auto* EntityManager = Faerie::ItemData::GetFaerieEntityManager();
+
+	return Faerie::Hash::ExecuteHashInstructions(Manager, EntityManager, Asset);
 }
 
 FBlueprintEquipmentHash UFaerieEquipmentLibrary::GetEquipmentHash_ByName()
@@ -67,8 +71,9 @@ FBlueprintEquipmentHash UFaerieEquipmentLibrary::GetEquipmentHash_ByName()
 	return AUTO_DELEGATE_STATIC(FBlueprintEquipmentHash, ThisClass, ExecHashItemByName);
 }
 
-int32 UFaerieEquipmentLibrary::ExecHashItemByName(UObject* WorldContextObj, const FFaerieItemInstance& Instance)
+int32 UFaerieEquipmentLibrary::ExecHashItemByName(const FFaerieItemInstance& Instance)
 {
 	if (!Instance.IsValid()) return 0;
-	return Faerie::Hash::HashItemByName(WorldContextObj, Instance);
+	auto* EntityManager = Faerie::ItemData::GetFaerieEntityManager();
+	return Faerie::Hash::HashItemByName(EntityManager, Instance);
 }

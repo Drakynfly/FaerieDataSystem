@@ -5,80 +5,85 @@
 #include "EntityManagerHelpers.h"
 #include "FaerieItem.h"
 #include "FaerieItemAsset.h"
-#include "FaerieItemDataView.h"
 #include "FaerieItemOwnerInterface.h"
 #include "FaerieItemProxy.h"
-
 #include "Fragments/FaerieAssetInfo.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemDataLibrary)
 
-bool UFaerieItemDataLibrary::IsValid_ItemInstance(const FFaerieItemInstance& Instance)
+bool UFaerieItemDataLibrary::IsItemMutable(const FFaerieItemProxy& Proxy)
 {
-	return Instance.IsValid();
+	if (!Proxy.IsValid())
+	{
+		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieItemDataLibrary::GetItemLastModified"), ELogVerbosity::Error);
+		return false;
+	}
+
+	auto InstanceOpt = Proxy.GetItemInstance();
+	if (!InstanceOpt.IsSet())
+	{
+		return false;
+	}
+
+	return InstanceOpt.GetValue().IsMutable();
 }
 
-bool UFaerieItemDataLibrary::EqualEqual_ItemInstance(const FFaerieItemInstance& A, const FFaerieItemInstance& B)
+FDateTime UFaerieItemDataLibrary::GetItemLastModified(const FFaerieItemProxy& Proxy)
 {
-	return A == B;
+	if (!Proxy.IsValid())
+	{
+		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieItemDataLibrary::GetItemLastModified"), ELogVerbosity::Error);
+		return FDateTime();
+	}
+
+	auto InstanceOpt = Proxy.GetItemInstance();
+	if (!InstanceOpt.IsSet())
+	{
+		return FDateTime();
+	}
+
+	return InstanceOpt.GetValue().GetLastModified();
 }
 
-bool UFaerieItemDataLibrary::IsItemMutable(const FFaerieItemInstance& Item)
-{
-	return Item.IsMutable();
-}
-
-FDateTime UFaerieItemDataLibrary::GetItemLastModified(const FFaerieItemInstance& Item)
-{
-	return Item.GetLastModified();
-}
-
-FFaerieItemInstance UFaerieItemDataLibrary::GetItemInstance(const UFaerieItemAsset* Asset)
+FFaerieUnownedItemStack UFaerieItemDataLibrary::GetTemplateInstance(const UFaerieItemAsset* Asset)
 {
 	if (!Asset)
 	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid Asset passed to UFaerieItemDataLibrary::GetItemInstance"), ELogVerbosity::Error);
-		return FFaerieItemInstance();
+		FFrame::KismetExecutionMessage(TEXT("Invalid Asset passed to UFaerieItemDataLibrary::GetTemplateInstance"), ELogVerbosity::Error);
+		return FFaerieUnownedItemStack();
 	}
 
-	return Asset->GetTemplateInstance();
+	return FFaerieUnownedItemStack(Asset->GetTemplateInstance(), 1);
 }
 
-FFaerieItemInstance UFaerieItemDataLibrary::NewItemInstance(UObject* WorldContextObject, TArray<FInstancedStruct>& Fragments)
+FFaerieUnownedItemStack UFaerieItemDataLibrary::NewItemInstance(TArray<FInstancedStruct>& Fragments)
 {
-	if (!IsValid(WorldContextObject))
-	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid WorldContextObject passed to UFaerieItemDataLibrary::NewItemInstance"), ELogVerbosity::Error);
-		return FFaerieItemInstance();
-	}
-
 	for (int32 i = 0; i < Fragments.Num(); ++i)
 	{
 		if (!Fragments[i].IsValid())
 		{
 			FFrame::KismetExecutionMessage(*FString::Printf(TEXT("Invalid Fragment[%i] passed to UFaerieItemDataLibrary::NewItemInstance"), i), ELogVerbosity::Error);
-			return FFaerieItemInstance();
+			return FFaerieUnownedItemStack();
 		}
 	}
 
-	CHECK_NOT_CALLED_IN_EDITOR(WorldContextObject)
-
-	FFaerieItemInstance Instance = FFaerieItemInstance::FromFragments(Faerie::ItemData::GetFaerieEntityManagerChecked(), Fragments);
-	Instance.InitializeMassEntity(Faerie::ItemData::GetFaerieEntityManagerChecked());
-	return Instance;
-}
-
-bool UFaerieItemDataLibrary::HasItemFragment(UObject* WorldContextObject, const FFaerieItemInstance& Instance, UScriptStruct* FragmentType)
-{
-	if (!IsValid(WorldContextObject))
+	if (!Faerie::ItemData::HasFaerieEntityManagerBeenAssigned())
 	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid WorldContextObject passed to UFaerieItemDataLibrary::AddFragment"), ELogVerbosity::Error);
-		return false;
+		FFrame::KismetExecutionMessage(TEXT("No Entity Manager assigned to handle UFaerieItemDataLibrary::NewItemInstance"), ELogVerbosity::Error);
+		return FFaerieUnownedItemStack();
 	}
 
-	if (!Instance.IsValid())
+	auto& EntityManager = Faerie::ItemData::GetFaerieEntityManagerChecked();
+	FFaerieItemInstance Instance = FFaerieItemInstance::FromFragments(EntityManager, Fragments);
+	Instance.InitializeMassEntity(EntityManager);
+	return FFaerieUnownedItemStack(Instance, 1);
+}
+
+bool UFaerieItemDataLibrary::HasItemFragment(const FFaerieItemProxy& Proxy, UScriptStruct* FragmentType)
+{
+	if (!Proxy.IsValid())
 	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid Instance passed to UFaerieItemDataLibrary::AddFragment"), ELogVerbosity::Error);
+		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieItemDataLibrary::HasItemFragment"), ELogVerbosity::Error);
 		return false;
 	}
 
@@ -88,19 +93,19 @@ bool UFaerieItemDataLibrary::HasItemFragment(UObject* WorldContextObject, const 
 		return false;
 	}
 
-	const Faerie::ItemData::FOptionalEntityManager EntityManager(WorldContextObject);
-	auto FoundFragment = Faerie::ItemData::GetEntityFragmentOrDefault(EntityManager, Instance, FragmentType);
-	return FoundFragment.IsValid();
-}
-
-bool UFaerieItemDataLibrary::AddFragment(UObject* WorldContextObject, FFaerieItemInstance& Instance, FInstancedStruct Fragment)
-{
-	if (!IsValid(WorldContextObject))
+	auto InstanceOpt = Proxy.GetItemInstance();
+	if (!InstanceOpt.IsSet())
 	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid WorldContextObject passed to UFaerieItemDataLibrary::RemoveFragment"), ELogVerbosity::Error);
 		return false;
 	}
 
+	auto FoundFragment = Faerie::ItemData::GetEntityFragmentOrDefault(Faerie::ItemData::GetFaerieEntityManager(), InstanceOpt.GetValue(), FragmentType);
+	return FoundFragment.IsValid();
+}
+
+/*
+bool UFaerieItemDataLibrary::AddFragment(FFaerieItemInstance& Instance, FInstancedStruct Fragment)
+{
 	if (!Instance.IsValid())
 	{
 		FFrame::KismetExecutionMessage(TEXT("Invalid Instance passed to UFaerieItemDataLibrary::AddFragment"), ELogVerbosity::Error);
@@ -119,20 +124,20 @@ bool UFaerieItemDataLibrary::AddFragment(UObject* WorldContextObject, FFaerieIte
 		return false;
 	}
 
-	CHECK_NOT_CALLED_IN_EDITOR(WorldContextObject)
+	if (!Faerie::ItemData::HasFaerieEntityManagerBeenAssigned())
+	{
+		FFrame::KismetExecutionMessage(TEXT("No Entity Manager assigned to handle UFaerieItemDataLibrary::AddFragment"), ELogVerbosity::Error);
+		return false;
+	}
 
 	Instance.AddFragment(Faerie::ItemData::GetFaerieEntityManagerChecked(), MoveTemp(Fragment));
 	return true;
 }
+*/
 
-bool UFaerieItemDataLibrary::RemoveFragment(UObject* WorldContextObject, FFaerieItemInstance& Instance, const UScriptStruct* FragmentType)
+/*
+bool UFaerieItemDataLibrary::RemoveFragment(FFaerieItemInstance& Instance, const UScriptStruct* FragmentType)
 {
-	if (!IsValid(WorldContextObject))
-	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid WorldContextObject passed to UFaerieItemDataLibrary::RemoveFragment"), ELogVerbosity::Error);
-		return false;
-	}
-
 	if (!Instance.IsValid())
 	{
 		FFrame::KismetExecutionMessage(TEXT("Invalid Instance passed to UFaerieItemDataLibrary::RemoveFragment"), ELogVerbosity::Error);
@@ -151,21 +156,20 @@ bool UFaerieItemDataLibrary::RemoveFragment(UObject* WorldContextObject, FFaerie
 		return false;
 	}
 
-	CHECK_NOT_CALLED_IN_EDITOR(WorldContextObject)
+	if (!Faerie::ItemData::HasFaerieEntityManagerBeenAssigned())
+	{
+		FFrame::KismetExecutionMessage(TEXT("No Entity Manager assigned to handle UFaerieItemDataLibrary::RemoveFragment"), ELogVerbosity::Error);
+		return false;
+	}
 
 	Instance.RemoveFragment(Faerie::ItemData::GetFaerieEntityManagerChecked(), FragmentType);
 	return true;
 }
+*/
 
-bool UFaerieItemDataLibrary::FindFragment(UObject* WorldContextObject, const FFaerieItemInstance& Instance,
+bool UFaerieItemDataLibrary::FindFragment(const FFaerieItemInstance& Instance,
 	UScriptStruct* FragmentType, TInstancedStruct<FFaerieMassFragment>& FoundFragment)
 {
-	if (!IsValid(WorldContextObject))
-	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid WorldContextObject passed to UFaerieItemDataLibrary::FindFragment"), ELogVerbosity::Error);
-		return false;
-	}
-
 	if (!Instance.IsValid())
 	{
 		FFrame::KismetExecutionMessage(TEXT("Invalid Instance passed to UFaerieItemDataLibrary::FindFragment"), ELogVerbosity::Error);
@@ -178,9 +182,32 @@ bool UFaerieItemDataLibrary::FindFragment(UObject* WorldContextObject, const FFa
 		return false;
 	}
 
-	const Faerie::ItemData::FOptionalEntityManager EntityManager(WorldContextObject);
-	FoundFragment = Faerie::ItemData::GetEntityFragmentOrDefault(EntityManager, Instance, FragmentType);
+	FoundFragment = Faerie::ItemData::GetEntityFragmentOrDefault(Faerie::ItemData::GetFaerieEntityManager(), Instance, FragmentType);
 	return FoundFragment.IsValid();
+}
+
+bool UFaerieItemDataLibrary::FindFragment_Proxy(const FFaerieItemProxy& Proxy, UScriptStruct* FragmentType,
+	TInstancedStruct<FFaerieMassFragment>& FoundFragment)
+{
+	if (!Proxy.IsValid())
+	{
+		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieItemDataLibrary::FindFragment_Proxy"), ELogVerbosity::Error);
+		return false;
+	}
+
+	if (!IsValid(FragmentType))
+	{
+		FFrame::KismetExecutionMessage(TEXT("Invalid FragmentType passed to UFaerieItemDataLibrary::FindFragment_Proxy"), ELogVerbosity::Error);
+		return false;
+	}
+
+	const TOptional<FFaerieItemInstance> InstanceOpt = Proxy.GetItemInstance();
+	if (InstanceOpt.IsSet())
+	{
+		FoundFragment = Faerie::ItemData::GetEntityFragmentOrDefault(Faerie::ItemData::GetFaerieEntityManager(), InstanceOpt.GetValue(), FragmentType);
+		return FoundFragment.IsValid();
+	}
+	return false;
 }
 
 int32 UFaerieItemDataLibrary::UnlimitedStack()
@@ -193,23 +220,10 @@ bool UFaerieItemDataLibrary::IsUnlimited(const int32 Stack)
 	return Stack == Faerie::ItemData::UnlimitedStack;
 }
 
-FFaerieItemInstance UFaerieItemDataLibrary::GetViewItem(const FFaerieItemDataView& View)
+int32 UFaerieItemDataLibrary::GetViewCopies(const FFaerieItemProxy& Proxy)
 {
-	if (!View.IsValid()) return FFaerieItemInstance();
-	return View.GetInstance();
-}
-
-int32 UFaerieItemDataLibrary::GetViewCopies(const FFaerieItemDataView& View)
-{
-	if (!View.IsValid()) return 0;
-	return View.GetCopies();
-}
-
-TScriptInterface<IFaerieItemOwnerInterface> UFaerieItemDataLibrary::GetViewOwner(const FFaerieItemDataView& View)
-{
-	if (!View.IsValid()) return nullptr;
-	// Not const safe, but only so much we can do with BP the way it is...
-	return const_cast<UObject*>(Cast<UObject>(View.GetOwner()));
+	if (!Proxy.IsValid()) return 0;
+	return Proxy.GetCopies();
 }
 
 bool UFaerieItemDataLibrary::EqualEqual_ItemProxy(const FFaerieItemProxy& A, const FFaerieItemProxy& B)
@@ -250,37 +264,11 @@ bool UFaerieItemDataLibrary::IsValid_ItemProxy(const FFaerieItemProxy& Proxy)
 	return Proxy.IsValid();
 }
 
-FFaerieItemInstance UFaerieItemDataLibrary::GetProxyItemInstance(const FFaerieItemProxy& Proxy)
-{
-	if (!Proxy.IsValid())
-	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieItemDataLibrary::GetProxyMassHandle"), ELogVerbosity::Error);
-		return FFaerieItemInstance();
-	}
-
-	if (const TOptional<FFaerieItemInstance> Instance = Proxy->GetItemInstance();
-		Instance.IsSet())
-	{
-		return Instance.GetValue();
-	}
-
-	return FFaerieItemInstance();
-}
-
-TScriptInterface<IFaerieItemOwnerInterface> UFaerieItemDataLibrary::GetProxyItemOwner(const FFaerieItemProxy& Proxy)
-{
-	if (Proxy.IsValid())
-	{
-		return Cast<UObject>(Proxy->GetItemOwner());
-	}
-	return nullptr;
-}
-
 int32 UFaerieItemDataLibrary::GetProxyCopies(const FFaerieItemProxy& Proxy)
 {
 	if (Proxy.IsValid())
 	{
-		return Proxy->GetCopies();
+		return Proxy.GetCopies();
 	}
 	return 0;
 }
@@ -308,29 +296,23 @@ void UFaerieItemDataLibrary::UnbindAllFromItemDataChanged(const FFaerieItemProxy
 	Proxy.GetOnProxyChangeEvent().RemoveAll(Object);
 }
 
-FFaerieItemDataView UFaerieItemDataLibrary::ProxyToView(const FFaerieItemProxy& Proxy)
+bool UFaerieItemDataLibrary::ItemIsMutablePredicate(const FFaerieItemProxy& Proxy)
 {
-	// Copy the proxy, so FaerieItemDataView can have one to own.
-	return FFaerieItemProxy(Proxy);
+	return Proxy.IsValid() && Proxy.GetItemInstanceOrInvalid().IsMutable();
 }
 
-bool UFaerieItemDataLibrary::ItemIsMutablePredicate(UObject*, const FFaerieItemDataView& View)
+bool UFaerieItemDataLibrary::ItemIsImmutablePredicate(const FFaerieItemProxy& Proxy)
 {
-	return View.IsValid() && View.GetInstance().IsMutable();
+	return Proxy.IsValid() && !Proxy.GetItemInstanceOrInvalid().IsMutable();
 }
 
-bool UFaerieItemDataLibrary::ItemIsImmutablePredicate(UObject*, const FFaerieItemDataView& View)
+bool UFaerieItemDataLibrary::ItemLexicographicNameComparator(const FFaerieItemProxy& ProxyA, const FFaerieItemProxy& ProxyB)
 {
-	return View.IsValid() && !View.GetInstance().IsMutable();
-}
+	if (!ProxyA.IsValid() || !ProxyB.IsValid()) return false;
 
-bool UFaerieItemDataLibrary::ItemLexicographicNameComparator(UObject* WorldContextObj, const FFaerieItemDataView& ViewA, const FFaerieItemDataView& ViewB)
-{
-	if (!ViewA.IsValid() || !ViewB.IsValid()) return false;
-
-	const Faerie::ItemData::FOptionalEntityManager EntityManager(WorldContextObj);
-	auto InfoA = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieAssetInfo>(EntityManager, ViewA.GetInstance());
-	auto InfoB = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieAssetInfo>(EntityManager, ViewB.GetInstance());
+	auto* EntityManager = Faerie::ItemData::GetFaerieEntityManager();
+	auto InfoA = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieAssetInfo>(EntityManager, ProxyA.GetItemInstanceOrInvalid());
+	auto InfoB = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieAssetInfo>(EntityManager, ProxyB.GetItemInstanceOrInvalid());
 
 	if (InfoA.IsValid() && InfoB.IsValid())
 	{
@@ -340,12 +322,12 @@ bool UFaerieItemDataLibrary::ItemLexicographicNameComparator(UObject* WorldConte
 	return false;
 }
 
-bool UFaerieItemDataLibrary::ItemDateModifiedComparator(UObject* WorldContextObj, const FFaerieItemDataView& ViewA, const FFaerieItemDataView& ViewB)
+bool UFaerieItemDataLibrary::ItemDateModifiedComparator(const FFaerieItemProxy& ProxyA, const FFaerieItemProxy& ProxyB)
 {
-	if (!ViewA.IsValid() || !ViewB.IsValid()) return false;
+	if (!ProxyA.IsValid() || !ProxyB.IsValid()) return false;
 
-	const FFaerieItemInstance ItemA = ViewA.GetInstance();
-	const FFaerieItemInstance ItemB = ViewB.GetInstance();
+	const FFaerieItemInstance ItemA = ProxyA.GetItemInstanceOrInvalid();
+	const FFaerieItemInstance ItemB = ProxyB.GetItemInstanceOrInvalid();
 
 	if (!(ItemA.IsValid() && ItemB.IsValid()))
 	{

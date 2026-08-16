@@ -7,7 +7,6 @@
 #include "ItemCraftingRunner.h"
 #include "ItemInstancingContext_Crafting.h"
 #include "Recipes/FaerieRecipeCraftConfig.h"
-#include "EntityManagerHelpers.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieCraftRecipeAction)
 
@@ -15,8 +14,7 @@ void FFaerieCraftRecipeAction::Run(const Faerie::Generation::FActionExecution& E
 {
 	if (!IsValid(Config))
 	{
-		UE_LOG(LogItemGeneration, Warning, TEXT("%hs: Config is invalid!"), __FUNCTION__);
-		return Fail(Execution, this);
+		return Fail(Execution, this, INVTEXT("Invalid Recipe config"));
 	}
 
 	if (NewInstancesOuter == nullptr)
@@ -26,9 +24,9 @@ void FFaerieCraftRecipeAction::Run(const Faerie::Generation::FActionExecution& E
 
 	if (const FFaerieItemCraftingSlots* SlotsPtr = Config->Recipe->GetCraftingSlots())
 	{
-		if (!Faerie::Generation::ValidateFilledSlots(Execution.WorldContextObject, Slots, *SlotsPtr))
+		if (!Faerie::Generation::ValidateFilledSlots<true>(Execution.EntityManager, Slots, *SlotsPtr))
 		{
-			return Fail(Execution, this);
+			return Fail(Execution, this, INVTEXT("Validation of input slots failed"));
 		}
 	}
 
@@ -41,27 +39,26 @@ void FFaerieCraftRecipeAction::Run(const Faerie::Generation::FActionExecution& E
 	}
 
 	FFaerieItemInstancingContext_Crafting Context;
-	Context.ItemInstanceOuter = NewInstancesOuter;
+	Context.EntityManager = Execution.EntityManager;
 	Context.Squirrel = Execution.Squirrel.Get();
 	Context.InputEntryData = Slots;
 
 	const Faerie::ItemData::FGetInstanceResult Result = Config->Recipe->GetItemSource()->CreateItemStack(Context);
 	if (!Result.IsValid())
 	{
-		UE_LOG(LogItemGeneration, Error, TEXT("Item Instancing failed for Craft Item!"));
-		return Fail(Execution, this);
+		return Fail(Execution, this, INVTEXT("Item Instancing failed for Craft Item!"));
 	}
 
 	ActionData.Stacks.Add(Result.WithInitialization());
 
 	if (RunConsumeStep)
 	{
-		Faerie::ItemData::FOptionalEntityManager EntityManager(Execution.WorldContextObject);
+		check(Execution.EntityManager);
 		if (const FFaerieItemCraftingSlots* SlotsPtr = Config->Recipe->GetCraftingSlots())
 		{
-			Faerie::Generation::ConsumeSlotCosts(EntityManager, Slots, *SlotsPtr);
+			Faerie::Generation::ConsumeSlotCosts(*Execution.EntityManager, Slots, *SlotsPtr);
 		}
 	}
 
-	return Complete(Execution, this);
+	return Complete(Execution, this, FText::GetEmpty());
 }

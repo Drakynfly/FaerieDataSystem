@@ -18,9 +18,9 @@ public:
 	virtual TNotNull<UScriptStruct*> GetFragmentType() const override;
 
 protected:
-	virtual void OnProxySet() override;
-	virtual void OnFieldChange(const Faerie::ItemData::FFieldChange& Data) override;
-	virtual void CheckForFieldChange(const Faerie::ItemData::FReference& Item, const FConstStructView FragmentView) override;
+	virtual void OnProxySet(const FMassEntityManager& EntityManager) override;
+	virtual void OnFieldChange(const FMassEntityManager& EntityManager, const Faerie::ItemData::FFieldChange& Data) override;
+	virtual void CheckForFieldChange(Faerie::TValid<const FFaerieItemInstance&> Item, const FConstStructView FragmentView) override;
 	//~ UFaerieViewModelBase
 
 protected:

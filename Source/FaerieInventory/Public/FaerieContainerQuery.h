@@ -9,12 +9,12 @@
 #include "FaerieContainerQuery.generated.h"
 
 class UFaerieItemDataComparator;
-class UFaerieItemDataFilter;
+class UFaerieItemTemplate;
 class UFaerieContainerQuery;
 
 // We need to expose these delegates to the global namespace or UHT will cry.
-using FFaerieViewPredicate = UFaerieFunctionTemplates::FFaerieViewPredicate;
-using FFaerieViewComparator = UFaerieFunctionTemplates::FFaerieViewComparator;
+using FFaerieProxyPredicate = UFaerieFunctionTemplates::FFaerieProxyPredicate;
+using FFaerieProxyComparator = UFaerieFunctionTemplates::FFaerieProxyComparator;
 
 namespace Faerie::Container
 {
@@ -47,15 +47,15 @@ public:
 	void SetFilter(Faerie::ItemData::FViewPredicate&& Predicate, const UObject* AssociatedUObject);
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|Container Query")
-	void SetFilterByDelegate(const UFaerieFunctionTemplates::FFaerieViewPredicate& Delegate);
+	void SetFilterByDelegate(const UFaerieFunctionTemplates::FFaerieProxyPredicate& Delegate);
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|Container Query")
-	void SetFilterByObject(const UFaerieItemDataFilter* Object);
+	void SetFilterByObject(const UFaerieItemTemplate* Object);
 
 	void SetSort(Faerie::ItemData::FViewComparator&& Comparator, const UObject* AssociatedUObject);
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|Container Query")
-	void SetSortByDelegate(const UFaerieFunctionTemplates::FFaerieViewComparator& Delegate);
+	void SetSortByDelegate(const UFaerieFunctionTemplates::FFaerieProxyComparator& Delegate);
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|Container Query")
 	void SetSortByObject(const UFaerieItemDataComparator* Comparator);
@@ -87,7 +87,7 @@ public:
 
 protected:
 	bool CompareAddresses_Impl(TNotNull<const UFaerieItemContainerBase*> Container, const FFaerieAddress AddressA, const FFaerieAddress AddressB) const;
-	bool IsIteratorFiltered(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& Iterator) const;
+	bool IsIteratorFiltered(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Iterator) const;
 
 private:
 	// Filter object to keep alive.

@@ -3,7 +3,7 @@
 #include "FaerieItemStorageIterators.h"
 #include "FaerieItemStorage.h"
 
-namespace Faerie::Storage
+namespace Faerie::Container
 {
 	// ReSharper disable once CppMemberFunctionMayBeStatic
 	const FFaerieStorageContent& FStorageDataAccess::ReadInventoryContent(const TNotNull<const UFaerieItemStorage*> Storage)
@@ -41,7 +41,7 @@ namespace Faerie::Storage
 		return Content.GetKeyAt(EntryIndex);
 	}
 
-	FFaerieItemInstance FIterator_AllEntries::GetInstance() const
+	const FFaerieItemInstance& FIterator_AllEntries::GetInstance() const
 	{
 		return Content.GetElementAt(EntryIndex).GetInstance();
 	}
@@ -93,7 +93,7 @@ namespace Faerie::Storage
 		return UFaerieItemStorage::MakeAddress(Content.GetKeyAt(EntryIndex), StackPtr->Key);
 	}
 
-	FFaerieItemInstance FIterator_AllAddresses::GetInstance() const
+	const FFaerieItemInstance& FIterator_AllAddresses::GetInstance() const
 	{
 		return Content.GetElementAt(EntryIndex).GetInstance();
 	}
@@ -116,8 +116,8 @@ namespace Faerie::Storage
 		}
 	}
 
-	FIterator_SingleEntry::FIterator_SingleEntry(const FFaerieStorageEntry& Entry)
-	  : Entry(Entry)
+	FIterator_SingleEntry::FIterator_SingleEntry(const FFaerieStorageEntry& InEntry)
+	  : Entry(InEntry)
 	{
 		const TConstArrayView<FFaerieKeyedStack> StackView = Entry.GetStacks();
 		StackPtr = StackView.GetData();
@@ -153,7 +153,7 @@ namespace Faerie::Storage
 		return UFaerieItemStorage::MakeAddress(Entry.GetKey(), StackPtr->Key);
 	}
 
-	FFaerieItemInstance FIterator_SingleEntry::GetInstance() const
+	const FFaerieItemInstance& FIterator_SingleEntry::GetInstance() const
 	{
 		return Entry.GetInstance();
 	}
@@ -176,17 +176,17 @@ namespace Faerie::Storage
 		}
 	}
 
-	const IFaerieItemOwnerInterface* FIterator_AllEntries_WithInterface::ResolveOwner() const
+	const IFaerieItemOwnerInterface* FIterator_AllEntries_WithInterface::GetItemOwner() const
 	{
 		return Storage;
 	}
 
-	const IFaerieItemOwnerInterface* FIterator_AllAddresses_WithInterface::ResolveOwner() const
+	const IFaerieItemOwnerInterface* FIterator_AllAddresses_WithInterface::GetItemOwner() const
 	{
 		return Storage;
 	}
 
-	const IFaerieItemOwnerInterface* FIterator_SingleEntry_WithInterface::ResolveOwner() const
+	const IFaerieItemOwnerInterface* FIterator_SingleEntry_WithInterface::GetItemOwner() const
 	{
 		return Storage;
 	}

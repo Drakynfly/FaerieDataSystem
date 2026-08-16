@@ -5,6 +5,7 @@
 #include "MassSubsystemBase.h"
 #include "FaerieItemDataFwd.h"
 #include "FaerieItemInstance.h"
+#include "ValidParameter.h"
 
 #include "StructUtils/StructView.h"
 
@@ -31,7 +32,8 @@ struct FFaerieViewModelStorage
 {
 	GENERATED_BODY()
 
-	TMap<FFaerieItemInstance, TWeakObjectPtr<UFaerieViewModelBase>> InUseViews;
+	// The ObjectKey here is the ProxyObject from the FFaerieItemProxy that is set on the ViewModel.
+	TMap<FObjectKey, TWeakObjectPtr<UFaerieViewModelBase>> InUseViews;
 
 	UPROPERTY()
 	TArray<TObjectPtr<UFaerieViewModelBase>> UnusedViews;
@@ -49,7 +51,7 @@ class FAERIEITEMDATA_API UFaerieViewModelSubsystem : public UMassSubsystemBase
 
 public:
 	// Called by UFaerieMassReplicationSubsystem
-	void Client_PostReplicationChange(const Faerie::ItemData::FReference& Item, FConstStructView FragmentView);
+	void Client_PostReplicationChange(Faerie::TValid<const FFaerieItemInstance&> Item, FConstStructView FragmentView);
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ViewModelSubsystem", meta = (DeterminesOutputType = "ViewClass", AutoCreateRefTerm = "Proxy"))
 	UFaerieViewModelBase* GetOrCreateViewModel(const FFaerieItemProxy& Proxy, TSubclassOf<UFaerieViewModelBase> ViewClass);
@@ -58,7 +60,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ViewModelSubsystem")
 	void ReturnViewModel(UFaerieViewModelBase* ViewModel);
 
-	void HandleFieldChange(const Faerie::ItemData::FReference& Item, const Faerie::ItemData::FFieldChange& Data);
+	void HandleFieldChange(const FMassEntityManager& EntityManager, Faerie::TValid<const FFaerieItemInstance&> Item, const Faerie::ItemData::FFieldChange& Data);
 
 protected:
 	void UpdateViewModelAssociation(TNotNull<UFaerieViewModelBase*> ViewModel, const FFaerieItemProxy& OldProxy);

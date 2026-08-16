@@ -8,7 +8,8 @@
 
 #include "ItemMutator_BlueprintBase.generated.h"
 
-struct FFaerieItemInstance;
+struct FFaerieItemProxy;
+
 /*
  * Wrapper to apply a Blueprint Mutator Class.
  */
@@ -18,7 +19,7 @@ struct FFaerieItemMutator_Blueprint final : public FFaerieItemMutator
 	GENERATED_BODY()
 
 	virtual void GetRequiredAssets(TArray<TSoftObjectPtr<UObject>>& RequiredAssets) const override;
-	virtual bool Apply(Faerie::ItemData::FMutableReference& Item, const FFaerieItemMutatorContext& Context) const override;
+	virtual bool Apply(FFaerieItemInstance& Item, const FFaerieItemMutatorContext& Context) const override;
 
 protected:
 	UPROPERTY(EditAnywhere, Category = "Blueprint")
@@ -39,11 +40,8 @@ class FAERIEITEMGENERATOR_API UFaerieItemMutator_BlueprintBase : public UObject
 	friend FFaerieItemMutator_Blueprint;
 
 protected:
-	void NativeGetRequiredAssets(TArray<TSoftObjectPtr<UObject>>& RequiredAssets) const;
-	bool NativeApply(const Faerie::ItemData::FMutableReference& Item, USquirrel* Squirrel) const;
-
 	UFUNCTION(BlueprintNativeEvent, Category = "Mutator")
-	bool Apply(const FFaerieItemInstance& Instance, USquirrel* Squirrel) const;
+	bool Apply(const FFaerieItemProxy& Proxy, USquirrel* Squirrel) const;
 
 	// Any soft assets required to be loaded when Apply is called should be registered here.
 	UFUNCTION(BlueprintNativeEvent, Category = "Mutator")

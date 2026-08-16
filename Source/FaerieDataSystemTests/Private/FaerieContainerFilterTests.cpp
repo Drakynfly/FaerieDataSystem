@@ -63,23 +63,23 @@ bool FaerieContainerFilterTests::RunTest(const FString& Parameters)
 	{
 		auto ItemFilter = FItemFilter();
 
-		TestTrue("(Interface) FilterNumIsExpected", ItemFilter.Count(Storage) == ExpectedEntries);
+		TestTrue("(Interface) FilterNumIsExpected", ItemFilter.Count(nullptr, Storage) == ExpectedEntries);
 
 		{
 			TFilter<EFilterFlags::Inverted, const UFaerieItem*, IEntryIterator> InvertedFilter = ItemFilter.Invert();
 
-			TestTrue("(Interface) FilterNumIs0", InvertedFilter.Count(Storage) == 0);
+			TestTrue("(Interface) FilterNumIs0", InvertedFilter.Count(nullptr, Storage) == 0);
 
 			TFilter<EFilterFlags::None, const UFaerieItem*, IEntryIterator> DoubleInvertedFilter = InvertedFilter.Invert();
 
-			TestTrue("(Interface) FilterNumIsExpectedAgain", DoubleInvertedFilter.Count(Storage) == ExpectedEntries);
+			TestTrue("(Interface) FilterNumIsExpectedAgain", DoubleInvertedFilter.Count(nullptr, Storage) == ExpectedEntries);
 		}
 
-		FObjectKey ItemFromFilter = ItemFilter.First(Storage);
+		FObjectKey ItemFromFilter = ItemFilter.First(nullptr, Storage);
 		TestTrue("(Interface) IteratorItem resolved to item", ItemFromFilter == TestItem1Key);
 
 		int32 RangeCount = 0;
-		for (auto It = ItemFilter.Iterate(Storage); It; ++It)
+		for (auto It = ItemFilter.Iterate(nullptr, Storage); It; ++It)
 		{
 			TestTrue("(Interface) Iteration element is valid", IsValid(*It));
 			++RangeCount;

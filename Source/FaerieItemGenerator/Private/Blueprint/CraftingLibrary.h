@@ -24,11 +24,11 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Faerie|CraftingLibrary", meta = (DisplayName = "Get Crafting Slots (Message)"))
 	static void GetCraftingSlots_Message(UObject* Object, FFaerieItemCraftingSlots& Slots);
 
-	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Faerie|CraftingLibrary", meta = (WorldContext = "WorldContextObj", DefaultToSelf = "WorldContextObj"))
-	static bool TestCraftingSlots(const UObject* WorldContextObj, const TScriptInterface<IFaerieItemSlotInterface> Interface, const FFaerieCraftingFilledSlots& FilledSlots);
+	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Faerie|CraftingLibrary")
+	static bool TestCraftingSlots(const TScriptInterface<IFaerieItemSlotInterface> Interface, const FFaerieCraftingFilledSlots& FilledSlots);
 
-	UFUNCTION(BlueprintCallable, Category = "Faerie|CraftingLibrary", meta = (WorldContext = "WorldContextObj", DefaultToSelf = "WorldContextObj"))
-	static bool ConsumeSlotCosts(const UObject* WorldContextObj, const FFaerieCraftingFilledSlots& FilledSlots, const TScriptInterface<IFaerieItemSlotInterface>& CraftingSlots);
+	UFUNCTION(BlueprintCallable, Category = "Faerie|CraftingLibrary")
+	static bool ConsumeSlotCosts(const FFaerieCraftingFilledSlots& FilledSlots, const TScriptInterface<IFaerieItemSlotInterface>& CraftingSlots);
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|CraftingLibrary")
 	static bool IsSlotOptional(const TScriptInterface<IFaerieItemSlotInterface> Interface, const FFaerieItemSlotHandle& Name);

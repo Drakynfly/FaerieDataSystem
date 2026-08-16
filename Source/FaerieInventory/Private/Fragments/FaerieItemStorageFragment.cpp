@@ -4,7 +4,6 @@
 #include "FaerieItemStorage.h"
 #include "ItemContainerExtensionBase.h"
 #include "GameFramework/Actor.h"
-#include "Net/UnrealNetwork.h"
 #include "AssetLoadFlagFixer.h"
 #include "EntityManagerHelpers.h"
 #include "FaerieItemStackContainer.h"
@@ -37,7 +36,7 @@ EDataValidationResult FFaerieItemStorageFragment::IsDataValid(FDataValidationCon
 
 #endif
 
-bool FFaerieItemStorageFragment::InitializeRuntime(const TNotNull<UObject*> Outer, const ItemData::FMutableReference& Reference)
+bool FFaerieItemStorageFragment::InitializeRuntime(const TNotNull<UObject*> Outer, const TValid<const FFaerieItemInstance&> Instance)
 {
 	if (IsValid(Storage.Storage))
 	{
@@ -45,7 +44,7 @@ bool FFaerieItemStorageFragment::InitializeRuntime(const TNotNull<UObject*> Oute
 
 		if (UItemContainerExtensionEvents* Events = Extensions::Get<UItemContainerExtensionEvents>(Storage.Storage->GetExtensions(), true))
 		{
-			Events->GetOnPostEventBatch().AddStatic(&FFaerieItemStorageFragment::OnStorageItemChanged, Reference.GetInstance());
+			Events->GetOnPostEventBatch().AddStatic(&FFaerieItemStorageFragment::OnStorageItemChanged, ValidGet(Instance));
 		}
 	}
 	return true;
@@ -53,20 +52,20 @@ bool FFaerieItemStorageFragment::InitializeRuntime(const TNotNull<UObject*> Oute
 
 void FFaerieItemStorageFragment::OnStorageItemChanged(const TNotNull<const UFaerieItemContainerBase*> Container, const Inventory::FEventLogBatch& EventLog, FFaerieItemInstance Instance)
 {
-	Instance.OnItemFragmentEdited(ItemData::FRequireEntityManager(Container), FFaerieItemStorageFragment::StaticStruct(), ItemData::Tags::FragmentGenericPropertyEdit);
+	auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
+	Instance.OnItemFragmentEdited(EntityManager, FFaerieItemStorageFragment::StaticStruct(), ItemData::Tags::FragmentGenericPropertyEdit);
 }
-
 
 FAERIE_REGISTER_TRAITS(FFaerieChildStackFragment)
 
-bool FFaerieChildStackFragment::InitializeRuntime(const TNotNull<UObject*> Outer, const ItemData::FMutableReference& Reference)
+bool FFaerieChildStackFragment::InitializeRuntime(const TNotNull<UObject*> Outer, const TValid<const FFaerieItemInstance&> Instance)
 {
 	for (FFaerieInlineStackContainer& InlineStack : Slots)
 	{
 		if (InlineStack.Stack)
 		{
 			InlineStack.Stack = Utils::DuplicateObjectFromDiskForReplication(InlineStack.Stack.Get(), Outer);
-			InlineStack.Stack->GetOnContainerEvent().AddStatic(&FFaerieChildStackFragment::OnSlotItemChanged, Reference.GetInstance());
+			InlineStack.Stack->GetOnContainerEvent().AddStatic(&FFaerieChildStackFragment::OnSlotItemChanged, ValidGet(Instance));
 		}
 	}
 	return true;
@@ -75,5 +74,6 @@ bool FFaerieChildStackFragment::InitializeRuntime(const TNotNull<UObject*> Outer
 void FFaerieChildStackFragment::OnSlotItemChanged(const FFaerieItemProxy& Proxy, const FGameplayTag Tag,
 	FFaerieItemInstance Instance)
 {
-	Instance.OnItemFragmentEdited(ItemData::FRequireEntityManager(Proxy.GetProxyObject()), FFaerieChildStackFragment::StaticStruct(), ItemData::Tags::FragmentGenericPropertyEdit);
+	auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
+	Instance.OnItemFragmentEdited(EntityManager, FFaerieChildStackFragment::StaticStruct(), ItemData::Tags::FragmentGenericPropertyEdit);
 }

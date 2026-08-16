@@ -165,8 +165,8 @@ public:
 
 	// Gets all Slots and Storage objects for this manager and all contained items.
 	// For only top-level containers, use GetSlots instead.
-	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentManager", meta = (WorldContext = "WorldContextObj"))
-	TArray<FFaerieItemContainerPath> GetAllContainerPaths(UObject* WorldContextObj) const;
+	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentManager")
+	TArray<FFaerieItemContainerPath> GetAllContainerPaths() const;
 
 	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Faerie|EquipmentManager", meta = (DevelopmentOnly))
 	void PrintSlotDebugInfo() const;

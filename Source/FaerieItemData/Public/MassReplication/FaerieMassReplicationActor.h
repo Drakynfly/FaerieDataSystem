@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include "FaerieItemDataView.h"
 #include "FaerieItemInstance.h"
 #include "MassEntityManager.h"
+#include "ValidParameter.h"
 
 #include "GameFramework/Info.h"
 #include "StructUtils/InstancedStruct.h"
@@ -79,9 +79,9 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 
 public:
-	void Server_UpdateFragment(const Faerie::ItemData::FReference& Item, TConstArrayView<TConstStructView<FFaerieMassFragment>> FragmentViews);
-	void Server_RemoveFragment(const Faerie::ItemData::FReference& Item, TNotNull<const UScriptStruct*> ScriptStruct);
-	void Server_RemoveEntity(const Faerie::ItemData::FReference& Item);
+	void Server_UpdateFragment(Faerie::TValid<const FFaerieItemInstance&> Item, TConstArrayView<TConstStructView<FFaerieMassFragment>> FragmentViews);
+	void Server_RemoveFragment(Faerie::TValid<const FFaerieItemInstance&> Item, TNotNull<const UScriptStruct*> ScriptStruct);
+	void Server_RemoveEntity(Faerie::TValid<const FFaerieItemInstance&> Item);
 
 	void Client_UpdateEntity(FFaerieMassReplicatedEntity& Entity);
 	void Client_RemoveEntity(FFaerieMassReplicatedEntity& Entity);

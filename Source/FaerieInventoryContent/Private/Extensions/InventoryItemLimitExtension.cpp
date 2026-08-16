@@ -27,7 +27,7 @@ void UInventoryItemLimitExtension::DeinitializeExtension(const TNotNull<const UF
 }
 
 EEventExtensionResponse UInventoryItemLimitExtension::AllowsAddition(const TNotNull<const UFaerieItemContainerBase*>,
-                                                                     const TConstArrayView<FFaerieItemDataView> Views,
+                                                                     const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies,
                                                                      const FFaerieExtensionAllowsAdditionArgs Args) const
 {
 	int32 TestCount = 0;
@@ -37,18 +37,20 @@ EEventExtensionResponse UInventoryItemLimitExtension::AllowsAddition(const TNotN
 	case EFaerieStorageAddStackTestMultiType::IndividualTests:
 		{
 			// Find the largest stack
-			for (auto&& View : Views)
+			for (int32 i = 0; i < Proxies.Num(); ++i)
 			{
-				TestCount = FMath::Max(TestCount, View.GetCopies());
+				const FFaerieItemProxy Proxy = Proxies[i];
+				TestCount = FMath::Max(TestCount, Proxy.GetCopies());
 			}
 		}
 		break;
 	case EFaerieStorageAddStackTestMultiType::GroupTest:
 		{
 			// Sum all stacks
-			for (auto&& View : Views)
+			for (int32 i = 0; i < Proxies.Num(); ++i)
 			{
-				TestCount += View.GetCopies();
+				const FFaerieItemProxy Proxy = Proxies[i];
+				TestCount += Proxy.GetCopies();
 			}
 		}
 		break;
@@ -128,7 +130,7 @@ void UInventoryItemLimitExtension::UpdateCacheForEntry(const TNotNull<const UFae
 		PrevEntryAmount = *ExistingCache;
 	}
 
-	const FFaerieItemDataView View = Container->ViewEntry(Key);
+	const Faerie::ItemData::FScopeProxy View = Container->ViewEntry(Key);
 	if (!View.IsValid())
 	{
 		CurrentTotalItemCopies -= PrevEntryAmount;
@@ -136,7 +138,7 @@ void UInventoryItemLimitExtension::UpdateCacheForEntry(const TNotNull<const UFae
 		return;
 	}
 
-	const int32 StackAtKey = View.GetCopies();
+	const int32 StackAtKey = View.Copies;
 	const int32 Diff = StackAtKey - PrevEntryAmount;
 
 	EntryAmountCache.Add(Key, StackAtKey);

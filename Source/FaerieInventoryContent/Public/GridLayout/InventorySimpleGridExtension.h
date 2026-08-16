@@ -16,20 +16,20 @@ class FAERIEINVENTORYCONTENT_API UInventorySimpleGridExtension : public UInvento
 
 protected:
 	//~ UItemContainerExtensionBase
-	virtual EEventExtensionResponse AllowsAddition(TNotNull<const UFaerieItemContainerBase*> Container, TConstArrayView<FFaerieItemDataView> Views, FFaerieExtensionAllowsAdditionArgs Args) const override;
-	virtual EEventExtensionResponse AllowsEdit(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Extensions::FAddressView DataView, FFaerieInventoryTag EditType) const override;
+	virtual EEventExtensionResponse AllowsAddition(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args) const override;
+	virtual EEventExtensionResponse AllowsEdit(TNotNull<const UFaerieItemContainerBase*> Container, const TNotNull<const Faerie::Container::IAddressView*> DataView, FFaerieInventoryTag EditType) const override;
 	virtual void PostEventBatch(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Inventory::FEventLogBatch& Events) override;
 	//~ UItemContainerExtensionBase
 
 	//~ UInventoryGridExtensionBase
 	virtual void PreStackRemove_Client(const FFaerieGridKeyedStack& Stack) override;
-	virtual void PreStackRemove_Server(const FFaerieGridKeyedStack& Stack, const Faerie::ItemData::FReference& Item) override;
+	virtual void PreStackRemove_Server(const FFaerieGridKeyedStack& Stack, Faerie::TValid<const FFaerieItemInstance&> Item) override;
 	virtual void PostStackAdd(const FFaerieGridKeyedStack& Stack) override;
 	virtual void PostStackChange(const FFaerieGridKeyedStack& Stack) override;
 
 public:
 	virtual FFaerieAddress GetKeyAt(const FIntPoint& Position) const override;
-	virtual bool CanAddAtLocation(const FFaerieItemDataView& View, FIntPoint IntPoint) const override;
+	virtual bool CanAddAtLocation(Faerie::TValid<const FFaerieItemProxy&> Proxy, FIntPoint IntPoint) const override;
 	virtual bool AddItemToGrid(FFaerieAddress Address, const FFaerieItemInstance& Instance) override;
 	virtual bool MoveItem(FFaerieAddress Address, const FIntPoint& TargetPoint) override;
 	virtual bool RotateItem(FFaerieAddress Address, EFaerieSpatialItemRotation RotationToAdd) override;

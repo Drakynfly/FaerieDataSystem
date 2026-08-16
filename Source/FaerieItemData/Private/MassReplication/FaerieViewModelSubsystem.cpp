@@ -3,14 +3,14 @@
 #include "MassReplication/FaerieViewModelSubsystem.h"
 #include "MassReplication/FaerieViewModelBase.h"
 
-#include "FaerieItemDataView.h"
+#include "FaerieItemOwnerInterface.h"
 #include "FaerieItemProxy.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieViewModelSubsystem)
 
 using namespace Faerie;
 
-void UFaerieViewModelSubsystem::Client_PostReplicationChange(const ItemData::FReference& Item, const FConstStructView FragmentView)
+void UFaerieViewModelSubsystem::Client_PostReplicationChange(const TValid<const FFaerieItemInstance&> Item, const FConstStructView FragmentView)
 {
 	checkSlow(FragmentView.IsValid())
 
@@ -18,7 +18,8 @@ void UFaerieViewModelSubsystem::Client_PostReplicationChange(const ItemData::FRe
 	{
 		for (auto&& InUseView : Storage->InUseViews)
         {
-        	if (InUseView.Key == Item.GetInstance())
+			const FFaerieItemProxy ResolvedOwner(InUseView.Key.ResolveObjectPtr());
+        	if (ResolvedOwner.GetItemInstanceOrInvalid() == ValidGet(Item))
         	{
         		InUseView.Value->CheckForFieldChange(Item, FragmentView);
         		return;
@@ -40,7 +41,7 @@ UFaerieViewModelBase* UFaerieViewModelSubsystem::GetOrCreateViewModel(const FFae
 	if (Proxy.IsValid())
 	{
 		// Re-use existing view if there is already one set to this item.
-        if (auto&& ExistingView = Storage.InUseViews.Find(Proxy->GetItemInstance().GetValue());
+        if (auto&& ExistingView = Storage.InUseViews.Find(Proxy.GetProxyObject());
         	ExistingView && ExistingView->IsValid())
         {
         	ExistingView->Get()->ViewModelUsageCount++;
@@ -72,7 +73,7 @@ UFaerieViewModelBase* UFaerieViewModelSubsystem::GetOrCreateViewModel(const FFae
 	if (Proxy.IsValid())
 	{
 		// If we have a proxy we can associate it with an item here, if not it will fix itself by calling UpdateViewModelAssociation
-		Storage.InUseViews.Add(Proxy->GetItemInstance().GetValue(), ViewModelToUse);
+		Storage.InUseViews.Add(Proxy.GetProxyObject(), ViewModelToUse);
 	}
 
 	return ViewModelToUse;
@@ -88,10 +89,9 @@ void UFaerieViewModelSubsystem::ReturnViewModel(UFaerieViewModelBase* ViewModel)
 	check(ViewModel->ViewModelUsageCount > 0)
 	if (--ViewModel->ViewModelUsageCount == 0)
 	{
-		if (const auto Instance = ViewModel->GetItemProxy()->GetItemInstance();
-			Instance.IsSet())
+		if (const UObject* ProxyObject = ViewModel->GetItemProxy().GetProxyObject())
 		{
-			const bool Removed = !!Storage.InUseViews.Remove(Instance.GetValue());
+			const bool Removed = !!Storage.InUseViews.Remove(ProxyObject);
 
 			if (!Removed)
 			{
@@ -114,15 +114,16 @@ void UFaerieViewModelSubsystem::ReturnViewModel(UFaerieViewModelBase* ViewModel)
 	}
 }
 
-void UFaerieViewModelSubsystem::HandleFieldChange(const ItemData::FReference& Item, const ItemData::FFieldChange& Data)
+void UFaerieViewModelSubsystem::HandleFieldChange(const FMassEntityManager& EntityManager, const TValid<const FFaerieItemInstance&> Item, const ItemData::FFieldChange& Data)
 {
 	if (FFaerieViewModelStorage* Storage = PerTypeViewStorage.Find(Data.StructType))
 	{
 		for (auto&& InUseView : Storage->InUseViews)
         {
-        	if (InUseView.Key == Item.GetInstance())
+			const FFaerieItemProxy ResolvedOwner(InUseView.Key.ResolveObjectPtr());
+        	if (ResolvedOwner.GetItemInstanceOrInvalid() == ValidGet(Item))
         	{
-        		InUseView.Value.Get()->OnFieldChange(Data);
+        		InUseView.Value.Get()->OnFieldChange(EntityManager, Data);
         	}
         }
 	}
@@ -134,13 +135,13 @@ void UFaerieViewModelSubsystem::UpdateViewModelAssociation(const TNotNull<UFaeri
 	{
 		if (OldProxy.IsValid())
 		{
-			Storage->InUseViews.Remove(OldProxy->GetItemInstance().GetValue());
+			Storage->InUseViews.Remove(OldProxy.GetProxyObject());
 		}
 
 		if (const FFaerieItemProxy& NewProxy = ViewModel->GetItemProxy();
 			NewProxy.IsValid())
 		{
-			Storage->InUseViews.Add(NewProxy->GetItemInstance().GetValue(), ViewModel);
+			Storage->InUseViews.Add(NewProxy.GetProxyObject(), ViewModel);
 		}
 	}
 }

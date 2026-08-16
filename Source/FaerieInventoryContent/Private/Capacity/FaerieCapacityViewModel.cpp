@@ -1,9 +1,6 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "Capacity/FaerieCapacityViewModel.h"
-
-#include "EntityManagerHelpers.h"
-
 #include "Capacity/CapacityStructs.h"
 #include "Capacity/FaerieCapacityHelper.h"
 
@@ -16,7 +13,7 @@ TNotNull<UScriptStruct*> UFaerieCapacityViewModel::GetFragmentType() const
 	return FFaerieItemCapacity::StaticStruct();
 }
 
-void UFaerieCapacityViewModel::OnProxySet()
+void UFaerieCapacityViewModel::OnProxySet(const FMassEntityManager& EntityManager)
 {
 	int32 NewWeight = 0;
 	FIntVector NewBounds = FIntVector::ZeroValue;
@@ -24,8 +21,7 @@ void UFaerieCapacityViewModel::OnProxySet()
 
 	if (ItemProxy.IsValid())
 	{
-		const ItemData::FOptionalEntityManager EntityManager(this);
-		const ItemData::FCapacityHelper Helper(EntityManager, ItemProxy->GetItemInstance().GetValue());
+		const ItemData::FCapacityHelper Helper(&EntityManager, ItemProxy.GetItemInstanceOrInvalid());
 
 		UE_MVVM_SET_PROPERTY_VALUE(HasCapacity, Helper.HasCapacity());
 
@@ -47,9 +43,9 @@ void UFaerieCapacityViewModel::OnProxySet()
 	UE_MVVM_SET_PROPERTY_VALUE(Efficiency, NewEfficiency);
 }
 
-void UFaerieCapacityViewModel::OnFieldChange(const ItemData::FFieldChange& Data)
+void UFaerieCapacityViewModel::OnFieldChange(const FMassEntityManager& EntityManager, const ItemData::FFieldChange& Data)
 {
-	const ItemData::FCapacityHelper Helper(ItemData::FOptionalEntityManager(this), ItemProxy->GetItemInstance().GetValue());
+	const ItemData::FCapacityHelper Helper(&EntityManager, ItemProxy.GetItemInstanceOrInvalid());
 
 	for (auto&& Field : Data.Fields)
 	{
@@ -68,7 +64,7 @@ void UFaerieCapacityViewModel::OnFieldChange(const ItemData::FFieldChange& Data)
 	}
 }
 
-void UFaerieCapacityViewModel::CheckForFieldChange(const ItemData::FReference& Item,
+void UFaerieCapacityViewModel::CheckForFieldChange(const TValid<const FFaerieItemInstance&> Item,
 	const FConstStructView FragmentView)
 {
 	const FFaerieItemCapacity& MassCapacity = FragmentView.Get<const FFaerieItemCapacity>();

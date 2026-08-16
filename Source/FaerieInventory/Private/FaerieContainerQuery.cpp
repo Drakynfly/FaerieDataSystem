@@ -2,12 +2,13 @@
 
 #include "FaerieContainerQuery.h"
 #include "DelegateCommon.h"
+#include "EntityManagerHelpers.h"
 #include "FaerieContainerFilter.h"
 #include "FaerieContainerFilterTypes.h"
 #include "FaerieFunctionTemplates.h"
 #include "FaerieItemDataComparator.h"
-#include "FaerieItemDataFilter.h"
 #include "FaerieItemStorage.h"
+#include "FaerieItemTemplate.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieContainerQuery)
 
@@ -41,12 +42,12 @@ void UFaerieContainerQuery::SetFilter(ItemData::FViewPredicate&& Predicate, cons
 	}
 }
 
-void UFaerieContainerQuery::SetFilterByDelegate(const FFaerieViewPredicate& Delegate)
+void UFaerieContainerQuery::SetFilterByDelegate(const FFaerieProxyPredicate& Delegate)
 {
 	if (Delegate.IsBound())
 	{
-		// This works by assuming that the 'Faerie::ItemData::FValidatedDataView' parameter of the filter function is
-		// invisible to the Delegate's parameter type of 'const FFaerieItemDataView&'.
+		// This works by assuming that the 'Faerie::TValid<const FFaerieItemProxy&>' parameter of the filter function is
+		// invisible to the Delegate's parameter type of 'const FFaerieItemProxy&'.
 		FilterFunction = DYNAMIC_TO_NATIVE(ItemData::FViewPredicate, Delegate);
 		FilterObject = nullptr;
 		OnQueryChanged.Broadcast(this);
@@ -57,11 +58,11 @@ void UFaerieContainerQuery::SetFilterByDelegate(const FFaerieViewPredicate& Dele
 	}
 }
 
-void UFaerieContainerQuery::SetFilterByObject(const UFaerieItemDataFilter* Object)
+void UFaerieContainerQuery::SetFilterByObject(const UFaerieItemTemplate* Object)
 {
 	if (Object != FilterObject)
 	{
-		FilterFunction = ItemData::FViewPredicate::CreateUObject(Object, &UFaerieItemDataFilter::Exec);
+		FilterFunction = ItemData::FViewPredicate::CreateUObject(Object, &UFaerieItemTemplate::TryMatch);
 		FilterObject = Object;
 		OnQueryChanged.Broadcast(this);
 	}
@@ -85,7 +86,7 @@ void UFaerieContainerQuery::SetSort(ItemData::FViewComparator&& Comparator, cons
 	}
 }
 
-void UFaerieContainerQuery::SetSortByDelegate(const UFaerieFunctionTemplates::FFaerieViewComparator& Delegate)
+void UFaerieContainerQuery::SetSortByDelegate(const UFaerieFunctionTemplates::FFaerieProxyComparator& Delegate)
 {
 	if (Delegate.IsBound())
 	{
@@ -165,17 +166,19 @@ FFaerieAddress UFaerieContainerQuery::QueryFirstAddress(const UFaerieItemContain
 	Container::FCallbackFilter IteratorPredicate{
 		ItemData::FViewPredicate::CreateUObject(this, &ThisClass::IsIteratorFiltered)};
 
+	auto* EntityManager = ItemData::GetFaerieEntityManager();
+
 	if (InvertFilter)
 	{
 		return Container::FAddressFilter()
 			   .Invert()
 			   .By(MoveTemp(IteratorPredicate))
-			   .First(Container);
+			   .First(EntityManager, Container);
 	}
 
 	return Container::FAddressFilter()
 		   .By(MoveTemp(IteratorPredicate))
-		   .First(Container);
+		   .First(EntityManager, Container);
 }
 
 void UFaerieContainerQuery::QueryAllAddresses(const UFaerieItemContainerBase* Container, TArray<FFaerieAddress>& OutAddresses) const
@@ -192,6 +195,8 @@ void UFaerieContainerQuery::QueryAllAddresses(const UFaerieItemContainerBase* Co
 
 	if (IsFilterBound())
 	{
+		auto* EntityManager = ItemData::GetFaerieEntityManager();
+
 		Container::FCallbackFilter IteratorPredicate{
 			ItemData::FViewPredicate::CreateUObject(this, &ThisClass::IsIteratorFiltered)};
 
@@ -200,13 +205,13 @@ void UFaerieContainerQuery::QueryAllAddresses(const UFaerieItemContainerBase* Co
 			OutAddresses = Container::FAddressFilter()
 						   .Invert()
 						   .By(MoveTemp(IteratorPredicate))
-						   .Emit(Container);
+						   .Emit(EntityManager, Container);
 		}
 		else
 		{
 			OutAddresses = Container::FAddressFilter()
 						   .By(MoveTemp(IteratorPredicate))
-						   .Emit(Container);
+						   .Emit(EntityManager, Container);
 		}
 	}
 	else
@@ -243,13 +248,18 @@ bool UFaerieContainerQuery::IsAddressFiltered(const UFaerieItemContainerBase* Co
 
 	if (FilterFunction.IsBound())
 	{
-		if (const FFaerieItemDataView StackView = Container->ViewAddress(Address))
+		const ItemData::FScopeProxy StackView = Container->ViewAddress(Address);
+		const FFaerieItemProxy Proxy(FFaerieItemProxy::ESingleFrame, &StackView);
+
+		if (Proxy.IsValid())
 		{
+			auto* EntityManager = ItemData::GetFaerieEntityManager();
+
 			if (InvertFilter)
 			{
-				return !FilterFunction.Execute(Container, StackView);
+				return !FilterFunction.Execute(EntityManager, Proxy);
 			}
-			return FilterFunction.Execute(Container, StackView);
+			return FilterFunction.Execute(EntityManager, Proxy);
 		}
 	}
 
@@ -259,22 +269,26 @@ bool UFaerieContainerQuery::IsAddressFiltered(const UFaerieItemContainerBase* Co
 bool UFaerieContainerQuery::CompareAddresses_Impl(const TNotNull<const UFaerieItemContainerBase*> Container,
 												  const FFaerieAddress AddressA, const FFaerieAddress AddressB) const
 {
-	const FFaerieItemDataView StackViewA = Container->ViewAddress(AddressA);
-	const FFaerieItemDataView StackViewB = Container->ViewAddress(AddressB);
+	const ItemData::FScopeProxy StackViewA = Container->ViewAddress(AddressA);
+	const ItemData::FScopeProxy StackViewB = Container->ViewAddress(AddressB);
+	const FFaerieItemProxy ProxyA(FFaerieItemProxy::ESingleFrame, &StackViewA);
+	const FFaerieItemProxy ProxyB(FFaerieItemProxy::ESingleFrame, &StackViewB);
 
-	if (StackViewA && StackViewB)
+	if (ProxyA.IsValid() && ProxyB.IsValid())
 	{
+		auto* EntityManager = ItemData::GetFaerieEntityManager();
+
 		if (InvertSort)
 		{
-			return !SortFunction.Execute(Container, StackViewA, StackViewB);
+			return !SortFunction.Execute(EntityManager, ProxyA, ProxyB);
 		}
 
-		return SortFunction.Execute(Container, StackViewA, StackViewB);
+		return SortFunction.Execute(EntityManager, ProxyA, ProxyB);
 	}
 	return false;
 }
 
-bool UFaerieContainerQuery::IsIteratorFiltered(const TNotNull<const UObject*> WorldContextObj, const ItemData::FValidatedDataView& Iterator) const
+bool UFaerieContainerQuery::IsIteratorFiltered(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Iterator) const
 {
-	return FilterFunction.Execute(WorldContextObj, Iterator);
+	return FilterFunction.Execute(EntityManager, Iterator);
 }

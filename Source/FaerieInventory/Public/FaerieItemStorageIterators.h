@@ -9,7 +9,7 @@ struct FFaerieStorageEntry;
 struct FFaerieKeyedStack;
 class UFaerieItemStorage;
 
-namespace Faerie::Storage
+namespace Faerie::Container
 {
 	class FStorageDataAccess
 	{
@@ -33,7 +33,7 @@ namespace Faerie::Storage
 		}
 
 		FFaerieEntryKey GetKey() const;
-		FFaerieItemInstance GetInstance() const;
+		const FFaerieItemInstance& GetInstance() const;
 		int32 GetCopies() const;
 
 		UE_REWRITE void operator++()
@@ -79,7 +79,7 @@ namespace Faerie::Storage
 
 		FFaerieEntryKey GetKey() const;
 		FFaerieAddress GetAddress() const;
-		FFaerieItemInstance GetInstance() const;
+		const FFaerieItemInstance& GetInstance() const;
 		int32 GetCopies() const;
 
 		void operator++();
@@ -113,7 +113,7 @@ namespace Faerie::Storage
 	public:
 		UE_NONCOPYABLE(FIterator_SingleEntry)
 
-		FIterator_SingleEntry(const FFaerieStorageEntry& Entry);
+		FIterator_SingleEntry(const FFaerieStorageEntry& InEntry);
 		FIterator_SingleEntry(TNotNull<const UFaerieItemStorage*> Storage, const FFaerieEntryKey Key);
 		FIterator_SingleEntry(TNotNull<const UFaerieItemStorage*> Storage, const int32 Index);
 
@@ -124,15 +124,12 @@ namespace Faerie::Storage
 
 		FFaerieEntryKey GetKey() const;
 		FFaerieAddress GetAddress() const;
-		FFaerieItemInstance GetInstance() const;
+		const FFaerieItemInstance& GetInstance() const;
 		int32 GetCopies() const;
 
 		void operator++();
 
-		UE_REWRITE explicit operator bool() const
-		{
-			return StackPtr && NumRemaining;
-		}
+		UE_REWRITE explicit operator bool() const { return !!StackPtr; }
 
 		[[nodiscard]] UE_REWRITE bool operator!=(Utils::EIteratorType) const
 		{
@@ -149,7 +146,7 @@ namespace Faerie::Storage
 		uint32 NumRemaining;
 	};
 
-	class FAERIEINVENTORY_API FIterator_AllEntries_WithInterface final : public Container::IEntryIterator
+	class FAERIEINVENTORY_API FIterator_AllEntries_WithInterface final : public IEntryIterator
 	{
 	public:
 		FIterator_AllEntries_WithInterface(const TNotNull<const UFaerieItemStorage*> Storage)
@@ -157,9 +154,9 @@ namespace Faerie::Storage
 
 		//~ ItemData::ViewBase
 		UE_REWRITE virtual FFaerieEntryKey ResolveKey() const override { return Inner.GetKey(); }
-		UE_REWRITE virtual ItemData::FReference ResolveItem() const override { return Inner.GetInstance(); }
-		UE_REWRITE virtual int32 ResolveCopies() const override { return Inner.GetCopies(); }
-		virtual const IFaerieItemOwnerInterface* ResolveOwner() const override;
+		UE_REWRITE virtual TOptional<FFaerieItemInstance> GetItemInstance() const override { return Inner.GetInstance(); }
+		UE_REWRITE virtual int32 GetCopies() const override { return Inner.GetCopies(); }
+		virtual const IFaerieItemOwnerInterface* GetItemOwner() const override;
 		//~ ItemData::ViewBase
 
 		//~ Container::IAddressIterator
@@ -172,7 +169,7 @@ namespace Faerie::Storage
 		FIterator_AllEntries Inner;
 	};
 
-	class FAERIEINVENTORY_API FIterator_AllAddresses_WithInterface final : public Container::IAddressIterator
+	class FAERIEINVENTORY_API FIterator_AllAddresses_WithInterface final : public IAddressIterator
 	{
 	public:
 		FIterator_AllAddresses_WithInterface(const TNotNull<const UFaerieItemStorage*> Storage)
@@ -181,9 +178,9 @@ namespace Faerie::Storage
 		//~ ItemData::ViewBase
 		UE_REWRITE virtual FFaerieEntryKey ResolveKey() const override { return Inner.GetKey(); }
 		UE_REWRITE virtual FFaerieAddress ResolveAddress() const override { return Inner.GetAddress(); }
-		UE_REWRITE virtual ItemData::FReference ResolveItem() const override { return Inner.GetInstance(); }
-		UE_REWRITE virtual int32 ResolveCopies() const override { return Inner.GetCopies(); }
-		virtual const IFaerieItemOwnerInterface* ResolveOwner() const override;
+		UE_REWRITE virtual TOptional<FFaerieItemInstance> GetItemInstance() const override { return Inner.GetInstance(); }
+		UE_REWRITE virtual int32 GetCopies() const override { return Inner.GetCopies(); }
+		virtual const IFaerieItemOwnerInterface* GetItemOwner() const override;
 		//~ ItemData::ViewBase
 
 		//~ Container::IAddressIterator
@@ -196,7 +193,7 @@ namespace Faerie::Storage
 		FIterator_AllAddresses Inner;
 	};
 
-	class FAERIEINVENTORY_API FIterator_SingleEntry_WithInterface final : public Container::IAddressIterator
+	class FAERIEINVENTORY_API FIterator_SingleEntry_WithInterface final : public IAddressIterator
 	{
 	public:
 		FIterator_SingleEntry_WithInterface(const TNotNull<const UFaerieItemStorage*> Storage, const FFaerieStorageEntry& Entry)
@@ -205,9 +202,9 @@ namespace Faerie::Storage
 		//~ ItemData::ViewBase
 		UE_REWRITE virtual FFaerieEntryKey ResolveKey() const override { return Inner.GetKey(); }
 		UE_REWRITE virtual FFaerieAddress ResolveAddress() const override { return Inner.GetAddress(); }
-		UE_REWRITE virtual ItemData::FReference ResolveItem() const override { return Inner.GetInstance(); }
-		UE_REWRITE virtual int32 ResolveCopies() const override { return Inner.GetCopies(); }
-		virtual const IFaerieItemOwnerInterface* ResolveOwner() const override;
+		UE_REWRITE virtual TOptional<FFaerieItemInstance> GetItemInstance() const override { return Inner.GetInstance(); }
+		UE_REWRITE virtual int32 GetCopies() const override { return Inner.GetCopies(); }
+		virtual const IFaerieItemOwnerInterface* GetItemOwner() const override;
 		//~ ItemData::ViewBase
 
 		//~ Container::IAddressIterator

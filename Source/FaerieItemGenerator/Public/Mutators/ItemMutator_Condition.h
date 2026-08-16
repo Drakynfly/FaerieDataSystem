@@ -19,7 +19,7 @@ struct FFaerieItemMutator_TemplateCondition final : public FFaerieItemMutator
 	GENERATED_BODY()
 
 	virtual void GetRequiredAssets(TArray<TSoftObjectPtr<UObject>>& RequiredAssets) const override;
-	virtual bool Apply(Faerie::ItemData::FMutableReference& Item, const FFaerieItemMutatorContext& Context) const override;
+	virtual bool Apply(FFaerieItemInstance& Item, const FFaerieItemMutatorContext& Context) const override;
 
 protected:
 	// The filter that selects valid entries that this mutator can apply to.

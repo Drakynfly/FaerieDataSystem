@@ -43,7 +43,7 @@ struct FAERIEINVENTORYCONTENT_API FFaerieGridShape
 
 	FFaerieGridShape& Translate(const FIntPoint& Position);
 
-	FFaerieGridShape& Rotate(EFaerieSpatialItemRotation Rotation, const bool Reset = false);
+	FFaerieGridShape& Rotate(EFaerieSpatialItemRotation Rotation);
 
 	FFaerieGridShape& RotateAround_90(const FIntPoint& PivotPoint);
 	FFaerieGridShape& RotateAround_180(const FIntPoint& PivotPoint);

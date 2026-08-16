@@ -9,6 +9,6 @@ class UFaerieItemContainerBase;
 
 namespace Faerie::Hash
 {
-	FAERIEINVENTORY_API FFaerieHash HashContainer(TNotNull<const UFaerieItemContainerBase*> Container, const FItemHashFunction& Function);
-	FAERIEINVENTORY_API FFaerieHash HashContainers(const TConstArrayView<UFaerieItemContainerBase*> Containers, const FItemHashFunction& Function);
+	FAERIEINVENTORY_API FFaerieHash HashContainer(TNotNull<const UFaerieItemContainerBase*> Container, const FMassEntityManager* EntityManager, const FItemHashFunction& Function);
+	FAERIEINVENTORY_API FFaerieHash HashContainers(const TConstArrayView<UFaerieItemContainerBase*> Containers, const FMassEntityManager* EntityManager, const FItemHashFunction& Function);
 }

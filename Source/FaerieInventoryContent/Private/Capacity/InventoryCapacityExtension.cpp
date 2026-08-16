@@ -81,20 +81,20 @@ void UInventoryCapacityExtension::DeinitializeExtension(const TNotNull<const UFa
 }
 
 EEventExtensionResponse UInventoryCapacityExtension::AllowsAddition(const TNotNull<const UFaerieItemContainerBase*> Container,
-																	const TConstArrayView<FFaerieItemDataView> Views,
+																	const Utils::TArrayAdapter<FFaerieItemProxy>& Proxies,
 																	const FFaerieExtensionAllowsAdditionArgs Args) const
 {
 	// @todo Args.AddStackBehavior is not used at all.
 	// Because CanContain doesnt check for Efficiency, there is no differance, but its technically incorrect.
 
-	if (Views.Num() == 1)
+	if (Proxies.Num() == 1)
 	{
-		if (const FFaerieItemDataView View0 = Views[0];
-			!CanContain(View0))
+		if (const FFaerieItemProxy Proxy0 = Proxies[0];
+			!CanContain(Proxy0))
 		{
-			const UFaerieItem* Item = View0.GetInstance().GetItemPtr();
+			const UFaerieItem* Item = Proxy0.GetItemInstanceOrInvalid().GetItemPtr();
 			UE_LOG(LogFaerieInventoryContent, Verbose, TEXT("PreAddition: Cannot add Stack (Item: '%s' Copies: %i)"),
-				Item ? *Item->GetName() : TEXT("null"), View0.GetCopies());
+				Item ? *Item->GetName() : TEXT("null"), Proxy0.GetCopies());
 			return EEventExtensionResponse::Disallowed;
 		}
 		return EEventExtensionResponse::Allowed;
@@ -104,13 +104,15 @@ EEventExtensionResponse UInventoryCapacityExtension::AllowsAddition(const TNotNu
 	{
 	case EFaerieStorageAddStackTestMultiType::IndividualTests:
 		{
-			for (const FFaerieItemDataView& View : Views)
+			for (int32 i = 0; i < Proxies.Num(); ++i)
 			{
-				if (!CanContain(View))
+				const FFaerieItemProxy Proxy = Proxies[i];
+
+				if (!CanContain(Proxy))
 				{
-					const UFaerieItem* Item = View.GetInstance().GetItemPtr();
+					const UFaerieItem* Item = Proxy.GetItemInstanceOrInvalid().GetItemPtr();
 					UE_LOG(LogFaerieInventoryContent, Verbose, TEXT("PreAddition: Cannot add Stack (Item: '%s' Copies: %i)"),
-						Item ? *Item->GetName() : TEXT("null"), View.GetCopies());
+						Item ? *Item->GetName() : TEXT("null"), Proxy.GetCopies());
 					return EEventExtensionResponse::Disallowed;
 				}
 			}
@@ -119,7 +121,7 @@ EEventExtensionResponse UInventoryCapacityExtension::AllowsAddition(const TNotNu
 
 	case EFaerieStorageAddStackTestMultiType::GroupTest:
 		{
-			if (!CanContain_Multi(Views))
+			if (!CanContain_Multi(Proxies))
 			{
 				UE_LOG(LogFaerieInventoryContent, Verbose, TEXT("PreAddition: Cannot add Stacks in GroupTest"));
 				return EEventExtensionResponse::Disallowed;
@@ -146,7 +148,7 @@ void UInventoryCapacityExtension::UpdateCacheForEntry(const TNotNull<const UFaer
 	auto&& ContainerCache = ServerCapacityCache.FindOrAdd(Container);
 	auto&& PrevCache = ContainerCache.Find(Key);
 
-	const FFaerieItemDataView View = Container->ViewEntry(Key);
+	const ItemData::FScopeProxy View = Container->ViewEntry(Key);
 	if (!View.IsValid())
 	{
 		if (PrevCache)
@@ -158,25 +160,21 @@ void UInventoryCapacityExtension::UpdateCacheForEntry(const TNotNull<const UFaer
 		return;
 	}
 
-	const FFaerieWeightAndVolume Total = [&]()
+	FFaerieWeightAndVolume Total;
+
+	auto* EntityManager = ItemData::GetFaerieEntityManager();
+	const ItemData::FCapacityHelper Capacity(EntityManager, View.Instance);
+	if (Capacity.HasCapacity())
+	{
+		// Get the weight of the sum of all stacks.
+		Total.GramWeight = Capacity.GetWeightOfStack(View.Copies);
+
+		// Calculate and add up the volumes of each stack.
+		for (auto It = Container::SingleKeyRange(Container, Key); It; ++It)
 		{
-			FFaerieWeightAndVolume Out;
-
-			const ItemData::FCapacityHelper Capacity(ItemData::FOptionalEntityManager(this), View.GetInstance());
-			if (!Capacity.HasCapacity())
-			{
-				return Out;
-			}
-
-			Out.GramWeight = Capacity.GetWeightOfStack(View.GetCopies());
-
-			for (auto It = Container::SingleKeyRange(Container, Key); It; ++It)
-			{
-				Out.Volume += Capacity.GetVolumeOfStack(It.GetCopies());
-			}
-
-			return Out;
-		}();
+			Total.Volume += Capacity.GetVolumeOfStack(It.GetCopies());
+		}
+	}
 
 	FFaerieWeightAndVolume Diff = Total;
 
@@ -206,11 +204,12 @@ void UInventoryCapacityExtension::CheckCapacityLimit()
 	}
 }
 
-bool UInventoryCapacityExtension::CanContainItem(const ItemData::FValidatedDataView& View) const
+bool UInventoryCapacityExtension::CanContainItem(const TValid<const FFaerieItemProxy&> Proxy) const
 {
 	// @todo this does not account for the idea that if we add to an existing stack, the Efficiency would reduce the weight.
 
-	const ItemData::FCapacityHelper Capacity(ItemData::FOptionalEntityManager(this), View->GetInstance());
+	auto* EntityManager = ItemData::GetFaerieEntityManager();
+	const ItemData::FCapacityHelper Capacity(EntityManager, ValidGet(Proxy).GetItemInstance().GetValue());
 
 	// If the fragment is invalid, return true if we don't require one.
 	if (!Capacity.HasCapacity())
@@ -236,7 +235,7 @@ bool UInventoryCapacityExtension::CanContainItem(const ItemData::FValidatedDataV
 	// Determine if the entry would put the container over max weight.
 	if (Config.HasCheck(ECapacityChecks::Weight))
 	{
-		const int32 TestWeight = State.CurrentWeight + Capacity.GetWeightOfStack(View->GetCopies());
+		const int32 TestWeight = State.CurrentWeight + Capacity.GetWeightOfStack(ValidGet(Proxy).GetCopies());
 		const bool WouldExceedWeight = TestWeight > Config.MaxWeight;
 
 		if (WouldExceedWeight)
@@ -248,7 +247,7 @@ bool UInventoryCapacityExtension::CanContainItem(const ItemData::FValidatedDataV
 	// Determine if the entry would put the container over max volume.
 	if (Config.HasCheck(ECapacityChecks::Volume))
 	{
-		const int64 TestVolume = State.CurrentVolume + Capacity.GetVolumeOfStack(View->GetCopies());
+		const int64 TestVolume = State.CurrentVolume + Capacity.GetVolumeOfStack(ValidGet(Proxy).GetCopies());
 		const bool WouldExceedVolume = TestVolume > Config.MaxVolume;
 
 		if (WouldExceedVolume)
@@ -276,32 +275,33 @@ void UInventoryCapacityExtension::HandleStateChanged()
 	OnStateChanged.Broadcast();
 }
 
-bool UInventoryCapacityExtension::CanContain(const FFaerieItemDataView& View) const
+bool UInventoryCapacityExtension::CanContain(const FFaerieItemProxy& Proxy) const
 {
-	if (!View.IsValid())
+	if (!Proxy.IsValid())
 	{
 		return false;
 	}
 
-	return CanContainItem(View);
+	return CanContainItem(Proxy);
 }
 
-bool UInventoryCapacityExtension::CanContain_Multi(const TConstArrayView<FFaerieItemDataView> Views) const
+bool UInventoryCapacityExtension::CanContain_Multi(const Utils::TArrayAdapter<FFaerieItemProxy>& Proxies) const
 {
 	// @todo this does not account for the idea that if we add to an existing stack, the Efficiency would reduce the weight.
 
-	const ItemData::FOptionalEntityManager EntityManager(this);
+	auto* EntityManager = ItemData::GetFaerieEntityManager();
 	TArray<TUniquePtr<ItemData::FCapacityHelper>> Capacities;
-	Capacities.Reserve(Views.Num());
-	for (auto&& View : Views)
+	Capacities.Reserve(Proxies.Num());
+	for (int32 i = 0; i < Proxies.Num(); ++i)
 	{
-		if (!View.IsValid())
+		const FFaerieItemProxy Proxy = Proxies[i];
+		if (!Proxy.IsValid())
 		{
 			return false;
 		}
 
 		TUniquePtr<ItemData::FCapacityHelper>& HelperPtr = Capacities.Add_GetRef(
-			MakeUnique<ItemData::FCapacityHelper>(EntityManager, View.GetInstance()));
+			MakeUnique<ItemData::FCapacityHelper>(EntityManager, Proxy.GetItemInstance().GetValue()));
 		if (!HelperPtr->HasCapacity())
 		{
 			// If the fragment is invalid, return false if we require one.
@@ -340,14 +340,14 @@ bool UInventoryCapacityExtension::CanContain_Multi(const TConstArrayView<FFaerie
 	// Determine if the entry would put the container over max weight.
 	if (Config.HasCheck(ECapacityChecks::Weight))
 	{
-		const int32 WeightsSum = [&Capacities, &Views]()
+		const int32 WeightsSum = [&Capacities, &Proxies]()
 			{
 				int32 Weights = 0;
-				for (int32 i = 0; i < Views.Num(); ++i)
+				for (int32 i = 0; i < Proxies.Num(); ++i)
 				{
 					if (Capacities[i]->HasCapacity())
 					{
-						Weights += Capacities[i]->GetWeightOfStack(Views[i].GetCopies());
+						Weights += Capacities[i]->GetWeightOfStack(Proxies[i].GetCopies());
 					}
 				}
 
@@ -366,14 +366,14 @@ bool UInventoryCapacityExtension::CanContain_Multi(const TConstArrayView<FFaerie
 	// Determine if the entry would put the container over max volume.
 	if (Config.HasCheck(ECapacityChecks::Volume))
 	{
-		const int64 VolumesSum = [&Capacities, &Views]()
+		const int64 VolumesSum = [&Capacities, &Proxies]()
 			{
 				int64 Volumes = 0;
-				for (int32 i = 0; i < Views.Num(); ++i)
+				for (int32 i = 0; i < Proxies.Num(); ++i)
 				{
 					if (Capacities[i]->HasCapacity())
 					{
-						Volumes += Capacities[i]->GetVolumeOfStack(Views[i].GetCopies());
+						Volumes += Capacities[i]->GetVolumeOfStack(Proxies[i].GetCopies());
 					}
 				}
 
@@ -399,7 +399,7 @@ bool UInventoryCapacityExtension::CanContainProxy(const FFaerieItemProxy& Proxy)
 		return false;
 	}
 
-	return CanContainItem(FFaerieItemDataView(Proxy));
+	return CanContainItem(Proxy);
 }
 
 FFaerieWeightAndVolume UInventoryCapacityExtension::GetCurrentCapacity() const

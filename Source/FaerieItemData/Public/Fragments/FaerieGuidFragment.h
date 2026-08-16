@@ -20,7 +20,7 @@ struct FFaerieGuidFragment : public FFaerieMassFragment
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GuidFragment")
 	FGuid Guid;
 
-	bool InitializeRuntime(TNotNull<UObject*> Outer, const Faerie::ItemData::FMutableReference& Reference);
+	bool InitializeRuntime(TNotNull<UObject*> Outer, Faerie::TValid<const FFaerieItemInstance&> Instance);
 
 	friend [[nodiscard]] UE_REWRITE uint32 GetTypeHash(const FFaerieGuidFragment& Value)
 	{

@@ -148,7 +148,7 @@ void UFaerieEquipmentManager::OnDataChangeEvent(const FFaerieItemProxy& Proxy, c
 {
 	if (UFaerieEquipmentSlot* Slot = const_cast<UFaerieEquipmentSlot*>(CastChecked<UFaerieEquipmentSlot>(Proxy.GetProxyObject())))
 	{
-		BroadcastSlotEvent(Slot, Inventory::Tags::SlotItemMutated);
+		BroadcastSlotEvent(Slot, Inventory::Tags::ReplicationEdit);
 	}
 }
 
@@ -292,8 +292,8 @@ bool UFaerieEquipmentManager::TrySwapSlots(UFaerieEquipmentSlot* SlotA, UFaerieE
 															 Inventory::Tags::RemovalMoving);
 
 	// Use Impl version to bypass redundant checks to CanSetInSlot
-	SlotB->SetStoredItem_Impl(FFaerieItemDataView(ContentA.Instance, ContentA.Copies, nullptr));
-	SlotA->SetStoredItem_Impl(FFaerieItemDataView(ContentB.Instance, ContentB.Copies, nullptr));
+	SlotB->SetStoredItem_Impl(ContentA);
+	SlotA->SetStoredItem_Impl(ContentB);
 
 	return true;
 }
@@ -311,7 +311,7 @@ const UFaerieEquipmentSlot* UFaerieEquipmentManager::FindSlot(const FFaerieSlotT
 
 	if (Recursive)
 	{
-		ItemData::FRequireEntityManager EntityManager(this);
+		auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
 		for (auto&& Slot : Slots)
 		{
 			if (!IsValid(Slot)) continue;
@@ -328,6 +328,13 @@ const UFaerieEquipmentSlot* UFaerieEquipmentManager::FindSlot(const FFaerieSlotT
 UFaerieEquipmentSlot* UFaerieEquipmentManager::FindSlot(const FFaerieSlotTag SlotID, const bool Recursive)
 {
 	return const_cast<UFaerieEquipmentSlot*>(const_cast<const UFaerieEquipmentManager*>(this)->FindSlot(SlotID, Recursive));
+}
+
+bool UFaerieEquipmentManager::FindExtension(const TSubclassOf<UItemContainerExtensionBase> ExtensionClass,
+	UItemContainerExtensionBase*& Extension, const bool RecursiveSearch) const
+{
+	Extension = ExtensionGroup->GetExtension(ExtensionClass, RecursiveSearch);
+	return IsValid(Extension);
 }
 
 bool UFaerieEquipmentManager::CanClientRunActions(const UFaerieInventoryClient* Client) const
@@ -390,18 +397,28 @@ bool UFaerieEquipmentManager::RemoveExtensionFromSlot(const FFaerieSlotTag SlotI
 	return true;
 }
 
-TArray<FFaerieItemContainerPath> UFaerieEquipmentManager::GetAllContainerPaths(UObject* WorldContextObj) const
+TArray<FFaerieItemContainerPath> UFaerieEquipmentManager::GetAllContainerPaths() const
 {
 	SCOPE_CYCLE_COUNTER(STAT_Equipment_BuildPaths);
 
-	ItemData::FRequireEntityManager EntityManager(WorldContextObj);
+	auto* EntityManager = ItemData::GetFaerieEntityManager();
+	if (!EntityManager)
+	{
+		// @todo FFaerieItemContainerPath::BuildChildrenPaths doesn't support searching default tokens yet
+		return {};
+	}
+
 	TArray<FFaerieItemContainerPath> OutPaths;
 	OutPaths.Reserve(Slots.Num());
 	for (auto&& Slot : Slots)
 	{
 		if (Slot->IsFilled())
 		{
-			FFaerieItemContainerPath::BuildChildrenPaths(EntityManager, Slot->GetItemInstance().GetValue(), Slot, OutPaths);
+			const FFaerieItemInstance Instance = Slot->GetItemInstance().GetValue();
+			if (Instance.IsMutable())
+			{
+				FFaerieItemContainerPath::BuildChildrenPaths(*EntityManager, Instance, Slot, OutPaths);
+			}
 		}
 	}
 

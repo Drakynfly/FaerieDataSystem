@@ -2,17 +2,19 @@
 
 #pragma once
 
+#include "ArrayAdapter.h"
 #include "FaerieItemContainerBase.h"
 #include "ItemContainerEvent.h"
 #include "FaerieStorageEnums.h"
 #include "FaerieStorageStructs.h"
+#include "ValidParameter.h"
 
 #include "FaerieItemStorage.generated.h"
 
 struct FFaerieExtensionAllowsAdditionArgs;
 class UFaerieItemStackProxy;
 
-namespace Faerie::Storage
+namespace Faerie::Container
 {
 	class FStorageDataAccess;
 }
@@ -26,10 +28,10 @@ class FAERIEINVENTORY_API UFaerieItemStorage : public UFaerieItemContainerBase
 	GENERATED_BODY()
 
 	// Allow the struct that contains our item data to call our content change notification functions.
-	friend FFaerieStorageContent;
+	friend FFaerieStorageEntry;
 
 	// Allow iterators and filters to read our data.
-	friend Faerie::Storage::FStorageDataAccess;
+	friend Faerie::Container::FStorageDataAccess;
 
 public:
 	//~ UObject
@@ -51,14 +53,16 @@ public:
 	virtual bool Contains(FFaerieAddress Address) const override;
 	virtual FFaerieItemInstance ViewInstance(FFaerieEntryKey Key) const override;
 	virtual FFaerieItemInstance ViewInstance(FFaerieAddress Address) const override;
-	virtual FFaerieItemDataView ViewEntry(FFaerieEntryKey Key) const override;
-	virtual FFaerieItemDataView ViewAddress(FFaerieAddress Address) const override;
+	virtual Faerie::ItemData::FScopeProxy ViewEntry(FFaerieEntryKey Key) const override;
+	virtual Faerie::ItemData::FScopeProxy ViewAddress(FFaerieAddress Address) const override;
 	virtual FFaerieItemProxy Proxy(FFaerieAddress Address) const override;
+	virtual bool Possess(const FFaerieUnownedItemStack& Stack) override;
 	virtual void DestroyStack(FFaerieEntryKey Key, int32 Copies) override;
 	virtual void DestroyStack(FFaerieAddress Address, int32 Copies) override;
+	virtual void DestroyStack(const FFaerieItemProxy& Proxy, int32 Copies) override;
 	virtual TOptional<FFaerieUnownedItemStack> Release(FFaerieEntryKey Key, int32 Copies) override;
 	virtual TOptional<FFaerieUnownedItemStack> Release(FFaerieAddress Address, int32 Copies) override;
-	virtual bool CanPossess(const FFaerieItemDataView& View) const override;
+	virtual bool CanPossess(const FFaerieItemProxy& Proxy) const override;
 	virtual void GetAllAddresses(TArray<FFaerieAddress>& Addresses) const override;
 
 protected:
@@ -69,9 +73,7 @@ protected:
 
 public:
 	//~ IFaerieItemOwnerInterface
-	virtual void DestroyStack(const FFaerieItemProxy& Proxy, int32 Copies = Faerie::ItemData::EntireStack) override;
-	virtual bool Possess(const FFaerieUnownedItemStack& Stack) override;
-	virtual void OnItemDataChanged(const Faerie::ItemData::FMutableReference& Instance, TNotNull<const UScriptStruct*> Struct, FGameplayTag EditTag) override;
+	virtual void OnItemDataChanged(Faerie::TValid<const FFaerieItemInstance&> Instance, TNotNull<const UScriptStruct*> FragmentType, FGameplayTag EditTag) override;
 	//~ IFaerieItemOwnerInterface
 
 
@@ -86,13 +88,13 @@ private:
 
 	[[nodiscard]] const FFaerieStorageEntry* GetEntrySafe(FFaerieEntryKey Key) const;
 
-	[[nodiscard]] const FFaerieStorageEntry* FindEntry(const Faerie::ItemData::FReference& Item) const;
+	[[nodiscard]] const FFaerieStorageEntry* FindEntry(Faerie::TValid<const FFaerieItemInstance&> Item) const;
 
 	[[nodiscard]] UFaerieItemStackProxy* GetStackProxyImpl(FFaerieAddress Address) const;
 
 	// Internal implementation for adding items.
-	[[nodiscard]] Faerie::Inventory::FEventData AddStackImplNoBroadcast(const Faerie::ItemData::FValidatedDataView& View, bool ForceNewStack);
-	[[nodiscard]] Faerie::Inventory::FEventData AddStackImpl(const Faerie::ItemData::FValidatedDataView& View, bool ForceNewStack);
+	[[nodiscard]] Faerie::Inventory::FEventData AddStackImplNoBroadcast(const Faerie::TValid<const FFaerieUnownedItemStack&> ItemStack, bool ForceNewStack);
+	[[nodiscard]] Faerie::Inventory::FEventData AddStackImpl(const Faerie::TValid<const FFaerieUnownedItemStack&> ItemStack, bool ForceNewStack);
 
 	// Internal implementations for removing items, specifying an amount.
 	[[nodiscard]] Faerie::Inventory::FEventData RemoveFromEntryImplNoBroadcast(const FFaerieStorageEntry& Entry, int32 Amount);
@@ -103,6 +105,10 @@ private:
 	bool CanEditStackImpl(const FFaerieStorageEntry& Entry, FFaerieStackKey Stack, FFaerieInventoryTag EditTag) const;
 	bool CanRemoveEntryImpl(const FFaerieStorageEntry& Entry, FFaerieInventoryTag Reason) const;
 	bool CanRemoveStackImpl(const FFaerieStorageEntry& Entry, FFaerieStackKey Stack, FFaerieInventoryTag Reason) const;
+
+	void Server_PostContentAdded(const FFaerieStorageEntry& Entry, const Faerie::Inventory::FEventData& Event);
+	void Server_PreContentRemoved(const FFaerieStorageEntry& Entry, const Faerie::Inventory::FEventData& Event);
+	void Server_PostContentChanged(const FFaerieStorageEntry& Entry, const Faerie::Inventory::FEventData& Event);
 
 	void Client_PostContentAdded(const FFaerieStorageEntry& Entry);
 	void Client_PreContentRemoved(const FFaerieStorageEntry& Entry);
@@ -158,24 +164,21 @@ public:
 	bool ContainsAddress(FFaerieAddress Address) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Storage|Access")
-	bool ContainsItem(const FFaerieItemInstance& Item) const;
+	bool ContainsItem(const FFaerieItemProxy& Item) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Storage|Access")
-	FFaerieEntryKey FindItem(const FFaerieItemInstance& Item) const;
+	FFaerieEntryKey FindItem(const FFaerieItemProxy& Item) const;
 
 	// Utility function mainly used with inventories that are expected to only contain a single entry, e.g., pickups.
 	UFUNCTION(BlueprintCallable, Category = "Storage|Access")
 	FFaerieAddress GetFirstAddress() const;
 
-	// Gets the item stored at an entry.
-	UFUNCTION(BlueprintCallable, Category = "Storage|Access")
-	FFaerieItemInstance GetEntryItem(FFaerieEntryKey Key) const;
+	UFUNCTION(BlueprintCallable, Category = "Storage|Permissions")
+	bool CanAddStack(const FFaerieItemProxy& Proxy, EFaerieStorageAddStackBehavior AddStackBehavior) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Storage|Permissions")
-	bool CanAddStack(const FFaerieItemDataView& View, EFaerieStorageAddStackBehavior AddStackBehavior) const;
-
-	UFUNCTION(BlueprintCallable, Category = "Storage|Permissions")
-	bool CanAddStacks(const TArray<FFaerieItemDataView>& Views, FFaerieExtensionAllowsAdditionArgs Args) const;
+	bool CanAddStacks(const TArray<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args) const;
+	bool CanAddStacks(const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Stacks, FFaerieExtensionAllowsAdditionArgs Args) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Storage|Permissions")
 	bool CanEditStack(FFaerieAddress Address, FFaerieInventoryTag EditTag) const;
@@ -202,9 +205,9 @@ public:
 	bool AddItemStack(const FFaerieUnownedItemStack& Stack, EFaerieStorageAddStackBehavior AddStackBehavior);
 
 	// Add an item stack into storage, and return the full data about the change.
-	void AddItemStack(const FFaerieUnownedItemStack& Stack, EFaerieStorageAddStackBehavior AddStackBehavior, TValueOrError<Faerie::Inventory::FEventData, FText>& OutResult);
+	void AddItemStack(const Faerie::TValid<const FFaerieUnownedItemStack&> Stack, EFaerieStorageAddStackBehavior AddStackBehavior, TValueOrError<Faerie::Inventory::FEventData, FText>& OutResult);
 
-	bool AddItemStacks(TConstArrayView<FFaerieUnownedItemStack> Stacks, EFaerieStorageAddStackBehavior AddStackBehavior, bool StopAfterFailure);
+	bool AddItemStacks(const Faerie::Utils::TArrayAdapter<FFaerieUnownedItemStack>& Adapter, EFaerieStorageAddStackBehavior AddStackBehavior, bool StopAfterFailure);
 
 protected:
 	// Add an item stack into storage.
@@ -285,8 +288,7 @@ private:
 	FFaerieStorageContent EntryMap;
 
 	// Locally stored proxies per entry stack.
-	// These properties are transient, mainly so that editor code that accesses them doesn't need to worry about Caches
-	// being left around. Using weak pointers here is intentional. We don't want this storage to keep these alive. They
+	// Using weak pointers here is intentional. We don't want this storage to keep these alive. They
 	// should be stored in a strong pointer by whatever requested them, and once nothing needs the proxies, they will die.
 	TMap<FFaerieAddress, TWeakObjectPtr<UFaerieItemStackProxy>> LocalStackProxies;
 };

@@ -77,7 +77,7 @@ TSoftObjectPtr<UTexture2D> UInventoryUIAction::GetDisplayIcon_Implementation(con
 
 EInventoryUIActionState UInventoryUIAction::CanStart(const FFaerieItemProxy& Proxy) const
 {
-	UFaerieInventoryClient* Client = GetFaerieClient(Cast<UObject>(Proxy->GetItemOwner()));
+	UFaerieInventoryClient* Client = GetFaerieClient(Cast<UObject>(Proxy.GetItemOwner()));
 	if (IsValid(Client))
 	{
 		return TestCanRun(Client, Proxy);

@@ -11,10 +11,10 @@
 using namespace Faerie;
 
 EEventExtensionResponse UInventorySimpleGridExtension::AllowsAddition(const TNotNull<const UFaerieItemContainerBase*> Container,
-																	  const TConstArrayView<FFaerieItemDataView> Views,
+																	  const Utils::TArrayAdapter<FFaerieItemProxy>& Proxies,
 																	  const FFaerieExtensionAllowsAdditionArgs Args) const
 {
-	if (OccupiedCells.GetNumUnmarked() > Views.Num())
+	if (OccupiedCells.GetNumUnmarked() > Proxies.Num())
 	{
 		return EEventExtensionResponse::Allowed;
 	}
@@ -22,7 +22,7 @@ EEventExtensionResponse UInventorySimpleGridExtension::AllowsAddition(const TNot
 }
 
 EEventExtensionResponse UInventorySimpleGridExtension::AllowsEdit(const TNotNull<const UFaerieItemContainerBase*> Container,
-																  const Extensions::FAddressView DataView,
+																  const TNotNull<const Container::IAddressView*> DataView,
 																  const FFaerieInventoryTag EditType) const
 {
 	if (EditType == Inventory::Tags::Split)
@@ -125,7 +125,7 @@ void UInventorySimpleGridExtension::PreStackRemove_Client(const FFaerieGridKeyed
 	BroadcastEvent(Stack.Key, EFaerieGridEventType::ItemRemoved);
 }
 
-void UInventorySimpleGridExtension::PreStackRemove_Server(const FFaerieGridKeyedStack& Stack, const ItemData::FReference& Item)
+void UInventorySimpleGridExtension::PreStackRemove_Server(const FFaerieGridKeyedStack& Stack, const TValid<const FFaerieItemInstance&> Item)
 {
 	// This is to account for removals through proxies that don't directly interface with the grid
 	OccupiedCells.UnmarkCell(Stack.Value.Origin);
@@ -158,7 +158,7 @@ FFaerieAddress UInventorySimpleGridExtension::GetKeyAt(const FIntPoint& Position
 	return FFaerieAddress();
 }
 
-bool UInventorySimpleGridExtension::CanAddAtLocation(const FFaerieItemDataView& View, const FIntPoint IntPoint) const
+bool UInventorySimpleGridExtension::CanAddAtLocation(const TValid<const FFaerieItemProxy&> Proxy, const FIntPoint IntPoint) const
 {
 	return !IsCellOccupied(IntPoint);
 }

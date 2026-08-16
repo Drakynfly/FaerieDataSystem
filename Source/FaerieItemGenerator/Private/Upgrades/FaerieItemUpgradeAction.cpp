@@ -13,18 +13,23 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemUpgradeAction)
 
+namespace CommonErrors
+{
+	static const FText CannotApplyFailure = INVTEXT("Upgrade Action failure: Cannot Apply Upgrade config to item");
+	static const FText CannotPayCost = INVTEXT("Upgrade Action failure: Cannot pay cost");
+	static const FText ExecutionFailure = INVTEXT("Upgrade Action failure: Upgrade execution failed");
+}
+
 void FFaerieItemUpgradeAction::Run(const Faerie::Generation::FActionExecution& Execution)
 {
 	if (!IsValid(ItemProxy.GetProxyObject()))
 	{
-		UE_LOG(LogItemGeneration, Warning, TEXT("%hs: ItemProxy is invalid!"), __FUNCTION__);
-		return Fail(Execution, this);
+		return Fail(Execution, this, INVTEXT("Invalid Proxy"));
 	}
 
 	if (!IsValid(Config))
 	{
-		UE_LOG(LogItemGeneration, Warning, TEXT("%hs: Config is invalid!"), __FUNCTION__);
-		return Fail(Execution, this);
+		return Fail(Execution, this, INVTEXT("Invalid Config"));
 	}
 
 	TArray<FSoftObjectPath> ObjectsToLoad;
@@ -69,37 +74,36 @@ void FFaerieItemUpgradeAction::Execute(const Faerie::Generation::FActionExecutio
 	// @todo batching
 	int32 Copies = 1;
 
-	if (!Config->CanApplyUpgrade(Execution.WorldContextObject, ItemProxy))
+	if (!Config->CanApplyUpgrade(Execution.EntityManager, ItemProxy))
 	{
-		return Fail(Execution, this);
+		return Fail(Execution, this, CommonErrors::CannotApplyFailure);
 	}
 
-	if (!Config->CanPayCost(Execution.WorldContextObject, Slots, ItemProxy))
+	if (!Config->CanPayCost(Execution.EntityManager, Slots, ItemProxy))
 	{
-		return Fail(Execution, this);
+		return Fail(Execution, this, CommonErrors::CannotPayCost);
 	}
 
-	ActionData.Stacks.Add( FFaerieUnownedItemStack(ItemProxy->GetItemInstance().GetValue(), Copies));
+	ActionData.Stacks.Add( FFaerieUnownedItemStack(ItemProxy.GetItemInstance().GetValue(), Copies));
 
-	if (!Config->ApplyUpgrade(Execution.WorldContextObject, ActionData, Execution.Squirrel.Get()))
+	if (!Config->ApplyUpgrade(Execution.EntityManager, ActionData, Execution.Squirrel.Get()))
 	{
-		return Fail(Execution, this);
+		return Fail(Execution, this, CommonErrors::ExecutionFailure);
 	}
 
 	if (RunConsumeStep)
 	{
-		Config->PayCost(Execution.WorldContextObject, Slots, ItemProxy);
+		Config->PayCost(Execution.EntityManager, Slots, ItemProxy);
 	}
 
-	Complete(Execution, this);
+	Complete(Execution, this, FText::GetEmpty());
 }
 
 void FFaerieItemUpgradeActionBulkNoPayment::Run(const Faerie::Generation::FActionExecution& Execution)
 {
 	if (!IsValid(Config))
 	{
-		UE_LOG(LogItemGeneration, Warning, TEXT("%hs: Config is invalid!"), __FUNCTION__);
-		return Fail(Execution, this);
+		return Fail(Execution, this, INVTEXT("Invalid Config"));
 	}
 
 	TArray<FSoftObjectPath> ObjectsToLoad;
@@ -144,20 +148,19 @@ void FFaerieItemUpgradeActionBulkNoPayment::Execute(const Faerie::Generation::FA
 	// Prepare Stacks
 	ActionData.Stacks = UpgradeTargets;
 
-	if (!Config->ApplyUpgrade(Execution.WorldContextObject, ActionData, Execution.Squirrel.Get()))
+	if (!Config->ApplyUpgrade(Execution.EntityManager, ActionData, Execution.Squirrel.Get()))
 	{
-		return Fail(Execution, this);
+		return Fail(Execution, this, CommonErrors::ExecutionFailure);
 	}
 
-	Complete(Execution, this);
+	Complete(Execution, this, FText::GetEmpty());
 }
 
 void FFaerieItemUpgradeActionBulk::Run(const Faerie::Generation::FActionExecution& Execution)
 {
 	if (!IsValid(Config))
 	{
-		UE_LOG(LogItemGeneration, Warning, TEXT("%hs: Config is invalid!"), __FUNCTION__);
-		return Fail(Execution, this);
+		return Fail(Execution, this, INVTEXT("Invalid Config"));
 	}
 
 	TArray<FSoftObjectPath> ObjectsToLoad;
@@ -204,30 +207,30 @@ void FFaerieItemUpgradeActionBulk::Execute(const Faerie::Generation::FActionExec
 
 	for (auto&& UpgradeTarget : UpgradeTargets)
 	{
-		if (!Config->CanPayCost(Execution.WorldContextObject, UpgradeTarget.Slots, UpgradeTarget.ItemProxy))
+		if (!Config->CanPayCost(Execution.EntityManager, UpgradeTarget.Slots, UpgradeTarget.ItemProxy))
 		{
-			return Fail(Execution, this);
+			return Fail(Execution, this, CommonErrors::CannotPayCost);
 		}
 	}
 
 	// Prepare Stacks
 	for (auto&& UpgradeTarget : UpgradeTargets)
 	{
-		ActionData.Stacks.Emplace(UpgradeTarget.ItemProxy->GetItemInstance().GetValue(), Copies);
+		ActionData.Stacks.Emplace(UpgradeTarget.ItemProxy.GetItemInstance().GetValue(), Copies);
 	}
 
-	if (!Config->ApplyUpgrade(Execution.WorldContextObject, ActionData, Execution.Squirrel.Get()))
+	if (!Config->ApplyUpgrade(Execution.EntityManager, ActionData, Execution.Squirrel.Get()))
 	{
-		return Fail(Execution, this);
+		return Fail(Execution, this, CommonErrors::ExecutionFailure);
 	}
 
 	if (RunConsumeStep)
 	{
 		for (auto&& UpgradeTarget : UpgradeTargets)
 		{
-			Config->PayCost(Execution.WorldContextObject, UpgradeTarget.Slots, UpgradeTarget.ItemProxy);
+			Config->PayCost(Execution.EntityManager, UpgradeTarget.Slots, UpgradeTarget.ItemProxy);
 		}
 	}
 
-	Complete(Execution, this);
+	Complete(Execution, this, FText::GetEmpty());
 }

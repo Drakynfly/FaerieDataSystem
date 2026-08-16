@@ -2,6 +2,7 @@
 
 #include "Mutators/ItemMutator_BlueprintBase.h"
 #include "FaerieItemDataView.h"
+#include "FaerieItemProxy.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ItemMutator_BlueprintBase)
 
@@ -11,32 +12,23 @@ void FFaerieItemMutator_Blueprint::GetRequiredAssets(TArray<TSoftObjectPtr<UObje
 {
 	if (IsValid(Blueprint))
 	{
-		return GetDefault<UFaerieItemMutator_BlueprintBase>(Blueprint)->NativeGetRequiredAssets(RequiredAssets);
+		return GetDefault<UFaerieItemMutator_BlueprintBase>(Blueprint)->GetRequiredAssets(RequiredAssets);
 	}
 }
 
-bool FFaerieItemMutator_Blueprint::Apply(Faerie::ItemData::FMutableReference& Item, const FFaerieItemMutatorContext& Context) const
+bool FFaerieItemMutator_Blueprint::Apply(FFaerieItemInstance& Item, const FFaerieItemMutatorContext& Context) const
 {
 	if (IsValid(Blueprint))
 	{
-		return GetDefault<UFaerieItemMutator_BlueprintBase>(Blueprint)->NativeApply(Item, Context.Squirrel);
+		const Faerie::ItemData::FScopeProxy Proxy(Item, 1, nullptr);
+		return GetDefault<UFaerieItemMutator_BlueprintBase>(Blueprint)->Apply(FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, &Proxy), Context.Squirrel);
 	}
 	return false;
 }
 
-void UFaerieItemMutator_BlueprintBase::NativeGetRequiredAssets(TArray<TSoftObjectPtr<UObject>>& RequiredAssets) const
-{
-	GetRequiredAssets(RequiredAssets);
-}
-
-bool UFaerieItemMutator_BlueprintBase::NativeApply(const Faerie::ItemData::FMutableReference& Item, USquirrel* Squirrel) const
-{
-	return Apply(Item.GetInstance(), Squirrel);
-}
-
 void UFaerieItemMutator_BlueprintBase::GetRequiredAssets_Implementation(TArray<TSoftObjectPtr<UObject>>& RequiredAssets) const {}
 
-bool UFaerieItemMutator_BlueprintBase::Apply_Implementation(const FFaerieItemInstance& Instance, USquirrel* Squirrel) const
+bool UFaerieItemMutator_BlueprintBase::Apply_Implementation(const FFaerieItemProxy& Proxy, USquirrel* Squirrel) const
 {
 	return false;
 }

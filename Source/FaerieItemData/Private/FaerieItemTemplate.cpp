@@ -7,18 +7,18 @@
 #include "Misc/DataValidation.h"
 #endif
 
-#include "FaerieItemDataView.h"
+#include "EntityManagerHelpers.h"
+
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemTemplate)
 
 #define LOCTEXT_NAMESPACE "FaerieItemTemplate"
 
 #if WITH_EDITOR
-
 EDataValidationResult UFaerieItemTemplate::IsDataValid(FDataValidationContext& Context) const
 {
-	if (!IsValid(Pattern))
+	if (!Filter.IsValid())
 	{
-		Context.AddError(NSLOCTEXT("ValidateFaerieItemTemplate", "InvalidPatternError", "Template Pattern is invalid!"));
+		Context.AddError(NSLOCTEXT("ValidateFaerieItemTemplate", "InvalidFilterError", "Template Filter is invalid!"));
 	}
 
 	if (Context.GetNumErrors())
@@ -28,23 +28,23 @@ EDataValidationResult UFaerieItemTemplate::IsDataValid(FDataValidationContext& C
 
 	return Super::IsDataValid(Context);
 }
-
 #endif
 
-bool UFaerieItemTemplate::TryMatch(const TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const
+bool UFaerieItemTemplate::TryMatch(const FMassEntityManager* EntityManager, const Faerie::TValid<const FFaerieItemProxy&> Proxy) const
 {
-	if (ensure(IsValid(Pattern)))
+	if (ensure(Filter.IsValid()))
 	{
-		return Pattern->Exec(WorldContextObj, View);
+		return Filter->Exec(EntityManager, Proxy);
 	}
 	return false;
 }
 
-bool UFaerieItemTemplate::TryMatchWithDescriptions(const TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View, TArray<FText>& Errors) const
+#if WITH_EDITOR
+bool UFaerieItemTemplate::TryMatchWithDescriptions(const FMassEntityManager* EntityManager, const Faerie::TValid<const FFaerieItemProxy&> Proxy, TArray<FText>& Errors) const
 {
-	if (!ensure(IsValid(Pattern)))
+	if (!ensure(Filter.IsValid()))
 	{
-		static const FTextFormat GenericErrorFormat = LOCTEXT("ExecWithErrors_InvalidPattern", "'{0}' contains Invalid Pattern!'");
+		static const FTextFormat GenericErrorFormat = LOCTEXT("ExecWithErrors_InvalidFilter", "'{0}' contains Invalid Filter!'");
 
 		FFormatOrderedArguments Args;
 		Args.Add(FText::FromString(GetName()));
@@ -54,20 +54,18 @@ bool UFaerieItemTemplate::TryMatchWithDescriptions(const TNotNull<const UObject*
 	}
 
 	if (Faerie::ItemData::FFilterLogger Logger;
-		!Pattern->ExecWithLog(WorldContextObj, View, Logger))
+		!Filter->ExecWithLog(EntityManager, Proxy, Logger))
 	{
 		if (Logger.Errors.IsEmpty())
 		{
-			static const FTextFormat GenericErrorFormat = LOCTEXT("ExecWithErrors_GenericErrorFmt", "'{0}' failed with unspecified reason!'");
-
+			static const FTextFormat ErrorFormat = NSLOCTEXT("FaerieItemDataFilter", "GenericFilterError", "Filter '{0}' failed. Implement ExecWithLog for more details.");
 			FFormatOrderedArguments Args;
-			Args.Add(FText::FromString(GetName()));
-
-			Errors.Add(FText::Format(GenericErrorFormat, Args));
+			Args.Add(Filter.GetScriptStruct()->GetDisplayNameText());
+			Errors.Add(FText::Format(ErrorFormat, Args));
 		}
 		else
 		{
-			Errors = Logger.Errors;
+			Errors.Append(Logger.Errors);
 		}
 
 		return false;
@@ -75,12 +73,13 @@ bool UFaerieItemTemplate::TryMatchWithDescriptions(const TNotNull<const UObject*
 
 	return true;
 }
+#endif
 
-bool UFaerieItemTemplate::TryMatch(UObject* WorldContextObj, const FFaerieItemDataView& View) const
+bool UFaerieItemTemplate::TryMatch(const FFaerieItemProxy& Proxy) const
 {
-	if (ensure(IsValid(Pattern)))
+	if (ensure(Filter.IsValid()))
 	{
-		return Pattern->Exec(WorldContextObj, Faerie::ItemData::FValidatedDataView(View));
+		return Filter->Exec(Faerie::ItemData::GetFaerieEntityManager(), Proxy);
 	}
 	return false;
 }

@@ -2,11 +2,10 @@
 
 #pragma once
 
+#include "BasicItemHashInstructions.h"
 #include "GameplayTagContainer.h"
 #include "Engine/DataAsset.h"
 #include "EquipmentHashAsset.generated.h"
-
-class UFaerieItemStackHashInstruction;
 
 USTRUCT()
 struct FFaerieEquipmentHashAssetConfig
@@ -14,19 +13,19 @@ struct FFaerieEquipmentHashAssetConfig
 	GENERATED_BODY()
 
 	// The slots to check the instruction on.
-	UPROPERTY(EditAnywhere, Category = "EquipmentHashInstruction", meta = (Categories = "Fae.Slot"))
+	UPROPERTY(EditAnywhere, Category = "EquipmentHashAssetConfig", meta = (Categories = "Fae.Slot"))
 	FGameplayTagContainer Slots;
 
 	// Should all slots be hashed together for this instruction, or only the first non-empty?
-	UPROPERTY(EditAnywhere, Category = "EquipmentHashInstruction")
+	UPROPERTY(EditAnywhere, Category = "EquipmentHashAssetConfig")
 	EGameplayContainerMatchType MatchType = EGameplayContainerMatchType::All;
 
-	UPROPERTY(EditAnywhere, Instanced, Category = "EquipmentHashInstruction")
-	TObjectPtr<UFaerieItemStackHashInstruction> Instruction;
+	UPROPERTY(EditAnywhere, Category = "EquipmentHashAssetConfig")
+	FISHI_And Instruction;
 
 #if WITH_EDITORONLY_DATA
-	// An example of a itemset that should pass. Used to generate CheckHash
-	UPROPERTY(EditAnywhere, Category = "EquipmentHashInstruction")
+	// An example of an itemset that should pass. Used to generate CheckHash
+	UPROPERTY(EditAnywhere, Category = "EquipmentHashAssetConfig")
 	TArray<TObjectPtr<class UFaerieItemAsset>> Example;
 #endif
 };

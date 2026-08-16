@@ -65,8 +65,7 @@ void FFaerieItemGenerationActionSingle::Run(const Generation::FActionExecution& 
 {
 	if (Source.Asset.Object.IsNull())
 	{
-		UE_LOG(LogItemGeneration, Warning, TEXT("%hs: Source is invalid!"), __FUNCTION__);
-		return Fail(Execution, this);
+		return Fail(Execution, this, INVTEXT("Invalid source asset"));
 	}
 
 	if (NewInstancesOuter == nullptr)
@@ -153,28 +152,27 @@ void FFaerieItemGenerationActionSingle::Generate(const Generation::FActionExecut
 	// Step 3: Build a context, to use for the pending generation, and resolve it.
 
 	FFaerieItemInstancingContext_Crafting Context;
-	Context.ItemInstanceOuter = NewInstancesOuter;
+	Context.EntityManager = Execution.EntityManager;
 	Context.Squirrel = Execution.Squirrel.Get();
 
 	if (!Source.IsValid())
 	{
-		UE_LOG(LogItemGeneration, Error, TEXT("--- PendingDrop is invalid. Nothing will be returned."));
-		return Fail(Execution, this);
+		return Fail(Execution, this, INVTEXT("PendingDrop is invalid. Nothing will be returned"));
 	}
 
-	Generation::ResolveGeneration({&Source, 1}, Context, ActionData);
+	Generation::ResolveGeneration({.Drop = &Source, .Count = 1}, Context, ActionData);
 
 
 	if (Execution.IsInGameWorld())
 	{
-		auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
+		check(Execution.EntityManager)
 
 		// Initialize all generated instances for runtime.
 		for (auto&& Stack : ActionData.Stacks)
 		{
 			if (Stack.Instance.IsValid())
 			{
-				Stack.Instance.InitializeMassEntityIfInvalid(EntityManager);
+				Stack.Instance.InitializeMassEntityIfInvalid(*Execution.EntityManager);
 			}
 		}
 
@@ -182,7 +180,7 @@ void FFaerieItemGenerationActionSingle::Generate(const Generation::FActionExecut
 		{
 			if (GeneratedChild.Value.Instance.IsValid())
 			{
-				GeneratedChild.Value.Instance.InitializeMassEntityIfInvalid(EntityManager);
+				GeneratedChild.Value.Instance.InitializeMassEntityIfInvalid(*Execution.EntityManager);
 			}
 		}
 	}
@@ -191,13 +189,15 @@ void FFaerieItemGenerationActionSingle::Generate(const Generation::FActionExecut
 
 	if (!ActionData.Stacks.IsEmpty())
 	{
-		UE_LOG(LogItemGeneration, Log, TEXT("--- Generation success. Created '%i' stack(s)."), ActionData.Stacks.Num());
-		return Complete(Execution, this);
+		FText OutMessage;
+#if WITH_EDITOR
+		OutMessage = FText::AsCultureInvariant(FString::Printf(TEXT("Generation success. Created '%i' stack(s)."), ActionData.Stacks.Num()));
+#endif
+		return Complete(Execution, this, OutMessage);
 	}
 	else
 	{
-		UE_LOG(LogItemGeneration, Error, TEXT("--- Generation failed to create any entries. Nothing will be returned."));
-		return Fail(Execution, this);
+		return Fail(Execution, this, INVTEXT("Generation failed to create any entries. Nothing will be returned."));
 	}
 }
 
@@ -207,16 +207,14 @@ void FFaerieItemGenerationAction::Run(const Generation::FActionExecution& Execut
 
 	if (Drivers.IsEmpty())
 	{
-		UE_LOG(LogItemGeneration, Warning, TEXT("%hs: Drivers are empty!"), __FUNCTION__);
-		return Fail(Execution, this);
+		return Fail(Execution, this, INVTEXT("Drivers are empty"));
 	}
 
 	for (auto&& Driver : Drivers)
 	{
 		if (Driver.IsNull())
 		{
-			UE_LOG(LogItemGeneration, Warning, TEXT("%hs: Driver is invalid!"), __FUNCTION__);
-			return Fail(Execution, this);
+			return Fail(Execution, this, INVTEXT("Invalid driver"));
 		}
 	}
 
@@ -369,7 +367,7 @@ void FFaerieItemGenerationAction::Generate(const Generation::FActionExecution& E
 	// Step 3: Build a context, to use for each pending generation, and resolve them.
 
 	FFaerieItemInstancingContext_Crafting Context;
-	Context.ItemInstanceOuter = NewInstancesOuter;
+	Context.EntityManager = Execution.EntityManager;
 	Context.Squirrel = Execution.Squirrel.Get();
 
 	for (const Generation::FPendingTableDrop& Generation : PendingDrops)
@@ -410,12 +408,14 @@ void FFaerieItemGenerationAction::Generate(const Generation::FActionExecution& E
 
 	if (ActionData.Stacks.IsEmpty())
 	{
-		UE_LOG(LogItemGeneration, Error, TEXT("--- Generation failed to create any entries. Nothing will be returned."));
-		return Fail(Execution, this);
+		return Fail(Execution, this, INVTEXT("Generation failed to create any entries. Nothing will be returned."));
 	}
 
-	UE_LOG(LogItemGeneration, Log, TEXT("--- Generation success. Created '%i' stack(s)."), ActionData.Stacks.Num());
-	return Complete(Execution, this);
+	FText OutMessage;
+#if WITH_EDITOR
+	OutMessage = FText::AsCultureInvariant(FString::Printf(TEXT("Generation success. Created '%i' stack(s)."), ActionData.Stacks.Num()));
+#endif
+	return Complete(Execution, this, OutMessage);
 }
 
 #undef LOCTEXT_NAMESPACE

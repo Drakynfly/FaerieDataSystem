@@ -2,16 +2,15 @@
 
 #include "Fragments/FaerieStackLimitFragment.h"
 #include "FaerieItem.h"
-#include "FaerieItemDataView.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieStackLimitFragment)
 
 namespace Faerie::Container
 {
-	int32 GetItemStackLimit(const ItemData::FOptionalEntityManager& EntityManager, const ItemData::FReference& Item)
+	int32 GetItemStackLimit(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemInstance&> Item)
 	{
 		// Enforce stack limit to 1, if item has potential to have variation between instances
-		if (Item->IsMutable()) return 1;
+		if (ValidGet(Item).IsMutable()) return 1;
 
 		auto LimitView = ItemData::GetEntityFragmentOrDefault<FFaerieStackLimitFragment>(EntityManager, Item);
 

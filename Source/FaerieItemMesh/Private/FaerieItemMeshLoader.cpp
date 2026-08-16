@@ -4,8 +4,9 @@
 #include "FaerieItem.h"
 
 #include "EntityManagerHelpers.h"
-#include "FaerieItemDataView.h"
 #include "FaerieItemMeshLog.h"
+#include "FaerieItemProxy.h"
+
 #include "Engine/AssetManager.h"
 #include "Engine/StaticMesh.h"
 
@@ -58,9 +59,16 @@ bool UFaerieItemMeshLoader::LoadMeshFromProxySynchronous(const FFaerieItemProxy&
 		return false;
 	}
 
-	const FFaerieItemInstance Instance = InProxy->GetItemInstance().GetValue();
-	ItemData::FOptionalEntityManager EntityManager(InProxy.GetProxyObject());
-	auto MeshFragment = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieMeshFragment>(EntityManager, Instance);
+	const TOptional<FFaerieItemInstance> Instance = InProxy.GetItemInstance();
+	if (!Instance.IsSet())
+	{
+		UE_LOG(LogFaerieItemMesh, Error, TEXT("%hs: Invalid instance!"), __FUNCTION__)
+
+		return false;
+	}
+
+	auto* EntityManager = ItemData::GetFaerieEntityManager();
+	auto MeshFragment = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieMeshFragment>(EntityManager, Instance.GetValue());
 	if (!MeshFragment.IsValid())
 	{
 		UE_LOG(LogFaerieItemMesh, Error, TEXT("%hs: Invalid fragment!"), __FUNCTION__)
@@ -80,9 +88,16 @@ TSharedPtr<FStreamableHandle> UFaerieItemMeshLoader::LoadMeshFromProxyAsynchrono
 		return nullptr;
 	}
 
-	const FFaerieItemInstance Instance = InProxy->GetItemInstance().GetValue();
-	ItemData::FOptionalEntityManager EntityManager(InProxy.GetProxyObject());
-	auto MeshFragment = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieMeshFragment>(EntityManager, Instance);
+	const TOptional<FFaerieItemInstance> Instance = InProxy.GetItemInstance();
+	if (!Instance.IsSet())
+	{
+		UE_LOG(LogFaerieItemMesh, Error, TEXT("%hs: Invalid instance!"), __FUNCTION__)
+		(void)Callback.ExecuteIfBound(false, {});
+		return nullptr;
+	}
+
+	auto* EntityManager = ItemData::GetFaerieEntityManager();
+	auto MeshFragment = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieMeshFragment>(EntityManager, Instance.GetValue());
 	if (!MeshFragment.IsValid())
 	{
 		UE_LOG(LogFaerieItemMesh, Error, TEXT("%hs: Invalid fragment!"), __FUNCTION__)

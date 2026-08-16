@@ -14,7 +14,7 @@ class UFaerieEquipmentHashAsset;
 class UFaerieEquipmentManager;
 class UFaerieEquipmentSlot;
 
-DECLARE_DYNAMIC_DELEGATE_RetVal_TwoParams(int32, FBlueprintEquipmentHash, const UObject*, WorldContextObj, const FFaerieItemInstance&, Instance);
+DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(int32, FBlueprintEquipmentHash, const FFaerieItemInstance&, Instance);
 
 USTRUCT(BlueprintType)
 struct FFaerieEquipmentHashConfig
@@ -62,5 +62,5 @@ public:
 	static FBlueprintEquipmentHash GetEquipmentHash_ByName();
 
 protected:
-	static int32 ExecHashItemByName(UObject* WorldContextObj, const FFaerieItemInstance& Instance);
+	static int32 ExecHashItemByName(const FFaerieItemInstance& Instance);
 };

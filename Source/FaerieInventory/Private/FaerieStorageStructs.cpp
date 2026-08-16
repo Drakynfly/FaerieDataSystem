@@ -26,8 +26,8 @@ namespace LocalCopy
 	}
 }
 
-FFaerieStorageEntry::FFaerieStorageEntry(const FFaerieEntryKey EntryKey, const Faerie::ItemData::FReference& Item, const int32 StackLimit, int32 Amount, TArray<FFaerieAddress>& OutNewAddresses)
-  : Key(EntryKey), ItemInstance(Item.GetInstance()), CachedLimit(StackLimit)
+FFaerieStorageEntry::FFaerieStorageEntry(const FFaerieEntryKey EntryKey, FFaerieItemInstance& Item, const int32 StackLimit, int32 Amount, TArray<FFaerieAddress>& OutNewAddresses)
+  : Key(EntryKey), ItemInstance(MoveTemp(Item)), CachedLimit(StackLimit)
 {
 	if (StackLimit == Faerie::ItemData::UnlimitedStack)
 	{
@@ -50,8 +50,8 @@ FFaerieStorageEntry::FFaerieStorageEntry(const FFaerieEntryKey EntryKey, const F
 	}
 }
 
-FFaerieStorageEntry::FFaerieStorageEntry(const FFaerieEntryKey EntryKey, const Faerie::ItemData::FReference& Item, const int32 StackLimit, const TConstArrayView<FFaerieKeyedStack> Stacks)
-  : Key(EntryKey), ItemInstance(Item.GetInstance()), Stacks(Stacks), CachedLimit(StackLimit)
+FFaerieStorageEntry::FFaerieStorageEntry(const FFaerieEntryKey EntryKey, FFaerieItemInstance& Item, const int32 StackLimit, const TConstArrayView<FFaerieKeyedStack> Stacks)
+  : Key(EntryKey), ItemInstance(MoveTemp(Item)), Stacks(Stacks), CachedLimit(StackLimit)
 {
 	// @Todo split Stacks up if any are larger than StackLimit
 }
@@ -71,9 +71,9 @@ const FFaerieKeyedStack* FFaerieStorageEntry::GetStackPtr(const FFaerieStackKey 
 	return nullptr;
 }
 
-void FFaerieStorageEntry::UpdateCachedStackLimit(const Faerie::ItemData::FOptionalEntityManager& EntityManager)
+void FFaerieStorageEntry::UpdateCachedStackLimit(const FMassEntityManager& EntityManager)
 {
-	CachedLimit = Faerie::Container::GetItemStackLimit(EntityManager, ItemInstance);
+	CachedLimit = Faerie::Container::GetItemStackLimit(&EntityManager, ItemInstance);
 }
 
 bool FFaerieStorageEntry::Contains(const FFaerieStackKey InKey) const
@@ -169,20 +169,29 @@ void FFaerieStorageEntry::PostSerialize(const FArchive& Ar)
 
 void FFaerieStorageEntry::PreReplicatedRemove(const FFaerieStorageContent& InArraySerializer)
 {
-	InArraySerializer.PreEntryReplicatedRemove(*this);
+	if (::IsValid(InArraySerializer.ChangeListener))
+	{
+		InArraySerializer.ChangeListener->Client_PreContentRemoved(*this);
+	}
 }
 
 void FFaerieStorageEntry::PostReplicatedAdd(const FFaerieStorageContent& InArraySerializer)
 {
-	InArraySerializer.PostEntryReplicatedAdd(*this);
+	if (::IsValid(InArraySerializer.ChangeListener))
+	{
+		InArraySerializer.ChangeListener->Client_PostContentAdded(*this);
+	}
 }
 
 void FFaerieStorageEntry::PostReplicatedChange(const FFaerieStorageContent& InArraySerializer)
 {
-	InArraySerializer.PostEntryReplicatedChange(*this);
+	if (::IsValid(InArraySerializer.ChangeListener))
+	{
+		InArraySerializer.ChangeListener->Client_PostContentChanged(*this);
+	}
 }
 
-const IFaerieItemOwnerInterface* FFaerieStorageEntry::FStorageContentAccess::Resolve(const FFaerieStorageContent& Source)
+const IFaerieItemOwnerInterface* FFaerieStorageEntry::FStorageContentAccess::GetListener(const FFaerieStorageContent& Source)
 {
 	return Source.ChangeListener;
 }
@@ -194,14 +203,14 @@ uint32& FFaerieStorageEntry::FStorageContentAccess::GetWriteLock(const FFaerieSt
 }
 #endif
 
-const IFaerieItemOwnerInterface* FFaerieStorageEntry::FReadAccess::ResolveOwner() const
+const IFaerieItemOwnerInterface* FFaerieStorageEntry::FReadAccess::GetItemOwner() const
 {
-	return FStorageContentAccess::Resolve(Source);
+	return FStorageContentAccess::GetListener(Source);
 }
 
-const IFaerieItemOwnerInterface* FFaerieStorageEntry::FStackReadAccess::ResolveOwner() const
+const IFaerieItemOwnerInterface* FFaerieStorageEntry::FStackReadAccess::GetItemOwner() const
 {
-	return FStorageContentAccess::Resolve(Source);
+	return FStorageContentAccess::GetListener(Source);
 }
 
 FFaerieAddress FFaerieStorageEntry::FStackReadAccess::ResolveAddress() const
@@ -269,7 +278,7 @@ void FFaerieStorageEntry::FReadWriteAccess::RemoveStack(const FFaerieStackKey In
 	}
 }
 
-void FFaerieStorageEntry::FReadWriteAccess::AddToAnyStack(int32 Amount, TArray<FFaerieAddress>& OutNewAddresses)
+void FFaerieStorageEntry::FReadWriteAccess::AddToAnyStack(int32 Amount, TArray<FFaerieAddress>& OutAddressesTouched)
 {
 	// Fill existing stacks first
 	for (auto It(Entry.Stacks.CreateIterator()); It; ++It)
@@ -281,6 +290,7 @@ void FFaerieStorageEntry::FReadWriteAccess::AddToAnyStack(int32 Amount, TArray<F
 			// This stack can contain the rest, add and return
 			KeyedStack.Stack += Amount;
 			//MarkStackDirty(It.GetIndex());
+			OutAddressesTouched.Add(LocalCopy::Encode(Entry.Key, KeyedStack.Key));
 			return;
 		}
 
@@ -293,6 +303,8 @@ void FFaerieStorageEntry::FReadWriteAccess::AddToAnyStack(int32 Amount, TArray<F
 
 			KeyedStack.Stack += AmountToAdd;
 			//MarkStackDirty(It.GetIndex());
+			OutAddressesTouched.Add(LocalCopy::Encode(Entry.Key, KeyedStack.Key));
+
 			Amount -= AmountToAdd;
 
 			// If we've used up all the amount, we can return
@@ -306,7 +318,7 @@ void FFaerieStorageEntry::FReadWriteAccess::AddToAnyStack(int32 Amount, TArray<F
 	// We have dispersed the incoming stack among existing ones. If there is stack remaining, create new stacks.
 	if (Amount > 0)
 	{
-		return AddToNewStacks(Amount, OutNewAddresses);
+		return AddToNewStacks(Amount, OutAddressesTouched);
 	}
 }
 
@@ -451,7 +463,6 @@ void FFaerieStorageContent::Append(const FFaerieStorageEntry& Entry)
 
 	FFaerieStorageEntry& NewItemRef = Entries.Emplace_GetRef(Entry);
 	MarkItemDirty(NewItemRef);
-	PostEntryReplicatedAdd(NewItemRef);
 }
 
 void FFaerieStorageContent::AppendUnsafe(const FFaerieStorageEntry& Entry)
@@ -465,7 +476,6 @@ void FFaerieStorageContent::AppendUnsafe(const FFaerieStorageEntry& Entry)
 
 	FFaerieStorageEntry& NewItemRef = Entries.Emplace_GetRef(Entry);
 	MarkItemDirty(NewItemRef);
-	PostEntryReplicatedAdd(NewItemRef);
 }
 
 void FFaerieStorageContent::Insert(const FFaerieStorageEntry& Entry)
@@ -479,7 +489,6 @@ void FFaerieStorageContent::Insert(const FFaerieStorageEntry& Entry)
 
 	FFaerieStorageEntry& NewEntry = BSOA::Insert(Entry);
 
-	PostEntryReplicatedAdd(NewEntry);
 	MarkItemDirty(NewEntry);
 }
 
@@ -490,12 +499,7 @@ void FFaerieStorageContent::Remove(const FFaerieEntryKey Key)
 	check(WriteLock == 0);
 #endif
 
-	if (BSOA::Remove(Key,
-		[this](const FFaerieStorageEntry& Entry)
-		{
-			// Notify owning server of this removal.
-			PreEntryReplicatedRemove(Entry);
-		}))
+	if (BSOA::Remove(Key))
 	{
 		// Notify clients of this removal.
 		MarkArrayDirty();
@@ -522,30 +526,6 @@ void FFaerieStorageContent::UnlockWriteAccess() const
 	WriteLock--;
 }
 #endif
-
-void FFaerieStorageContent::PreEntryReplicatedRemove(const FFaerieStorageEntry& Entry) const
-{
-	if (IsValid(ChangeListener))
-	{
-		ChangeListener->Client_PreContentRemoved(Entry);
-	}
-}
-
-void FFaerieStorageContent::PostEntryReplicatedAdd(const FFaerieStorageEntry& Entry) const
-{
-	if (IsValid(ChangeListener))
-	{
-		ChangeListener->Client_PostContentAdded(Entry);
-	}
-}
-
-void FFaerieStorageContent::PostEntryReplicatedChange(const FFaerieStorageEntry& Entry) const
-{
-	if (IsValid(ChangeListener))
-	{
-		ChangeListener->Client_PostContentChanged(Entry);
-	}
-}
 
 FFaerieStorageContent::TRangedForConstIterator FFaerieStorageContent::begin() const
 {

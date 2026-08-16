@@ -6,7 +6,7 @@
 
 #include "FaerieFunctionTemplates.generated.h"
 
-struct FFaerieItemDataView;
+struct FFaerieItemProxy;
 
 /**
  * 
@@ -17,9 +17,9 @@ class FAERIEITEMDATA_API UFaerieFunctionTemplates : public UObject
 	GENERATED_BODY()
 
 public:
-	DECLARE_DYNAMIC_DELEGATE_RetVal_TwoParams(bool, FFaerieViewPredicate, const UObject*, WorldContextObj, const FFaerieItemDataView&, View);
-	DECLARE_DYNAMIC_DELEGATE_RetVal_ThreeParams(bool, FFaerieViewComparator, const UObject*, WorldContextObj, const FFaerieItemDataView&, ViewA, const FFaerieItemDataView&, ViewB);
+	DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(bool, FFaerieProxyPredicate, const FFaerieItemProxy&, Proxy);
+	DECLARE_DYNAMIC_DELEGATE_RetVal_TwoParams(bool, FFaerieProxyComparator, const FFaerieItemProxy&, ProxyA, const FFaerieItemProxy&, ProxyB);
 
-	static UFunction* GetFaerieViewPredicateFunction();
-	static UFunction* GetFaerieViewComparatorFunction();
+	static UFunction* GetFaerieProxyPredicateFunction();
+	static UFunction* GetFaerieProxyComparatorFunction();
 };

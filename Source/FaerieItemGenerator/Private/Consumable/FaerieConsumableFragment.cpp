@@ -15,8 +15,8 @@ namespace Faerie::Generation
 	bool CanConsume(const FFaerieItemProxy& Proxy, const TNotNull<const UScriptStruct*> FragmentType,
 		const TNotNull<const AActor*> Consumer, const int32 Cost)
 	{
-		ItemData::FOptionalEntityManager EntityManager(Consumer);
-		TConstStructView<FFaerieMassFragment> Fragment = ItemData::GetEntityFragmentOrDefault(EntityManager, Proxy->GetItemInstance().GetValue(), FragmentType);
+		auto* EntityManager = ItemData::GetFaerieEntityManager();
+		TConstStructView<FFaerieMassFragment> Fragment = ItemData::GetEntityFragmentOrDefault(EntityManager, Proxy.GetItemInstance().GetValue(), FragmentType);
 		if (Fragment.IsValid())
 		{
 			if (const FFaerieConsumableFragment* ConsumableFragment = Fragment.GetPtr<FFaerieConsumableFragment>())
@@ -33,8 +33,8 @@ namespace Faerie::Generation
 
 	bool TryConsume(const FFaerieItemProxy& Proxy, const TNotNull<const UScriptStruct*> FragmentType, const TNotNull<AActor*> Consumer, const int32 Cost)
 	{
-		ItemData::FOptionalEntityManager EntityManager(Consumer);
-		TConstStructView<FFaerieMassFragment> Fragment = ItemData::GetEntityFragmentOrDefault(EntityManager, Proxy->GetItemInstance().GetValue(), FragmentType);
+		auto* EntityManager = ItemData::GetFaerieEntityManager();
+		TConstStructView<FFaerieMassFragment> Fragment = ItemData::GetEntityFragmentOrDefault(EntityManager, Proxy.GetItemInstance().GetValue(), FragmentType);
 		if (Fragment.IsValid())
 		{
 			if (const FFaerieConsumableFragment* ConsumableFragment = Fragment.GetPtr<FFaerieConsumableFragment>())
@@ -49,10 +49,10 @@ namespace Faerie::Generation
 		return false;
 	}
 
-	bool CanRemoveUses(const FFaerieItemProxy& Proxy,
-	const ItemData::FRequireEntityManager& EntityManager, const int32 Cost, const bool ResultIfNoUsesFragment)
+	bool CanRemoveUses(const FFaerieItemProxy& Proxy, const FMassEntityManager& EntityManager, const int32 Cost,
+		const bool ResultIfNoUsesFragment)
 	{
-		const TOptional<FFaerieItemInstance> Item = Proxy->GetItemInstance();
+		const TOptional<FFaerieItemInstance> Item = Proxy.GetItemInstance();
 		ItemData::FUsesHelper Uses(EntityManager, Item.GetValue());
 		if (Uses.HasFragmentValue())
 		{
@@ -62,9 +62,9 @@ namespace Faerie::Generation
 		return ResultIfNoUsesFragment;
 	}
 
-	void RemoveUses(const FFaerieItemProxy& Proxy, const ItemData::FRequireEntityManager& EntityManager, const int32 Cost)
+	void RemoveUses(const FFaerieItemProxy& Proxy, FMassEntityManager& EntityManager, const int32 Cost)
 	{
-		const TOptional<FFaerieItemInstance> Item = Proxy->GetItemInstance();
+		const TOptional<FFaerieItemInstance> Item = Proxy.GetItemInstance();
 		ItemData::FUsesHelper Uses(EntityManager, Item.GetValue());
 		if (Uses.HasFragmentValue())
 		{
@@ -79,6 +79,6 @@ using namespace Faerie;
 bool UFaerieConsumableLogicBase::TestConsumable(const TConstStructView<FFaerieMassFragment>& Fragment,
 	const FFaerieItemProxy& Proxy, const TNotNull<const AActor*> Consumer, const int32 Cost) const
 {
-	const ItemData::FRequireEntityManager EntityManager(Consumer);
+	auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
 	return Generation::CanRemoveUses(Proxy, EntityManager, Cost, true);
 }

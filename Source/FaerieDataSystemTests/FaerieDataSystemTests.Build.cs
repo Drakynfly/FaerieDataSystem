@@ -13,6 +13,7 @@ public class FaerieDataSystemTests : ModuleRules
             {
                 "Core",
                 "DeveloperSettings",
+                "FaerieDataUtils",
                 "FaerieItemData",
                 "FaerieInventory"
             }

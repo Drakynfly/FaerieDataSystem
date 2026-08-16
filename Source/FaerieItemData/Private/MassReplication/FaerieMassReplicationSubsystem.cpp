@@ -13,6 +13,8 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieMassReplicationSubsystem)
 
+using namespace Faerie;
+
 void UFaerieMassReplicationSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
@@ -22,7 +24,7 @@ void UFaerieMassReplicationSubsystem::Initialize(FSubsystemCollectionBase& Colle
 	// Setup the Entity Manager singleton for Faerie.
 	// @Todo is it worth creating our own separate manager, or using the common one... maybe make this a toggle?
 	auto& EntityManager = MassEntitySubsystem->GetMutableEntityManager();
-	Faerie::ItemData::SetFaerieEntityManager(EntityManager);
+	ItemData::SetFaerieEntityManager(&EntityManager);
 }
 
 void UFaerieMassReplicationSubsystem::PostInitialize()
@@ -48,8 +50,16 @@ void UFaerieMassReplicationSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 	ReplicationActor = InWorld.SpawnActor<AFaerieMassReplicationActor>();
 }
 
-void UFaerieMassReplicationSubsystem::Server_UpdateFragment(const Faerie::ItemData::FReference& Item,
-	const TConstArrayView<TConstStructView<FFaerieMassFragment>> FragmentViews)
+void UFaerieMassReplicationSubsystem::Deinitialize()
+{
+	// @todo this can crash things that attempt to access the manager on shutdown, like the auto-save.
+	//Faerie::ItemData::SetFaerieEntityManager(nullptr);
+
+	Super::Deinitialize();
+}
+
+void UFaerieMassReplicationSubsystem::Server_UpdateFragment(const TValid<const FFaerieItemInstance&> Item,
+															const TConstArrayView<TConstStructView<FFaerieMassFragment>> FragmentViews)
 {
 	if (ensure(IsValid(ReplicationActor) && !FragmentViews.IsEmpty()))
 	{
@@ -57,7 +67,7 @@ void UFaerieMassReplicationSubsystem::Server_UpdateFragment(const Faerie::ItemDa
 	}
 }
 
-void UFaerieMassReplicationSubsystem::Server_RemoveFragment(const Faerie::ItemData::FReference& Item,
+void UFaerieMassReplicationSubsystem::Server_RemoveFragment(const TValid<const FFaerieItemInstance&> Item,
 	const TNotNull<const UScriptStruct*> ScriptStruct)
 {
 	if (ensure(IsValid(ReplicationActor)))
@@ -66,7 +76,7 @@ void UFaerieMassReplicationSubsystem::Server_RemoveFragment(const Faerie::ItemDa
 	}
 }
 
-void UFaerieMassReplicationSubsystem::Server_RemoveEntity(const Faerie::ItemData::FReference& Item)
+void UFaerieMassReplicationSubsystem::Server_RemoveEntity(const TValid<const FFaerieItemInstance&> Item)
 {
 	if (ensure(IsValid(ReplicationActor)))
 	{

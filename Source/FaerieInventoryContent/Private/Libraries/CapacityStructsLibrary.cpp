@@ -2,28 +2,28 @@
 
 #include "CapacityStructsLibrary.h"
 #include "EntityManagerHelpers.h"
-#include "FaerieItem.h"
+#include "FaerieItemProxy.h"
 
 #include "Capacity/FaerieCapacityHelper.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(CapacityStructsLibrary)
 
-FFaerieItemCapacity UFaerieCapacityStructsUtilities::GetCapacity(UObject* WorldContextObj, const FFaerieItemInstance& Instance)
+FFaerieItemCapacity UFaerieCapacityStructsUtilities::GetCapacity(const FFaerieItemProxy& Proxy)
 {
-	if (!IsValid(WorldContextObj))
+	if (!Proxy.IsValid())
 	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid WorldContextObj passed to UFaerieCapacityStructsUtilities::GetCapacity"), ELogVerbosity::Error);
+		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieCapacityStructsUtilities::GetCapacity"), ELogVerbosity::Error);
 		return FFaerieItemCapacity();
 	}
 
-	if (!Instance.IsValid())
+	auto InstanceOpt = Proxy.GetItemInstance();
+	if (!InstanceOpt.IsSet())
 	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid Item passed to UFaerieCapacityStructsUtilities::GetCapacity"), ELogVerbosity::Error);
 		return FFaerieItemCapacity();
 	}
 
-	const Faerie::ItemData::FOptionalEntityManager EntityManager(WorldContextObj);
-	const Faerie::ItemData::FCapacityHelper Capacity(EntityManager, Instance);
+	auto* EntityManager = Faerie::ItemData::GetFaerieEntityManager();
+	const Faerie::ItemData::FCapacityHelper Capacity(EntityManager, InstanceOpt.GetValue());
 	if (Capacity.HasCapacity())
 	{
 		return Capacity.GetCapacity();
@@ -31,22 +31,22 @@ FFaerieItemCapacity UFaerieCapacityStructsUtilities::GetCapacity(UObject* WorldC
 	return FFaerieItemCapacity();
 }
 
-int32 UFaerieCapacityStructsUtilities::GetWeightOfStack(UObject* WorldContextObj, const FFaerieItemInstance& Instance, const int32 Stack)
+int32 UFaerieCapacityStructsUtilities::GetWeightOfStack(const FFaerieItemProxy& Proxy, const int32 Stack)
 {
-	if (!IsValid(WorldContextObj))
+	if (!Proxy.IsValid())
 	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid WorldContextObj passed to UFaerieCapacityStructsUtilities::GetWeightOfStack"), ELogVerbosity::Error);
+		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieCapacityStructsUtilities::GetWeightOfStack"), ELogVerbosity::Error);
 		return 0;
 	}
 
-	if (!Instance.IsValid())
+	auto InstanceOpt = Proxy.GetItemInstance();
+	if (!InstanceOpt.IsSet())
 	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid Item passed to UFaerieCapacityStructsUtilities::GetWeightOfStack"), ELogVerbosity::Error);
 		return 0;
 	}
 
-	const Faerie::ItemData::FOptionalEntityManager EntityManager(WorldContextObj);
-	const Faerie::ItemData::FCapacityHelper Capacity(EntityManager, Instance);
+	auto* EntityManager = Faerie::ItemData::GetFaerieEntityManager();
+	const Faerie::ItemData::FCapacityHelper Capacity(EntityManager, InstanceOpt.GetValue());
 	if (Capacity.HasCapacity())
 	{
 		return Capacity.GetWeightOfStack(Stack);
@@ -54,22 +54,22 @@ int32 UFaerieCapacityStructsUtilities::GetWeightOfStack(UObject* WorldContextObj
 	return 0;
 }
 
-int64 UFaerieCapacityStructsUtilities::GetVolumeOfStack(UObject* WorldContextObj, const FFaerieItemInstance& Instance, const int32 Stack)
+int64 UFaerieCapacityStructsUtilities::GetVolumeOfStack(const FFaerieItemProxy& Proxy, const int32 Stack)
 {
-	if (!IsValid(WorldContextObj))
+	if (!Proxy.IsValid())
 	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid WorldContextObj passed to UFaerieCapacityStructsUtilities::GetVolumeOfStack"), ELogVerbosity::Error);
+		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieCapacityStructsUtilities::GetVolumeOfStack"), ELogVerbosity::Error);
 		return 0;
 	}
 
-	if (!Instance.IsValid())
+	auto InstanceOpt = Proxy.GetItemInstance();
+	if (!InstanceOpt.IsSet())
 	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid Item passed to UFaerieCapacityStructsUtilities::GetVolumeOfStack"), ELogVerbosity::Error);
 		return 0;
 	}
 
-	const Faerie::ItemData::FOptionalEntityManager EntityManager(WorldContextObj);
-	const Faerie::ItemData::FCapacityHelper Capacity(EntityManager, Instance);
+	auto* EntityManager = Faerie::ItemData::GetFaerieEntityManager();
+	const Faerie::ItemData::FCapacityHelper Capacity(EntityManager, InstanceOpt.GetValue());
 	if (Capacity.HasCapacity())
 	{
 		return Capacity.GetVolumeOfStack(Stack);
@@ -77,22 +77,22 @@ int64 UFaerieCapacityStructsUtilities::GetVolumeOfStack(UObject* WorldContextObj
 	return 0;
 }
 
-int64 UFaerieCapacityStructsUtilities::GetEfficientVolume(UObject* WorldContextObj, const FFaerieItemInstance& Instance, const int32 Stack)
+int64 UFaerieCapacityStructsUtilities::GetEfficientVolume(const FFaerieItemProxy& Proxy, const int32 Stack)
 {
-	if (!IsValid(WorldContextObj))
+	if (!Proxy.IsValid())
 	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid WorldContextObj passed to UFaerieCapacityStructsUtilities::GetEfficientVolume"), ELogVerbosity::Error);
+		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieCapacityStructsUtilities::GetEfficientVolume"), ELogVerbosity::Error);
 		return 0;
 	}
 
-	if (!Instance.IsValid())
+	auto InstanceOpt = Proxy.GetItemInstance();
+	if (!InstanceOpt.IsSet())
 	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid Item passed to UFaerieCapacityStructsUtilities::GetEfficientVolume"), ELogVerbosity::Error);
 		return 0;
 	}
 
-	const Faerie::ItemData::FOptionalEntityManager EntityManager(WorldContextObj);
-	const Faerie::ItemData::FCapacityHelper Capacity(EntityManager, Instance);
+	auto* EntityManager = Faerie::ItemData::GetFaerieEntityManager();
+	const Faerie::ItemData::FCapacityHelper Capacity(EntityManager, InstanceOpt.GetValue());
 	if (Capacity.HasCapacity())
 	{
 		return Capacity.GetEfficientVolume(Stack);
@@ -100,23 +100,22 @@ int64 UFaerieCapacityStructsUtilities::GetEfficientVolume(UObject* WorldContextO
 	return 0;
 }
 
-FFaerieWeightAndVolume UFaerieCapacityStructsUtilities::GetWeightAndVolumeOfStack(UObject* WorldContextObj,
-	const FFaerieItemInstance& Instance, const int32 Stack)
+FFaerieWeightAndVolume UFaerieCapacityStructsUtilities::GetWeightAndVolumeOfStack(const FFaerieItemProxy& Proxy, const int32 Stack)
 {
-	if (!IsValid(WorldContextObj))
+	if (!Proxy.IsValid())
 	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid WorldContextObj passed to UFaerieCapacityStructsUtilities::GetWeightAndVolumeOfStack"), ELogVerbosity::Error);
+		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieCapacityStructsUtilities::GetWeightAndVolumeOfStack"), ELogVerbosity::Error);
 		return FFaerieWeightAndVolume();
 	}
 
-	if (!Instance.IsValid())
+	auto InstanceOpt = Proxy.GetItemInstance();
+	if (!InstanceOpt.IsSet())
 	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid Item passed to UFaerieCapacityStructsUtilities::GetWeightAndVolumeOfStack"), ELogVerbosity::Error);
 		return FFaerieWeightAndVolume();
 	}
 
-	const Faerie::ItemData::FOptionalEntityManager EntityManager(WorldContextObj);
-	const Faerie::ItemData::FCapacityHelper Capacity(EntityManager, Instance);
+	auto* EntityManager = Faerie::ItemData::GetFaerieEntityManager();
+	const Faerie::ItemData::FCapacityHelper Capacity(EntityManager, InstanceOpt.GetValue());
 	if (Capacity.HasCapacity())
 	{
 		return Capacity.GetWeightAndVolumeOfStack(Stack);
@@ -124,23 +123,22 @@ FFaerieWeightAndVolume UFaerieCapacityStructsUtilities::GetWeightAndVolumeOfStac
 	return FFaerieWeightAndVolume();
 }
 
-FFaerieWeightAndVolume UFaerieCapacityStructsUtilities::GetWeightAndVolumeOfPartialStack(UObject* WorldContextObj,
-	const FFaerieItemInstance& Instance, const int32 Stack)
+FFaerieWeightAndVolume UFaerieCapacityStructsUtilities::GetWeightAndVolumeOfPartialStack(const FFaerieItemProxy& Proxy, const int32 Stack)
 {
-	if (!IsValid(WorldContextObj))
+	if (!Proxy.IsValid())
 	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid WorldContextObj passed to UFaerieCapacityStructsUtilities::GetWeightAndVolumeOfPartialStack"), ELogVerbosity::Error);
+		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieCapacityStructsUtilities::GetWeightAndVolumeOfPartialStack"), ELogVerbosity::Error);
 		return FFaerieWeightAndVolume();
 	}
 
-	if (!Instance.IsValid())
+	auto InstanceOpt = Proxy.GetItemInstance();
+	if (!InstanceOpt.IsSet())
 	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid Instance passed to UFaerieCapacityStructsUtilities::GetWeightAndVolumeOfPartialStack"), ELogVerbosity::Error);
 		return FFaerieWeightAndVolume();
 	}
 
-	const Faerie::ItemData::FOptionalEntityManager EntityManager(WorldContextObj);
-	const Faerie::ItemData::FCapacityHelper Capacity(EntityManager, Instance);
+	auto* EntityManager = Faerie::ItemData::GetFaerieEntityManager();
+	const Faerie::ItemData::FCapacityHelper Capacity(EntityManager, InstanceOpt.GetValue());
 	if (Capacity.HasCapacity())
 	{
 		return Capacity.GetWeightAndVolumeOfPartialStack(Stack);

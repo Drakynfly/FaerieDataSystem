@@ -44,9 +44,9 @@ namespace Faerie::Container
 	}
 
 	template <typename TPredicate>
-	concept CFilterPredicate = requires(const TPredicate& Predicate, TNotNull<const UObject*> WorldContextObj, ItemData::FValidatedDataView View)
+	concept CFilterPredicate = requires(const TPredicate& Predicate, const FMassEntityManager* EntityManager, TValid<const FFaerieItemProxy&> Proxy)
 	{
-		{ Predicate.Exec(WorldContextObj, View) } -> UE::CSameAs<bool>;
+		{ Predicate.Exec(EntityManager, Proxy) } -> UE::CSameAs<bool>;
 	};
 
 	template <bool View, typename ResolveType, typename Interface, EFilterFlags Flags, CFilterPredicate... TPredicates>
@@ -56,8 +56,8 @@ namespace Faerie::Container
 		using FieldType = std::conditional_t<View, const Utils::TPredicateTuple<TPredicates...>&, Utils::TPredicateTuple<TPredicates...>>;
 
 	public:
-		explicit TFilteringIterator(InputType PredicateTuple, const TNotNull<const UFaerieItemContainerBase*> Container)
-		  : WorldContextObj(Container),
+		explicit TFilteringIterator(InputType PredicateTuple, const FMassEntityManager* EntityManager, const TNotNull<const UFaerieItemContainerBase*> Container)
+		  : EntityManager(EntityManager),
 			PredicateTuple(MoveTempIfPossible(PredicateTuple)),
 			Iterator(Container)
 		{
@@ -82,12 +82,12 @@ namespace Faerie::Container
 				if constexpr (EnumHasAnyFlags(Flags, EFilterFlags::Inverted))
 				{
 					// Test for not passing the predicates
-					return !PredicateTuple.TestAll(WorldContextObj, Iterator.GetPtr());
+					return !PredicateTuple.TestAll(EntityManager, Iterator.GetProxy());
 				}
 				else
 				{
 					// Test for passing the predicates
-					return PredicateTuple.TestAll(WorldContextObj, Iterator.GetPtr());
+					return PredicateTuple.TestAll(EntityManager, Iterator.GetProxy());
 				}
 			};
 
@@ -108,7 +108,7 @@ namespace Faerie::Container
 		[[nodiscard]] UE_REWRITE Utils::EIteratorType end() const { return Utils::End; }
 
 	private:
-		TNotNull<const UObject*> WorldContextObj;
+		const FMassEntityManager* EntityManager;
 		FieldType PredicateTuple;
 
 		// If MutableOnly has been enabled by a predicate, use the automatic skip feature in TIterator
@@ -198,40 +198,40 @@ namespace Faerie::Container
 		}
 
 		// Create an iterator from this filter.
-		[[nodiscard]] UE_REWRITE auto Iterate(TNotNull<const UFaerieItemContainerBase*> Container) const &
+		[[nodiscard]] UE_REWRITE auto Iterate(const FMassEntityManager* EntityManager, TNotNull<const UFaerieItemContainerBase*> Container) const &
 		{
-			return TFilteringIterator<true, ResolveType, Interface, Flags, TPredicates...>(PredicateTuple, Container);
+			return TFilteringIterator<true, ResolveType, Interface, Flags, TPredicates...>(PredicateTuple, EntityManager, Container);
 		}
 
 		// Create an iterator from this filter.
-		[[nodiscard]] UE_REWRITE auto Iterate(TNotNull<const UFaerieItemContainerBase*> Container) &&
+		[[nodiscard]] UE_REWRITE auto Iterate(const FMassEntityManager* EntityManager, TNotNull<const UFaerieItemContainerBase*> Container) &&
 		{
-			return TFilteringIterator<false, ResolveType, Interface, Flags, TPredicates...>(MoveTemp(PredicateTuple), Container);
+			return TFilteringIterator<false, ResolveType, Interface, Flags, TPredicates...>(MoveTemp(PredicateTuple), EntityManager, Container);
 		}
 
-		[[nodiscard]] int32 Count(const TNotNull<const UFaerieItemContainerBase*> Container) const
+		[[nodiscard]] int32 Count(const FMassEntityManager* EntityManager, const TNotNull<const UFaerieItemContainerBase*> Container) const
 		{
 			int32 OutCount = 0;
-			for (auto It = Iterate(Container); It; ++It)
+			for (auto It = Iterate(EntityManager, Container); It; ++It)
 			{
 				OutCount++;
 			}
 			return OutCount;
 		}
 
-		[[nodiscard]] TArray<ResolveType> Emit(const TNotNull<const UFaerieItemContainerBase*> Container) const
+		[[nodiscard]] TArray<ResolveType> Emit(const FMassEntityManager* EntityManager, const TNotNull<const UFaerieItemContainerBase*> Container) const
 		{
 			TArray<ResolveType> OutItems;
-			for (auto It = Iterate(Container); It; ++It)
+			for (auto It = Iterate(EntityManager, Container); It; ++It)
 			{
 				OutItems.Add(*It);
 			}
 			return OutItems;
 		}
 
-		[[nodiscard]] ResolveType First(const TNotNull<const UFaerieItemContainerBase*> Container) const
+		[[nodiscard]] ResolveType First(const FMassEntityManager* EntityManager, const TNotNull<const UFaerieItemContainerBase*> Container) const
 		{
-			if (auto It = Iterate(Container); It)
+			if (auto It = Iterate(EntityManager, Container); It)
 			{
 				return *It;
 			}

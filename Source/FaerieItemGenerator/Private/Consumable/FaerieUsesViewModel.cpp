@@ -2,7 +2,7 @@
 
 #include "Consumable/FaerieUsesViewModel.h"
 #include "Consumable/FaerieItemUsesFragment.h"
-#include "EntityManagerHelpers.h"
+#include "FaerieItem.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieUsesViewModel)
 
@@ -13,23 +13,24 @@ TNotNull<UScriptStruct*> UFaerieUsesViewModel::GetFragmentType() const
 	return FFaerieItemUses::StaticStruct();
 }
 
-void UFaerieUsesViewModel::OnProxySet()
+void UFaerieUsesViewModel::OnProxySet(const FMassEntityManager& EntityManager)
 {
 	int32 NewUsesRemaining = 0;
 	int32 NewMaxUses = 0;
 
 	if (ItemProxy.IsValid())
 	{
-		const ItemData::FOptionalEntityManager EntityManager(this);
-		const ItemData::FUsesHelper Helper(EntityManager, ItemProxy->GetItemInstance().GetValue());
+		const TConstStructView<FFaerieItemUses> Value =
+			ItemData::GetEntityFragmentOrDefault<FFaerieItemUses>(
+				&EntityManager,
+				ItemProxy.GetItemInstanceOrInvalid());
 
-		UE_MVVM_SET_PROPERTY_VALUE(HasUses, Helper.HasFragmentValue());
+		UE_MVVM_SET_PROPERTY_VALUE(HasUses, Value.IsValid());
 
 		if (HasUses)
 		{
-			auto&& Uses = Helper.GetFragmentValue();
-			NewUsesRemaining = Uses->UsesRemaining;
-			NewMaxUses = Uses->MaxUses;
+			NewUsesRemaining = Value->UsesRemaining;
+			NewMaxUses = Value->MaxUses;
 		}
 	}
 	else
@@ -41,10 +42,12 @@ void UFaerieUsesViewModel::OnProxySet()
 	UE_MVVM_SET_PROPERTY_VALUE(MaxUses, NewMaxUses);
 }
 
-void UFaerieUsesViewModel::OnFieldChange(const ItemData::FFieldChange& Data)
+void UFaerieUsesViewModel::OnFieldChange(const FMassEntityManager& EntityManager, const ItemData::FFieldChange& Data)
 {
-	const ItemData::FUsesHelper Helper(ItemData::FOptionalEntityManager(this), ItemProxy->GetItemInstance().GetValue());
-	const FFaerieItemUses* Value = Helper.GetFragmentValue();
+	const TConstStructView<FFaerieItemUses> Value =
+		ItemData::GetEntityFragmentOrDefault<FFaerieItemUses>(
+			&EntityManager,
+			ItemProxy.GetItemInstanceOrInvalid());
 
 	for (auto&& Field : Data.Fields)
 	{
@@ -59,7 +62,7 @@ void UFaerieUsesViewModel::OnFieldChange(const ItemData::FFieldChange& Data)
 	}
 }
 
-void UFaerieUsesViewModel::CheckForFieldChange(const ItemData::FReference& Item,
+void UFaerieUsesViewModel::CheckForFieldChange(const TValid<const FFaerieItemInstance&> Item,
 	const FConstStructView FragmentView)
 {
 	const FFaerieItemUses& MassCapacity = FragmentView.Get<const FFaerieItemUses>();

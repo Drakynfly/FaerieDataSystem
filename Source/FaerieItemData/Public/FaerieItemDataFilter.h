@@ -4,62 +4,69 @@
 
 #include "UObject/Object.h"
 #include "FaerieItemFilterEnums.h"
-#include "FaerieItemDataFilter.generated.h"
+#include "FaerieItemProxy.h"
 
-struct FFaerieItemDataView;
+#include "Templates/SubclassOf.h"
+
+#include "FaerieItemDataFilter.generated.h"
 
 namespace Faerie::ItemData
 {
-	struct FValidatedDataView;
-
+#if WITH_EDITOR
 	class FFilterLogger
 	{
 	public:
 		TArray<FText> Errors;
 	};
+#endif
 }
 
-/**
- *
- */
-UCLASS(Abstract, Const, EditInlineNew, DefaultToInstanced, CollapseCategories)
-class FAERIEITEMDATA_API UFaerieItemDataFilter : public UObject
+USTRUCT(meta = (Hidden))
+struct FAERIEITEMDATA_API FFaerieItemDataFilterBase
 {
 	GENERATED_BODY()
 
-public:
+	virtual ~FFaerieItemDataFilterBase() = default;
+
+	virtual bool Exec(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const
+		PURE_VIRTUAL(FFaerieItemDataFilterBase::Exec, return false; )
+
 #if WITH_EDITOR
+	// Overload with ability to log errors. Used by editor validation to collect info about failures.
+	virtual bool ExecWithLog(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy, Faerie::ItemData::FFilterLogger& Logger) const;
+
 	// This function allows the owning object to know if this filter will allow mutable or immutable assets through, or
 	// if it doesn't know. The default is unknown, and specific children must override one way or the other.
 	// This function is only called in the editor and saved to a variable when needed at runtime.
 	virtual EFaerieItemDataMutabilityStatus GetMutabilityStatus() const { return EFaerieItemDataMutabilityStatus::Unknown; }
 #endif
-
-	virtual bool Exec(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const
-		PURE_VIRTUAL(UFaerieItemDataFilter::Exec, return false; )
-
-	// Overload with ability to log errors. Used by editor validation to collect info about failures.
-	virtual bool ExecWithLog(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View, Faerie::ItemData::FFilterLogger& Logger) const;
-
-protected:
-	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataFilter", meta = (WorldContext = WorldContextObj))
-	bool K2_Exec(UObject* WorldContextObj, const FFaerieItemDataView& View) const;
 };
 
-UCLASS(Abstract, Blueprintable)
-class UFaerieItemDataFilter_BlueprintBase final : public UFaerieItemDataFilter
+UCLASS(Abstract, Const, Blueprintable)
+class UFaerieItemDataFilter_BlueprintBase final : public UObject
 {
 	GENERATED_BODY()
 
 public:
+	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent, meta = (DisplayName = "Execute"))
+	bool BP_Execute(const FFaerieItemProxy& Proxy) const;
+
+	UFUNCTION(BlueprintImplementableEvent)
+	EFaerieItemDataMutabilityStatus GetMutabilityStatus() const;
+};
+
+USTRUCT()
+struct FFaerieItemDataFilter_Blueprint final : public FFaerieItemDataFilterBase
+{
+	GENERATED_BODY()
+
+	virtual bool Exec(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
+
 #if WITH_EDITOR
-	virtual EFaerieItemDataMutabilityStatus GetMutabilityStatus() const override { return EFaerieItemDataMutabilityStatus::Unknown; }
+	virtual bool ExecWithLog(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy, Faerie::ItemData::FFilterLogger& Logger) const override;
+	virtual EFaerieItemDataMutabilityStatus GetMutabilityStatus() const override;
 #endif
 
-	virtual bool Exec(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View) const override;
-	virtual bool ExecWithLog(TNotNull<const UObject*> WorldContextObj, const Faerie::ItemData::FValidatedDataView& View, Faerie::ItemData::FFilterLogger& Logger) const override;
-
-protected:
-	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Execute"))
-	bool BP_Execute(UObject* WorldContextObj, const FFaerieItemDataView& View) const;
+	UPROPERTY(EditAnywhere, Category = "Blueprint Filter")
+	TSubclassOf<UFaerieItemDataFilter_BlueprintBase> Blueprint;
 };

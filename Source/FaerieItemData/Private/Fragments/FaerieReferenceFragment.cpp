@@ -6,7 +6,7 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieReferenceFragment)
 
-const UFaerieItemAsset* FFaerieReferenceFragment::GetReferencedAsset(const Faerie::ItemData::FOptionalEntityManager& EntityManager, const Faerie::ItemData::FReference& Item, const FGameplayTag ReferenceTag, const bool MatchExact)
+const UFaerieItemAsset* FFaerieReferenceFragment::GetReferencedAsset(const FMassEntityManager* EntityManager, const Faerie::TValid<const FFaerieItemInstance&> Item, const FGameplayTag ReferenceTag, const bool MatchExact)
 {
 	auto ReferenceView = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieReferenceFragment>(EntityManager, Item);
 	if (ReferenceView.IsValid())
@@ -16,7 +16,7 @@ const UFaerieItemAsset* FFaerieReferenceFragment::GetReferencedAsset(const Faeri
 	return nullptr;
 }
 
-const UFaerieItem* FFaerieReferenceFragment::GetReferencedItem(const Faerie::ItemData::FOptionalEntityManager& EntityManager, const Faerie::ItemData::FReference& Item, const FGameplayTag ReferenceTag, const bool MatchExact)
+const UFaerieItem* FFaerieReferenceFragment::GetReferencedItem(const FMassEntityManager* EntityManager, const Faerie::TValid<const FFaerieItemInstance&> Item, const FGameplayTag ReferenceTag, const bool MatchExact)
 {
 	auto ReferenceView = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieReferenceFragment>(EntityManager, Item);
 	if (ReferenceView.IsValid())

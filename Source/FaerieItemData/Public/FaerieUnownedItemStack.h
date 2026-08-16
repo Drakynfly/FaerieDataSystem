@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include "FaerieItemDataView.h"
+#include "FaerieItemDataDefines.h"
+#include "FaerieItemInstance.h"
 #include "FaerieUnownedItemStack.generated.h"
 
 /**
@@ -18,16 +19,16 @@ struct FAERIEITEMDATA_API FFaerieUnownedItemStack
 
 	FFaerieUnownedItemStack() = default;
 
-	FFaerieUnownedItemStack(const Faerie::ItemData::FReference& Reference, const int32 Copies)
-	  : Instance(Reference.GetInstance()),
+	FFaerieUnownedItemStack(const FFaerieItemInstance& Instance, const int32 Copies)
+	  : Instance(Instance),
 		Copies(Copies) {}
 
 	// The item instance
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UnownedItemStack")
+	UPROPERTY()
 	FFaerieItemInstance Instance;
 
 	// Copies in this stack
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UnownedItemStack")
+	UPROPERTY()
 	int32 Copies = 0;
 
 	[[nodiscard]] UE_REWRITE bool IsValid() const

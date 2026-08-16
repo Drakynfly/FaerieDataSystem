@@ -41,19 +41,19 @@ void UFaerieItemUpgradeConfig::GetRequiredAssets(TArray<TSoftObjectPtr<UObject>>
 	Mutators.GetRequiredAssets(Array);
 }
 
-bool UFaerieItemUpgradeConfig::CanPayCost(TNotNull<UObject*> WorldContext, const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemProxy& Proxy) const
+bool UFaerieItemUpgradeConfig::CanPayCost(const FMassEntityManager* EntityManager, const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemProxy& Proxy) const
 {
 	return true;
 }
 
-void UFaerieItemUpgradeConfig::PayCost(TNotNull<UObject*> WorldContext, const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemProxy& Proxy) const
+void UFaerieItemUpgradeConfig::PayCost(FMassEntityManager* EntityManager, const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemProxy& Proxy) const
 {
 }
 
-bool UFaerieItemUpgradeConfig::ApplyUpgrade(TNotNull<UObject*> WorldContext, FFaerieCraftingActionData& Stacks, USquirrel* Squirrel) const
+bool UFaerieItemUpgradeConfig::ApplyUpgrade(FMassEntityManager* EntityManager, FFaerieCraftingActionData& Stacks, USquirrel* Squirrel) const
 {
 	FFaerieItemMutatorContext_UpgradeConfig Context;
-	Context.WorldContextObject = WorldContext;
+	Context.EntityManager = EntityManager;
 	Context.Squirrel = Squirrel;
 	Context.Config = this;
 
@@ -65,50 +65,55 @@ bool UFaerieItemUpgradeConfig::ApplyUpgrade(TNotNull<UObject*> WorldContext, FFa
 		}
 
 		// Apply the mutator, and fail if it doesn't apply, when RequireMutatorToRun is enabled.
-		Faerie::ItemData::FMutableReference Item(OperationStack.Instance);
-		if (!Mutators.Apply(Item, Context) && RequireMutatorToRun)
+		if (!Mutators.Apply(OperationStack.Instance, Context) && RequireMutatorToRun)
 		{
 			return false;
 		}
-
-		// Reassign item pointer in case the mutator swapped it with a new instance.
-		OperationStack.Instance = Item.GetInstance();
 	}
 	return true;
 }
 
-bool UFaerieItemUpgradeConfig_BlueprintBase::CanApplyUpgrade(const TNotNull<UObject*> WorldContext, const FFaerieItemProxy& Proxy) const
+bool UFaerieItemUpgradeConfig_BlueprintBase::CanApplyUpgrade(const FMassEntityManager* EntitManager, const FFaerieItemProxy& Proxy) const
 {
 	if (GetClass()->IsFunctionImplementedInScript(GET_FUNCTION_NAME_CHECKED(ThisClass, BP_CanApplyUpgrade)))
 	{
-		return BP_CanApplyUpgrade(WorldContext, Proxy);
+		return BP_CanApplyUpgrade(Proxy);
 	}
 	return true;
 }
 
-bool UFaerieItemUpgradeConfig_BlueprintBase::CanPayCost(const TNotNull<UObject*> WorldContext,
+bool UFaerieItemUpgradeConfig_BlueprintBase::CanPayCost(const FMassEntityManager* EntityManager,
 														const FFaerieCraftingFilledSlots& FilledSlots,
 														const FFaerieItemProxy& Proxy) const
 {
 	if (GetClass()->IsFunctionImplementedInScript(GET_FUNCTION_NAME_CHECKED(ThisClass, BP_CanPayCost)))
 	{
-		return BP_CanPayCost(WorldContext, FilledSlots, Proxy);
+		return BP_CanPayCost(FilledSlots, Proxy);
 	}
 	return true;
 }
 
-void UFaerieItemUpgradeConfig_BlueprintBase::PayCost(const TNotNull<UObject*> WorldContext,
+void UFaerieItemUpgradeConfig_BlueprintBase::PayCost(FMassEntityManager* EntityManager,
 													 const FFaerieCraftingFilledSlots& FilledSlots,
 													 const FFaerieItemProxy& Proxy) const
 {
 	if (GetClass()->IsFunctionImplementedInScript(GET_FUNCTION_NAME_CHECKED(ThisClass, BP_PayCost)))
 	{
-		BP_PayCost(WorldContext, FilledSlots, Proxy);
+		BP_PayCost(FilledSlots, Proxy);
 	}
 }
 
-bool UFaerieItemUpgradeConfig_BlueprintBase::ApplyUpgrade(const TNotNull<UObject*> WorldContext,
+bool UFaerieItemUpgradeConfig_BlueprintBase::ApplyUpgrade(FMassEntityManager* EntityManager,
 														  FFaerieCraftingActionData& Stacks, USquirrel* Squirrel) const
 {
-	return BP_ApplyUpgrade(WorldContext, Stacks, Squirrel);
+	bool Success = true;
+	for (auto&& Stack : Stacks.Stacks)
+	{
+		Faerie::ItemData::FScopeProxy Proxy(Stack.Instance, Stack.Copies, nullptr);
+		if (!BP_ApplyUpgrade(FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, &Proxy), Squirrel))
+		{
+			Success = false;
+		}
+	}
+	return Success;
 }

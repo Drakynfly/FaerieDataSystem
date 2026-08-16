@@ -1,7 +1,6 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "Mutators/ItemMutatorGroup.h"
-#include "FaerieItem.h"
 #include "FaerieItemDataView.h"
 
 #include "Misc/DataValidation.h"
@@ -48,7 +47,7 @@ void FFaerieItemMutatorGroup::GetRequiredAssets(TArray<TSoftObjectPtr<UObject>>&
 	}
 }
 
-bool FFaerieItemMutatorGroup::Apply(Faerie::ItemData::FMutableReference& Item, const FFaerieItemMutatorContext& Context) const
+bool FFaerieItemMutatorGroup::Apply(FFaerieItemInstance& Item, const FFaerieItemMutatorContext& Context) const
 {
 	if (Children.IsEmpty())
 	{

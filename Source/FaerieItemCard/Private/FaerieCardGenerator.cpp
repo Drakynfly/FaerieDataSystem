@@ -16,7 +16,7 @@
 
 TSoftClassPtr<UFaerieCardBase> UFaerieCardGenerator::GetCardClassFromProxy(const FFaerieItemProxy& Proxy, const FFaerieItemCardType& Type) const
 {
-	auto&& Instance = Proxy->GetItemInstance();
+	auto&& Instance = Proxy.GetItemInstance();
 	if (!Instance.IsSet())
 	{
 		UE_LOG(LogFaerieItemCard, Warning, TEXT("Unable to determine card class: Invalid Instance!"))
@@ -30,7 +30,8 @@ TSoftClassPtr<UFaerieCardBase> UFaerieCardGenerator::GetCardClassFromProxy(const
 		return nullptr;
 	}
 
-	auto CardFragment = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieItemCardClassFragment>(Faerie::ItemData::FOptionalEntityManager(this), Instance.GetValue());
+	auto* EntityManager = Faerie::ItemData::GetFaerieEntityManager();
+	auto CardFragment = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieItemCardClassFragment>(EntityManager, Instance.GetValue());
 	if (CardFragment.IsValid())
 	{
 		auto&& Class = CardFragment->GetCardClass(Type);

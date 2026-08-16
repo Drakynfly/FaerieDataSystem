@@ -3,6 +3,7 @@
 #pragma once
 
 #include "FaerieItemInstance.h"
+#include "ValidParameter.h"
 #include "FaerieItemContainerPath.generated.h"
 
 class UFaerieItemContainerBase;
@@ -32,7 +33,7 @@ struct FAERIEINVENTORY_API FFaerieItemContainerPath
 	TArray<FFaerieItemContainerPathPair> Containers;
 
 	// Build all paths recursively from a parent (head) container.
-	static void BuildChildrenPaths(Faerie::ItemData::FRequireEntityManager& EntityManager, const Faerie::ItemData::FMutableReference& Owner, TNotNull<UFaerieItemContainerBase*> Head, TArray<FFaerieItemContainerPath>& OutPaths);
+	static void BuildChildrenPaths(const FMassEntityManager& EntityManager, Faerie::TValid<const FFaerieItemInstance&> Owner, TNotNull<UFaerieItemContainerBase*> Head, TArray<FFaerieItemContainerPath>& OutPaths);
 
 	UFaerieItemContainerBase* GetHead() const { return Containers.IsEmpty() ? nullptr : Containers[0].Container; }
 	UFaerieItemContainerBase* GetTail() const { return Containers.IsEmpty() ? nullptr : Containers[Containers.Num()-1].Container; }

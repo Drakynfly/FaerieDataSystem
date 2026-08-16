@@ -15,9 +15,9 @@ struct FFaerieClientAction_MoveToGrid final : public FFaerieClientAction_MoveHan
 	GENERATED_BODY()
 
 	virtual bool IsValid(TNotNull<const UFaerieInventoryClient*> Client) const override;
-	virtual bool CanMove(const FFaerieItemDataView& View) const override;
-	virtual bool Possess(const FFaerieUnownedItemStack& Stack) const override;
-	virtual bool View(FFaerieItemDataView& View) const override;
+	virtual bool View(Faerie::ItemData::FScopeProxy& Proxy) const override;
+	virtual bool CanMove(Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
+	virtual bool Possess(Faerie::TValid<const FFaerieUnownedItemStack&> Stack) const override;
 	virtual bool Release(FFaerieUnownedItemStack& Stack) const override;
 	virtual bool IsSwap() const override;
 

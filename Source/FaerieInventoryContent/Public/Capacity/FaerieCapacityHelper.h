@@ -14,14 +14,14 @@ namespace Faerie::ItemData
 	{
 		UE_NONCOPYABLE(FCapacityHelper)
 
-		FCapacityHelper(const FOptionalEntityManager& InEntityManager UE_LIFETIMEBOUND, const FReference& Instance);
+		FCapacityHelper(const FMassEntityManager* EntityManager UE_LIFETIMEBOUND, TValid<const FFaerieItemInstance&> Instance);
 
 		/*
 		 * Adds capacity to the item if it doesn't have it.
 		 * OverrideDefault will be used instead of the default if provided.
 		 */
-		void CreateCapacity(const FFaerieItemCapacity* OverrideDefault = nullptr);
-		void CreateCapacityIfMissing(const FFaerieItemCapacity* OverrideDefault = nullptr);
+		void CreateCapacity(FMassEntityManager& InEntityManager, FFaerieItemInstance& Instance, const FFaerieItemCapacity* OverrideDefault = nullptr);
+		void CreateCapacityIfMissing(FMassEntityManager& InEntityManager, FFaerieItemInstance& Instance, const FFaerieItemCapacity* OverrideDefault = nullptr);
 
 		bool HasCapacity() const;
 		FFaerieItemCapacity GetCapacity() const;
@@ -50,8 +50,8 @@ namespace Faerie::ItemData
 		void ResetCapacity();
 
 	private:
-		FMassEntityManager* EntityManager;
-		const FReference Item;
+		const FMassEntityManager* EntityManager;
+		const FFaerieItemInstance& Item;
 		const FFaerieItemCapacity* MassCapacity = nullptr;
 		const FFaerieItemCapacity* MassCapacityDefault = nullptr;
 	};

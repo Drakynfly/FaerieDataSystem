@@ -15,8 +15,6 @@ enum class EFaerieSpatialItemRotation : uint8
 	Two_Seventy = 3,
 	MAX UMETA(Hidden)
 };
-ENUM_RANGE_BY_COUNT(EFaerieSpatialItemRotation, EFaerieSpatialItemRotation::MAX)
-
 
 namespace Faerie::Spatial
 {
