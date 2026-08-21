@@ -19,14 +19,14 @@ TSoftClassPtr<UFaerieCardBase> UFaerieCardGenerator::GetCardClassFromProxy(const
 	auto&& Instance = Proxy.GetItemInstance();
 	if (!Instance.IsSet())
 	{
-		UE_LOG(LogFaerieItemCard, Warning, TEXT("Unable to determine card class: Invalid Instance!"))
+		UE_LOGF(LogFaerieItemCard, Warning, "Unable to determine card class: Invalid Instance!")
 		return nullptr;
 	}
 
 	auto&& ItemObj = Instance->GetItemPtr();
 	if (!IsValidChecked(ItemObj))
 	{
-		UE_LOG(LogFaerieItemCard, Warning, TEXT("Unable to determine card class: Invalid Item!"))
+		UE_LOGF(LogFaerieItemCard, Warning, "Unable to determine card class: Invalid Item!")
 		return nullptr;
 	}
 
@@ -51,7 +51,7 @@ TSoftClassPtr<UFaerieCardBase> UFaerieCardGenerator::GetCardClassFromProxy(const
 		}
 	}
 
-	UE_LOG(LogFaerieItemCard, Warning, TEXT("Unable to determine card class: No default for '%s'!"), *Type.GetTagName().ToString())
+	UE_LOGF(LogFaerieItemCard, Warning, "Unable to determine card class: No default for '%ls'!", *Type.GetTagName().ToString())
 
 	return nullptr;
 }
@@ -62,7 +62,7 @@ UFaerieCardBase* UFaerieCardGenerator::Generate(const Faerie::Card::FSyncGenerat
 		!IsValid(Params.Player) ||
 		!Params.Tag.IsValid())
 	{
-		UE_LOG(LogFaerieItemCard, Warning, TEXT("Invalid Params for generation!"))
+		UE_LOGF(LogFaerieItemCard, Warning, "Invalid Params for generation!")
 		return nullptr;
 	}
 
@@ -88,7 +88,7 @@ void UFaerieCardGenerator::GenerateAsync(const Faerie::Card::FAsyncGeneration& P
 		!Params.Player.IsValid() ||
 		!Params.Tag.IsValid())
 	{
-		UE_LOG(LogFaerieItemCard, Warning, TEXT("Invalid Params for generation!"))
+		UE_LOGF(LogFaerieItemCard, Warning, "Invalid Params for generation!")
 		Params.Callback.ExecuteIfBound(false, nullptr);
 		return;
 	}
@@ -121,7 +121,7 @@ void UFaerieCardGenerator::OnCardClassLoaded(FAsyncCallback Params)
 	}
 	else
 	{
-		UE_LOG(LogFaerieItemCard, Warning, TEXT("Generation failed: Async load failed!"))
+		UE_LOGF(LogFaerieItemCard, Warning, "Generation failed: Async load failed!")
 
 		Params.Callback.ExecuteIfBound(false, nullptr);
 	}

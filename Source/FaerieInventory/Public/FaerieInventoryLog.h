@@ -4,4 +4,4 @@
 
 #include "Logging/LogMacros.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogFaerieInventory, Log, All);
+DECLARE_LOG_CATEGORY_EXTERN(LogFaerieInventory, Log, All);

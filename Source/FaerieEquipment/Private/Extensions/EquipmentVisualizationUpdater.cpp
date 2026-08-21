@@ -110,7 +110,7 @@ UEquipmentVisualizer* UEquipmentVisualizationUpdater::GetVisualizer(const UFaeri
 	auto&& Relevants = Extensions::Get<URelevantActorsExtension>(Slot->GetExtensions(), true);
 	if (!IsValid(Relevants))
 	{
-		UE_LOG(LogFaerieEquipment, Warning, TEXT("GetVisualizer failed: Requires a RelevantActorsExtension on the container to find the pawn (%s)!"), *Slot->GetName())
+		UE_LOGF(LogFaerieEquipment, Warning, "GetVisualizer failed: Requires a RelevantActorsExtension on the container to find the pawn (%ls)!", *Slot->GetName())
 		return nullptr;
 	}
 
@@ -124,14 +124,14 @@ UEquipmentVisualizer* UEquipmentVisualizationUpdater::GetVisualizer(const UFaeri
 
 	if (!IsValid(Pawn))
 	{
-		UE_LOG(LogFaerieEquipment, Warning, TEXT("GetVisualizer failed: Failed to find relevant Pawn (%s)!"), *Slot->GetName())
+		UE_LOGF(LogFaerieEquipment, Warning, "GetVisualizer failed: Failed to find relevant Pawn (%ls)!", *Slot->GetName())
 		return nullptr;
 	}
 
 	auto&& Visualizer = Pawn->GetComponentByClass<UEquipmentVisualizer>();
 	if (!IsValid(Visualizer))
 	{
-		UE_LOG(LogFaerieEquipment, Warning, TEXT("GetVisualizer failed: Pawn does not have a visualizer component (%s)!"), *Slot->GetName())
+		UE_LOGF(LogFaerieEquipment, Warning, "GetVisualizer failed: Pawn does not have a visualizer component (%ls)!", *Slot->GetName())
 		return nullptr;
 	}
 
@@ -148,7 +148,7 @@ void UEquipmentVisualizationUpdater::CreateVisualForEntry(const UFaerieEquipment
 
 	if (Visualizer->HasVisualForKey({ FFaerieItemProxy(Slot)}))
 	{
-		UE_LOG(LogFaerieEquipment, Warning, TEXT("Container already has an visual spawned. Existing visuals must be removed before creating new ones!"));
+		UE_LOGF(LogFaerieEquipment, Warning, "Container already has an visual spawned. Existing visuals must be removed before creating new ones!");
 		return;
 	}
 
@@ -209,7 +209,7 @@ void UEquipmentVisualizationUpdater::CreateVisualImpl(UEquipmentVisualizer* Visu
 			const TSubclassOf<AFaerieProxyActorBase> VisualClass = ActorClass.LoadSynchronous();
 			if (!IsValid(VisualClass))
 			{
-				UE_LOG(LogFaerieEquipment, Warning, TEXT("VisualClass failed to load!"))
+				UE_LOGF(LogFaerieEquipment, Warning, "VisualClass failed to load!")
 				return;
 			}
 

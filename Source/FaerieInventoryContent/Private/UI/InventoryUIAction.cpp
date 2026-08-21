@@ -19,7 +19,7 @@ void UInventoryUIAction::Finish()
 {
 	if (!InProgress)
 	{
-		UE_LOG(LogFaerieInventoryContent, Error, TEXT("Action cannot finish. Is not in progress!"))
+		UE_LOGF(LogFaerieInventoryContent, Error, "Action cannot finish. Is not in progress!")
 		return;
 	}
 
@@ -30,7 +30,7 @@ UFaerieInventoryClient* UInventoryUIAction::GetFaerieClient(const UObject* Conte
 {
 	if (!IsValid(ContextObj))
 	{
-		UE_LOG(LogFaerieInventoryContent, Error, TEXT("Unable to find Faerie Client. Invalid ContextObj"))
+		UE_LOGF(LogFaerieInventoryContent, Error, "Unable to find Faerie Client. Invalid ContextObj")
 		return nullptr;
 	}
 
@@ -61,7 +61,7 @@ UFaerieInventoryClient* UInventoryUIAction::GetFaerieClient(const UObject* Conte
 		}
 	}
 
-	UE_LOG(LogFaerieInventoryContent, Error, TEXT("Unable to find Faerie Client from: \'%s\'"), *ContextObj->GetName())
+	UE_LOGF(LogFaerieInventoryContent, Error, "Unable to find Faerie Client from: '%ls'", *ContextObj->GetName())
 	return nullptr;
 }
 
@@ -91,7 +91,7 @@ bool UInventoryUIAction::Start(const FFaerieItemProxy& Proxy)
 {
 	if (InProgress)
 	{
-		UE_LOG(LogFaerieInventoryContent, Error, TEXT("Action already in progress!"))
+		UE_LOGF(LogFaerieInventoryContent, Error, "Action already in progress!")
 		return false;
 	}
 

@@ -143,7 +143,7 @@ void FFaerieItemInstance::ImportFragmentData(FMassEntityManager& EntityManager, 
 
 	if (!IsMutable())
 	{
-		UE_LOG(LogFaerieItemData, Error, TEXT("Attempted importing mass instanced to immutable item instance!"))
+		UE_LOGF(LogFaerieItemData, Error, "Attempted importing mass instanced to immutable item instance!")
 		return;
 	}
 

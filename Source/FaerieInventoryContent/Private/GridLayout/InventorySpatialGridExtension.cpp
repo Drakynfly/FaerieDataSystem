@@ -134,7 +134,7 @@ namespace Faerie::Extensions
 		// Early exit if shape is obviously too large
 		if (Bounds.Max.X > GridSize.X || Bounds.Max.Y > GridSize.Y)
 		{
-			UE_LOG(LogFaerieInventoryContent, Warning, TEXT("Item Too Big"));
+			UE_LOGF(LogFaerieInventoryContent, Warning, "Item Too Big");
 			return false;
 		}
 
@@ -145,14 +145,14 @@ namespace Faerie::Extensions
 			if (Point.X < 0 || Point.X >= GridSize.X ||
 				Point.Y < 0 || Point.Y >= GridSize.Y)
 			{
-				UE_LOG(LogFaerieInventoryContent, Warning, TEXT("Item Falls Outside Grid"));
+				UE_LOGF(LogFaerieInventoryContent, Warning, "Item Falls Outside Grid");
 				return false;
 			}
 
 			// If this index is not in the excluded list, check if it's occupied
 			if (!ExclusionSet.Contains(Point) && Grid.GetCell(Point))
 			{
-				UE_LOG(LogFaerieInventoryContent, Warning, TEXT("Cell Is Occupied"));
+				UE_LOGF(LogFaerieInventoryContent, Warning, "Cell Is Occupied");
 				return false;
 			}
 		}

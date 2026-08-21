@@ -43,7 +43,7 @@ namespace Faerie::Generation
 				}
 				else
 				{
-					UE_LOG(LogItemGeneration, Error, TEXT("FFaerieTableDrop::Resolve returned an invalid item! Generation failed"))
+					UE_LOGF(LogItemGeneration, Error, "FFaerieTableDrop::Resolve returned an invalid item! Generation failed")
 				}
 			}
 		}
@@ -119,7 +119,7 @@ void FFaerieItemGenerationActionSingle::LoadCheck(const TSharedPtr<FStreamableHa
 		return Generate(Execution);
 	}
 
-	UE_LOG(LogItemGeneration, Log, TEXT("- Objects to load: %i"), ObjectsToLoad.Num());
+	UE_LOGF(LogItemGeneration, Log, "- Objects to load: %i", ObjectsToLoad.Num());
 
 	// The check for IsInGameWorld forces this action to run in the editor synchronously
 	if (Execution.IsInGameWorld())
@@ -230,7 +230,7 @@ void FFaerieItemGenerationAction::Run(const Generation::FActionExecution& Execut
 		return LoadCheck(nullptr, Execution, 0);
 	}
 
-	UE_LOG(LogItemGeneration, Log, TEXT("- Configs to load: %i"), ConfigsToLoad.Num());
+	UE_LOGF(LogItemGeneration, Log, "- Configs to load: %i", ConfigsToLoad.Num());
 
 	// The check for IsInGameWorld forces this action to run in the editor synchronously
 	if (Execution.IsInGameWorld())
@@ -322,7 +322,7 @@ void FFaerieItemGenerationAction::LoadCheck(const TSharedPtr<FStreamableHandle>&
 		return Generate(Execution);
 	}
 
-	UE_LOG(LogItemGeneration, Log, TEXT("- Objects to load: %i"), ObjectsToLoad.Num());
+	UE_LOGF(LogItemGeneration, Log, "- Objects to load: %i", ObjectsToLoad.Num());
 	const int32 CurrentPendingNum = PendingDrops.Num();
 
 	// The check for IsInGameWorld forces this action to run in the editor synchronously
@@ -358,7 +358,7 @@ void FFaerieItemGenerationAction::Generate(const Generation::FActionExecution& E
 	{
 		if (!Generation.IsValid())
 		{
-			UE_LOG(LogItemGeneration, Warning, TEXT("--- Pending generation is invalid!"));
+			UE_LOGF(LogItemGeneration, Warning, "--- Pending generation is invalid!");
 			continue;
 		}
 

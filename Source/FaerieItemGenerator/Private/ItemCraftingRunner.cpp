@@ -98,7 +98,7 @@ FFaerieCraftingActionHandle UFaerieItemCraftingRunner::SubmitCraftingAction_Impl
 #if WITH_EDITORONLY_DATA
 	MutableAction.TimeStarted = FDateTime::UtcNow();
 
-	UE_LOG(LogItemGeneration, Log, TEXT("+==+ Generation Action \"%s\" started at: %s"), *Action.GetScriptStruct()->GetName(), *MutableAction.TimeStarted.ToString());
+	UE_LOGF(LogItemGeneration, Log, "+==+ Generation Action \"%ls\" started at: %ls", *Action.GetScriptStruct()->GetName(), *MutableAction.TimeStarted.ToString());
 #endif
 
 	const Generation::FActionExecution Execution(
@@ -126,16 +126,20 @@ void UFaerieItemCraftingRunner::LogActionResult(const FDateTime TimeStarted, con
 	switch (Result)
 	{
 	case EGenerationActionResult::Failed:
-		UE_LOG(LogItemGeneration, Error, TEXT("+==+ Generation Action \"%s\" failed at: %s. Time passed: %s%s"), ActionName.GetData(), *TimeFinished.ToString(), *TimePassed.ToString(), *MessageString);
+		UE_LOGF(LogItemGeneration, Error, "+==+ Generation Action \"%ls\" failed at: %ls. Time passed: %ls%ls",
+			ActionName.GetData(), *TimeFinished.ToString(), *TimePassed.ToString(), *MessageString);
 		break;
 	case EGenerationActionResult::Timeout:
-		UE_LOG(LogItemGeneration, Warning, TEXT("+==+ Generation Action \"%s\" timed-out at: %s. Time passed: %s%s"), ActionName.GetData(), *TimeFinished.ToString(), *TimePassed.ToString(), *MessageString);
+		UE_LOGF(LogItemGeneration, Warning, "+==+ Generation Action \"%ls\" timed-out at: %ls. Time passed: %ls%ls",
+			ActionName.GetData(), *TimeFinished.ToString(), *TimePassed.ToString(), *MessageString);
 		break;
 	case EGenerationActionResult::Cancelled:
-		UE_LOG(LogItemGeneration, Log, TEXT("+==+ Generation Action \"%s\" cancelled at: %s. Time passed: %s%s"), ActionName.GetData(), *TimeFinished.ToString(), *TimePassed.ToString(), *MessageString);
+		UE_LOGF(LogItemGeneration, Log, "+==+ Generation Action \"%ls\" cancelled at: %ls. Time passed: %ls%ls",
+			ActionName.GetData(), *TimeFinished.ToString(), *TimePassed.ToString(), *MessageString);
 		break;
 	case EGenerationActionResult::Succeeded:
-		UE_LOG(LogItemGeneration, Log, TEXT("+==+ Generation Action \"%s\" succeeded at: %s. Time passed: %s%s"), ActionName.GetData(), *TimeFinished.ToString(), *TimePassed.ToString(), *MessageString);
+		UE_LOGF(LogItemGeneration, Log, "+==+ Generation Action \"%ls\" succeeded at: %ls. Time passed: %ls%ls",
+			ActionName.GetData(), *TimeFinished.ToString(), *TimePassed.ToString(), *MessageString);
 		break;
 	default: ;
 	}

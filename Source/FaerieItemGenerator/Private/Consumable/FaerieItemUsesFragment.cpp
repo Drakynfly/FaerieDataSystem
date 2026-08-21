@@ -54,14 +54,14 @@ void FFaerieItemLastUseLogic_Replace::OnLastUse_Replace(const FFaerieItemLastUse
 			const IFaerieItemSource* ItemSource = Cast<IFaerieItemSource>(Object);
 			if (!ItemSource)
 			{
-				UE_LOG(LogItemGeneration, Error, TEXT("Invalid ItemSource for FFaerieItemLastUseLogic_Replace on '%s'"), *InProxy.GetProxyObject()->GetName())
+				UE_LOGF(LogItemGeneration, Error, "Invalid ItemSource for FFaerieItemLastUseLogic_Replace on '%ls'", *InProxy.GetProxyObject()->GetName())
 				return;
 			}
 
 			UFaerieItemContainerBase* Container = Cast<UFaerieItemContainerBase>(InProxy.GetItemOwner());
 			if (!IsValid(Container))
 			{
-				UE_LOG(LogItemGeneration, Error, TEXT("Invalid Container (no item instance owner) for FFaerieItemLastUseLogic_Replace on '%s'"), *InProxy.GetProxyObject()->GetName())
+				UE_LOGF(LogItemGeneration, Error, "Invalid Container (no item instance owner) for FFaerieItemLastUseLogic_Replace on '%ls'", *InProxy.GetProxyObject()->GetName())
 				return;
 			}
 
@@ -70,7 +70,7 @@ void FFaerieItemLastUseLogic_Replace::OnLastUse_Replace(const FFaerieItemLastUse
 			const Faerie::ItemData::FGetInstanceResult Result = ItemSource->CreateItemStack(Context);
 			if (!Result.IsValid())
 			{
-				UE_LOG(LogItemGeneration, Error, TEXT("Failed to create item instance for FFaerieItemLastUseLogic_Replace on '%s'"), *InProxy.GetProxyObject()->GetName())
+				UE_LOGF(LogItemGeneration, Error, "Failed to create item instance for FFaerieItemLastUseLogic_Replace on '%ls'", *InProxy.GetProxyObject()->GetName())
 				return;
 			}
 
@@ -80,7 +80,7 @@ void FFaerieItemLastUseLogic_Replace::OnLastUse_Replace(const FFaerieItemLastUse
 			// Possess new item
 			if (!Container->Possess(Result.WithInitialization()))
 			{
-				UE_LOG(LogItemGeneration, Error, TEXT("Container failed to possess new item instance for FFaerieItemLastUseLogic_Replace on '%s'"), *InProxy.GetProxyObject()->GetName())
+				UE_LOGF(LogItemGeneration, Error, "Container failed to possess new item instance for FFaerieItemLastUseLogic_Replace on '%ls'", *InProxy.GetProxyObject()->GetName())
 			}
 		}
 	};

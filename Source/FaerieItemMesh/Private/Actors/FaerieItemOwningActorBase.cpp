@@ -106,7 +106,7 @@ void AFaerieItemOwningActorBase::PostLoad()
 		{
 			if (!Container::ValidateItemData(ItemStack->GetItemInstance().GetValue()))
 			{
-				UE_LOG(LogFaerieItemMesh, Warning, TEXT("Detected out-of-date or invalid stack in: %s! Regenerating stack."), *GetPathName())
+				UE_LOGF(LogFaerieItemMesh, Warning, "Detected out-of-date or invalid stack in: %ls! Regenerating stack.", *GetPathName())
 				InitStackFromConfig(false);
 			}
 		}

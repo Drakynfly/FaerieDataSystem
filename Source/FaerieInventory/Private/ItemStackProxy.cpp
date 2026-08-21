@@ -105,11 +105,11 @@ bool UFaerieItemStackProxy::VerifyStatus() const
 
 	if (!IsValid(Storage) || !Storage->ViewEntry(Key).IsValid())
 	{
-		UE_LOG(LogFaerieInventory, Warning, TEXT("FaerieItemStackProxy is invalid! Debug State will follow:"))\
-		UE_LOG(LogFaerieInventory, Warning, TEXT("     Stack Proxy: %s"), *GetName());
-		UE_LOG(LogFaerieInventory, Warning, TEXT("     Owning Storage: %s"), IsValid(Storage) ? *Storage->GetName() : TEXT("Invalid"));
-		UE_LOG(LogFaerieInventory, Warning, TEXT("     Entry: %s"), *Key.ToString());
-		UE_LOG(LogFaerieInventory, Warning, TEXT("     Item Version : %i"), LocalItemVersion);
+		UE_LOGF(LogFaerieInventory, Warning, "FaerieItemStackProxy is invalid! Debug State will follow:")
+		UE_LOGF(LogFaerieInventory, Warning, "     Stack Proxy: %ls", *GetName());
+		UE_LOGF(LogFaerieInventory, Warning, "     Owning Storage: %ls", IsValid(Storage) ? *Storage->GetName() : TEXT("Invalid"));
+		UE_LOGF(LogFaerieInventory, Warning, "     Entry: %ls", *Key.ToString());
+		UE_LOGF(LogFaerieInventory, Warning, "     Item Version : %i", LocalItemVersion);
 		return false;
 	}
 

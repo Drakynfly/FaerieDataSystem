@@ -92,7 +92,7 @@ void UInventoryEjectionHandlerExtension::HandleNextInQueue()
 	}
 	else
 	{
-		UE_LOG(LogFaerieInventoryContent, Error, TEXT("InventoryEjectionHandlerExtension encountered invalid ClassToSpawn, cannot eject Item!"))
+		UE_LOGF(LogFaerieInventoryContent, Error, "InventoryEjectionHandlerExtension encountered invalid ClassToSpawn, cannot eject Item!")
 	}
 }
 
@@ -123,7 +123,7 @@ void UInventoryEjectionHandlerExtension::SpawnVisualizer(const TSubclassOf<AFaer
 
 	if (!IsValid(OwningActor))
 	{
-		UE_LOG(LogFaerieInventoryContent, Error, TEXT("InventoryEjectionHandlerExtension cannot find outer AActor. Ejection cancelled!"))
+		UE_LOGF(LogFaerieInventoryContent, Error, "InventoryEjectionHandlerExtension cannot find outer AActor. Ejection cancelled!")
 		return;
 	}
 

@@ -132,7 +132,7 @@ void UFaerieItemStackContainer::LoadSaveData(const FConstStructView ItemData, co
 		else
 		{
 			// Reset key if stack is invalid.
-			UE_LOG(LogFaerieInventory, Error, TEXT("Loading content for stack container '%s' failed. Stored item has been reset!"), *GetPathName())
+			UE_LOGF(LogFaerieInventory, Error, "Loading content for stack container '%ls' failed. Stored item has been reset!", *GetPathName())
 			MARK_PROPERTY_DIRTY_FROM_NAME(UFaerieItemStackContainer, StoredKey, this);
 			StoredKey = FFaerieEntryKey();
 		}
@@ -456,8 +456,8 @@ bool UFaerieItemStackContainer::SetItemInSlot(const FFaerieUnownedItemStack& Sta
 	const ItemData::FScopeProxy StackProxy(Stack.Instance, Stack.Copies, nullptr);
 	if (!CanSetInSlot(FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, &StackProxy)))
 	{
-		UE_LOG(LogFaerieInventory, Warning,
-			TEXT("Invalid request to set into container '%s'!"), *GetPathName())
+		UE_LOGF(LogFaerieInventory, Warning,
+			"Invalid request to set into container '%ls'!", *GetPathName())
 		return false;
 	}
 
@@ -482,15 +482,15 @@ FFaerieUnownedItemStack UFaerieItemStackContainer::TakeItemFromSlot(int32 Copies
 {
 	if (!CanTakeFromSlot(Copies, Reason))
 	{
-		UE_LOG(LogFaerieInventory, Warning,
-			TEXT("Invalid request to take item from container '%s'!"), *GetPathName())
+		UE_LOGF(LogFaerieInventory, Warning,
+			"Invalid request to take item from container '%ls'!", *GetPathName())
 		return FFaerieUnownedItemStack();
 	}
 
 	if (Copies > ItemStack.Copies)
 	{
-		UE_LOG(LogFaerieInventory, Error,
-			TEXT("Cannot remove more copies from a container than what it contains. Container: '%s', Requested Copies: '%i', Contained: '%i' !"),
+		UE_LOGF(LogFaerieInventory, Error,
+			"Cannot remove more copies from a container than what it contains. Container: '%ls', Requested Copies: '%i', Contained: '%i' !",
 			*GetPathName(), Copies, ItemStack.Copies)
 		return FFaerieUnownedItemStack();
 	}
@@ -601,6 +601,6 @@ void UFaerieItemStackContainer::OnRep_ItemStack(const FFaerieStackContainerConte
 	}
 	else
 	{
-		UE_LOG(LogFaerieInventory, Error, TEXT("Client received OnRep, but doesn't know what changed..."))
+		UE_LOGF(LogFaerieInventory, Error, "Client received OnRep, but doesn't know what changed...")
 	}
 }

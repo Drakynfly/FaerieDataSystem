@@ -45,7 +45,7 @@ namespace Faerie::Mesh
 			return true;
 		}
 
-		UE_LOG(LogFaerieItemMesh, Error, TEXT("%hs: Asset does not contain a mesh suitable for the purpose."), __FUNCTION__)
+		UE_LOGF(LogFaerieItemMesh, Error, "%hs: Asset does not contain a mesh suitable for the purpose.", __FUNCTION__)
 		return false;
 	}
 }
@@ -55,14 +55,14 @@ bool UFaerieItemMeshLoader::LoadMeshFromProxySynchronous(const FFaerieItemProxy&
 {
 	if (!InProxy.IsValid())
 	{
-		UE_LOG(LogFaerieItemMesh, Error, TEXT("%hs: Invalid proxy!"), __FUNCTION__)
+		UE_LOGF(LogFaerieItemMesh, Error, "%hs: Invalid proxy!", __FUNCTION__)
 		return false;
 	}
 
 	const TOptional<FFaerieItemInstance> Instance = InProxy.GetItemInstance();
 	if (!Instance.IsSet())
 	{
-		UE_LOG(LogFaerieItemMesh, Error, TEXT("%hs: Invalid instance!"), __FUNCTION__)
+		UE_LOGF(LogFaerieItemMesh, Error, "%hs: Invalid instance!", __FUNCTION__)
 
 		return false;
 	}
@@ -71,7 +71,7 @@ bool UFaerieItemMeshLoader::LoadMeshFromProxySynchronous(const FFaerieItemProxy&
 	auto MeshFragment = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieMeshFragment>(EntityManager, Instance.GetValue());
 	if (!MeshFragment.IsValid())
 	{
-		UE_LOG(LogFaerieItemMesh, Error, TEXT("%hs: Invalid fragment!"), __FUNCTION__)
+		UE_LOGF(LogFaerieItemMesh, Error, "%hs: Invalid fragment!", __FUNCTION__)
 		return false;
 	}
 
@@ -83,7 +83,7 @@ TSharedPtr<FStreamableHandle> UFaerieItemMeshLoader::LoadMeshFromProxyAsynchrono
 {
 	if (!InProxy.IsValid())
 	{
-		UE_LOG(LogFaerieItemMesh, Error, TEXT("%hs: Invalid proxy!"), __FUNCTION__)
+		UE_LOGF(LogFaerieItemMesh, Error, "%hs: Invalid proxy!", __FUNCTION__)
 		(void)Callback.ExecuteIfBound(false, {});
 		return nullptr;
 	}
@@ -91,7 +91,7 @@ TSharedPtr<FStreamableHandle> UFaerieItemMeshLoader::LoadMeshFromProxyAsynchrono
 	const TOptional<FFaerieItemInstance> Instance = InProxy.GetItemInstance();
 	if (!Instance.IsSet())
 	{
-		UE_LOG(LogFaerieItemMesh, Error, TEXT("%hs: Invalid instance!"), __FUNCTION__)
+		UE_LOGF(LogFaerieItemMesh, Error, "%hs: Invalid instance!", __FUNCTION__)
 		(void)Callback.ExecuteIfBound(false, {});
 		return nullptr;
 	}
@@ -100,7 +100,7 @@ TSharedPtr<FStreamableHandle> UFaerieItemMeshLoader::LoadMeshFromProxyAsynchrono
 	auto MeshFragment = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieMeshFragment>(EntityManager, Instance.GetValue());
 	if (!MeshFragment.IsValid())
 	{
-		UE_LOG(LogFaerieItemMesh, Error, TEXT("%hs: Invalid fragment!"), __FUNCTION__)
+		UE_LOGF(LogFaerieItemMesh, Error, "%hs: Invalid fragment!", __FUNCTION__)
 		(void)Callback.ExecuteIfBound(false, {});
 		return nullptr;
 	}
@@ -184,7 +184,7 @@ TSharedPtr<FStreamableHandle> UFaerieItemMeshLoader::LoadMeshFromProxyAsynchrono
 		return nullptr;
 	}
 
-	UE_LOG(LogFaerieItemMesh, Error, TEXT("%hs: Asset does not contain a mesh suitable for the purpose."), __FUNCTION__)
+	UE_LOGF(LogFaerieItemMesh, Error, "%hs: Asset does not contain a mesh suitable for the purpose.", __FUNCTION__)
 	(void)Callback.ExecuteIfBound(false, {});
 	return nullptr;
 }

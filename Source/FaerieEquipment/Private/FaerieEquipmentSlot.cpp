@@ -91,7 +91,7 @@ void UFaerieEquipmentSlot::LoadSlotData(const FFaerieEquipmentSlotSaveData& Slot
 		else
 		{
 			// Reset key if stack is invalid.
-			UE_LOG(LogFaerieEquipment, Error, TEXT("Loading content for slot '%s' failed. Slot has been emptied!"), *Config.SlotID.ToString())
+			UE_LOGF(LogFaerieEquipment, Error, "Loading content for slot '%ls' failed. Slot has been emptied!", *Config.SlotID.ToString())
 			MARK_PROPERTY_DIRTY_FROM_NAME(UFaerieItemStackContainer, StoredKey, this);
 			StoredKey = FFaerieEntryKey();
 		}

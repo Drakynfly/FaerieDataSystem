@@ -205,7 +205,7 @@ void UFaerieItemMeshComponent::RebuildMesh()
 		if (WarnIfMeshInvalid)
 		{
 			// Warn if we have switched to None illegally.
-			UE_LOG(LogFaerieItemMesh, Error, TEXT("No valid mesh in Mesh Data."))
+			UE_LOGF(LogFaerieItemMesh, Error, "No valid mesh in Mesh Data.")
 		}
 		return;
 	}

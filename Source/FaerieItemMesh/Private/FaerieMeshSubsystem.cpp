@@ -31,7 +31,7 @@ bool UFaerieMeshSubsystem::LoadMeshFromProxySynchronous(const FFaerieItemProxy& 
 
 	if (!Proxy.IsValid())
 	{
-		UE_LOG(LogFaerieItemMesh, Warning, TEXT("Invalid Proxy passed to UFaerieMeshSubsystem::LoadMeshFromProxySynchronous!"))
+		UE_LOGF(LogFaerieItemMesh, Warning, "Invalid Proxy passed to UFaerieMeshSubsystem::LoadMeshFromProxySynchronous!")
 		return false;
 	}
 
@@ -48,7 +48,7 @@ void UFaerieMeshSubsystem::LoadMeshFromProxyAsynchronous(const FFaerieItemProxy&
 {
 	if (!Proxy.IsValid())
 	{
-		UE_LOG(LogFaerieItemMesh, Warning, TEXT("Invalid Proxy passed to UFaerieMeshSubsystem::LoadMeshFromProxyAsynchronous!"))
+		UE_LOGF(LogFaerieItemMesh, Warning, "Invalid Proxy passed to UFaerieMeshSubsystem::LoadMeshFromProxyAsynchronous!")
 		Callback.Execute(false, FFaerieItemMesh());
 		return;
 	}

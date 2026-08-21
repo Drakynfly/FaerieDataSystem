@@ -39,8 +39,8 @@ void UFaerieInventoryComponent::ReadyForReplication()
 
 	if (!Owner->IsUsingRegisteredSubObjectList())
 	{
-		UE_LOG(LogFaerieInventory, Warning,
-			TEXT("Owner of Inventory Component '%s' does not replicate SubObjectList. Inventory will not be replicated correctly!"), *Owner->GetName())
+		UE_LOGF(LogFaerieInventory, Warning,
+			"Owner of Inventory Component '%ls' does not replicate SubObjectList. Inventory will not be replicated correctly!", *Owner->GetName())
 	}
 	else
 	{

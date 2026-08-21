@@ -3,6 +3,8 @@
 #include "MassReplication/FaerieViewModelSubsystem.h"
 #include "MassReplication/FaerieViewModelBase.h"
 
+#include "FaerieItemDataLog.h"
+
 #include "FaerieItemOwnerInterface.h"
 #include "FaerieItemProxy.h"
 
@@ -57,7 +59,7 @@ UFaerieViewModelBase* UFaerieViewModelSubsystem::GetOrCreateViewModel(const FFae
 	{
 		// No blank view models to use, so create a new one.
 		ViewModelToUse = NewObject<UFaerieViewModelBase>(this, ViewClass);
-		UE_LOG(LogTemp, Verbose, TEXT("Creating new View Model of class '%s'. Total Number: %i"),
+		UE_LOGF(LogFaerieItemData, Verbose, "Creating new View Model of class '%ls'. Total Number: %i",
 			*ViewClass->GetPathName(), Storage.UnusedViews.Num() + Storage.InUseViews.Num() + 1)
 	}
 	else
@@ -95,7 +97,7 @@ void UFaerieViewModelSubsystem::ReturnViewModel(UFaerieViewModelBase* ViewModel)
 
 			if (!Removed)
 			{
-				UE_LOG(LogTemp, Error, TEXT("Falling back to manual removal, but this is not expected!"))
+				UE_LOGF(LogFaerieItemData, Error, "Falling back to manual removal, but this is not expected!")
 
 				// Somehow the item was already destroyed?
 				// Manually search for and remove from InUseViews

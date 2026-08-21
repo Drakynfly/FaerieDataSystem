@@ -42,9 +42,8 @@ bool UBlueprintClassUtils::AddReplicatedSubObject(AActor* Actor, UObject* Object
 	{
 		if (Object->GetTypedOuter<AActor>() != Actor)
 		{
-			UE_LOG(LogFaerieDataUtils, Warning,
-				TEXT("AddReplicatedSubObject: Should not register Object to Actor that does not own it."
-						" GivenActor: '%s', Object: '%s' DirectOuter: '%s', FirstActorOuter: '%s'"),
+			UE_LOGF(LogFaerieDataUtils, Warning,
+				"AddReplicatedSubObject: Should not register Object to Actor that does not own it. GivenActor: '%ls', Object: '%ls' DirectOuter: '%ls', FirstActorOuter: '%ls'",
 				*Actor->GetName(), *Object->GetName(), IsValid(Object->GetOuter()) ? *Object->GetOuter()->GetName() : TEXT("none"),
 				IsValid(Object->GetTypedOuter<AActor>()) ? *Object->GetTypedOuter<AActor>()->GetName() : TEXT("none"))
 			return false;
@@ -62,9 +61,8 @@ bool UBlueprintClassUtils::RemoveReplicatedSubObject(AActor* Actor, UObject* Obj
 	{
 		if (Object->GetTypedOuter<AActor>() != Actor)
 		{
-			UE_LOG(LogFaerieDataUtils, Warning,
-				TEXT("RemoveReplicatedSubObject: Should not remove Object from Actor that does not own it."
-						" GivenActor: '%s', Object: '%s' DirectOuter: '%s', FirstActorOuter: '%s'"),
+			UE_LOGF(LogFaerieDataUtils, Warning,
+				"RemoveReplicatedSubObject: Should not remove Object from Actor that does not own it. GivenActor: '%ls', Object: '%ls' DirectOuter: '%ls', FirstActorOuter: '%ls'",
 				*Actor->GetName(), *Object->GetName(), IsValid(Object->GetOuter()) ? *Object->GetOuter()->GetName() : TEXT("none"),
 				IsValid(Object->GetTypedOuter<AActor>()) ? *Object->GetTypedOuter<AActor>()->GetName() : TEXT("none"))
 			return false;

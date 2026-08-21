@@ -192,8 +192,8 @@ void UFaerieStorageWidgetBase::InitWithStorage()
         	auto EventsExtension = Extensions::Get<UItemContainerExtensionEvents>(Storage->GetExtensions(), false);
         	if (!IsValid(EventsExtension))
         	{
-        		UE_LOG(LogFaerieInventoryContent, Error,
-        			TEXT("Storage Widget failed to find Events Extension. Dynamic updates disabled! Please add a Extension Events object to '%s' or disable EnableUpdateEvents"),
+        		UE_LOGF(LogFaerieInventoryContent, Error,
+        			"Storage Widget failed to find Events Extension. Dynamic updates disabled! Please add a Extension Events object to '%ls' or disable EnableUpdateEvents",
         			*Storage->GetPathName())
         	}
         	else
@@ -238,7 +238,7 @@ int32 UFaerieStorageWidgetBase::AddToSortOrder(const FFaerieAddress Address, con
 		{
 			if (WarnIfAlreadyExists)
 			{
-				UE_LOG(LogFaerieInventoryContent, Warning, TEXT("Cannot add address %lld that already exists in the array!"), Address.Address);
+				UE_LOGF(LogFaerieInventoryContent, Warning, "Cannot add address %lld that already exists in the array!", Address.Address);
 			}
 			return INDEX_NONE;
 		}
@@ -248,7 +248,7 @@ int32 UFaerieStorageWidgetBase::AddToSortOrder(const FFaerieAddress Address, con
 		{
 			if (WarnIfAlreadyExists)
 			{
-				UE_LOG(LogFaerieInventoryContent, Warning, TEXT("Cannot add address %lld at index '%i' that already exists at index '%i'. How did code get here?"), Address.Address, Index, ExistingIndex);
+				UE_LOGF(LogFaerieInventoryContent, Warning, "Cannot add address %lld at index '%i' that already exists at index '%i'. How did code get here?", Address.Address, Index, ExistingIndex);
 			}
 			return INDEX_NONE;
 		}
@@ -256,12 +256,12 @@ int32 UFaerieStorageWidgetBase::AddToSortOrder(const FFaerieAddress Address, con
 		return SortedAndFilteredAddresses.Insert(Address, Index);
 	}
 
-	UE_LOG(LogFaerieInventoryContent, Verbose, TEXT("StorageQuery's Sort is invalid. Content will not be sorted!"));
+	UE_LOGF(LogFaerieInventoryContent, Verbose, "StorageQuery's Sort is invalid. Content will not be sorted!");
 	if (SortedAndFilteredAddresses.Find(Address) != INDEX_NONE)
 	{
 		if (WarnIfAlreadyExists)
 		{
-			UE_LOG(LogFaerieInventoryContent, Warning, TEXT("Cannot add address that already exists in the array"));
+			UE_LOGF(LogFaerieInventoryContent, Warning, "Cannot add address that already exists in the array");
 		}
 		return INDEX_NONE;
 	}

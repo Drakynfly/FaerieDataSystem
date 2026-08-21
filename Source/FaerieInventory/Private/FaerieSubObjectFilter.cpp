@@ -32,7 +32,7 @@ namespace Faerie::SubObject
 			const TObjectPtr<UFaerieItemStorage>& ItemStorage = StorageFragment->Storage.Storage;
 			if (!IsValid(ItemStorage))
 			{
-				UE_LOG(LogFaerieInventory, Error, TEXT("Storage invalid in ItemStorageFragment. This fragment should not contain a null container!"))
+				UE_LOGF(LogFaerieInventory, Error, "Storage invalid in ItemStorageFragment. This fragment should not contain a null container!")
 			}
 			else
 			{
@@ -83,7 +83,7 @@ namespace Faerie::SubObject
 			const TObjectPtr<UFaerieItemStorage>& ItemStorage = StorageFragment->Storage.Storage;
 			if (!IsValid(ItemStorage))
 			{
-				UE_LOG(LogFaerieInventory, Error, TEXT("Storage invalid in ItemStorageFragment. This fragment should not contain a null container!"))
+				UE_LOGF(LogFaerieInventory, Error, "Storage invalid in ItemStorageFragment. This fragment should not contain a null container!")
 			}
 			else
 			{
@@ -141,7 +141,7 @@ namespace Faerie::SubObject
             	const TObjectPtr<UFaerieItemStorage>& ItemStorage = StorageFragment->Storage.Storage;
             	if (!IsValid(ItemStorage))
             	{
-            		UE_LOG(LogFaerieInventory, Error, TEXT("Storage invalid in ItemStorageFragment. This fragment should not contain a null container!"))
+            		UE_LOGF(LogFaerieInventory, Error, "Storage invalid in ItemStorageFragment. This fragment should not contain a null container!")
             	}
             	else
             	{
@@ -207,7 +207,7 @@ namespace Faerie::SubObject
 					const TObjectPtr<UFaerieItemStorage>& ItemStorage = StorageFragment->Storage.Storage;
 					if (!IsValid(ItemStorage))
 					{
-						UE_LOG(LogFaerieInventory, Error, TEXT("Storage invalid in ItemStorageFragment. This fragment should not contain a null container!"))
+						UE_LOGF(LogFaerieInventory, Error, "Storage invalid in ItemStorageFragment. This fragment should not contain a null container!")
 					}
 					else
 					{

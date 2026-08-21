@@ -117,7 +117,7 @@ void UFaerieInventoryClient::RequestMoveAction_Implementation(
 	if (!MoveFrom.IsValid() ||
 		!MoveTo.IsValid())
 	{
-		UE_LOG(LogFaerieInventory, Warning, TEXT("Client sent bad Move Request!"))
+		UE_LOGF(LogFaerieInventory, Warning, "Client sent bad Move Request!")
 		return;
 	}
 
@@ -219,7 +219,7 @@ void UFaerieInventoryClient::Server_RequestMoveAction(const FFaerieClientAction_
 	FFaerieUnownedItemStack FromStack;
 	if (!MoveFrom.Release(FromStack))
 	{
-		UE_LOG(LogFaerieInventory, Error, TEXT("Releasing for move failed! Validation should catch this!"))
+		UE_LOGF(LogFaerieInventory, Error, "Releasing for move failed! Validation should catch this!")
 		return;
 	}
 
@@ -229,23 +229,23 @@ void UFaerieInventoryClient::Server_RequestMoveAction(const FFaerieClientAction_
 		if (!MoveTo.Release(ToStack))
 		{
 			// Abort! Releasing for swap failed!
-			UE_LOG(LogFaerieInventory, Error, TEXT("Releasing for swap failed! Validation should catch this!"))
+			UE_LOGF(LogFaerieInventory, Error, "Releasing for swap failed! Validation should catch this!")
 
 			// Returning stack we removed.
 			if (!MoveFrom.Possess(FromStack))
 			{
-				UE_LOG(LogFaerieInventory, Error, TEXT("Re-possess failed! Unable to recover from failed swap!"))
+				UE_LOGF(LogFaerieInventory, Error, "Re-possess failed! Unable to recover from failed swap!")
 			}
 			return;
 		}
 		if (!MoveFrom.Possess(ToStack))
 		{
-			UE_LOG(LogFaerieInventory, Error, TEXT("Swap failed! Issue with possession!"))
+			UE_LOGF(LogFaerieInventory, Error, "Swap failed! Issue with possession!")
 		}
 	}
 
 	if (!MoveTo.Possess(FromStack))
 	{
-		UE_LOG(LogFaerieInventory, Error, TEXT("Move failed! Issue with possession!"))
+		UE_LOGF(LogFaerieInventory, Error, "Move failed! Issue with possession!")
 	}
 }

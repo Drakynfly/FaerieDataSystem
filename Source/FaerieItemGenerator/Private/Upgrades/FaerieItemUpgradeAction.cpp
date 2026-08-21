@@ -41,7 +41,7 @@ void FFaerieItemUpgradeAction::Run(const Faerie::Generation::FActionExecution& E
 		return Execute(Execution);
 	}
 
-	UE_LOG(LogItemGeneration, Log, TEXT("- Objects to load: %i"), ObjectsToLoad.Num());
+	UE_LOGF(LogItemGeneration, Log, "- Objects to load: %i", ObjectsToLoad.Num());
 
 	// The check for IsInGameWorld forces this action to be ran in the editor synchronously
 	if (!Execution.IsInGameWorld())
@@ -107,7 +107,7 @@ void FFaerieItemUpgradeActionBulkNoPayment::Run(const Faerie::Generation::FActio
 		return Execute(Execution);
 	}
 
-	UE_LOG(LogItemGeneration, Log, TEXT("- Objects to load: %i"), ObjectsToLoad.Num());
+	UE_LOGF(LogItemGeneration, Log, "- Objects to load: %i", ObjectsToLoad.Num());
 
 	// The check for IsInGameWorld forces this action to be ran in the editor synchronously
 	if (!Execution.IsInGameWorld())
@@ -156,7 +156,7 @@ void FFaerieItemUpgradeActionBulk::Run(const Faerie::Generation::FActionExecutio
 		return Execute(Execution);
 	}
 
-	UE_LOG(LogItemGeneration, Log, TEXT("- Objects to load: %i"), ObjectsToLoad.Num());
+	UE_LOGF(LogItemGeneration, Log, "- Objects to load: %i", ObjectsToLoad.Num());
 
 	// The check for IsInGameWorld forces this action to be run in the editor synchronously
 	if (!Execution.IsInGameWorld())

@@ -14,7 +14,7 @@ ItemData::FGetInstanceResult FFaerieTableDrop::Resolve(const FFaerieItemInstanci
 	const UObject* DropObject = Asset.Object.Get();
 	if (!/*ensure*/(::IsValid(DropObject)))
 	{
-		UE_LOG(LogItemGeneration, Error, TEXT("FFaerieTableDrop::Resolve - Falling back to Synchronous Load for source object. Why!"))
+		UE_LOGF(LogItemGeneration, Error, "FFaerieTableDrop::Resolve - Falling back to Synchronous Load for source object. Why!")
 		DropObject = Asset.Object.LoadSynchronous();
 	}
 
@@ -61,7 +61,7 @@ const FFaerieTableDrop* FFaerieWeightedPool::GetDrop(const double RanWeight) con
 {
 	if (DropList.IsEmpty())
 	{
-		UE_LOG(LogItemGeneration, Error, TEXT("Exiting generation: Empty Table"));
+		UE_LOGF(LogItemGeneration, Error, "Exiting generation: Empty Table");
 		return nullptr;
 	}
 
@@ -75,7 +75,7 @@ const FFaerieTableDrop* FFaerieWeightedPool::GetDrop(const double RanWeight) con
 
 	if (!DropList.IsValidIndex(BinarySearchResult))
 	{
-		UE_LOG(LogItemGeneration, Error, TEXT("Binary search returned out-of-bounds index!"));
+		UE_LOGF(LogItemGeneration, Error, "Binary search returned out-of-bounds index!");
 		return nullptr;
 	}
 
@@ -126,7 +126,7 @@ void FFaerieGenerationProcedure_OfOne::Resolve(const FFaerieWeightedPool& Pool, 
 	if (const FFaerieTableDrop* Drop = Pool.GetDrop(RanWeight))
 	{
 		Pending.Add(Generation::FPendingTableDrop(Drop, Amount));
-		UE_LOG(LogItemGeneration, Log, TEXT("Chose Drop: %s - Amount: %i"), *Drop->Asset.Object.ToString(), Amount);
+		UE_LOGF(LogItemGeneration, Log, "Chose Drop: %ls - Amount: %i", *Drop->Asset.Object.ToString(), Amount);
 	}
 }
 

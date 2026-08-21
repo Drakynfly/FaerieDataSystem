@@ -25,7 +25,7 @@ void FFaerieCraftRecipeAction::Run(const Faerie::Generation::FActionExecution& E
 		}
 	}
 
-	UE_LOG(LogItemGeneration, Log, TEXT("Running RecipeCraft"));
+	UE_LOGF(LogItemGeneration, Verbose, "Running CraftRecipeAction");
 
 	if (!ensure(IsValid(Config->Recipe)))
 	{

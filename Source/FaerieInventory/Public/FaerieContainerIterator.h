@@ -5,13 +5,14 @@
 #include "LoopUtils.h"
 #include "DebuggingFlags.h"
 #include "FaerieItemContainerBase.h"
+#include "FaerieInventoryLog.h"
 
 namespace Faerie::Container
 {
 #if FAERIE_DEBUG
 	constexpr bool EnableDebugLogs = false;
-#define LOG_ITERATOR_MESSAGE(Message) if constexpr (EnableDebugLogs) { UE_LOG(LogTemp, Warning, TEXT(Message)); }
-#define LOG_ITERATOR_MESSAGE_FMT(Message, ...) if constexpr (EnableDebugLogs) { UE_LOG(LogTemp, Warning, TEXT(Message), __VA_ARGS__); }
+#define LOG_ITERATOR_MESSAGE(Message) if constexpr (EnableDebugLogs) { UE_LOGF(LogFaerieInventory, Warning, Message); }
+#define LOG_ITERATOR_MESSAGE_FMT(Message, ...) if constexpr (EnableDebugLogs) { UE_LOGF(LogFaerieInventory, Warning, Message, __VA_ARGS__); }
 #else
 #define LOG_ITERATOR_MESSAGE(Message)
 #define LOG_ITERATOR_MESSAGE_FMT(Message, ...)

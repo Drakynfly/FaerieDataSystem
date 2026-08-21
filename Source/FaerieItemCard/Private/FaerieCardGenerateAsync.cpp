@@ -17,7 +17,7 @@ bool UFaerieCardGenerateAsync::GenerateItemCard(APlayerController* OwningPlayer,
 	auto&& GeneratorImpl = Generator->GetGenerator();
 	if (!IsValid(GeneratorImpl))
 	{
-		UE_LOG(LogFaerieItemCard, Error, TEXT("Failed to get Generator from interface!"))
+		UE_LOGF(LogFaerieItemCard, Error, "Failed to get Generator from interface!")
 		return false;
 	}
 
@@ -38,7 +38,7 @@ UFaerieCardGenerateAsync* UFaerieCardGenerateAsync::GenerateItemCardAsync(APlaye
 	AsyncAction->Generator = Generator->GetGenerator();
 	if (!IsValid(AsyncAction->Generator))
 	{
-		UE_LOG(LogFaerieItemCard, Error, TEXT("Failed to get Generator from interface!"))
+		UE_LOGF(LogFaerieItemCard, Error, "Failed to get Generator from interface!")
 		return nullptr;
 	}
 

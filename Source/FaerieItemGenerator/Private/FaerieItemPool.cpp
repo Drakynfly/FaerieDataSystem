@@ -140,7 +140,7 @@ Faerie::ItemData::FGetInstanceResult UFaerieItemPool::CreateItemStack(const FFae
 	const FFaerieItemInstancingContext_Crafting* CraftingContext = Context.Cast<FFaerieItemInstancingContext_Crafting>();
 	if (!CraftingContext)
 	{
-		UE_LOG(LogItemGeneration, Error, TEXT("UFaerieItemPool requires a Content of type FItemInstancingContext_Crafting!"));
+		UE_LOGF(LogItemGeneration, Error, "UFaerieItemPool requires a Content of type FItemInstancingContext_Crafting!");
 		return NullOpt;
 	}
 

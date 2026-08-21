@@ -5,6 +5,7 @@
 
 #include "FaerieItem.h"
 #include "EntityManagerHelpers.h"
+#include "FaerieItemDataLog.h"
 #include "MassCommandBuffer.h"
 
 #include "Engine/Engine.h"
@@ -17,19 +18,19 @@ using namespace Faerie;
 
 void FFaerieMassReplicatedEntity::PreReplicatedRemove(const FFaerieMassReplicatedEntities& InArraySerializer)
 {
-	UE_LOG(LogTemp, Verbose, TEXT("FFaerieMassReplicatedEntity::PreReplicatedRemove"))
+	UE_LOGF(LogFaerieItemData, Verbose, "FFaerieMassReplicatedEntity::PreReplicatedRemove")
 	InArraySerializer.Owner->Client_RemoveEntity(*this);
 }
 
 void FFaerieMassReplicatedEntity::PostReplicatedAdd(const FFaerieMassReplicatedEntities& InArraySerializer)
 {
-	UE_LOG(LogTemp, Verbose, TEXT("FFaerieMassReplicatedEntity::PostReplicatedAdd"))
+	UE_LOGF(LogFaerieItemData, Verbose, "FFaerieMassReplicatedEntity::PostReplicatedAdd")
 	InArraySerializer.Owner->Client_AddEntity(*this);
 }
 
 void FFaerieMassReplicatedEntity::PostReplicatedChange(const FFaerieMassReplicatedEntities& InArraySerializer)
 {
-	UE_LOG(LogTemp, Verbose, TEXT("FFaerieMassReplicatedEntity::PostReplicatedChange"))
+	UE_LOGF(LogFaerieItemData, Verbose, "FFaerieMassReplicatedEntity::PostReplicatedChange")
 	InArraySerializer.Owner->Client_UpdateEntity(*this);
 }
 
@@ -121,7 +122,7 @@ void AFaerieMassReplicationActor::Server_RemoveFragment(const FFaerieItemInstanc
 	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked();
 	if (!EntityManager.IsEntityValid(Entity))
 	{
-		UE_LOG(LogTemp, Fatal, TEXT("Item created without entity handle. Item creation should always initialize itself with mass!"))
+		UE_LOGF(LogFaerieItemData, Fatal, "Item created without entity handle. Item creation should always initialize itself with mass!")
 		return;
 	}
 
@@ -147,7 +148,7 @@ void AFaerieMassReplicationActor::Server_RemoveEntity(const FFaerieItemInstance&
 	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked();
 	if (!EntityManager.IsEntityValid(Entity))
 	{
-		UE_LOG(LogTemp, Fatal, TEXT("Item created without entity handle. Item creation should always initialize itself with mass!"))
+		UE_LOGF(LogFaerieItemData, Fatal, "Item created without entity handle. Item creation should always initialize itself with mass!")
 		return;
 	}
 

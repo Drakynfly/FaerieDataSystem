@@ -58,8 +58,8 @@ EEventExtensionResponse UInventoryItemLimitExtension::AllowsAddition(const TNotN
 
 	if (!CanContain(TestCount))
 	{
-		UE_LOG(LogFaerieInventoryContent, VeryVerbose,
-			TEXT("AllowsAddition: Cannot add Stack(s) (Total Count: %i)"),
+		UE_LOGF(LogFaerieInventoryContent, VeryVerbose,
+			"AllowsAddition: Cannot add Stack(s) (Total Count: %i)",
 			TestCount);
 
 		return EEventExtensionResponse::Disallowed;

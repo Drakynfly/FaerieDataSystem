@@ -33,7 +33,7 @@ namespace Faerie::Generation
 		{
 			if (!Element.Value.IsValid())
 			{
-				UE_LOG(LogItemGeneration, Error, TEXT("ValidateFilledSlots: A filled slot [%s] is invalid!)"), *Element.Key.ToString())
+				UE_LOGF(LogItemGeneration, Error, "ValidateFilledSlots: A filled slot '%ls' is invalid!)", *Element.Key.ToString())
 				return false;
 			}
 		}
@@ -47,7 +47,7 @@ namespace Faerie::Generation
 					{
 						if constexpr (LogFailure)
 						{
-							UE_LOG(LogItemGeneration, Warning, TEXT("ValidateFilledSlots: Proxy is invalid for slot: %s!"),
+							UE_LOGF(LogItemGeneration, Warning, "ValidateFilledSlots: Proxy is invalid for slot '%ls'!",
                             	*Slot.Name.ToString());
 						}
 						return false;
@@ -57,7 +57,7 @@ namespace Faerie::Generation
 					{
 						if constexpr (LogFailure)
 						{
-							UE_LOG(LogItemGeneration, Warning, TEXT("ValidateFilledSlots: Slot '%s' failed with key: %s"),
+							UE_LOGF(LogItemGeneration, Warning, "ValidateFilledSlots: Slot '%ls' failed with key: %ls",
 								  *Slot.Name.ToString(), *ItemProxy->GetProxyObject()->GetName());
 						}
 						return false;
@@ -69,7 +69,7 @@ namespace Faerie::Generation
 						{
 							if constexpr (LogFailure)
 							{
-								UE_LOG(LogItemGeneration, Warning, TEXT("ValidateFilledSlots: Slot '%s' cannot pay consumable cost with immutable item: %s"),
+								UE_LOGF(LogItemGeneration, Warning, "ValidateFilledSlots: Slot '%ls' cannot pay consumable cost with immutable item: %ls",
 								   *Slot.Name.ToString(), *ItemProxy->GetProxyObject()->GetName());
 							}
 							return false;
@@ -81,7 +81,7 @@ namespace Faerie::Generation
 						{
 							if constexpr (LogFailure)
 							{
-								UE_LOG(LogItemGeneration, Warning, TEXT("ValidateFilledSlots: Slot '%s' insufficient uses to pay cost with item: %s"),
+								UE_LOGF(LogItemGeneration, Warning, "ValidateFilledSlots: Slot '%ls' insufficient uses to pay cost with item: %ls",
 								   *Slot.Name.ToString(), *ProxyObj->GetName());
 							}
 							return false;
@@ -93,7 +93,7 @@ namespace Faerie::Generation
 						{
 							if constexpr (LogFailure)
 							{
-								UE_LOG(LogItemGeneration, Warning, TEXT("ValidateFilledSlots: Slot '%s' insufficient uses to pay cost with item: %s"),
+								UE_LOGF(LogItemGeneration, Warning, "ValidateFilledSlots: Slot '%ls' insufficient uses to pay cost with item: %ls",
 								   *Slot.Name.ToString(), *ProxyObj->GetName());
 							}
 							return false;
@@ -106,7 +106,7 @@ namespace Faerie::Generation
 					{
 						if constexpr (LogFailure)
 						{
-							UE_LOG(LogItemGeneration, Warning, TEXT("ValidateFilledSlots: Does not contain required slot: %s!"),
+							UE_LOGF(LogItemGeneration, Warning, "ValidateFilledSlots: Does not contain required slot '%ls'!",
 							   *Slot.Name.ToString());
 						}
 						return false;
@@ -129,7 +129,7 @@ namespace Faerie::Generation
 			auto&& SlotPaymentPtr = FilledSlots.Slots.Find(Slot.Name);
 			if (!ensure(SlotPaymentPtr))
 			{
-				UE_LOG(LogItemGeneration, Error, TEXT("ConsumeSlotCosts is unable to find a filled slot [%s]!"), *Slot.Name.ToString())
+				UE_LOGF(LogItemGeneration, Error, "ConsumeSlotCosts is unable to find a filled slot '%ls'!", *Slot.Name.ToString())
 				return false;
 			}
 

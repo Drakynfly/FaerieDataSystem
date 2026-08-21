@@ -93,7 +93,7 @@ EEventExtensionResponse UInventoryCapacityExtension::AllowsAddition(const TNotNu
 			!CanContain(Proxy0))
 		{
 			const UFaerieItem* Item = Proxy0.GetItemInstanceOrInvalid().GetItemPtr();
-			UE_LOG(LogFaerieInventoryContent, Verbose, TEXT("PreAddition: Cannot add Stack (Item: '%s' Copies: %i)"),
+			UE_LOGF(LogFaerieInventoryContent, Verbose, "PreAddition: Cannot add Stack (Item: '%ls' Copies: %i)",
 				Item ? *Item->GetName() : TEXT("null"), Proxy0.GetCopies());
 			return EEventExtensionResponse::Disallowed;
 		}
@@ -111,7 +111,7 @@ EEventExtensionResponse UInventoryCapacityExtension::AllowsAddition(const TNotNu
 				if (!CanContain(Proxy))
 				{
 					const UFaerieItem* Item = Proxy.GetItemInstanceOrInvalid().GetItemPtr();
-					UE_LOG(LogFaerieInventoryContent, Verbose, TEXT("PreAddition: Cannot add Stack (Item: '%s' Copies: %i)"),
+					UE_LOGF(LogFaerieInventoryContent, Verbose, "PreAddition: Cannot add Stack (Item: '%ls' Copies: %i)",
 						Item ? *Item->GetName() : TEXT("null"), Proxy.GetCopies());
 					return EEventExtensionResponse::Disallowed;
 				}
@@ -123,7 +123,7 @@ EEventExtensionResponse UInventoryCapacityExtension::AllowsAddition(const TNotNu
 		{
 			if (!CanContain_Multi(Proxies))
 			{
-				UE_LOG(LogFaerieInventoryContent, Verbose, TEXT("PreAddition: Cannot add Stacks in GroupTest"));
+				UE_LOGF(LogFaerieInventoryContent, Verbose, "PreAddition: Cannot add Stacks in GroupTest");
 				return EEventExtensionResponse::Disallowed;
 			}
 		}
@@ -160,6 +160,8 @@ void UInventoryCapacityExtension::UpdateCacheForEntry(const TNotNull<const UFaer
 	const ItemData::FScopeProxy View = Container->ViewEntry(Key);
 	if (!View.IsValid())
 	{
+		UE_LOGF(LogFaerieInventoryContent, Error, "UpdateCacheForEntry should not handle removed entries!")
+
 		if (PrevCache)
 		{
 			// Remove the existing cache by adding its inverse

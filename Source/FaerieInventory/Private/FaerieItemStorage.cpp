@@ -275,7 +275,7 @@ void UFaerieItemStorage::DestroyStack(const FFaerieItemProxy& Proxy, const int32
 	{
 		if (StackProxy->GetOuter() != this)
 		{
-			UE_LOG(LogFaerieInventory, Error, TEXT("This isn't our proxy! We cannot release copies from it."))
+			UE_LOGF(LogFaerieInventory, Error, "This isn't our proxy! We cannot release copies from it.")
 			return;
 		}
 
@@ -597,7 +597,7 @@ Inventory::FEventData UFaerieItemStorage::RemoveFromEntryImplNoBroadcast(const F
 
 	if (Event.EntryRemoved)
 	{
-		UE_LOG(LogFaerieInventory, Verbose, TEXT("Removing entire entry at: '%s'"), *InEntry.GetKey().ToString());
+		UE_LOGF(LogFaerieInventory, Verbose, "Removing entire entry at: '%ls'", *InEntry.GetKey().ToString());
 		Server_PreContentRemoved(InEntry, Event);
 		EntryMap.Remove(InEntry.GetKey());
 	}
@@ -656,7 +656,7 @@ Inventory::FEventData UFaerieItemStorage::RemoveFromStackImplNoBroadcast(const F
 
 	if (Event.EntryRemoved)
 	{
-		UE_LOG(LogFaerieInventory, Verbose, TEXT("Removing entire stack at: '%s_%s'"), *InEntry.GetKey().ToString(), *Stack.ToString());
+		UE_LOGF(LogFaerieInventory, Verbose, "Removing entire stack at: '%ls_%ls'", *InEntry.GetKey().ToString(), *Stack.ToString());
 		Server_PreContentRemoved(InEntry, Event);
 		EntryMap.Remove(InEntry.GetKey());
 	}
@@ -853,7 +853,7 @@ void UFaerieItemStorage::Client_PostContentAdded(const FFaerieStorageEntry& Entr
 {
 	if (!Entry.IsValid())
 	{
-		UE_LOG(LogFaerieInventory, Error, TEXT("Client_PostContentAdded: Received Invalid Entry"))
+		UE_LOGF(LogFaerieInventory, Error, "Client_PostContentAdded: Received Invalid Entry")
 		return;
 	}
 
@@ -883,7 +883,7 @@ void UFaerieItemStorage::Client_PostContentAdded(const FFaerieStorageEntry& Entr
 
 	if (!IsValid(Extensions))
 	{
-		UE_LOG(LogFaerieInventory, Error, TEXT("Client_PostContentAdded: Invalid Extensions object!"))
+		UE_LOGF(LogFaerieInventory, Error, "Client_PostContentAdded: Invalid Extensions object!")
 		return;
 	}
 
@@ -921,7 +921,7 @@ void UFaerieItemStorage::Client_PreContentRemoved(const FFaerieStorageEntry& Ent
 
 	if (!IsValid(Extensions))
 	{
-		UE_LOG(LogFaerieInventory, Error, TEXT("Client_PreContentRemoved: Invalid Extensions object!"))
+		UE_LOGF(LogFaerieInventory, Error, "Client_PreContentRemoved: Invalid Extensions object!")
 		return;
 	}
 
@@ -932,7 +932,7 @@ void UFaerieItemStorage::Client_PostContentChanged(const FFaerieStorageEntry& En
 {
 	if (!ensure(Entry.IsValid()))
 	{
-		UE_LOG(LogFaerieInventory, Error, TEXT("Client_PostContentChanged: Received Invalid Entry"))
+		UE_LOGF(LogFaerieInventory, Error, "Client_PostContentChanged: Received Invalid Entry")
 		return;
 	}
 
@@ -1010,7 +1010,7 @@ void UFaerieItemStorage::Client_PostContentChanged(const FFaerieStorageEntry& En
 
 	if (!IsValid(Extensions))
 	{
-		UE_LOG(LogFaerieInventory, Error, TEXT("Client_PostContentChanged: Invalid Extensions object!"))
+		UE_LOGF(LogFaerieInventory, Error, "Client_PostContentChanged: Invalid Extensions object!")
 		return;
 	}
 

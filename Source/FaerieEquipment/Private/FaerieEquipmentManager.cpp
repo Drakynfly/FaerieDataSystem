@@ -122,8 +122,8 @@ void UFaerieEquipmentManager::AddSubobjectsForReplication()
 
 	if (!Owner->IsUsingRegisteredSubObjectList())
 	{
-		UE_LOG(LogFaerieEquipment, Warning,
-			TEXT("Owner of Equipment Manager '%s' does not replicate SubObjectList. Component will not be replicated correctly!"), *Owner->GetName())
+		UE_LOGF(LogFaerieEquipment, Warning,
+			"Owner of Equipment Manager '%ls' does not replicate SubObjectList. Component will not be replicated correctly!", *Owner->GetName())
 	}
 	else
 	{
@@ -191,14 +191,14 @@ void UFaerieEquipmentManager::LoadSaveData(const FFaerieEquipmentSaveData& SaveD
 	{
 		if (!PerSlotDatum.SlotID.IsValid())
 		{
-			UE_LOG(LogFaerieEquipment, Error, TEXT("Invalid slot tag found during LoadSaveData!"))
+			UE_LOGF(LogFaerieEquipment, Error, "Invalid slot tag found during LoadSaveData!")
 			continue;
 		}
 
 		UFaerieEquipmentSlot* EquipmentSlot = FindSlot(PerSlotDatum.SlotID);
 		if (!IsValid(EquipmentSlot))
 		{
-			UE_LOG(LogFaerieEquipment, Warning, TEXT("Save Data contained slot that does not resolve: %s. Implement functionality to convert or discard during load."), *PerSlotDatum.SlotID.ToString())
+			UE_LOGF(LogFaerieEquipment, Warning, "Save Data contained slot that does not resolve: %ls. Implement functionality to convert or discard during load.", *PerSlotDatum.SlotID.ToString())
 			continue;
 		}
 
@@ -432,12 +432,12 @@ void UFaerieEquipmentManager::PrintSlotDebugInfo() const
 	{
 		if (Slot->GetExtensions())
 		{
-			UE_LOG(LogFaerieEquipment, Log, TEXT("*** Printing Debug Data for: '%s'"), *Slot->Config.SlotID.ToString())
+			UE_LOGF(LogFaerieEquipment, Log, "*** Printing Debug Data for: '%ls'", *Slot->Config.SlotID.ToString())
 			Slot->GetExtensions()->PrintDebugData();
 		}
 		else
 		{
-			UE_LOG(LogFaerieEquipment, Log, TEXT("Slot '%s' has no extension group."), *Slot->Config.SlotID.ToString())
+			UE_LOGF(LogFaerieEquipment, Log, "Slot '%ls' has no extension group.", *Slot->Config.SlotID.ToString())
 		}
 	}
 #endif

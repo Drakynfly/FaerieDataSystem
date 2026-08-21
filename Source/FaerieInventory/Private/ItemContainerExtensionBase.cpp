@@ -461,35 +461,35 @@ void UItemContainerExtensionGroup::PrintDebugData() const
 {
 	const AActor* OwningActor = GetTypedOuter<AActor>();
 
-	UE_LOG(LogFaerieInventory, Log, TEXT("Printing Containers/Extension in Group (%s)"),
+	UE_LOGF(LogFaerieInventory, Log, "Printing Containers/Extension in Group (%ls)",
 		OwningActor ? *("Role: " + UEnum::GetValueAsString<ENetRole>(OwningActor->GetLocalRole())) : TEXT("No Owner"))
 	for (auto&& Container : Containers)
 	{
 		if (!Container.IsValid())
 		{
-			UE_LOG(LogFaerieInventory, Warning,  TEXT("	Invalid Containers in PrintDebugData. Investigate!"))
+			UE_LOGF(LogFaerieInventory, Warning,  "	Invalid Containers in PrintDebugData. Investigate!")
 			continue;
 		}
-		UE_LOG(LogFaerieInventory, Warning,  TEXT("	Registered Container: '%s'"), *Container->GetName())
+		UE_LOGF(LogFaerieInventory, Warning,  "	Registered Container: '%ls'", *Container->GetName())
 	}
 
 	for (auto&& Extension : Extensions)
 	{
 		if (!IsValid(Extension))
 		{
-			UE_LOG(LogFaerieInventory, Warning,  TEXT("	Invalid Extension in PrintDebugData. Investigate!"))
+			UE_LOGF(LogFaerieInventory, Warning,  "	Invalid Extension in PrintDebugData. Investigate!")
 			continue;
 		}
-		UE_LOG(LogFaerieInventory, Warning,  TEXT("	Registered Extension: '%s'"), *Extension->GetName())
+		UE_LOGF(LogFaerieInventory, Warning,  "	Registered Extension: '%ls'", *Extension->GetName())
 	}
 	for (auto&& Extension : DynamicExtensions)
 	{
 		if (!IsValid(Extension))
 		{
-			UE_LOG(LogFaerieInventory, Warning,  TEXT("	Invalid Extension in PrintDebugData. Investigate!"))
+			UE_LOGF(LogFaerieInventory, Warning,  "	Invalid Extension in PrintDebugData. Investigate!")
 			continue;
 		}
-		UE_LOG(LogFaerieInventory, Warning,  TEXT("	Registered Extension: '%s'"), *Extension->GetName())
+		UE_LOGF(LogFaerieInventory, Warning,  "	Registered Extension: '%ls'", *Extension->GetName())
 	}
 }
 
@@ -697,7 +697,7 @@ void UItemContainerExtensionGroup::ValidateGroup()
 {
 	if (!Identifier.IsValid())
 	{
-		UE_LOG(LogFaerieInventory, Warning, TEXT("Invalid extension identifier for '%s'"), *GetName())
+		UE_LOGF(LogFaerieInventory, Warning, "Invalid extension identifier for '%ls'", *GetName())
 	}
 
 	for (auto&& It = Extensions.CreateIterator(); It; ++It)
@@ -706,8 +706,8 @@ void UItemContainerExtensionGroup::ValidateGroup()
 
 		if (!IsValid(Extension))
 		{
-			UE_LOG(LogFaerieInventory, Warning,
-				TEXT("Removing invalid extension pointer during PostLoadFixup at index [%i] for '%s'"),
+			UE_LOGF(LogFaerieInventory, Warning,
+				"Removing invalid extension pointer during PostLoadFixup at index [%i] for '%ls'",
 				It.GetIndex(), *GetName())
 			It.RemoveCurrent();
 		}
@@ -717,7 +717,7 @@ void UItemContainerExtensionGroup::ValidateGroup()
 		}
 		else if (!Extension->Identifier.IsValid())
 		{
-			UE_LOG(LogFaerieInventory, Warning, TEXT("Invalid extension identifier for '%s'"), *Extension->GetName())
+			UE_LOGF(LogFaerieInventory, Warning, "Invalid extension identifier for '%ls'", *Extension->GetName())
 		}
 	}
 }

@@ -225,7 +225,7 @@ FFaerieStorageEntry::FReadWriteAccess::FReadWriteAccess(FFaerieStorageContent& S
 #if FAERIE_DEBUG
 	if (Faerie::Debug::CVarEnableWriteLockTracking.GetValueOnGameThread())
 	{
-		UE_LOG(LogFaerieInventory, Warning, TEXT("WriteLock++ (FReadWriteAccess ctor 1)"))
+		UE_LOGF(LogFaerieInventory, Warning, "WriteLock++ (FReadWriteAccess ctor 1)")
 	}
 	FStorageContentAccess::GetWriteLock(Source)++;
 #endif
@@ -240,7 +240,7 @@ FFaerieStorageEntry::FReadWriteAccess::~FReadWriteAccess()
 	if (Faerie::Debug::CVarEnableWriteLockTracking.GetValueOnGameThread())
 	{
 		ensureAlways(FStorageContentAccess::GetWriteLock(Source) > 0);
-		UE_LOG(LogFaerieInventory, Warning, TEXT("WriteLock-- (FReadWriteAccess dtor)"))
+		UE_LOGF(LogFaerieInventory, Warning, "WriteLock-- (FReadWriteAccess dtor)")
 	}
 	FStorageContentAccess::GetWriteLock(Source)--;
 #endif
@@ -511,7 +511,7 @@ void FFaerieStorageContent::LockWriteAccess() const
 {
 	if (Faerie::Debug::CVarEnableWriteLockTracking.GetValueOnGameThread())
 	{
-		UE_LOG(LogFaerieInventory, Warning, TEXT("WriteLock++ (LockWriteAccess)"))
+		UE_LOGF(LogFaerieInventory, Warning, "WriteLock++ (LockWriteAccess)")
 	}
 	WriteLock++;
 }
@@ -521,7 +521,7 @@ void FFaerieStorageContent::UnlockWriteAccess() const
 	if (Faerie::Debug::CVarEnableWriteLockTracking.GetValueOnGameThread())
 	{
 		ensureAlways(WriteLock > 0);
-		UE_LOG(LogFaerieInventory, Warning, TEXT("WriteLock-- (UnlockWriteAccess)"))
+		UE_LOGF(LogFaerieInventory, Warning, "WriteLock-- (UnlockWriteAccess)")
 	}
 	WriteLock--;
 }
@@ -532,7 +532,7 @@ FFaerieStorageContent::TRangedForConstIterator FFaerieStorageContent::begin() co
 #if FAERIE_DEBUG
 	if (Faerie::Debug::CVarEnableWriteLockTracking.GetValueOnGameThread())
 	{
-		UE_LOG(LogFaerieInventory, Warning, TEXT("WriteLock++ (iterator begin)"))
+		UE_LOGF(LogFaerieInventory, Warning, "WriteLock++ (iterator begin)")
 	}
 
 	WriteLock++;
@@ -546,7 +546,7 @@ FFaerieStorageContent::TRangedForConstIterator FFaerieStorageContent::end() cons
 	if (Faerie::Debug::CVarEnableWriteLockTracking.GetValueOnGameThread())
 	{
 		ensureAlways(WriteLock > 0);
-		UE_LOG(LogFaerieInventory, Warning, TEXT("WriteLock-- (iterator end)"))
+		UE_LOGF(LogFaerieInventory, Warning, "WriteLock-- (iterator end)")
 	}
 	WriteLock--;
 #endif

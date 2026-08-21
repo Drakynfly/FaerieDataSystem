@@ -7,6 +7,7 @@
 #include "MassEntityConfigAsset.h"
 #include "MassEntitySubsystem.h"
 #include "EntityManagerHelpers.h"
+#include "FaerieItemDataLog.h"
 
 #include "Engine/AssetManager.h"
 #include "Engine/World.h"
@@ -34,7 +35,7 @@ void UFaerieMassReplicationSubsystem::PostInitialize()
 	const FSoftObjectPath MassConfigSoftObject = GetDefault<UFaerieItemDataSettings>()->ItemDataMassConfig.ToSoftObjectPath();
 	if (MassConfigSoftObject.IsNull())
 	{
-		UE_LOG(LogTemp, Error, TEXT("Invalid ItemDataMassConfig in ItemDataSettings! Please assign an asset to Project Settings -> Item Data Settings -> ItemDataMassConfig"));
+		UE_LOGF(LogFaerieItemData, Error, "Invalid ItemDataMassConfig in ItemDataSettings! Please assign an asset to Project Settings -> Item Data Settings -> ItemDataMassConfig");
 		return;
 	}
 
