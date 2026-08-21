@@ -4,9 +4,6 @@
 
 #include "ItemCraftingAction.h"
 #include "FaerieItemSlotInterface.h"
-
-#include "Generation/FaerieItemGenerationAction.h"
-
 #include "FaerieCraftRecipeAction.generated.h"
 
 class UFaerieRecipeCraftConfig;
@@ -15,7 +12,7 @@ class UFaerieRecipeCraftConfig;
  * A crafting action is a sub-type of generation action
  */
 USTRUCT(BlueprintType)
-struct FAERIEITEMGENERATOR_API FFaerieCraftRecipeAction : public FFaerieItemGenerationActionBase
+struct FAERIEITEMGENERATOR_API FFaerieCraftRecipeAction : public FFaerieCraftingActionBase
 {
 	GENERATED_BODY()
 

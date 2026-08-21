@@ -44,14 +44,15 @@ void UFaerieItemDataCreationObserver::Execute(FMassEntityManager& EntityManager,
 		for (int32 i = 0; i < ItemPointers.Num(); ++i)
 		{
 			// Build Item Instance from mass views.
-			const FFaerieItemInstance Item(ItemPointers[i].Item.ResolveObjectPtr(), InContext.GetEntity(i));
+			const FMassEntityHandle Entity = InContext.GetEntity(i);
+			const FFaerieItemInstance Item(ItemPointers[i].Item.ResolveObjectPtr(), Entity);
 
 			// Create view for each dirty fragment.
 			TArray<TConstStructView<FFaerieMassFragment>> FragmentViews;
 
-			const FMassArchetypeHandle Archetype = Manager.GetArchetypeForEntity(Item.GetMassEntityHandle());
+			const FMassArchetypeHandle Archetype = Manager.GetArchetypeForEntity(Entity);
 			Manager.ForEachArchetypeFragmentType(Archetype,
-				[Entity = Item.GetMassEntityHandle(), &Manager, &FragmentViews](const UScriptStruct* FragmentType)
+				[Entity, &Manager, &FragmentViews](const UScriptStruct* FragmentType)
 				{
 					if (!FragmentType->IsChildOf<FFaerieMassFragment>())
 					{

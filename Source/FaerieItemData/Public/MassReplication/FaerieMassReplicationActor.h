@@ -2,9 +2,8 @@
 
 #pragma once
 
-#include "FaerieItemInstance.h"
+#include "FaerieItemDataFwd.h"
 #include "MassEntityManager.h"
-#include "ValidParameter.h"
 
 #include "GameFramework/Info.h"
 #include "StructUtils/InstancedStruct.h"
@@ -23,14 +22,18 @@ struct FFaerieMassReplicatedEntity : public FFastArraySerializerItem
 {
 	GENERATED_BODY()
 
+	// Flag to detect when ItemPointer has replicated to the client, but hasn't been pushed into mass yet.
+	bool HasImportedItemPointer = false;
+
+	// Locally cached entity handle.
+	FMassEntityHandle EntityHandle;
+
+	// The ItemAsset for this item. May not always be valid.
 	UPROPERTY()
-	FFaerieItemStableHandle Item;
+	TObjectPtr<UFaerieItem> ItemPointer;
 
 	UPROPERTY()
 	TArray<FInstancedStruct> Fragments;
-
-	// Flag for when fragments have replicated before the item pointer has. Needs to be fixed up by replication actor tick
-	bool AwaitingItemPointer;
 
 	void PreReplicatedRemove(const FFaerieMassReplicatedEntities& InArraySerializer);
 	void PostReplicatedAdd(const FFaerieMassReplicatedEntities& InArraySerializer);
@@ -45,6 +48,7 @@ struct FFaerieMassReplicatedEntities : public FIrisFastArraySerializer
 	UPROPERTY()
 	TArray<FFaerieMassReplicatedEntity> Entries;
 
+	// ReSharper disable once CppUE4ProbableMemoryIssuesWithUObject
 	TObjectPtr<AFaerieMassReplicationActor> Owner;
 
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
@@ -79,21 +83,19 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 
 public:
-	void Server_UpdateFragment(Faerie::TValid<const FFaerieItemInstance&> Item, TConstArrayView<TConstStructView<FFaerieMassFragment>> FragmentViews);
-	void Server_RemoveFragment(Faerie::TValid<const FFaerieItemInstance&> Item, TNotNull<const UScriptStruct*> ScriptStruct);
-	void Server_RemoveEntity(Faerie::TValid<const FFaerieItemInstance&> Item);
+	void Server_UpdateFragment(const FFaerieItemInstance& Item, TConstArrayView<TConstStructView<FFaerieMassFragment>> FragmentViews);
+	void Server_RemoveFragment(const FFaerieItemInstance& Item, TNotNull<const UScriptStruct*> ScriptStruct);
+	void Server_RemoveEntity(const FFaerieItemInstance& Item);
 
+	void Client_AddEntity(FFaerieMassReplicatedEntity& Entity);
 	void Client_UpdateEntity(FFaerieMassReplicatedEntity& Entity);
-	void Client_RemoveEntity(FFaerieMassReplicatedEntity& Entity);
+	void Client_RemoveEntity(const FFaerieMassReplicatedEntity& Entity);
 
-	void Client_ProcessUpdateData(FFaerieMassReplicatedEntity& Entity);
+	void Client_CheckItemPointer(FFaerieMassReplicatedEntity& Entity);
 
 protected:
 	UPROPERTY(Replicated)
 	FFaerieMassReplicatedEntities ReplicatedEntities;
-
-	UPROPERTY()
-	TObjectPtr<UMassEntitySubsystem> MassEntitySubsystem;
 
 	UPROPERTY()
 	TObjectPtr<UFaerieViewModelSubsystem> ViewModelSubsystem;

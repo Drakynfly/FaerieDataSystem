@@ -40,7 +40,7 @@ protected:
 
 	//~ UInventoryGridExtensionBase
 	virtual void PreStackRemove_Client(const FFaerieGridKeyedStack& Stack) override;
-	virtual void PreStackRemove_Server(const FFaerieGridKeyedStack& Stack, Faerie::TValid<const FFaerieItemInstance&> Item) override;
+	virtual void PreStackRemove_Server(const FFaerieGridKeyedStack& Stack, const FFaerieItemInstance& Item) override;
 
 	virtual void PostStackAdd(const FFaerieGridKeyedStack& Stack) override;
 	virtual void PostStackChange(const FFaerieGridKeyedStack& Stack) override;
@@ -54,14 +54,14 @@ public:
 	//~ UInventoryGridExtensionBase
 
 private:
-	void RemoveItem(FFaerieAddress Address, Faerie::TValid<const FFaerieItemInstance&> Item);
-	void RemoveItemBatch(const TConstArrayView<FFaerieAddress>& Addresses, Faerie::TValid<const FFaerieItemInstance&> Item);
+	void RemoveItem(FFaerieAddress Address, const FFaerieItemInstance& Item);
+	void RemoveItemBatch(const TConstArrayView<FFaerieAddress>& Addresses, const FFaerieItemInstance& Item);
 
 	// The client has to manually rebuild its cell after a removal, as the item's shape is likely lost.
 	void RebuildOccupiedCells();
 
 	// Gets a shape from a shape fragment on the item, or returns a single cell at 0,0 for items with no fragment.
-	FFaerieGridShapeConstView GetItemShape_Impl(Faerie::TValid<const FFaerieItemInstance&> Item) const;
+	FFaerieGridShapeConstView GetItemShape_Impl(const FFaerieItemInstance& Item) const;
 	FFaerieGridShapeConstView GetItemShape_Impl(FFaerieAddress Address) const;
 
 public:

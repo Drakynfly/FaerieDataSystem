@@ -20,7 +20,7 @@ class FAERIEITEMGENERATOR_API UFaerieItemUpgradeConfigBase : public UObject
 	GENERATED_BODY()
 
 public:
-	virtual void GetRequiredAssets(TArray<TSoftObjectPtr<UObject>>& Array);
+	virtual void GetRequiredAssets(TAdderRef<FSoftObjectPath> Array);
 
 	virtual bool CanApplyUpgrade(const FMassEntityManager* EntityManager, const FFaerieItemProxy& Proxy) const { return true; }
 
@@ -61,7 +61,7 @@ public:
 	virtual EDataValidationResult IsDataValid(FDataValidationContext& Context) const override;
 #endif
 
-	virtual void GetRequiredAssets(TArray<TSoftObjectPtr<UObject>>& Array) override;
+	virtual void GetRequiredAssets(TAdderRef<FSoftObjectPath> Array) override;
 
 	virtual bool CanPayCost(const FMassEntityManager* EntityManager, const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemProxy& Proxy) const override;
 

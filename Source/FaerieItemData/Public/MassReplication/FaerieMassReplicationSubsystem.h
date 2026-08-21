@@ -4,7 +4,6 @@
 
 #include "FaerieMassReplicationActor.h"
 #include "MassEntityTemplate.h"
-#include "ValidParameter.h"
 
 #include "Subsystems/WorldSubsystem.h"
 #include "FaerieMassReplicationSubsystem.generated.h"
@@ -29,9 +28,9 @@ public:
 
 	void ForceItemDataTemplateRegistration();
 
-	void Server_UpdateFragment(Faerie::TValid<const FFaerieItemInstance&> Item, TConstArrayView<TConstStructView<FFaerieMassFragment>> FragmentViews);
-	void Server_RemoveFragment(Faerie::TValid<const FFaerieItemInstance&> Item, TNotNull<const UScriptStruct*> ScriptStruct);
-	void Server_RemoveEntity(Faerie::TValid<const FFaerieItemInstance&> Item);
+	void Server_UpdateFragment(const FFaerieItemInstance& Item, TConstArrayView<TConstStructView<FFaerieMassFragment>> FragmentViews);
+	void Server_RemoveFragment(const FFaerieItemInstance& Item, TNotNull<const UScriptStruct*> ScriptStruct);
+	void Server_RemoveEntity(const FFaerieItemInstance& Item);
 
 	const FMassEntityTemplate& GetItemDataTemplate();
 

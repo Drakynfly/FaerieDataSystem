@@ -138,12 +138,21 @@ void UInventoryCapacityExtension::PostEventBatch(const TNotNull<const UFaerieIte
 {
 	for (auto&& Event : Events.Data)
 	{
-		UpdateCacheForEntry(Container, Event.EntryTouched);
+		if (Event.EntryRemoved)
+		{
+			// Entry was removed, delete cache.
+			RemoveCacheForEntry(Container, Event.EntryTouched);
+		}
+		else
+		{
+			UpdateCacheForEntry(Container, Event.EntryTouched);
+		}
 	}
 	HandleStateChanged();
 }
 
-void UInventoryCapacityExtension::UpdateCacheForEntry(const TNotNull<const UFaerieItemContainerBase*> Container, const FFaerieEntryKey Key)
+void UInventoryCapacityExtension::UpdateCacheForEntry(const TNotNull<const UFaerieItemContainerBase*> Container,
+	const FFaerieEntryKey Key)
 {
 	auto&& ContainerCache = ServerCapacityCache.FindOrAdd(Container);
 	auto&& PrevCache = ContainerCache.Find(Key);
@@ -187,20 +196,17 @@ void UInventoryCapacityExtension::UpdateCacheForEntry(const TNotNull<const UFaer
 	AddWeightAndVolume(Diff);
 }
 
-void UInventoryCapacityExtension::CheckCapacityLimit()
+void UInventoryCapacityExtension::RemoveCacheForEntry(const TNotNull<const UFaerieItemContainerBase*> Container,
+	const FFaerieEntryKey Key)
 {
-	const bool IsExceedingWeight = State.CurrentWeight > Config.MaxWeight;
-	const bool IsExceedingVolume = State.CurrentVolume > Config.MaxVolume;
-
-	if (IsExceedingWeight != State.OverMaxWeight)
+	if (auto&& ContainerCache = ServerCapacityCache.Find(Container))
 	{
-		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, State, this);
-		State.OverMaxWeight = IsExceedingWeight;
-	}
-	if (IsExceedingVolume != State.OverMaxVolume)
-	{
-		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, State, this);
-		State.OverMaxVolume = IsExceedingVolume;
+		if (auto&& PrevCache = ContainerCache->Find(Key))
+		{
+			// Remove the existing cache by adding its inverse
+			AddWeightAndVolume(-*PrevCache);
+			ContainerCache->Remove(Key);
+		}
 	}
 }
 
@@ -261,8 +267,6 @@ bool UInventoryCapacityExtension::CanContainItem(const TValid<const FFaerieItemP
 
 void UInventoryCapacityExtension::AddWeightAndVolume(const FFaerieWeightAndVolume Value)
 {
-	if (Value.IsInsignificant()) return;
-
 	State.CurrentWeight += Value.GramWeight;
 	State.CurrentVolume += Value.Volume;
 }
@@ -270,9 +274,15 @@ void UInventoryCapacityExtension::AddWeightAndVolume(const FFaerieWeightAndVolum
 void UInventoryCapacityExtension::HandleStateChanged()
 {
 	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, State, this);
-	CheckCapacityLimit();
 	OnStateChangedNative.Broadcast();
 	OnStateChanged.Broadcast();
+}
+
+void UInventoryCapacityExtension::HandleConfigChanged()
+{
+	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Config, this);
+	OnConfigurationChangedNative.Broadcast();
+	OnConfigurationChanged.Broadcast();
 }
 
 bool UInventoryCapacityExtension::CanContain(const FFaerieItemProxy& Proxy) const
@@ -285,7 +295,7 @@ bool UInventoryCapacityExtension::CanContain(const FFaerieItemProxy& Proxy) cons
 	return CanContainItem(Proxy);
 }
 
-bool UInventoryCapacityExtension::CanContain_Multi(const Utils::TArrayAdapter<FFaerieItemProxy>& Proxies) const
+bool UInventoryCapacityExtension::CanContain_Multi(const Utils::TArrayAdapter<FFaerieItemProxy> Proxies) const
 {
 	// @todo this does not account for the idea that if we add to an existing stack, the Efficiency would reduce the weight.
 
@@ -412,6 +422,16 @@ FFaerieWeightAndVolume UInventoryCapacityExtension::GetMaxCapacity() const
     return FFaerieWeightAndVolume(Config.MaxWeight, Config.MaxVolume);
 }
 
+bool UInventoryCapacityExtension::IsOverMaxWeight() const
+{
+	return State.CurrentWeight > Config.MaxWeight;
+}
+
+bool UInventoryCapacityExtension::IsOverMaxVolume() const
+{
+	return State.CurrentVolume > Config.MaxVolume;
+}
+
 void UInventoryCapacityExtension::SetConfiguration(const FCapacityExtensionConfig& NewConfig)
 {
 	Config = NewConfig;
@@ -423,29 +443,20 @@ void UInventoryCapacityExtension::SetConfiguration(const FCapacityExtensionConfi
 		Config.MaxVolume *= Config.Bounds.Z;
 	}
 
-	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Config, this);
-	CheckCapacityLimit();
-	OnConfigurationChangedNative.Broadcast();
-	OnConfigurationChanged.Broadcast();
+	HandleConfigChanged();
 }
 
 void UInventoryCapacityExtension::SetBounds(const FIntVector NewBounds)
 {
 	Config.Bounds = NewBounds;
-	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Config, this);
-	CheckCapacityLimit();
-	OnConfigurationChangedNative.Broadcast();
-	OnConfigurationChanged.Broadcast();
+	HandleConfigChanged();
 }
 
 void UInventoryCapacityExtension::SetMaxCapacity(const FFaerieWeightAndVolume NewMax)
 {
 	Config.MaxWeight = NewMax.GramWeight;
 	Config.MaxVolume = NewMax.Volume;
-	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Config, this);
-	CheckCapacityLimit();
-	OnConfigurationChangedNative.Broadcast();
-	OnConfigurationChanged.Broadcast();
+	HandleConfigChanged();
 }
 
 float UInventoryCapacityExtension::GetPercentageFullForWeightAndVolume(const FFaerieWeightAndVolume& WeightAndVolume) const

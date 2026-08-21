@@ -51,12 +51,7 @@ public:
 
 	// Gets the fragment of the given type if it exists in the either the asset's defaults or runtime entity.
 	// @Todo replace with a version that auto-cast's the output to Fragment type.
-	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Faerie|ItemData", meta = (ExpandBoolAsExecs = "ReturnValue"))
-	static bool FindFragment(const FFaerieItemInstance& Instance, /*TSubScriptStructOf<FFaerieMassFragment>*/ UScriptStruct* FragmentType, TInstancedStruct<FFaerieMassFragment>& FoundFragment);
-
-	// Gets the fragment of the given type if it exists in the either the asset's defaults or runtime entity.
-	// @Todo replace with a version that auto-cast's the output to Fragment type.
-	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Faerie|ItemData", meta = (ExpandBoolAsExecs = "ReturnValue", DisplayName = "Find Fragment (Proxy)"))
+	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Faerie|ItemData", meta = (ExpandBoolAsExecs = "ReturnValue", DisplayName = "Find Fragment"))
 	static bool FindFragment_Proxy(const FFaerieItemProxy& Proxy, /*TSubScriptStructOf<FFaerieMassFragment>*/ UScriptStruct* FragmentType, TInstancedStruct<FFaerieMassFragment>& FoundFragment);
 
 	// Get the inventory system Unlimited Stack.

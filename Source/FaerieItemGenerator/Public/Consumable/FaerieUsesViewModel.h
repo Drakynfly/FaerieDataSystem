@@ -20,7 +20,7 @@ public:
 protected:
 	virtual void OnProxySet(const FMassEntityManager& EntityManager) override;
 	virtual void OnFieldChange(const FMassEntityManager& EntityManager, const Faerie::ItemData::FFieldChange& Data) override;
-	virtual void CheckForFieldChange(Faerie::TValid<const FFaerieItemInstance&> Item, const FConstStructView FragmentView) override;
+	virtual void CheckForFieldChange(const FFaerieItemInstance& Item, const FConstStructView FragmentView) override;
 	//~ UFaerieViewModelBase
 
 protected:

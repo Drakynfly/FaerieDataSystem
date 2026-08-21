@@ -47,16 +47,16 @@ void UFaerieItemContainerBase::DeinitializeNetObject(const TNotNull<AActor*> Act
 	Extensions::FGroupAPI::DeinitializeExtension(Extensions, this);
 }
 
-void UFaerieItemContainerBase::OnItemDataChanged(const TValid<const FFaerieItemInstance&> Instance, const TNotNull<const UScriptStruct*> FragmentType, const FGameplayTag EditTag)
+void UFaerieItemContainerBase::OnItemDataChanged(const FFaerieItemInstance& Instance, const TNotNull<const UScriptStruct*> FragmentType, const FGameplayTag EditTag)
 {
 }
 
-FFaerieItemExportData UFaerieItemContainerBase::ExportItemData(const FMassEntityManager& EntityManager, const TValid<const FFaerieItemInstance&> Item) const
+FFaerieItemExportData UFaerieItemContainerBase::ExportItemData(const FMassEntityManager& EntityManager, const FFaerieItemInstance& Item) const
 {
 	static constexpr ItemData::EMassFragmentExportOptions ExportOptions = ItemData::EMassFragmentExportOptions::OnlyFaerieMassFragments;
 
 	FFaerieItemExportData ExportData;
-	ValidGet(Item).ExportFragmentData(EntityManager, ExportData.MassInstances, ExportOptions);
+	Item.ExportFragmentData(EntityManager, ExportData.MassInstances, ExportOptions);
 	return ExportData;
 }
 

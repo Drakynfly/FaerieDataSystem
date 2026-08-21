@@ -47,7 +47,7 @@ public:
 	//~ Faerie::ItemData::IViewBase
 
 	//~ IFaerieItemDataProxy
-	virtual Faerie::ItemData::FProxyChangeEvent::RegistrationType& GetOnProxyChangeEvent() override { return OnItemChangedNative; }
+	UE_REWRITE virtual Faerie::ItemData::FProxyChangeEvent::RegistrationType& GetOnProxyChangeEvent() override { return OnItemChangedNative; }
 	//~ IFaerieItemDataProxy
 
 public:

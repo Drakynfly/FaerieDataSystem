@@ -58,7 +58,7 @@ void UFaerieMassReplicationSubsystem::Deinitialize()
 	Super::Deinitialize();
 }
 
-void UFaerieMassReplicationSubsystem::Server_UpdateFragment(const TValid<const FFaerieItemInstance&> Item,
+void UFaerieMassReplicationSubsystem::Server_UpdateFragment(const FFaerieItemInstance& Item,
 															const TConstArrayView<TConstStructView<FFaerieMassFragment>> FragmentViews)
 {
 	if (ensure(IsValid(ReplicationActor) && !FragmentViews.IsEmpty()))
@@ -67,7 +67,7 @@ void UFaerieMassReplicationSubsystem::Server_UpdateFragment(const TValid<const F
 	}
 }
 
-void UFaerieMassReplicationSubsystem::Server_RemoveFragment(const TValid<const FFaerieItemInstance&> Item,
+void UFaerieMassReplicationSubsystem::Server_RemoveFragment(const FFaerieItemInstance& Item,
 	const TNotNull<const UScriptStruct*> ScriptStruct)
 {
 	if (ensure(IsValid(ReplicationActor)))
@@ -76,7 +76,7 @@ void UFaerieMassReplicationSubsystem::Server_RemoveFragment(const TValid<const F
 	}
 }
 
-void UFaerieMassReplicationSubsystem::Server_RemoveEntity(const TValid<const FFaerieItemInstance&> Item)
+void UFaerieMassReplicationSubsystem::Server_RemoveEntity(const FFaerieItemInstance& Item)
 {
 	if (ensure(IsValid(ReplicationActor)))
 	{

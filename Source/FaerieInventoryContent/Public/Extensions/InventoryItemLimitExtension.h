@@ -38,7 +38,8 @@ public:
 private:
 	bool CanContain(const int32 Count) const;
 
-	void UpdateCacheForEntry(TNotNull<const UFaerieItemContainerBase*> Container, FFaerieEntryKey Key);
+	void UpdateCacheForEntry(FFaerieEntryKey Key, const int32 Delta);
+	void RemoveCacheForEntry(FFaerieEntryKey Key);
 
 protected:
 	// Maximum number of entries the storage can contain. A value of zero doesn't apply any limit.

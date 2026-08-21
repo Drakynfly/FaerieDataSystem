@@ -1,7 +1,6 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieItemInstance.h"
-#include "EntityManagerHelpers.h"
 #include "FaerieItem.h"
 #include "FaerieItemDataLog.h"
 #include "FaerieMassFragment.h"
@@ -52,10 +51,9 @@ void FFaerieItemInstance::InitializeMassEntityImpl(FMassEntityManager& EntityMan
 	Builder.Commit();
 }
 
-void FFaerieItemInstance::UpdateTimestamp(bool CreateIfMissing) const
+void FFaerieItemInstance::UpdateTimestamp(const FMassEntityManager& EntityManager, bool CreateIfMissing) const
 {
 	// Update timestamp should only be called on instances that already have a mass equivalence
-	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked();
 	EntityManager.CheckIfEntityIsValid(EntityHandle);
 
 	EntityManager.Defer().PushCommand<FMassDeferredSetCommand>(
@@ -186,7 +184,7 @@ void FFaerieItemInstance::AddFragment(FMassEntityManager& EntityManager, FInstan
 	if (EntityManager.IsEntityValid(EntityHandle))
 	{
 		EntityManager.AddFragmentInstanceListToEntity(EntityHandle, MakeArrayView(&Fragment, 1));
-		UpdateTimestamp(true);
+		UpdateTimestamp(EntityManager, true);
 	}
 	else
 	{
@@ -204,7 +202,7 @@ void FFaerieItemInstance::AddFragments(FMassEntityManager& EntityManager, const 
 	if (EntityManager.IsEntityValid(EntityHandle))
 	{
 		EntityManager.AddFragmentInstanceListToEntity(EntityHandle, Fragments);
-		UpdateTimestamp(true);
+		UpdateTimestamp(EntityManager, true);
 	}
 	else
 	{
@@ -225,7 +223,7 @@ void FFaerieItemInstance::RemoveFragment(FMassEntityManager& EntityManager,
 	{
 		EntityManager.RemoveFragmentFromEntity(EntityHandle, FragmentType);
 
-		UpdateTimestamp(true);
+		UpdateTimestamp(EntityManager, true);
 
 		NotifyOwnerOfChange(EntityManager, FragmentType, ItemData::Tags::FragmentRemove);
 	}
@@ -234,7 +232,7 @@ void FFaerieItemInstance::RemoveFragment(FMassEntityManager& EntityManager,
 void FFaerieItemInstance::OnItemFragmentEdited(const FMassEntityManager& EntityManager, const TNotNull<const UScriptStruct*> FragmentType, FGameplayTag Tag) const
 {
 	// @todo figure out how to handle the Tag from the fragment event
-	UpdateTimestamp(true);
+	UpdateTimestamp(EntityManager, true);
 	NotifyOwnerOfChange(EntityManager, FragmentType, ItemData::Tags::FragmentGenericPropertyEdit);
 
 	// @Todo Subsystem broadcasts...
@@ -242,7 +240,7 @@ void FFaerieItemInstance::OnItemFragmentEdited(const FMassEntityManager& EntityM
 
 void FFaerieItemInstance::OnItemFragmentEdited(const FMassEntityManager& EntityManager, const TConstStructView<FFaerieMassFragment> FragmentView, const ItemData::FFieldChange& FieldChange) const
 {
-	UpdateTimestamp(true);
+	UpdateTimestamp(EntityManager, true);
 	NotifyOwnerOfChange(EntityManager, FragmentView.GetScriptStruct(), ItemData::Tags::FragmentGenericPropertyEdit);
 
 	const UWorld* World = EntityManager.GetWorld();
@@ -250,16 +248,13 @@ void FFaerieItemInstance::OnItemFragmentEdited(const FMassEntityManager& EntityM
 	World->GetSubsystemChecked<UFaerieMassReplicationSubsystem>()->Server_UpdateFragment(*this, MakeConstArrayView(&FragmentView, 1));
 }
 
-FDateTime FFaerieItemInstance::GetLastModified() const
+FDateTime FFaerieItemInstance::GetLastModified(const FMassEntityManager& EntityManager) const
 {
-	if (FMassEntityManager* EntityManagerPtr = ItemData::GetFaerieEntityManager())
+	if (EntityManager.IsEntityValid(EntityHandle))
 	{
-		if (EntityManagerPtr->IsEntityValid(EntityHandle))
+		if (auto* Ptr = EntityManager.GetFragmentDataPtr<FFaerieItemModificationDate>(EntityHandle))
 		{
-			if (auto Ptr = EntityManagerPtr->GetFragmentDataPtr<FFaerieItemModificationDate>(EntityHandle))
-			{
-				return Ptr->LastModified;
-			}
+			return Ptr->LastModified;
 		}
 	}
 

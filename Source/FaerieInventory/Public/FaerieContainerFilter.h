@@ -82,12 +82,12 @@ namespace Faerie::Container
 				if constexpr (EnumHasAnyFlags(Flags, EFilterFlags::Inverted))
 				{
 					// Test for not passing the predicates
-					return !PredicateTuple.TestAll(EntityManager, Iterator.GetProxy());
+					return !PredicateTuple.TestAll(EntityManager, Iterator.GetSingleFrameProxy());
 				}
 				else
 				{
 					// Test for passing the predicates
-					return PredicateTuple.TestAll(EntityManager, Iterator.GetProxy());
+					return PredicateTuple.TestAll(EntityManager, Iterator.GetSingleFrameProxy());
 				}
 			};
 
@@ -219,14 +219,13 @@ namespace Faerie::Container
 			return OutCount;
 		}
 
-		[[nodiscard]] TArray<ResolveType> Emit(const FMassEntityManager* EntityManager, const TNotNull<const UFaerieItemContainerBase*> Container) const
+		template <typename OutContainerType>
+		void Emit(const FMassEntityManager* EntityManager, const TNotNull<const UFaerieItemContainerBase*> Container, OutContainerType& OutContainer) const
 		{
-			TArray<ResolveType> OutItems;
 			for (auto It = Iterate(EntityManager, Container); It; ++It)
 			{
-				OutItems.Add(*It);
+				OutContainer.Add(*It);
 			}
-			return OutItems;
 		}
 
 		[[nodiscard]] ResolveType First(const FMassEntityManager* EntityManager, const TNotNull<const UFaerieItemContainerBase*> Container) const

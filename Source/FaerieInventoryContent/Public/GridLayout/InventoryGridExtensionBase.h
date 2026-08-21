@@ -71,7 +71,7 @@ protected:
 	//~ UItemContainerExtensionBase
 
 	virtual void PreStackRemove_Client(const FFaerieGridKeyedStack& Stack) {}
-	virtual void PreStackRemove_Server(const FFaerieGridKeyedStack& Stack, Faerie::TValid<const FFaerieItemInstance&> Item) {}
+	virtual void PreStackRemove_Server(const FFaerieGridKeyedStack& Stack, const FFaerieItemInstance& Item) {}
 
 	virtual void PostStackAdd(const FFaerieGridKeyedStack& Stack) {}
 	virtual void PostStackChange(const FFaerieGridKeyedStack& Stack) {}

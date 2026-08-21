@@ -235,8 +235,8 @@ FFaerieItemInstance UFaerieItemAsset::CreateReferencingInstance_Runtime() const
 {
 	const FFaerieTaggedReference Reference
 	{
-		ItemData::Tags::ReferenceDefaults,
-		this
+		.Tag = ItemData::Tags::ReferenceDefaults,
+		.Reference = this
 	};
 
 	FFaerieReferenceFragment ReferenceFragment;

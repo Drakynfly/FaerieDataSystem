@@ -39,7 +39,7 @@ namespace Faerie::Inventory
 		// The item from the modified entry.
 		FFaerieItemInstance Instance;
 
-		// The number of copies added or removed. Left as -1 for edit events.
+		// The number of copies added or removed. May be left as -1 on certain client-side events where the number of copies is unknown.
 		int32 Copies = -1;
 
 		// The entry that this event pertained to.
@@ -125,7 +125,8 @@ struct FAERIEINVENTORY_API FFaerieBlueprintInventoryEvent
 	FFaerieInventoryTag Type;
 
 	// The item from this entry.
-	UPROPERTY(BlueprintReadOnly, Category = "InventoryEvent")
+	// @todo not exposed to Blueprint
+	UPROPERTY()
 	FFaerieItemInstance Item;
 
 	// The number of item copies added or removed.

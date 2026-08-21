@@ -36,7 +36,7 @@ EDataValidationResult FFaerieItemStorageFragment::IsDataValid(FDataValidationCon
 
 #endif
 
-bool FFaerieItemStorageFragment::InitializeRuntime(const TNotNull<UObject*> Outer, const TValid<const FFaerieItemInstance&> Instance)
+bool FFaerieItemStorageFragment::InitializeRuntime(const TNotNull<UObject*> Outer, const FFaerieItemInstance& Instance)
 {
 	if (IsValid(Storage.Storage))
 	{
@@ -44,7 +44,7 @@ bool FFaerieItemStorageFragment::InitializeRuntime(const TNotNull<UObject*> Oute
 
 		if (UItemContainerExtensionEvents* Events = Extensions::Get<UItemContainerExtensionEvents>(Storage.Storage->GetExtensions(), true))
 		{
-			Events->GetOnPostEventBatch().AddStatic(&FFaerieItemStorageFragment::OnStorageItemChanged, ValidGet(Instance));
+			Events->GetOnPostEventBatch().AddStatic(&FFaerieItemStorageFragment::OnStorageItemChanged, Instance);
 		}
 	}
 	return true;
@@ -58,21 +58,20 @@ void FFaerieItemStorageFragment::OnStorageItemChanged(const TNotNull<const UFaer
 
 FAERIE_REGISTER_TRAITS(FFaerieChildStackFragment)
 
-bool FFaerieChildStackFragment::InitializeRuntime(const TNotNull<UObject*> Outer, const TValid<const FFaerieItemInstance&> Instance)
+bool FFaerieChildStackFragment::InitializeRuntime(const TNotNull<UObject*> Outer, const FFaerieItemInstance& Instance)
 {
 	for (FFaerieInlineStackContainer& InlineStack : Slots)
 	{
 		if (InlineStack.Stack)
 		{
 			InlineStack.Stack = Utils::DuplicateObjectFromDiskForReplication(InlineStack.Stack.Get(), Outer);
-			InlineStack.Stack->GetOnContainerEvent().AddStatic(&FFaerieChildStackFragment::OnSlotItemChanged, ValidGet(Instance));
+			InlineStack.Stack->GetOnContainerEvent().AddStatic(&FFaerieChildStackFragment::OnSlotItemChanged, Instance);
 		}
 	}
 	return true;
 }
 
-void FFaerieChildStackFragment::OnSlotItemChanged(const FFaerieItemProxy& Proxy, const FGameplayTag Tag,
-	FFaerieItemInstance Instance)
+void FFaerieChildStackFragment::OnSlotItemChanged(const FFaerieItemProxy& Proxy, const FGameplayTag Tag, FFaerieItemInstance Instance)
 {
 	auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
 	Instance.OnItemFragmentEdited(EntityManager, FFaerieChildStackFragment::StaticStruct(), ItemData::Tags::FragmentGenericPropertyEdit);

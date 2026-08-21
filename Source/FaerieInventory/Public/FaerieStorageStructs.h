@@ -299,8 +299,8 @@ public:
 	/**
 	 * Adds a new key and entry to the end of the Items array. Performs a quick check that the new key is sequentially
 	 * following the end of the array, but does not enforce or check for the entire array being sorted. Use this function
-	 * when you can confirm that the key is sequential. When this is not known, use Insert instead. Append is O(1), while
-	 * Insert is O(Log(n)), so use this if you can.
+	 * when you can confirm that the key is sequential. When this is not known, use Insert_GetRef instead. Append is O(1), while
+	 * Insert_GetRef is O(Log(n)), so use this if you can.
 	 * */
 	void Append(const FFaerieStorageEntry& Entry);
 

@@ -19,7 +19,7 @@ namespace Faerie::ItemData
 
 struct FMassEntityManager;
 
-USTRUCT(BlueprintType)
+USTRUCT()
 struct FAERIEITEMDATA_API FFaerieItemInstance
 {
 	GENERATED_BODY()
@@ -55,23 +55,27 @@ protected:
 
 private:
 	void InitializeMassEntityImpl(FMassEntityManager& EntityManager, TArrayView<FInstancedStruct> Fragments);
-	void UpdateTimestamp(bool CreateIfMissing) const;
+	void UpdateTimestamp(const FMassEntityManager& EntityManager, bool CreateIfMissing) const;
 	void NotifyOwnerOfChange(const FMassEntityManager& EntityManager, TNotNull<const UScriptStruct*> FragmentType, FGameplayTag Tag) const;
 
 public:
 	UE_REWRITE bool HasItemAsset() const { return !!Item; }
-	UE_REWRITE bool HasMassEntity() const { return EntityHandle.IsValid(); }
+	UE_REWRITE bool HasMassEntity() const { return EntityHandle.IsSet(); }
+
+	UE_REWRITE bool IsMassEntityNull() const { return !EntityHandle.IsSet(); }
+
+	// The instance is empty if it has neither a MassEntityHandle nor an ItemAsset pointer.
+	UE_REWRITE bool IsEmpty() const { return IsMassEntityNull() && !HasItemAsset(); }
 
 	UE_REWRITE const UFaerieItem* GetItemPtr() const { return Item; }
 	UE_REWRITE FMassEntityHandle GetMassEntityHandle() const { return EntityHandle; }
-
-	UE_REWRITE bool IsValid() const { return HasItemAsset() || HasMassEntity(); }
 
 	bool IsMutable() const;
 
 	void InitializeMassEntity(FMassEntityManager& EntityManager, TArrayView<FInstancedStruct> Fragments = {});
 	void InitializeMassEntityIfInvalid(FMassEntityManager& EntityManager);
 
+	// Call on Server Only to destroy the mass entity for this item instance.
 	void DestroyMassEntity(FMassEntityManager& EntityManager);
 
 	/*
@@ -95,7 +99,7 @@ public:
 
 	//~		INTEROP FUNCTIONS WHILE UPGRADING	 ~/
 
-	FDateTime GetLastModified() const;
+	FDateTime GetLastModified(const FMassEntityManager& EntityManager) const;
 
 	[[nodiscard]] bool UEOpEquals(const FFaerieItemInstance& Other) const;
 
@@ -103,27 +107,4 @@ public:
 	{
 		return HashCombineFast(GetTypeHash(Value.GetItemPtr()), GetTypeHash(Value.GetMassEntityHandle()));
 	}
-};
-
-/*
- * A struct used to keep track of a faerie item over time. Currently implemented as a pointer to the item instance.
- * This exists to be future proofing against later changes to UFaerieItem.
- */
-USTRUCT()
-struct FFaerieItemStableHandle
-{
-	GENERATED_BODY()
-
-	FFaerieItemStableHandle() = default;
-	FFaerieItemStableHandle(const FFaerieItemInstance& Item)
-	  : Item(Item) {}
-
-	bool IsValid() const { return Item.IsValid(); }
-
-		  FFaerieItemInstance& Get() { return Item; }
-	const FFaerieItemInstance& Get() const { return Item; }
-
-protected:
-	UPROPERTY()
-	FFaerieItemInstance Item;
 };

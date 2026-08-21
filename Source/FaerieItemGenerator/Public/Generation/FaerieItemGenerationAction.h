@@ -8,22 +8,9 @@
 
 class UFaerieItemGenerationConfig;
 
-/*
- * Base type for any action that generates new item instances.
- */
-USTRUCT()
-struct FAERIEITEMGENERATOR_API FFaerieItemGenerationActionBase : public FFaerieCraftingActionBase
-{
-	GENERATED_BODY()
-
-	// The object to use as the outer for new item instances.
-	UPROPERTY(BlueprintReadWrite, Category = "Generation Action Single")
-	TObjectPtr<UObject> NewInstancesOuter;
-};
-
 //
 USTRUCT(BlueprintType)
-struct FAERIEITEMGENERATOR_API FFaerieItemGenerationActionSingle : public FFaerieItemGenerationActionBase
+struct FAERIEITEMGENERATOR_API FFaerieItemGenerationActionSingle : public FFaerieCraftingActionBase
 {
 	GENERATED_BODY()
 
@@ -44,7 +31,7 @@ private:
 
 //
 USTRUCT(BlueprintType)
-struct FAERIEITEMGENERATOR_API FFaerieItemGenerationAction : public FFaerieItemGenerationActionBase
+struct FAERIEITEMGENERATOR_API FFaerieItemGenerationAction : public FFaerieCraftingActionBase
 {
 	GENERATED_BODY()
 
@@ -62,6 +49,7 @@ protected:
 	bool RecursivelyResolveTables = false;
 
 private:
+	// @Todo this could use an inline allocator...
 	TArray<Faerie::Generation::FPendingTableDrop> PendingDrops;
 
 	// Storage for loaded assets to keep alive while running this action.

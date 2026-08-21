@@ -4,8 +4,8 @@
 #include "MassReplication/FaerieViewModelSubsystem.h"
 
 #include "FaerieItem.h"
-#include "MassEntitySubsystem.h"
 #include "EntityManagerHelpers.h"
+#include "MassCommandBuffer.h"
 
 #include "Engine/Engine.h"
 
@@ -24,7 +24,7 @@ void FFaerieMassReplicatedEntity::PreReplicatedRemove(const FFaerieMassReplicate
 void FFaerieMassReplicatedEntity::PostReplicatedAdd(const FFaerieMassReplicatedEntities& InArraySerializer)
 {
 	UE_LOG(LogTemp, Verbose, TEXT("FFaerieMassReplicatedEntity::PostReplicatedAdd"))
-	InArraySerializer.Owner->Client_UpdateEntity(*this);
+	InArraySerializer.Owner->Client_AddEntity(*this);
 }
 
 void FFaerieMassReplicatedEntity::PostReplicatedChange(const FFaerieMassReplicatedEntities& InArraySerializer)
@@ -56,7 +56,6 @@ void AFaerieMassReplicationActor::BeginPlay()
 	Super::BeginPlay();
 
 	const UWorld* World = GEngine->GetWorldFromContextObject(this, EGetWorldErrorMode::Assert);
-	MassEntitySubsystem = World->GetSubsystemChecked<UMassEntitySubsystem>();
 	ViewModelSubsystem = World->GetSubsystemChecked<UFaerieViewModelSubsystem>();
 }
 
@@ -64,31 +63,24 @@ void AFaerieMassReplicationActor::Tick(const float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
-	// Client-side check to fixup data received before item pointer.
+	// Client-side check to fixup mass after receiving item pointers.
 	if (GetNetMode() == NM_Client)
 	{
 		for (auto&& Entity : ReplicatedEntities.Entries)
 		{
-			if (Entity.AwaitingItemPointer && Entity.Item.IsValid())
-			{
-				Client_ProcessUpdateData(Entity);
-
-				Entity.AwaitingItemPointer = false;
-			}
+			Client_CheckItemPointer(Entity);
 		}
 	}
 }
 
-void AFaerieMassReplicationActor::Server_UpdateFragment(const TValid<const FFaerieItemInstance&> Item, const TConstArrayView<TConstStructView<FFaerieMassFragment>> FragmentViews)
+void AFaerieMassReplicationActor::Server_UpdateFragment(const FFaerieItemInstance& Item, const TConstArrayView<TConstStructView<FFaerieMassFragment>> FragmentViews)
 {
-	const FMassEntityHandle Entity = ValidGet(Item).GetMassEntityHandle();
+	const FMassEntityHandle Entity = Item.GetMassEntityHandle();
 
 	// Try to update existing entry.
 	for (auto&& ReplicatedEntity : ReplicatedEntities.Entries)
 	{
-		const FFaerieItemInstance& Instance = ReplicatedEntity.Item.Get();
-
-		if (Instance.GetMassEntityHandle() != Entity) continue;
+		if (ReplicatedEntity.EntityHandle != Entity) continue;
 
 		for (auto&& FragmentView : FragmentViews)
 		{
@@ -115,7 +107,7 @@ void AFaerieMassReplicationActor::Server_UpdateFragment(const TValid<const FFaer
 
 	// There was no existing entry for this entity.
 	FFaerieMassReplicatedEntity& NewEntry = ReplicatedEntities.Entries.AddDefaulted_GetRef();
-	NewEntry.Item = ValidGet(Item);
+	NewEntry.EntityHandle = Entity;
 	for (auto&& FragmentView : FragmentViews)
 	{
 		NewEntry.Fragments.Emplace(FragmentView);
@@ -123,10 +115,10 @@ void AFaerieMassReplicationActor::Server_UpdateFragment(const TValid<const FFaer
 	ReplicatedEntities.MarkItemDirty(NewEntry);
 }
 
-void AFaerieMassReplicationActor::Server_RemoveFragment(const TValid<const FFaerieItemInstance&> Item, const TNotNull<const UScriptStruct*> ScriptStruct)
+void AFaerieMassReplicationActor::Server_RemoveFragment(const FFaerieItemInstance& Item, const TNotNull<const UScriptStruct*> ScriptStruct)
 {
-	const FMassEntityHandle Entity = ValidGet(Item).GetMassEntityHandle();
-	FMassEntityManager& EntityManager = MassEntitySubsystem->GetMutableEntityManager();
+	const FMassEntityHandle Entity = Item.GetMassEntityHandle();
+	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked();
 	if (!EntityManager.IsEntityValid(Entity))
 	{
 		UE_LOG(LogTemp, Fatal, TEXT("Item created without entity handle. Item creation should always initialize itself with mass!"))
@@ -135,7 +127,7 @@ void AFaerieMassReplicationActor::Server_RemoveFragment(const TValid<const FFaer
 
 	for (auto&& ReplicatedEntity : ReplicatedEntities.Entries)
 	{
-		if (ReplicatedEntity.Item.Get() != Item) continue;
+		if (ReplicatedEntity.EntityHandle != Entity) continue;
 
 		for (auto&& ReplicatedFragment : ReplicatedEntity.Fragments)
 		{
@@ -149,10 +141,10 @@ void AFaerieMassReplicationActor::Server_RemoveFragment(const TValid<const FFaer
 	}
 }
 
-void AFaerieMassReplicationActor::Server_RemoveEntity(const TValid<const FFaerieItemInstance&> Item)
+void AFaerieMassReplicationActor::Server_RemoveEntity(const FFaerieItemInstance& Item)
 {
-	const FMassEntityHandle Entity = ValidGet(Item).GetMassEntityHandle();
-	FMassEntityManager& EntityManager = MassEntitySubsystem->GetMutableEntityManager();
+	const FMassEntityHandle Entity = Item.GetMassEntityHandle();
+	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked();
 	if (!EntityManager.IsEntityValid(Entity))
 	{
 		UE_LOG(LogTemp, Fatal, TEXT("Item created without entity handle. Item creation should always initialize itself with mass!"))
@@ -162,7 +154,7 @@ void AFaerieMassReplicationActor::Server_RemoveEntity(const TValid<const FFaerie
 	for (auto&& It = ReplicatedEntities.Entries.CreateIterator(); It; ++It)
 	{
 		const FFaerieMassReplicatedEntity& ReplicatedEntity = *It;
-		if (ReplicatedEntity.Item.Get() == Item)
+		if (ReplicatedEntity.EntityHandle == Entity)
 		{
 			It.RemoveCurrent();
 			ReplicatedEntities.MarkArrayDirty();
@@ -171,58 +163,63 @@ void AFaerieMassReplicationActor::Server_RemoveEntity(const TValid<const FFaerie
 	}
 }
 
-void AFaerieMassReplicationActor::Client_UpdateEntity(FFaerieMassReplicatedEntity& Entity)
-{
-	if (Entity.Item.IsValid() && IsValid(MassEntitySubsystem))
-	{
-		Client_ProcessUpdateData(Entity);
-	}
-	else
-	{
-		Entity.AwaitingItemPointer = true;
-	}
-}
-
-void AFaerieMassReplicationActor::Client_RemoveEntity(FFaerieMassReplicatedEntity& Entity)
-{
-	if (Entity.Item.IsValid())
-	{
-		FFaerieItemInstance& Instance = Entity.Item.Get();
-		Instance.DestroyMassEntity(MassEntitySubsystem->GetMutableEntityManager());
-	}
-	else
-	{
-		Entity.AwaitingItemPointer = true;
-	}
-}
-
-void AFaerieMassReplicationActor::Client_ProcessUpdateData(FFaerieMassReplicatedEntity& Entity)
+void AFaerieMassReplicationActor::Client_AddEntity(FFaerieMassReplicatedEntity& Entity)
 {
 	auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
 
-	FFaerieItemInstance& Instance = Entity.Item.Get();
-
-	if (Instance.GetMassEntityHandle().IsValid())
+	const FFaerieItemInstance TempInstance = FFaerieItemInstance::FromFragments(EntityManager, Entity.Fragments);
+	Entity.EntityHandle = TempInstance.GetMassEntityHandle();
+	for (auto&& Fragment : Entity.Fragments)
 	{
-		// @todo figure out what changed and only broadcast for them
-
-		// Local item has already been initialized, apply delta.
-		Instance.DestroyMassEntity(EntityManager);
-
-		Instance.ImportFragmentData(EntityManager, Entity.Fragments);
-
-		for (auto&& Fragment : Entity.Fragments)
-		{
-			ViewModelSubsystem->Client_PostReplicationChange(Instance, Fragment);
-		}
+		ViewModelSubsystem->Client_PostReplicationChange(TempInstance, Fragment);
 	}
-	else
+
+	Client_CheckItemPointer(Entity);
+}
+
+void AFaerieMassReplicationActor::Client_UpdateEntity(FFaerieMassReplicatedEntity& Entity)
+{
+	auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
+
+	// @todo figure out what changed and only broadcast for them
+
+	FFaerieItemInstance TempInstance;
+
+	// Local item has already been initialized, apply delta.
+	TempInstance.DestroyMassEntity(EntityManager);
+
+	TempInstance.ImportFragmentData(EntityManager, Entity.Fragments);
+	Entity.EntityHandle = TempInstance.GetMassEntityHandle();
+
+	for (auto&& Fragment : Entity.Fragments)
 	{
-		// Local item does not exist in mass, initialize.
-		Instance.ImportFragmentData(EntityManager, Entity.Fragments);
-		for (auto&& Fragment : Entity.Fragments)
+		ViewModelSubsystem->Client_PostReplicationChange(TempInstance, Fragment);
+	}
+}
+
+void AFaerieMassReplicationActor::Client_RemoveEntity(const FFaerieMassReplicatedEntity& Entity)
+{
+	auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
+	EntityManager.DestroyEntity(Entity.EntityHandle);
+}
+
+void AFaerieMassReplicationActor::Client_CheckItemPointer(FFaerieMassReplicatedEntity& Entity)
+{
+	if (!Entity.HasImportedItemPointer && IsValid(Entity.ItemPointer))
+	{
+		auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
+
+		// If the entity manager stores info for this instance, push our item to it.
+		if (EntityManager.IsEntityValid(Entity.EntityHandle))
 		{
-			ViewModelSubsystem->Client_PostReplicationChange(Instance, Fragment);
+			EntityManager.Defer().PushCommand<FMassDeferredSetCommand>(
+					[Handle = Entity.EntityHandle, Item = Entity.ItemPointer](FMassEntityManager& InEntityManager)
+					{
+						// All faerie item instances must have this fragment.
+						FFaerieMassItemPointer& FragmentPtr = InEntityManager.GetFragmentDataChecked<FFaerieMassItemPointer>(Handle);
+						FragmentPtr.Item = Item;
+					});
 		}
+		Entity.HasImportedItemPointer = true;
 	}
 }

@@ -84,12 +84,8 @@ public:
 	static FFaerieAddress QueryFirst(UFaerieItemStorage* Storage, const UFaerieFunctionTemplates::FFaerieProxyPredicate& Filter);
 
 	// Gets the owner of an item from a proxy, if one exists.
-	UFUNCTION(BlueprintCallable, Category = "Faerie|Storage Library", meta = (DisplayName = "Get Owning Container (Proxy)"))
+	UFUNCTION(BlueprintCallable, Category = "Faerie|Storage Library", meta = (DisplayName = "Get Owning Container"))
 	static UFaerieItemContainerBase* GetOwningContainer_Proxy(const FFaerieItemProxy& Proxy);
-
-	// Gets the owner of an item from a view, if one exists.
-	UFUNCTION(BlueprintCallable, Category = "Faerie|Storage Library", meta = (DisplayName = "Get Owning Container (View)"))
-	static UFaerieItemContainerBase* GetOwningContainer_View(const FFaerieItemProxy& Proxy);
 
 	// Gets the first subobject of the given class
 	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Faerie|Subobject", meta = (DeterminesOutputType = "Class", DynamicOutputParam = "FoundContainers", ExpandBoolAsExecs = "ReturnValue"))
@@ -105,5 +101,5 @@ public:
 
 	// Get all child items from an item.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|SubObjects")
-	static void GetItemChildren(const FFaerieItemProxy& Proxy, TArray<FFaerieItemInstance>& FoundInstances, bool Recursive);
+	static void GetItemChildren(const FFaerieItemProxy& Proxy, TArray<FFaerieItemProxy>& FoundChildren, bool Recursive);
 };

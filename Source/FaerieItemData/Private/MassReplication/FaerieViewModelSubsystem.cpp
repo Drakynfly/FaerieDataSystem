@@ -10,7 +10,7 @@
 
 using namespace Faerie;
 
-void UFaerieViewModelSubsystem::Client_PostReplicationChange(const TValid<const FFaerieItemInstance&> Item, const FConstStructView FragmentView)
+void UFaerieViewModelSubsystem::Client_PostReplicationChange(const FFaerieItemInstance& Item, const FConstStructView FragmentView)
 {
 	checkSlow(FragmentView.IsValid())
 
@@ -19,7 +19,7 @@ void UFaerieViewModelSubsystem::Client_PostReplicationChange(const TValid<const 
 		for (auto&& InUseView : Storage->InUseViews)
         {
 			const FFaerieItemProxy ResolvedOwner(InUseView.Key.ResolveObjectPtr());
-        	if (ResolvedOwner.GetItemInstanceOrInvalid() == ValidGet(Item))
+        	if (ResolvedOwner.GetItemInstanceOrInvalid() == Item)
         	{
         		InUseView.Value->CheckForFieldChange(Item, FragmentView);
         		return;
@@ -114,14 +114,14 @@ void UFaerieViewModelSubsystem::ReturnViewModel(UFaerieViewModelBase* ViewModel)
 	}
 }
 
-void UFaerieViewModelSubsystem::HandleFieldChange(const FMassEntityManager& EntityManager, const TValid<const FFaerieItemInstance&> Item, const ItemData::FFieldChange& Data)
+void UFaerieViewModelSubsystem::HandleFieldChange(const FMassEntityManager& EntityManager, const FFaerieItemInstance& Item, const ItemData::FFieldChange& Data)
 {
 	if (FFaerieViewModelStorage* Storage = PerTypeViewStorage.Find(Data.StructType))
 	{
 		for (auto&& InUseView : Storage->InUseViews)
         {
 			const FFaerieItemProxy ResolvedOwner(InUseView.Key.ResolveObjectPtr());
-        	if (ResolvedOwner.GetItemInstanceOrInvalid() == ValidGet(Item))
+        	if (ResolvedOwner.GetItemInstanceOrInvalid() == Item)
         	{
         		InUseView.Value.Get()->OnFieldChange(EntityManager, Data);
         	}

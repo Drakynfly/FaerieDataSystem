@@ -133,8 +133,7 @@ namespace Faerie::Editor
 
 		if (!ItemProxy.IsValid()) return;
 
-		const FFaerieItemInstance Instance = ItemProxy.GetItemInstance().GetValue();
-		const UFaerieItem* FaerieItem = Instance.GetItemPtr();
+		const UFaerieItem* FaerieItem = ItemProxy.GetItemInstance().GetValue().GetItemPtr();
 		if (!IsValid(FaerieItem)) return;
 
 		auto ProxyClassFragment = Faerie::ItemData::GetDefaultFragment<FFaerieProxyActorFragment>(FaerieItem);

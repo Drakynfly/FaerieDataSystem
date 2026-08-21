@@ -21,7 +21,7 @@ namespace Faerie::Hash
 		return Squirrel::HashCombine(A, B);
 	}
 
-	FFaerieHash CombineHashes(TArray<uint32>& Hashes)
+	FFaerieHash CombineHashes(TArrayView<uint32> Hashes)
 	{
 		// return a 0 hash for an empty array.
 		if (Hashes.IsEmpty()) return FFaerieHash();
@@ -134,33 +134,36 @@ namespace Faerie::Hash
 		return 0;
 	}
 
-	template <typename T>
-	uint32 HashProps(const TNotNull<const T*> Container, const UStruct* Struct, const bool IncludeSuper)
+	namespace
 	{
-		uint32 Hash = 0;
-
-		for (TFieldIterator<FProperty> PropIt(Struct, IncludeSuper ? EFieldIterationFlags::IncludeSuper : EFieldIterationFlags::None); PropIt; ++PropIt)
+		template <typename T>
+		uint32 HashPropsImpl(const TNotNull<const T*> Container, const UStruct* Struct, const bool IncludeSuper)
 		{
-			if (const FProperty* Property = *PropIt)
-			{
-				Hash = Combine(HashFProperty(Container, Property), Hash);
-			}
-		}
+			uint32 Hash = 0;
 
-		return Hash;
+			for (TFieldIterator<FProperty> PropIt(Struct, IncludeSuper ? EFieldIterationFlags::IncludeSuper : EFieldIterationFlags::None); PropIt; ++PropIt)
+			{
+				if (const FProperty* Property = *PropIt)
+				{
+					Hash = Combine(HashFProperty(Container, Property), Hash);
+				}
+			}
+
+			return Hash;
+		}
 	}
 
 	uint32 HashStructByProps(const TNotNull<const void*> Ptr, const TNotNull<const UScriptStruct*> Struct, const bool IncludeSuper)
 	{
-		return HashProps(Ptr, Struct, IncludeSuper);
+		return HashPropsImpl(Ptr, Struct, IncludeSuper);
 	}
 
 	uint32 HashObjectByProps(const TNotNull<const UObject*> Obj, const bool IncludeSuper)
 	{
-		return HashProps(Obj, Obj->GetClass(), IncludeSuper);
+		return HashPropsImpl(Obj, Obj->GetClass(), IncludeSuper);
 	}
 
-	FFaerieHash HashItemSet(const FMassEntityManager* EntityManager, const TSet<TValid<const FFaerieItemInstance&>>& Items, const FItemHashFunction& Function)
+	FFaerieHash HashItems(const FMassEntityManager* EntityManager, const TConstArrayView<const FFaerieItemInstance> Items, const FItemHashFunction& Function)
 	{
 		TArray<uint32> Hashes;
 
@@ -172,7 +175,7 @@ namespace Faerie::Hash
 		return CombineHashes(Hashes);
 	}
 
-	uint32 HashItemByName(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemInstance&> Item)
+	uint32 HashItemByName(const FMassEntityManager* EntityManager, const FFaerieItemInstance& Item)
 	{
 		auto ItemInfo = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieAssetInfo>(EntityManager, Item);
 		if (ItemInfo.IsValid())

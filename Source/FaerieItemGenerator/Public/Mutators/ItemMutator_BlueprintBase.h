@@ -18,7 +18,7 @@ struct FFaerieItemMutator_Blueprint final : public FFaerieItemMutator
 {
 	GENERATED_BODY()
 
-	virtual void GetRequiredAssets(TArray<TSoftObjectPtr<UObject>>& RequiredAssets) const override;
+	virtual void GetRequiredAssets(TAdderRef<FSoftObjectPath> RequiredAssets) const override;
 	virtual bool Apply(FFaerieItemInstance& Item, const FFaerieItemMutatorContext& Context) const override;
 
 protected:
@@ -45,5 +45,5 @@ protected:
 
 	// Any soft assets required to be loaded when Apply is called should be registered here.
 	UFUNCTION(BlueprintNativeEvent, Category = "Mutator")
-	void GetRequiredAssets(TArray<TSoftObjectPtr<UObject>>& RequiredAssets) const;
+	void GetRequiredAssets(TArray<FSoftObjectPath>& RequiredAssets) const;
 };

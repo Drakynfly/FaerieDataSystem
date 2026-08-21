@@ -9,7 +9,7 @@
 
 using namespace Faerie;
 
-TOptional<FFaerieUnownedItemStack> FFaerieTableDrop::Resolve(const FFaerieItemInstancingContext_Crafting& Context) const
+ItemData::FGetInstanceResult FFaerieTableDrop::Resolve(const FFaerieItemInstancingContext_Crafting& Context) const
 {
 	const UObject* DropObject = Asset.Object.Get();
 	if (!/*ensure*/(::IsValid(DropObject)))
@@ -46,14 +46,15 @@ TOptional<FFaerieUnownedItemStack> FFaerieTableDrop::Resolve(const FFaerieItemIn
 		ChildContext.RunningInEditor = Context.RunningInEditor;
 #endif
 
-		if (auto StaticInstanceItem = ChildDrop.Resolve(ChildContext); // @TODO CHECK THAT CODE PATH INITS RUNTIME
-			StaticInstanceItem.IsSet())
+		if (ItemData::FGetInstanceResult StaticInstanceItem = ChildDrop.Resolve(ChildContext);
+			StaticInstanceItem.IsValid())
 		{
-			TempContext.GeneratedChildren.Add(StaticResourceSlot.Key, StaticInstanceItem.GetValue());
+			// We have to initialize these instanced immediately as their data could be needed by the source they are being generated as context of.
+			TempContext.GeneratedChildren.Add(StaticResourceSlot.Key, StaticInstanceItem.WithInitialization());
 		}
 	}
 
-	return ItemSource->CreateItemStack(TempContext).WithoutInitialization();
+	return ItemSource->CreateItemStack(TempContext);
 }
 
 const FFaerieTableDrop* FFaerieWeightedPool::GetDrop(const double RanWeight) const
@@ -111,7 +112,7 @@ void FFaerieWeightedPool::SortTable()
 #endif
 
 void FFaerieGenerationProcedure_OfOne::Resolve(const FFaerieWeightedPool& Pool, USquirrel* Squirrel,
-											   TArray<Generation::FPendingTableDrop>& Pending, const int32 Amount) const
+											   const TAdderRef<Generation::FPendingTableDrop> Pending, const int32 Amount) const
 {
 	const double RanWeight = [Squirrel]
 	{
@@ -124,15 +125,13 @@ void FFaerieGenerationProcedure_OfOne::Resolve(const FFaerieWeightedPool& Pool, 
 
 	if (const FFaerieTableDrop* Drop = Pool.GetDrop(RanWeight))
 	{
-		Generation::FPendingTableDrop& Result = Pending.AddDefaulted_GetRef();
-		Result.Drop = Drop;
-		Result.Count = Amount;
-		UE_LOG(LogItemGeneration, Log, TEXT("Chose Drop: %s - Amount: %i"), *Result.Drop->Asset.Object.ToString(), Result.Count);
+		Pending.Add(Generation::FPendingTableDrop(Drop, Amount));
+		UE_LOG(LogItemGeneration, Log, TEXT("Chose Drop: %s - Amount: %i"), *Drop->Asset.Object.ToString(), Amount);
 	}
 }
 
 void FFaerieGenerationProcedure_OfAny::Resolve(const FFaerieWeightedPool& Pool, USquirrel* Squirrel,
-											   TArray<Generation::FPendingTableDrop>& Pending, const int32 Amount) const
+											   const TAdderRef<Generation::FPendingTableDrop> Pending, const int32 Amount) const
 {
 	for (int32 i = 0; i < Amount; ++i)
 	{
@@ -147,15 +146,13 @@ void FFaerieGenerationProcedure_OfAny::Resolve(const FFaerieWeightedPool& Pool, 
 
 		if (const FFaerieTableDrop* Drop = Pool.GetDrop(RanWeight))
 		{
-			Generation::FPendingTableDrop& Result = Pending.AddDefaulted_GetRef();
-			Result.Drop = Drop;
-			Result.Count = 1;
+			Pending.Add(Generation::FPendingTableDrop(Drop, 1));
 		}
 	}
 }
 
 void FFaerieGenerationProcedure_Chunked::Resolve(const FFaerieWeightedPool& Pool, USquirrel* Squirrel,
-												 TArray<Generation::FPendingTableDrop>& Pending, int32 Amount) const
+												 const TAdderRef<Generation::FPendingTableDrop> Pending, int32 Amount) const
 {
 	while (Amount > 0)
 	{
@@ -181,21 +178,17 @@ void FFaerieGenerationProcedure_Chunked::Resolve(const FFaerieWeightedPool& Pool
 
 		if (const FFaerieTableDrop* Drop = Pool.GetDrop(RanWeight))
 		{
-			Generation::FPendingTableDrop& Result = Pending.AddDefaulted_GetRef();
-			Result.Drop = Drop;
-			Result.Count = ThisDropAmount;
+			Pending.Add(Generation::FPendingTableDrop(Drop, ThisDropAmount));
 		}
 	}
 }
 
 void FFaerieGenerationProcedure_OfAll::Resolve(const FFaerieWeightedPool& Pool, USquirrel* Squirrel,
-											   TArray<Generation::FPendingTableDrop>& Pending, const int32 Amount) const
+	const TAdderRef<Generation::FPendingTableDrop> Pending, const int32 Amount) const
 {
 	for (const FFaerieWeightedDrop& Drop : Pool.DropList)
 	{
-		Generation::FPendingTableDrop& Result = Pending.AddDefaulted_GetRef();
-		Result.Drop = &Drop.Drop;
-		Result.Count = Amount;
+		Pending.Add(Generation::FPendingTableDrop(&Drop.Drop, Amount));
 	}
 }
 

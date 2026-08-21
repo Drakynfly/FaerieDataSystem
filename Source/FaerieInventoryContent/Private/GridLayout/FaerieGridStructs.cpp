@@ -77,7 +77,7 @@ void FFaerieGridContent::Insert(FFaerieAddress Key, const FFaerieGridPlacement& 
 	check(WriteLock == 0);
 #endif
 
-	FFaerieGridKeyedStack& NewStack = BSOA::Insert({Key, Value});
+	FFaerieGridKeyedStack& NewStack = BSOA::Insert_GetRef({Key, Value});
 
 	PostStackReplicatedAdd(NewStack);
 	MarkItemDirty(NewStack);

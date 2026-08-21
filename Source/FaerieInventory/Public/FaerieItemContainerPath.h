@@ -2,8 +2,7 @@
 
 #pragma once
 
-#include "FaerieItemInstance.h"
-#include "ValidParameter.h"
+#include "FaerieItemProxy.h"
 #include "FaerieItemContainerPath.generated.h"
 
 class UFaerieItemContainerBase;
@@ -14,7 +13,7 @@ struct FFaerieItemContainerPathPair
 	GENERATED_BODY()
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "FaerieStoragePathPair")
-	FFaerieItemInstance OwningInstance;
+	FFaerieItemProxy OwningProxy;
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "FaerieStoragePathPair")
 	TObjectPtr<UFaerieItemContainerBase> Container;
@@ -33,7 +32,7 @@ struct FAERIEINVENTORY_API FFaerieItemContainerPath
 	TArray<FFaerieItemContainerPathPair> Containers;
 
 	// Build all paths recursively from a parent (head) container.
-	static void BuildChildrenPaths(const FMassEntityManager& EntityManager, Faerie::TValid<const FFaerieItemInstance&> Owner, TNotNull<UFaerieItemContainerBase*> Head, TArray<FFaerieItemContainerPath>& OutPaths);
+	static void BuildChildrenPaths(const FMassEntityManager& EntityManager, const FFaerieItemProxy& Owner, TNotNull<UFaerieItemContainerBase*> Head, TArray<FFaerieItemContainerPath>& OutPaths);
 
 	UFaerieItemContainerBase* GetHead() const { return Containers.IsEmpty() ? nullptr : Containers[0].Container; }
 	UFaerieItemContainerBase* GetTail() const { return Containers.IsEmpty() ? nullptr : Containers[Containers.Num()-1].Container; }

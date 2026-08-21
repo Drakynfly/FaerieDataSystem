@@ -33,7 +33,7 @@ struct FAERIEITEMDATA_API FFaerieUnownedItemStack
 
 	[[nodiscard]] UE_REWRITE bool IsValid() const
 	{
-		return Instance.IsValid() && Faerie::ItemData::IsValidStackAmount(Copies);
+		return !Instance.IsEmpty() && Faerie::ItemData::IsValidStackAmount(Copies);
 	}
 
 	[[nodiscard]] UE_REWRITE bool UEOpEquals(const FFaerieUnownedItemStack& Other) const

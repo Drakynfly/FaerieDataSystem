@@ -42,7 +42,7 @@ namespace Faerie::ItemData
 		// ReSharper restore CppOverrideWithDifferentVisibility
 
 	public:
-		UE_REWRITE bool IsValid() const { return Instance.IsValid() && IsValidStackAmount(Copies); }
+		UE_REWRITE bool IsValid() const { return !Instance.IsEmpty() && IsValidStackAmount(Copies); }
 
 		void SetCopies(const int32 InCopies) { Copies = InCopies; }
 

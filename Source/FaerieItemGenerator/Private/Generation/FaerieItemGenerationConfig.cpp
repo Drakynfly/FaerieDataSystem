@@ -52,7 +52,7 @@ TInstancedStruct<FFaerieGeneratorAmountBase> UFaerieItemGenerationConfig::GetAmo
 	return AmountResolver;
 }
 
-void UFaerieItemGenerationConfig::Resolve(TArray<Generation::FPendingTableDrop>& Generations, USquirrel* Squirrel) const
+void UFaerieItemGenerationConfig::Resolve(const TAdderRef<Generation::FPendingTableDrop> Generations, USquirrel* Squirrel) const
 {
 	if (const FFaerieGenerationProcedureBase* Proc = ProcedureResolver.GetPtr())
 	{

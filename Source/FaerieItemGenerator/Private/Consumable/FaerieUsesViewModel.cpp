@@ -62,7 +62,7 @@ void UFaerieUsesViewModel::OnFieldChange(const FMassEntityManager& EntityManager
 	}
 }
 
-void UFaerieUsesViewModel::CheckForFieldChange(const TValid<const FFaerieItemInstance&> Item,
+void UFaerieUsesViewModel::CheckForFieldChange(const FFaerieItemInstance& Item,
 	const FConstStructView FragmentView)
 {
 	const FFaerieItemUses& MassCapacity = FragmentView.Get<const FFaerieItemUses>();

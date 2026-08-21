@@ -75,7 +75,7 @@ public:
 	//~ UNetSupportedObject
 
 	//~ IFaerieItemOwnerInterface
-	virtual void OnItemDataChanged(Faerie::TValid<const FFaerieItemInstance&> Instance, TNotNull<const UScriptStruct*> FragmentType, FGameplayTag EditTag) override;
+	virtual void OnItemDataChanged(const FFaerieItemInstance& Instance, TNotNull<const UScriptStruct*> FragmentType, FGameplayTag EditTag) override;
 	//~ IFaerieItemOwnerInterface
 
 
@@ -83,7 +83,7 @@ public:
 	/*		 SAVE DATA API			 */
 	/**------------------------------*/
 public:
-	[[nodiscard]] FFaerieItemExportData ExportItemData(const FMassEntityManager& EntityManager, Faerie::TValid<const FFaerieItemInstance&> Item) const;
+	[[nodiscard]] FFaerieItemExportData ExportItemData(const FMassEntityManager& EntityManager, const FFaerieItemInstance& Item) const;
 	[[nodiscard]] FFaerieItemInstance ImportItemData(FMassEntityManager& EntityManager, const UFaerieItem* Item, const FFaerieItemExportData& ExportData);
 
 	virtual FInstancedStruct MakeSaveData(FFaerieItemContainerExtensionData& ExtensionData) const PURE_VIRTUAL(UFaerieItemContainerBase::MakeSaveData, return {}; )
@@ -102,14 +102,15 @@ public:
 	virtual bool Contains(FFaerieAddress Address) const PURE_VIRTUAL(UFaerieItemContainerBase::Contains, return false; )
 
 	// Get the instance data of an item.
-	virtual FFaerieItemInstance ViewInstance(FFaerieEntryKey Key) const PURE_VIRTUAL(UFaerieItemContainerBase::ViewInstance, return FFaerieItemInstance(); )
-	virtual FFaerieItemInstance ViewInstance(FFaerieAddress Address) const PURE_VIRTUAL(UFaerieItemContainerBase::ViewInstance, return FFaerieItemInstance(); )
+	virtual TOptional<FFaerieItemInstance> ViewInstance(FFaerieEntryKey Key) const PURE_VIRTUAL(UFaerieItemContainerBase::ViewInstance, return NullOpt; )
+	virtual TOptional<FFaerieItemInstance> ViewInstance(FFaerieAddress Address) const PURE_VIRTUAL(UFaerieItemContainerBase::ViewInstance, return NullOpt; )
 
 	// Get a view of a stack
-	virtual Faerie::ItemData::FScopeProxy ViewEntry(FFaerieEntryKey Key) const PURE_VIRTUAL(UFaerieItemContainerBase::ViewEntry, return nullptr; )
-	virtual Faerie::ItemData::FScopeProxy ViewAddress(FFaerieAddress Address) const PURE_VIRTUAL(UFaerieItemContainerBase::ViewAddress, return nullptr; )
+	[[nodiscard]] virtual Faerie::ItemData::FScopeProxy ViewEntry(FFaerieEntryKey Key) const PURE_VIRTUAL(UFaerieItemContainerBase::ViewEntry, return nullptr; )
+	[[nodiscard]] virtual Faerie::ItemData::FScopeProxy ViewAddress(FFaerieAddress Address) const PURE_VIRTUAL(UFaerieItemContainerBase::ViewAddress, return nullptr; )
 
 	// Creates or retrieves a proxy for an entry
+	[[nodiscard]] virtual FFaerieItemProxy Proxy(FFaerieEntryKey Key) const PURE_VIRTUAL(UFaerieItemContainerBase::Proxy, return FFaerieItemProxy(); )
 	[[nodiscard]] virtual FFaerieItemProxy Proxy(FFaerieAddress Address) const PURE_VIRTUAL(UFaerieItemContainerBase::Proxy, return FFaerieItemProxy(); )
 
 	// Call this function to grant ownership of a FFaerieItemInstance stack. Returns true if ownership was accepted.
@@ -133,7 +134,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainer")
 	virtual bool CanPossess(const FFaerieItemProxy& Proxy) const PURE_VIRTUAL(UFaerieItemContainerBase::CanPossess, return false; )
 
-	virtual void GetAllAddresses(TArray<FFaerieAddress>& Addresses) const PURE_VIRTUAL(UFaerieItemContainerBase::GetAllAddresses, ; )
+	virtual void GetAllAddresses(TAdderReserverRef<FFaerieAddress> Addresses) const PURE_VIRTUAL(UFaerieItemContainerBase::GetAllAddresses, ; )
 
 protected:
 	// Create an iterator for the entries in this container.

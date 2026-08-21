@@ -23,7 +23,7 @@ struct FAERIEITEMGENERATOR_API FFaerieTableDrop
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TableDrop", meta = (ForceInlineRow))
 	TMap<FFaerieItemSlotHandle, TInstancedStruct<struct FFaerieTableDrop>> StaticResourceSlots;
 
-	TOptional<FFaerieUnownedItemStack> Resolve(const struct FFaerieItemInstancingContext_Crafting& Context) const;
+	Faerie::ItemData::FGetInstanceResult Resolve(const struct FFaerieItemInstancingContext_Crafting& Context) const;
 
 	bool IsValid() const
 	{
@@ -114,7 +114,7 @@ struct FAERIEITEMGENERATOR_API FFaerieGenerationProcedureBase
 	virtual ~FFaerieGenerationProcedureBase() = default;
 
 	virtual void Resolve(const FFaerieWeightedPool& Pool, USquirrel* Squirrel,
-		TArray<Faerie::Generation::FPendingTableDrop>& Pending, int32 Amount) const
+		TAdderRef<Faerie::Generation::FPendingTableDrop> Pending, int32 Amount) const
 		PURE_VIRTUAL(FGeneratorProcedureBase::Resolve, )
 };
 
@@ -127,7 +127,7 @@ struct FAERIEITEMGENERATOR_API FFaerieGenerationProcedure_OfOne final : public F
 	GENERATED_BODY()
 
 	virtual void Resolve(const FFaerieWeightedPool& Pool, USquirrel* Squirrel,
-		TArray<Faerie::Generation::FPendingTableDrop>& Pending, int32 Amount) const override;
+		TAdderRef<Faerie::Generation::FPendingTableDrop> Pending, int32 Amount) const override;
 };
 
 /*
@@ -139,7 +139,7 @@ struct FAERIEITEMGENERATOR_API FFaerieGenerationProcedure_OfAny final : public F
 	GENERATED_BODY()
 
 	virtual void Resolve(const FFaerieWeightedPool& Pool, USquirrel* Squirrel,
-		TArray<Faerie::Generation::FPendingTableDrop>& Pending, int32 Amount) const override;
+		TAdderRef<Faerie::Generation::FPendingTableDrop> Pending, int32 Amount) const override;
 };
 
 /*
@@ -151,7 +151,7 @@ struct FAERIEITEMGENERATOR_API FFaerieGenerationProcedure_Chunked final : public
 	GENERATED_BODY()
 
 	virtual void Resolve(const FFaerieWeightedPool& Pool, USquirrel* Squirrel,
-		TArray<Faerie::Generation::FPendingTableDrop>& Pending, int32 Amount) const override;
+		TAdderRef<Faerie::Generation::FPendingTableDrop> Pending, int32 Amount) const override;
 };
 
 /*
@@ -163,7 +163,7 @@ struct FAERIEITEMGENERATOR_API FFaerieGenerationProcedure_OfAll final : public F
 	GENERATED_BODY()
 
 	virtual void Resolve(const FFaerieWeightedPool& Pool, USquirrel* Squirrel,
-		TArray<Faerie::Generation::FPendingTableDrop>& Pending, int32 Amount) const override;
+		TAdderRef<Faerie::Generation::FPendingTableDrop> Pending, int32 Amount) const override;
 };
 
 

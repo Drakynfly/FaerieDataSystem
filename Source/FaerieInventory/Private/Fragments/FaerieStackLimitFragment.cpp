@@ -7,10 +7,10 @@
 
 namespace Faerie::Container
 {
-	int32 GetItemStackLimit(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemInstance&> Item)
+	int32 GetItemStackLimit(const FMassEntityManager* EntityManager, const FFaerieItemInstance& Item)
 	{
 		// Enforce stack limit to 1, if item has potential to have variation between instances
-		if (ValidGet(Item).IsMutable()) return 1;
+		if (Item.IsMutable()) return 1;
 
 		auto LimitView = ItemData::GetEntityFragmentOrDefault<FFaerieStackLimitFragment>(EntityManager, Item);
 

@@ -87,7 +87,6 @@ public:
 
 protected:
 	bool CompareAddresses_Impl(TNotNull<const UFaerieItemContainerBase*> Container, const FFaerieAddress AddressA, const FFaerieAddress AddressB) const;
-	bool IsIteratorFiltered(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Iterator) const;
 
 private:
 	// Filter object to keep alive.

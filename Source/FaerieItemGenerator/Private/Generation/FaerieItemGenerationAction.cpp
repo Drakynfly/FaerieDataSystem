@@ -36,10 +36,10 @@ namespace Faerie::Generation
 		{
 			for (int32 i = 0; i < PendingDrop.Count; ++i)
 			{
-				if (auto NewStack = PendingDrop.Drop->Resolve(Context); // @TODO CHECK THAT CODE PATH INITS RUNTIME
-					NewStack.IsSet())
+				if (auto NewStack = PendingDrop.Drop->Resolve(Context);
+					NewStack.IsValid())
 				{
-					Data.Stacks.Emplace(NewStack.GetValue());
+					Data.Stacks.Emplace(NewStack.WithInitialization());
 				}
 				else
 				{
@@ -50,10 +50,10 @@ namespace Faerie::Generation
 		// Generate a single entry stack when immutable, as there is no chance of uniqueness.
 		else
 		{
-			if (auto NewStack = PendingDrop.Drop->Resolve(Context); // @TODO CHECK THAT CODE PATH INITS RUNTIME
-				NewStack.IsSet())
+			if (auto NewStack = PendingDrop.Drop->Resolve(Context);
+				NewStack.IsValid())
 			{
-				FFaerieUnownedItemStack Value = NewStack.GetValue();
+				FFaerieUnownedItemStack Value = NewStack.WithInitialization();
 				Value.Copies *= PendingDrop.Count;
 				Data.Stacks.Emplace(Value);
 			}
@@ -66,11 +66,6 @@ void FFaerieItemGenerationActionSingle::Run(const Generation::FActionExecution& 
 	if (Source.Asset.Object.IsNull())
 	{
 		return Fail(Execution, this, INVTEXT("Invalid source asset"));
-	}
-
-	if (NewInstancesOuter == nullptr)
-	{
-		NewInstancesOuter = GetTransientPackageAsObject();
 	}
 
 	LoadCheck(nullptr, Execution);
@@ -170,18 +165,12 @@ void FFaerieItemGenerationActionSingle::Generate(const Generation::FActionExecut
 		// Initialize all generated instances for runtime.
 		for (auto&& Stack : ActionData.Stacks)
 		{
-			if (Stack.Instance.IsValid())
-			{
-				Stack.Instance.InitializeMassEntityIfInvalid(*Execution.EntityManager);
-			}
+			Stack.Instance.InitializeMassEntityIfInvalid(*Execution.EntityManager);
 		}
 
 		for (auto&& GeneratedChild : Context.GeneratedChildren)
 		{
-			if (GeneratedChild.Value.Instance.IsValid())
-			{
-				GeneratedChild.Value.Instance.InitializeMassEntityIfInvalid(*Execution.EntityManager);
-			}
+			GeneratedChild.Value.Instance.InitializeMassEntityIfInvalid(*Execution.EntityManager);
 		}
 	}
 
@@ -216,11 +205,6 @@ void FFaerieItemGenerationAction::Run(const Generation::FActionExecution& Execut
 		{
 			return Fail(Execution, this, INVTEXT("Invalid driver"));
 		}
-	}
-
-	if (NewInstancesOuter == nullptr)
-	{
-		NewInstancesOuter = GetTransientPackageAsObject();
 	}
 
 	TArray<FSoftObjectPath> ConfigsToLoad;
@@ -388,18 +372,12 @@ void FFaerieItemGenerationAction::Generate(const Generation::FActionExecution& E
 		// Initialize all generated instances for runtime.
         for (auto&& Stack : ActionData.Stacks)
         {
-        	if (Stack.Instance.IsValid())
-        	{
-        		Stack.Instance.InitializeMassEntityIfInvalid(EntityManager);
-        	}
+        	Stack.Instance.InitializeMassEntityIfInvalid(EntityManager);
         }
 
         for (auto&& GeneratedChild : Context.GeneratedChildren)
         {
-        	if (GeneratedChild.Value.Instance.IsValid())
-        	{
-        		GeneratedChild.Value.Instance.InitializeMassEntityIfInvalid(EntityManager);
-        	}
+        	GeneratedChild.Value.Instance.InitializeMassEntityIfInvalid(EntityManager);
         }
 	}
 

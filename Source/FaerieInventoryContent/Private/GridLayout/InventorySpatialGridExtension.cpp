@@ -326,7 +326,7 @@ void UInventorySpatialGridExtension::PreStackRemove_Client(const FFaerieGridKeye
 	BroadcastEvent(Stack.Key, EFaerieGridEventType::ItemRemoved);
 }
 
-void UInventorySpatialGridExtension::PreStackRemove_Server(const FFaerieGridKeyedStack& Stack, const TValid<const FFaerieItemInstance&> Item)
+void UInventorySpatialGridExtension::PreStackRemove_Server(const FFaerieGridKeyedStack& Stack, const FFaerieItemInstance& Item)
 {
 	// This is to account for removals through proxies that don't directly interface with the grid
 	const FFaerieGridShape Translated = Extensions::ApplyPlacement(GetItemShape_Impl(Item), Stack.Value);
@@ -507,7 +507,7 @@ bool UInventorySpatialGridExtension::RotateItem(const FFaerieAddress Address, co
 	return true;
 }
 
-void UInventorySpatialGridExtension::RemoveItem(const FFaerieAddress Address, const TValid<const FFaerieItemInstance&> Item)
+void UInventorySpatialGridExtension::RemoveItem(const FFaerieAddress Address, const FFaerieItemInstance& Item)
 {
 	GridContent.BSOA::Remove(Address,
 		[Item, this](const FFaerieGridKeyedStack& Stack)
@@ -516,7 +516,7 @@ void UInventorySpatialGridExtension::RemoveItem(const FFaerieAddress Address, co
 		});
 }
 
-void UInventorySpatialGridExtension::RemoveItemBatch(const TConstArrayView<FFaerieAddress>& Addresses, const TValid<const FFaerieItemInstance&> Item)
+void UInventorySpatialGridExtension::RemoveItemBatch(const TConstArrayView<FFaerieAddress>& Addresses, const FFaerieItemInstance& Item)
 {
 	for (const FFaerieAddress AddressToRemove : Addresses)
 	{
@@ -544,7 +544,7 @@ void UInventorySpatialGridExtension::RebuildOccupiedCells()
 	}
 }
 
-FFaerieGridShapeConstView UInventorySpatialGridExtension::GetItemShape_Impl(const TValid<const FFaerieItemInstance&> Item) const
+FFaerieGridShapeConstView UInventorySpatialGridExtension::GetItemShape_Impl(const FFaerieItemInstance& Item) const
 {
 	auto* EntityManager = ItemData::GetFaerieEntityManager();
 	auto ShapeFragment = ItemData::GetEntityFragmentOrDefault<FFaerieShapeFragment>(EntityManager, Item);
@@ -559,10 +559,10 @@ FFaerieGridShapeConstView UInventorySpatialGridExtension::GetItemShape_Impl(cons
 {
 	if (IsValid(InitializedContainer))
 	{
-		if (const FFaerieItemInstance Instance = InitializedContainer->ViewInstance(Address);
-			Instance.IsValid())
+		if (const TOptional<FFaerieItemInstance> Instance = InitializedContainer->ViewInstance(Address);
+			Instance.IsSet())
 		{
-			return GetItemShape_Impl(Instance);
+			return GetItemShape_Impl(Instance.GetValue());
 		}
 	}
 
@@ -605,11 +605,11 @@ FFaerieGridShape UInventorySpatialGridExtension::GetItemShapeOnGrid(const FFaeri
 {
 	if (IsValid(InitializedContainer))
 	{
-		if (const FFaerieItemInstance Instance = InitializedContainer->ViewInstance(Address);
-			Instance.IsValid())
+		if (const TOptional<FFaerieItemInstance> Instance = InitializedContainer->ViewInstance(Address);
+			Instance.IsSet())
 		{
 			const FFaerieGridPlacement Placement = GetStackPlacementData(Address);
-			FFaerieGridShape Shape = GetItemShape_Impl(Instance).Copy();
+			FFaerieGridShape Shape = GetItemShape_Impl(Instance.GetValue()).Copy();
 			Extensions::ApplyPlacementInline(Shape, Placement);
 			return Shape;
 		}

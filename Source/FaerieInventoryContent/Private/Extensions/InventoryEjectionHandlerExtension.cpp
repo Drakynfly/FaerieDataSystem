@@ -40,13 +40,14 @@ void UInventoryEjectionHandlerExtension::PostEventBatch(const TNotNull<const UFa
 	for (auto&& Event : Events.Data)
 	{
 		// Cannot eject null item
-		if (!Event.Instance.IsValid()) continue;
+		if (Event.Instance.IsEmpty()) continue;
 
+#if DO_CHECK
 		if (Event.Instance.IsMutable())
 		{
 			check(Event.Copies == 1);
 		}
-
+#endif
 		Enqueue(FFaerieUnownedItemStack(Event.Instance, Event.Copies));
 	}
 }

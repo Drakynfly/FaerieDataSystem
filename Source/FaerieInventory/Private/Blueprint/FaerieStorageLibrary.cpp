@@ -82,12 +82,7 @@ FFaerieAddress UFaerieStorageLibrary::QueryFirst(UFaerieItemStorage* Storage, co
 
 UFaerieItemContainerBase* UFaerieStorageLibrary::GetOwningContainer_Proxy(const FFaerieItemProxy& Proxy)
 {
-	return const_cast<UFaerieItemContainerBase*>(Cast<UFaerieItemContainerBase>(Proxy.GetItemOwner()));
-}
-
-UFaerieItemContainerBase* UFaerieStorageLibrary::GetOwningContainer_View(const FFaerieItemProxy& Proxy)
-{
-	return const_cast<UFaerieItemContainerBase*>(Cast<UFaerieItemContainerBase>(Proxy.GetItemOwner()));
+	return Cast<UFaerieItemContainerBase>(Proxy.GetItemOwner());
 }
 
 bool UFaerieStorageLibrary::FindSubobject(const FFaerieItemProxy& Proxy, const TSubclassOf<UFaerieItemContainerBase> Class,
@@ -191,7 +186,7 @@ void UFaerieStorageLibrary::FindSubObjectsByClass(const FFaerieItemProxy& Proxy,
 		}
 		else
 		{
-			SubObject::GetContainersInInstanceDirect(EntityManager, Instance, *reinterpret_cast<TArray<TNotNull< UFaerieItemContainerBase*>>*>(&FoundContainers), Class);
+			SubObject::GetContainersInInstanceDirect(EntityManager, Instance, FoundContainers, Class);
 		}
 	}
 }
@@ -240,7 +235,7 @@ void UFaerieStorageLibrary::GetAllContainersInItem(const FFaerieItemProxy& Proxy
 	}
 }
 
-void UFaerieStorageLibrary::GetItemChildren(const FFaerieItemProxy& Proxy, TArray<FFaerieItemInstance>& FoundInstances, const bool Recursive)
+void UFaerieStorageLibrary::GetItemChildren(const FFaerieItemProxy& Proxy, TArray<FFaerieItemProxy>& FoundChildren, const bool Recursive)
 {
 	if (!Proxy.IsValid())
 	{
@@ -266,10 +261,10 @@ void UFaerieStorageLibrary::GetItemChildren(const FFaerieItemProxy& Proxy, TArra
 	auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
 	if (Recursive)
 	{
-		SubObject::GetChildrenInItemRecursive(EntityManager, Instance, FoundInstances);
+		SubObject::GetChildrenInItemRecursive(EntityManager, Instance, FoundChildren);
 	}
 	else
 	{
-		SubObject::GetChildrenInItem(EntityManager, Instance, FoundInstances);
+		SubObject::GetChildrenInItem(EntityManager, Instance, FoundChildren);
 	}
 }

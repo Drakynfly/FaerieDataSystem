@@ -66,10 +66,11 @@ private:
 	// only hold a single stack so these only need to exist for interoperability with our parent class.
 
 	// ReSharper disable CppOverrideWithDifferentVisibility
-	virtual FFaerieItemInstance ViewInstance(FFaerieEntryKey Key) const override;
-	virtual FFaerieItemInstance ViewInstance(FFaerieAddress Address) const override;
+	virtual TOptional<FFaerieItemInstance> ViewInstance(FFaerieEntryKey Key) const override;
+	virtual TOptional<FFaerieItemInstance> ViewInstance(FFaerieAddress Address) const override;
 	virtual Faerie::ItemData::FScopeProxy ViewEntry(FFaerieEntryKey Key) const override;
 	virtual Faerie::ItemData::FScopeProxy ViewAddress(FFaerieAddress Address) const override;
+	virtual FFaerieItemProxy Proxy(FFaerieEntryKey Key) const override;
 	virtual FFaerieItemProxy Proxy(FFaerieAddress Address) const override;
 	virtual bool Possess(const FFaerieUnownedItemStack& Stack) override;
 	virtual void DestroyStack(FFaerieEntryKey Key, int32 Copies) override;
@@ -78,7 +79,7 @@ private:
 	virtual TOptional<FFaerieUnownedItemStack> Release(FFaerieEntryKey Key, int32 Copies) override;
 	virtual TOptional<FFaerieUnownedItemStack> Release(FFaerieAddress Address, int32 Copies) override;
 	virtual bool CanPossess(const FFaerieItemProxy& Proxy) const override;
-	virtual void GetAllAddresses(TArray<FFaerieAddress>& Addresses) const override;
+	virtual void GetAllAddresses(TAdderReserverRef<FFaerieAddress> Addresses) const override;
 	virtual TUniquePtr<Faerie::Container::IEntryIterator> CreateEntryIterator() const override;
 	virtual TUniquePtr<Faerie::Container::IAddressIterator> CreateAddressIterator() const override;
 	virtual TUniquePtr<Faerie::Container::IAddressIterator> CreateSingleEntryIterator(FFaerieEntryKey Key) const override;
@@ -94,7 +95,7 @@ public:
 	//~ Faerie::ItemData::IViewBase
 
 	//~ IFaerieItemDataProxy
-	virtual Faerie::ItemData::FProxyChangeEvent::RegistrationType& GetOnProxyChangeEvent() override final { return OnItemChangedNative; }
+	UE_REWRITE virtual Faerie::ItemData::FProxyChangeEvent::RegistrationType& GetOnProxyChangeEvent() override final { return OnItemChangedNative; }
 	//~ IFaerieItemDataProxy
 
 	//~ IFaerieContainerProxy
@@ -103,7 +104,7 @@ public:
 	//~ IFaerieContainerProxy
 
 	//~ IFaerieItemOwnerInterface
-	virtual void OnItemDataChanged(Faerie::TValid<const FFaerieItemInstance&> Instance, TNotNull<const UScriptStruct*> FragmentType, FGameplayTag EditTag) override;
+	virtual void OnItemDataChanged(const FFaerieItemInstance& Instance, TNotNull<const UScriptStruct*> FragmentType, FGameplayTag EditTag) override;
 	//~ IFaerieItemOwnerInterface
 
 	FFaerieAddress GetAddress() const;

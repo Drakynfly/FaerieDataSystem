@@ -111,7 +111,11 @@ void UInventorySimpleGridExtension::PostEventBatch(const TNotNull<const UFaerieI
         // remove the stored keys
         for (const FFaerieAddress& AddressToRemove : KeysToRemove)
         {
-            RemoveItem(AddressToRemove, Container->ViewInstance(AddressToRemove));
+        	if (auto Instance = Container->ViewInstance(AddressToRemove);
+        		Instance.IsSet())
+        	{
+        		RemoveItem(AddressToRemove, Instance.GetValue());
+        	}
             BroadcastEvent(AddressToRemove, EFaerieGridEventType::ItemRemoved);
         }
         GridContent.MarkArrayDirty();
@@ -125,7 +129,7 @@ void UInventorySimpleGridExtension::PreStackRemove_Client(const FFaerieGridKeyed
 	BroadcastEvent(Stack.Key, EFaerieGridEventType::ItemRemoved);
 }
 
-void UInventorySimpleGridExtension::PreStackRemove_Server(const FFaerieGridKeyedStack& Stack, const TValid<const FFaerieItemInstance&> Item)
+void UInventorySimpleGridExtension::PreStackRemove_Server(const FFaerieGridKeyedStack& Stack, const FFaerieItemInstance& Item)
 {
 	// This is to account for removals through proxies that don't directly interface with the grid
 	OccupiedCells.UnmarkCell(Stack.Value.Origin);

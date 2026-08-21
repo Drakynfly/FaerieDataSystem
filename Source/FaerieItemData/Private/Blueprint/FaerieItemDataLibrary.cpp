@@ -36,13 +36,20 @@ FDateTime UFaerieItemDataLibrary::GetItemLastModified(const FFaerieItemProxy& Pr
 		return FDateTime();
 	}
 
+	if (!Faerie::ItemData::HasFaerieEntityManagerBeenAssigned())
+	{
+		FFrame::KismetExecutionMessage(TEXT("No Entity Manager assigned to handle UFaerieItemDataLibrary::GetItemLastModified"), ELogVerbosity::Error);
+		return FDateTime();
+	}
+
 	auto InstanceOpt = Proxy.GetItemInstance();
 	if (!InstanceOpt.IsSet())
 	{
 		return FDateTime();
 	}
 
-	return InstanceOpt.GetValue().GetLastModified();
+	auto& EntityManager = Faerie::ItemData::GetFaerieEntityManagerChecked();
+	return InstanceOpt.GetValue().GetLastModified(EntityManager);
 }
 
 FFaerieUnownedItemStack UFaerieItemDataLibrary::GetTemplateInstance(const UFaerieItemAsset* Asset)
@@ -74,9 +81,12 @@ FFaerieUnownedItemStack UFaerieItemDataLibrary::NewItemInstance(TArray<FInstance
 	}
 
 	auto& EntityManager = Faerie::ItemData::GetFaerieEntityManagerChecked();
-	FFaerieItemInstance Instance = FFaerieItemInstance::FromFragments(EntityManager, Fragments);
-	Instance.InitializeMassEntity(EntityManager);
-	return FFaerieUnownedItemStack(Instance, 1);
+
+	FFaerieUnownedItemStack OutStack;
+	OutStack.Instance.ImportFragmentData(EntityManager, Fragments);
+	OutStack.Instance.InitializeMassEntity(EntityManager);
+	OutStack.Copies = 1;
+	return OutStack;
 }
 
 bool UFaerieItemDataLibrary::HasItemFragment(const FFaerieItemProxy& Proxy, UScriptStruct* FragmentType)
@@ -166,25 +176,6 @@ bool UFaerieItemDataLibrary::RemoveFragment(FFaerieItemInstance& Instance, const
 	return true;
 }
 */
-
-bool UFaerieItemDataLibrary::FindFragment(const FFaerieItemInstance& Instance,
-	UScriptStruct* FragmentType, TInstancedStruct<FFaerieMassFragment>& FoundFragment)
-{
-	if (!Instance.IsValid())
-	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid Instance passed to UFaerieItemDataLibrary::FindFragment"), ELogVerbosity::Error);
-		return false;
-	}
-
-	if (!IsValid(FragmentType))
-	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid FragmentType passed to UFaerieItemDataLibrary::FindFragment"), ELogVerbosity::Error);
-		return false;
-	}
-
-	FoundFragment = Faerie::ItemData::GetEntityFragmentOrDefault(Faerie::ItemData::GetFaerieEntityManager(), Instance, FragmentType);
-	return FoundFragment.IsValid();
-}
 
 bool UFaerieItemDataLibrary::FindFragment_Proxy(const FFaerieItemProxy& Proxy, UScriptStruct* FragmentType,
 	TInstancedStruct<FFaerieMassFragment>& FoundFragment)
@@ -329,10 +320,9 @@ bool UFaerieItemDataLibrary::ItemDateModifiedComparator(const FFaerieItemProxy& 
 	const FFaerieItemInstance ItemA = ProxyA.GetItemInstanceOrInvalid();
 	const FFaerieItemInstance ItemB = ProxyB.GetItemInstanceOrInvalid();
 
-	if (!(ItemA.IsValid() && ItemB.IsValid()))
+	if (const FMassEntityManager* EntityManager = Faerie::ItemData::GetFaerieEntityManager())
 	{
-		return false;
+		return ItemA.GetLastModified(*EntityManager) < ItemB.GetLastModified(*EntityManager);
 	}
-
-	return ItemA.GetLastModified() < ItemB.GetLastModified();
+	return false;
 }

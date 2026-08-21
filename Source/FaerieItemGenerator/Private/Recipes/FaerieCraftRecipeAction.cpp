@@ -17,11 +17,6 @@ void FFaerieCraftRecipeAction::Run(const Faerie::Generation::FActionExecution& E
 		return Fail(Execution, this, INVTEXT("Invalid Recipe config"));
 	}
 
-	if (NewInstancesOuter == nullptr)
-	{
-		NewInstancesOuter = GetTransientPackageAsObject();
-	}
-
 	if (const FFaerieItemCraftingSlots* SlotsPtr = Config->Recipe->GetCraftingSlots())
 	{
 		if (!Faerie::Generation::ValidateFilledSlots<true>(Execution.EntityManager, Slots, *SlotsPtr))
@@ -29,7 +24,6 @@ void FFaerieCraftRecipeAction::Run(const Faerie::Generation::FActionExecution& E
 			return Fail(Execution, this, INVTEXT("Validation of input slots failed"));
 		}
 	}
-
 
 	UE_LOG(LogItemGeneration, Log, TEXT("Running RecipeCraft"));
 

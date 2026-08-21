@@ -97,10 +97,10 @@ public:
 	/**
 	 * Performs a binary search to find where to insert this new key. Needed when Key is not guaranteed to be sequential,
 	 * otherwise, a simple Add would suffice.
-	 * In performance-critical code it would be slower to use Insert when adding multiple items in one scope, better would
-	 * be to simply Add/Emplace, and call Sort once afterwards.
+	 * In performance-critical code it would be slower to use Insert_GetRef when adding multiple items in one scope, better would
+	 * be to simply Add/Emplace, and call Sort once afterward.
 	 */
-	TElementType& Insert(const TElementType& Element)
+	TElementType& Insert_GetRef(const TElementType& Element)
 	{
 		// Find the index of either ahead of where Key currently is, or where it should be inserted if it isn't present.
 		const int32 NextIndex = Algo::UpperBoundBy(GetArray_Internal(), Element.Key, &TElementType::Key);

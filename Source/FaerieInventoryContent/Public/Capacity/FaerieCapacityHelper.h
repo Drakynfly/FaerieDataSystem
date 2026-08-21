@@ -14,7 +14,7 @@ namespace Faerie::ItemData
 	{
 		UE_NONCOPYABLE(FCapacityHelper)
 
-		FCapacityHelper(const FMassEntityManager* EntityManager UE_LIFETIMEBOUND, TValid<const FFaerieItemInstance&> Instance);
+		FCapacityHelper(const FMassEntityManager* EntityManager UE_LIFETIMEBOUND, const FFaerieItemInstance& Instance);
 
 		/*
 		 * Adds capacity to the item if it doesn't have it.

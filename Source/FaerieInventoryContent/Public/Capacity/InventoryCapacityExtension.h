@@ -73,12 +73,6 @@ struct FCapacityExtensionState
 
     UPROPERTY(BlueprintReadOnly, VisibleInstanceOnly, Category = "Volume")
     int64 CurrentVolume = 0;
-
-    UPROPERTY(BlueprintReadOnly, VisibleInstanceOnly, Category = "Over Max Status", meta = (AllowPrivateAccess = true))
-    bool OverMaxWeight = false;
-
-    UPROPERTY(BlueprintReadOnly, VisibleInstanceOnly, Category = "Over Max Status", meta = (AllowPrivateAccess = true))
-    bool OverMaxVolume = false;
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FInventoryCapacityEvent);
@@ -106,20 +100,20 @@ protected:
     //~ UItemContainerExtensionBase
     virtual void InitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
     virtual void DeinitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
-    virtual EEventExtensionResponse AllowsAddition(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Views, FFaerieExtensionAllowsAdditionArgs Args) const override;
+    virtual EEventExtensionResponse AllowsAddition(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args) const override;
     virtual void PostEventBatch(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Inventory::FEventLogBatch& Events) override;
     //~ UItemContainerExtensionBase
 
 private:
     void UpdateCacheForEntry(TNotNull<const UFaerieItemContainerBase*> Container, FFaerieEntryKey Key);
-
-    void CheckCapacityLimit();
+    void RemoveCacheForEntry(TNotNull<const UFaerieItemContainerBase*> Container, FFaerieEntryKey Key);
 
     bool CanContainItem(Faerie::TValid<const FFaerieItemProxy&> Proxy) const;
 
     void AddWeightAndVolume(FFaerieWeightAndVolume Value);
 
     void HandleStateChanged();
+    void HandleConfigChanged();
 
 public:
     FSimpleMulticastDelegate::RegistrationType& GetOnStateChanged() { return OnStateChangedNative; }
@@ -131,7 +125,7 @@ public:
 
     // Tests if the capacity of multiple stacks can fit in this container at once.
     //UFUNCTION(BlueprintPure, Category = "Faerie|InventoryCapacity")
-    bool CanContain_Multi(const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies) const;
+    bool CanContain_Multi(Faerie::Utils::TArrayAdapter<FFaerieItemProxy> Proxies) const;
 
     // Tests if the capacity of an item can fit in this container.
     UFUNCTION(BlueprintPure, Category = "Faerie|InventoryCapacity")
@@ -152,6 +146,12 @@ public:
     // Get the maximum amount that this manager can hold.
     UFUNCTION(BlueprintPure, Category = "Faerie|InventoryCapacity")
     FFaerieWeightAndVolume GetMaxCapacity() const;
+
+    UFUNCTION(BlueprintPure, Category = "Faerie|InventoryCapacity")
+    bool IsOverMaxWeight() const;
+
+    UFUNCTION(BlueprintPure, Category = "Faerie|InventoryCapacity")
+    bool IsOverMaxVolume() const;
 
     UFUNCTION(BlueprintCallable, Category = "Faerie|InventoryCapacity")
     void SetConfiguration(const FCapacityExtensionConfig& NewConfig);

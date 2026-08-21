@@ -417,7 +417,7 @@ TArray<FFaerieItemContainerPath> UFaerieEquipmentManager::GetAllContainerPaths()
 			const FFaerieItemInstance Instance = Slot->GetItemInstance().GetValue();
 			if (Instance.IsMutable())
 			{
-				FFaerieItemContainerPath::BuildChildrenPaths(*EntityManager, Instance, Slot, OutPaths);
+				FFaerieItemContainerPath::BuildChildrenPaths(*EntityManager, FFaerieItemProxy(), Slot, OutPaths);
 			}
 		}
 	}

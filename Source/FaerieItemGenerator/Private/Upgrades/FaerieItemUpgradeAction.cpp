@@ -3,7 +3,6 @@
 #include "Upgrades/FaerieItemUpgradeAction.h"
 #include "Upgrades/FaerieItemUpgradeConfig.h"
 #include "FaerieItemGenerationLog.h"
-#include "FaerieItemMutator.h"
 #include "FaerieItemSlotInterface.h"
 #include "ItemCraftingRunner.h"
 
@@ -32,17 +31,9 @@ void FFaerieItemUpgradeAction::Run(const Faerie::Generation::FActionExecution& E
 		return Fail(Execution, this, INVTEXT("Invalid Config"));
 	}
 
-	TArray<FSoftObjectPath> ObjectsToLoad;
-
 	// Preload any assets that the Mutator wants loaded
-	TArray<TSoftObjectPtr<UObject>> RequiredAssets;
-	Config->GetRequiredAssets(RequiredAssets);
-
-	ObjectsToLoad.Reserve(RequiredAssets.Num());
-	for (auto&& RequiredAsset : RequiredAssets)
-	{
-		ObjectsToLoad.Add(RequiredAsset.ToSoftObjectPath());
-	}
+	TArray<FSoftObjectPath> ObjectsToLoad;
+	Config->GetRequiredAssets(ObjectsToLoad);
 
 	if (ObjectsToLoad.IsEmpty())
 	{
@@ -106,17 +97,9 @@ void FFaerieItemUpgradeActionBulkNoPayment::Run(const Faerie::Generation::FActio
 		return Fail(Execution, this, INVTEXT("Invalid Config"));
 	}
 
-	TArray<FSoftObjectPath> ObjectsToLoad;
-
 	// Preload any assets that the Mutator wants loaded
-	TArray<TSoftObjectPtr<UObject>> RequiredAssets;
-	Config->GetRequiredAssets(RequiredAssets);
-
-	ObjectsToLoad.Reserve(RequiredAssets.Num());
-	for (auto&& RequiredAsset : RequiredAssets)
-	{
-		ObjectsToLoad.Add(RequiredAsset.ToSoftObjectPath());
-	}
+	TArray<FSoftObjectPath> ObjectsToLoad;
+	Config->GetRequiredAssets(ObjectsToLoad);
 
 	if (ObjectsToLoad.IsEmpty())
 	{
@@ -163,17 +146,9 @@ void FFaerieItemUpgradeActionBulk::Run(const Faerie::Generation::FActionExecutio
 		return Fail(Execution, this, INVTEXT("Invalid Config"));
 	}
 
-	TArray<FSoftObjectPath> ObjectsToLoad;
-
 	// Preload any assets that the Mutator wants loaded
-	TArray<TSoftObjectPtr<UObject>> RequiredAssets;
-	Config->GetRequiredAssets(RequiredAssets);
-
-	ObjectsToLoad.Reserve(RequiredAssets.Num());
-	for (auto&& RequiredAsset : RequiredAssets)
-	{
-		ObjectsToLoad.Add(RequiredAsset.ToSoftObjectPath());
-	}
+	TArray<FSoftObjectPath> ObjectsToLoad;
+	Config->GetRequiredAssets(ObjectsToLoad);
 
 	if (ObjectsToLoad.IsEmpty())
 	{

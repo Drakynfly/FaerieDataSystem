@@ -3,7 +3,6 @@
 #pragma once
 
 #include "FaerieItemInstance.h"
-#include "ValidParameter.h"
 #include "UObject/Interface.h"
 #include "FaerieItemOwnerInterface.generated.h"
 
@@ -24,5 +23,5 @@ class FAERIEITEMDATA_API IFaerieItemOwnerInterface
 public:
 	// Note: this should be protected, not public, but I don't have a workaround for this yet.
 	// Override to add logic when an item mutates while owned by the implementing object.
-	virtual void OnItemDataChanged(Faerie::TValid<const FFaerieItemInstance&> Instance, TNotNull<const UScriptStruct*> FragmentType, FGameplayTag EditTag) = 0;
+	virtual void OnItemDataChanged(const FFaerieItemInstance& Instance, TNotNull<const UScriptStruct*> FragmentType, FGameplayTag EditTag) = 0;
 };

@@ -230,20 +230,20 @@ namespace Faerie::ItemData
 	}
 
 	TConstStructView<FFaerieMassFragment> GetEntityFragmentOrDefault(const FMassEntityManager* EntityManager,
-		const TValid<const FFaerieItemInstance&> Instance, const TNotNull<const UScriptStruct*> FragmentType, const FGameplayTag ReferenceTag)
+		const FFaerieItemInstance& Instance, const TNotNull<const UScriptStruct*> FragmentType, const FGameplayTag ReferenceTag)
 	{
 		if (EntityManager)
 		{
-			if (EntityManager->IsEntityValid(ValidGet(Instance).GetMassEntityHandle()))
+			if (EntityManager->IsEntityValid(Instance.GetMassEntityHandle()))
 			{
 				// Look for a live fragment of the given type.
-				if (FConstStructView View = EntityManager->GetFragmentDataStruct(ValidGet(Instance).GetMassEntityHandle(), FragmentType);
+				if (FConstStructView View = EntityManager->GetFragmentDataStruct(Instance.GetMassEntityHandle(), FragmentType);
 					View.IsValid())
 				{
 					return *reinterpret_cast<TConstStructView<FFaerieMassFragment>*>(&View);
 				}
 
-				if (auto&& ReferenceFragment = GetEntityFragment<FFaerieReferenceFragment>(*EntityManager, ValidGet(Instance).GetMassEntityHandle()))
+				if (auto&& ReferenceFragment = GetEntityFragment<FFaerieReferenceFragment>(*EntityManager, Instance.GetMassEntityHandle()))
 				{
 					if (const UFaerieItem* ReferencedAsset = ReferenceFragment->GetReferencedItem(ReferenceTag, false))
 					{
@@ -258,7 +258,7 @@ namespace Faerie::ItemData
 			}
 		}
 
-		return GetDefaultFragment(ValidGet(Instance).GetItemPtr(), FragmentType);
+		return GetDefaultFragment(Instance.GetItemPtr(), FragmentType);
 	}
 
 	TConstStructView<FFaerieMassFragment> GetDefaultFragment(const UFaerieItem* ItemAsset, const TNotNull<const UScriptStruct*> FragmentType, const FGameplayTag ReferenceTag)

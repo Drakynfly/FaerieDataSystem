@@ -70,7 +70,7 @@ struct FAERIEITEMGENERATOR_API FFaerieItemMutator
 	virtual const UScriptStruct* GetScriptStruct() const PURE_VIRTUAL(FFaerieItemMutator::GetScriptStruct, return nullptr; )
 
 	// Any soft assets required to be loaded when Apply is called should be registered here.
-	virtual void GetRequiredAssets(TArray<TSoftObjectPtr<UObject>>& RequiredAssets) const {}
+	virtual void GetRequiredAssets(TAdderRef<FSoftObjectPath> RequiredAssets) const {}
 
 	// Try to run this mutator on a stack.
 	virtual bool Apply(FFaerieItemInstance& Item, const FFaerieItemMutatorContext& Context) const PURE_VIRTUAL(FFaerieItemMutator::Apply, return false; )

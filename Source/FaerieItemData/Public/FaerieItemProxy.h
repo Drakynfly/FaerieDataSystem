@@ -3,7 +3,6 @@
 #pragma once
 
 #include "FaerieItemDataView.h"
-#include "FaerieItemInstance.h"
 #include "GameplayTagContainer.h"
 #include "ValidParameter.h"
 

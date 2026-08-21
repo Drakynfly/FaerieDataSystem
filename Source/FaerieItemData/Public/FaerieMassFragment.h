@@ -5,7 +5,6 @@
 #include "FaerieItemDataView.h"
 #include "Mass/EntityElementTypes.h"
 #include "FaerieItemDataConcepts.h"
-#include "ValidParameter.h"
 
 #include "UObject/ObjectMacros.h"
 #include "FaerieMassFragment.generated.h"
@@ -42,7 +41,7 @@ namespace Faerie::ItemData
 
 	// Concept to look for InitializeRuntime function on fragments types.
 	template<typename T>
-	concept CHasInitializeRuntime = requires(T& Value, TNotNull<UObject*> Outer, TValid<const FFaerieItemInstance&> Instance)
+	concept CHasInitializeRuntime = requires(T& Value, TNotNull<UObject*> Outer, const FFaerieItemInstance& Instance)
 	{
 		{ Value.InitializeRuntime(Outer, Instance) } -> UE::CSameAs<bool>;
 	};
@@ -59,7 +58,7 @@ namespace Faerie::ItemData
 	namespace Private
 	{
 		template <CFragmentImpl TFragment>
-		bool ExInitializeRuntime(TNotNull<void*> Value, TNotNull<UObject*> Outer, TValid<const FFaerieItemInstance&> Instance)
+		bool ExInitializeRuntime(TNotNull<void*> Value, TNotNull<UObject*> Outer, const FFaerieItemInstance& Instance)
 		{
 			if constexpr (CHasInitializeRuntime<TFragment>)
 			{
@@ -101,7 +100,7 @@ namespace Faerie::ItemData
 		// This requires template magic I don't feel like
 		struct ITraitOps
 		{
-			bool (*InitializeRuntimePtr)(TNotNull<void*>, TNotNull<UObject*>, TValid<const FFaerieItemInstance&>) = nullptr;
+			bool (*InitializeRuntimePtr)(TNotNull<void*>, TNotNull<UObject*>, const FFaerieItemInstance&) = nullptr;
 #if WITH_EDITOR
 			EDataValidationResult (*IsDataValidPtr)(const TNotNull<const void*>, class FDataValidationContext& Context) = nullptr;
 #endif
@@ -127,7 +126,7 @@ namespace Faerie::ItemData
 #endif
 		const ITraitOps* Ops;
 
-		bool InitializeRuntime(TNotNull<void*> Value, const TNotNull<UObject*> Outer, TValid<const FFaerieItemInstance&> Instance) const
+		bool InitializeRuntime(TNotNull<void*> Value, const TNotNull<UObject*> Outer, const FFaerieItemInstance& Instance) const
 		{
 			if (HasInitializeRuntime)
 			{
@@ -169,26 +168,22 @@ namespace Faerie::ItemData
 
 	struct IAutoRegisterFragmentTraits
 	{
-		FMassFragmentTypeInterface Interface;
-		UScriptStruct* (*StaticStructAccessor)() = nullptr;
-
-		FAERIEITEMDATA_API void StaticRegisterTraits();
-		FAERIEITEMDATA_API void StaticDeregisterTraits();
+		FAERIEITEMDATA_API static void StaticRegisterTraits(TNotNull<const UScriptStruct*> Type, const FMassFragmentTypeInterface& Interface);
+		FAERIEITEMDATA_API static void StaticDeregisterTraits(TNotNull<const UScriptStruct*> Type);
 	};
 
 	template <CFragmentImpl TFragment>
-	struct TAutoRegisterFragmentTraits final : IAutoRegisterFragmentTraits
+	struct TAutoRegisterFragmentTraits final : IAutoRegisterFragmentTraits, FDelayedAutoRegisterHelper
 	{
 		TAutoRegisterFragmentTraits()
-		{
-			Interface = MakeTypeInterface<TFragment>();
-			StaticStructAccessor = &TFragment::StaticStruct;
-			StaticRegisterTraits();
-		}
+			: FDelayedAutoRegisterHelper(EDelayedRegisterRunPhase::EndOfEngineInit, []()
+			{
+				IAutoRegisterFragmentTraits::StaticRegisterTraits(TFragment::StaticStruct(), MakeTypeInterface<TFragment>());
+			}, true) {}
 
 		~TAutoRegisterFragmentTraits()
 		{
-			StaticDeregisterTraits();
+			IAutoRegisterFragmentTraits::StaticDeregisterTraits(TFragment::StaticStruct());
 		}
 	};
 

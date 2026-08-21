@@ -4,8 +4,6 @@
 
 #include "MassSubsystemBase.h"
 #include "FaerieItemDataFwd.h"
-#include "FaerieItemInstance.h"
-#include "ValidParameter.h"
 
 #include "StructUtils/StructView.h"
 
@@ -51,7 +49,7 @@ class FAERIEITEMDATA_API UFaerieViewModelSubsystem : public UMassSubsystemBase
 
 public:
 	// Called by UFaerieMassReplicationSubsystem
-	void Client_PostReplicationChange(Faerie::TValid<const FFaerieItemInstance&> Item, FConstStructView FragmentView);
+	void Client_PostReplicationChange(const FFaerieItemInstance& Item, FConstStructView FragmentView);
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ViewModelSubsystem", meta = (DeterminesOutputType = "ViewClass", AutoCreateRefTerm = "Proxy"))
 	UFaerieViewModelBase* GetOrCreateViewModel(const FFaerieItemProxy& Proxy, TSubclassOf<UFaerieViewModelBase> ViewClass);
@@ -60,7 +58,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ViewModelSubsystem")
 	void ReturnViewModel(UFaerieViewModelBase* ViewModel);
 
-	void HandleFieldChange(const FMassEntityManager& EntityManager, Faerie::TValid<const FFaerieItemInstance&> Item, const Faerie::ItemData::FFieldChange& Data);
+	void HandleFieldChange(const FMassEntityManager& EntityManager, const FFaerieItemInstance& Item, const Faerie::ItemData::FFieldChange& Data);
 
 protected:
 	void UpdateViewModelAssociation(TNotNull<UFaerieViewModelBase*> ViewModel, const FFaerieItemProxy& OldProxy);

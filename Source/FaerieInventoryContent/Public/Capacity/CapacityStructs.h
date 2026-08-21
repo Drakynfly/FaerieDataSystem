@@ -122,11 +122,6 @@ struct FFaerieWeightAndVolume
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = 0))
 	int64 Volume = 0;
 
-	bool IsInsignificant() const
-	{
-		return GramWeight == 0 && Volume == 0;
-	}
-
 	[[nodiscard]] UE_REWRITE bool UEOpEquals(const FFaerieWeightAndVolume& Other) const
 	{
 		return GramWeight == Other.GramWeight

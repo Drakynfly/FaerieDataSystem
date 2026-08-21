@@ -48,7 +48,7 @@ namespace Faerie::ItemData
 		}
 	}
 
-	FCapacityHelper::FCapacityHelper(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemInstance&> Instance)
+	FCapacityHelper::FCapacityHelper(const FMassEntityManager* EntityManager, const FFaerieItemInstance& Instance)
 	  : EntityManager(EntityManager), Item(Instance)
 	{
 		// Look for a live fragment if we have an entity manager
@@ -195,10 +195,14 @@ namespace Faerie::ItemData
 			EntityManager->Defer().PushCommand<FMassDeferredSetCommand>(
 				[Instance = Item, NewValue](FMassEntityManager& InEntityManager)
 				{
-					if (!Instance.IsValid()) return;
+					const FMassEntityHandle Entity = Instance.GetMassEntityHandle();
+					if (InEntityManager.IsEntityValid(Entity))
+					{
+						return;
+					}
 
 					// Get fragment
-					auto& Fragment = InEntityManager.GetFragmentDataChecked<FFaerieItemCapacity>(Instance.GetMassEntityHandle());
+					auto& Fragment = InEntityManager.GetFragmentDataChecked<FFaerieItemCapacity>(Entity);
 
 					// Assign new value
 					Fragment.Weight = NewValue;
@@ -221,10 +225,14 @@ namespace Faerie::ItemData
 			EntityManager->Defer().PushCommand<FMassDeferredSetCommand>(
 				[Instance = Item, NewValue](FMassEntityManager& InEntityManager)
 				{
-					if (!Instance.IsValid()) return;
+					const FMassEntityHandle Entity = Instance.GetMassEntityHandle();
+					if (InEntityManager.IsEntityValid(Entity))
+					{
+						return;
+					}
 
 					// Get fragment
-					auto& Fragment = InEntityManager.GetFragmentDataChecked<FFaerieItemCapacity>(Instance.GetMassEntityHandle());
+					auto& Fragment = InEntityManager.GetFragmentDataChecked<FFaerieItemCapacity>(Entity);
 
 					// Assign new value
 					Fragment.Bounds = NewValue;
@@ -247,10 +255,14 @@ namespace Faerie::ItemData
 			EntityManager->Defer().PushCommand<FMassDeferredSetCommand>(
 				[Instance = Item, NewValue](FMassEntityManager& InEntityManager)
 				{
-					if (!Instance.IsValid()) return;
+					const FMassEntityHandle Entity = Instance.GetMassEntityHandle();
+					if (InEntityManager.IsEntityValid(Entity))
+					{
+						return;
+					}
 
 					// Get fragment
-					auto& Fragment = InEntityManager.GetFragmentDataChecked<FFaerieItemCapacity>(Instance.GetMassEntityHandle());
+					auto& Fragment = InEntityManager.GetFragmentDataChecked<FFaerieItemCapacity>(Entity);
 
 					// Assign new value
 					Fragment.Efficiency = NewValue;
@@ -273,10 +285,14 @@ namespace Faerie::ItemData
 			EntityManager->Defer().PushCommand<FMassDeferredSetCommand>(
 				[Instance = Item, NewValue](FMassEntityManager& InEntityManager)
 				{
-					if (!Instance.IsValid()) return;
+					const FMassEntityHandle Entity = Instance.GetMassEntityHandle();
+					if (InEntityManager.IsEntityValid(Entity))
+					{
+						return;
+					}
 
 					// Get fragment
-					auto& Fragment = InEntityManager.GetFragmentDataChecked<FFaerieItemCapacity>(Instance.GetMassEntityHandle());
+					auto& Fragment = InEntityManager.GetFragmentDataChecked<FFaerieItemCapacity>(Entity);
 
 					// Assign new value
 					Fragment = NewValue;
@@ -299,10 +315,14 @@ namespace Faerie::ItemData
 			EntityManager->Defer().PushCommand<FMassDeferredSetCommand>(
 				[Instance = Item, NewValue = GetDefaultCapacity()](FMassEntityManager& InEntityManager)
 				{
-					if (!Instance.IsValid()) return;
+					const FMassEntityHandle Entity = Instance.GetMassEntityHandle();
+					if (InEntityManager.IsEntityValid(Entity))
+					{
+						return;
+					}
 
 					// Get fragment
-					auto& Fragment = InEntityManager.GetFragmentDataChecked<FFaerieItemCapacity>(Instance.GetMassEntityHandle());
+					auto& Fragment = InEntityManager.GetFragmentDataChecked<FFaerieItemCapacity>(Entity);
 
 					// Assign new value
 					Fragment = NewValue;

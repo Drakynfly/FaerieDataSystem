@@ -10,34 +10,37 @@
 
 namespace Faerie::Finders
 {
-	APawn* GetPawn(AController* Controller)
+	namespace
 	{
-		return Controller->GetPawn();
-	}
+		APawn* GetPawn(const AController* Controller)
+		{
+			return Controller->GetPawn();
+		}
 
-	APawn* GetPawn(APlayerState* PlayerState)
-	{
-		return PlayerState->GetPawn();
-	}
+		APawn* GetPawn(const APlayerState* PlayerState)
+		{
+			return PlayerState->GetPawn();
+		}
 
-	AController* GetController(APawn* Pawn)
-	{
-		return Pawn->Controller;
-	}
+		AController* GetController(const APawn* Pawn)
+		{
+			return Pawn->Controller;
+		}
 
-	AController* GetController(APlayerState* PlayerState)
-	{
-		return PlayerState->GetOwningController();
-	}
+		AController* GetController(const APlayerState* PlayerState)
+		{
+			return PlayerState->GetOwningController();
+		}
 
-	APlayerState* GetPlayerState(APawn* Pawn)
-	{
-		return Pawn->GetPlayerState();
-	}
+		APlayerState* GetPlayerState(const APawn* Pawn)
+		{
+			return Pawn->GetPlayerState();
+		}
 
-	APlayerState* GetPlayerState(AController* Controller)
-	{
-		return Controller->PlayerState;
+		APlayerState* GetPlayerState(const AController* Controller)
+		{
+			return Controller->PlayerState;
+		}
 	}
 }
 
@@ -98,17 +101,17 @@ AActor* URelevantActorsExtension::FindActor(const TSubclassOf<AActor> Class) con
 
 		if (FindingThroughOther)
 		{
-			if (APawn* AsPawn = Cast<APawn>(Actor))
+			if (const APawn* AsPawn = Cast<APawn>(Actor))
 			{
 				if (FindingController) return Faerie::Finders::GetController(AsPawn);
 				if (FindingPlayerState) return Faerie::Finders::GetPlayerState(AsPawn);
 			}
-			else if (APlayerState* AsPlayerState = Cast<APlayerState>(Actor))
+			else if (const APlayerState* AsPlayerState = Cast<APlayerState>(Actor))
 			{
 				if (FindingPawn) return Faerie::Finders::GetPawn(AsPlayerState);
 				if (FindingController) return Faerie::Finders::GetController(AsPlayerState);
 			}
-			else if (AController* AsController = Cast<AController>(Actor))
+			else if (const AController* AsController = Cast<AController>(Actor))
 			{
 				if (FindingPawn) return Faerie::Finders::GetPawn(AsController);
 				if (FindingPlayerState) return Faerie::Finders::GetPlayerState(AsController);

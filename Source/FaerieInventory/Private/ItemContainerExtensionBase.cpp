@@ -457,36 +457,12 @@ void UItemContainerExtensionGroup::PostEventBatch(const TNotNull<const UFaerieIt
 
 #if !UE_BUILD_SHIPPING
 
-namespace Helper
-{
-	// Copied from GeometryCollection/GeometryCollectionComponent.h
-	// For some reason this isn't anywhere else in the engine :/
-	FString RoleToString(const ENetRole InRole)
-	{
-		switch (InRole)
-		{
-		case ROLE_None:
-			return FString(TEXT("None"));
-		case ROLE_SimulatedProxy:
-			return FString(TEXT("SimProxy"));
-		case ROLE_AutonomousProxy:
-			return FString(TEXT("AutoProxy"));
-		case ROLE_Authority:
-			return FString(TEXT("Auth"));
-		default:
-			break;
-		}
-
-		return FString(TEXT("Invalid Role"));
-	}
-}
-
 void UItemContainerExtensionGroup::PrintDebugData() const
 {
 	const AActor* OwningActor = GetTypedOuter<AActor>();
 
 	UE_LOG(LogFaerieInventory, Log, TEXT("Printing Containers/Extension in Group (%s)"),
-		OwningActor ? *("Role: " + Helper::RoleToString(OwningActor->GetLocalRole())) : TEXT("No Owner"))
+		OwningActor ? *("Role: " + UEnum::GetValueAsString<ENetRole>(OwningActor->GetLocalRole())) : TEXT("No Owner"))
 	for (auto&& Container : Containers)
 	{
 		if (!Container.IsValid())

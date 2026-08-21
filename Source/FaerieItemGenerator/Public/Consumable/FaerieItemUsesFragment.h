@@ -79,7 +79,7 @@ namespace Faerie::ItemData
 	{
 		UE_NONCOPYABLE(FUsesHelper)
 
-		FUsesHelper(const FMassEntityManager& EntityManager UE_LIFETIMEBOUND, TValid<const FFaerieItemInstance&> Instance);
+		FUsesHelper(const FMassEntityManager& EntityManager UE_LIFETIMEBOUND, const FFaerieItemInstance& Instance);
 
 		/*
 		 * Adds uses to the item if it doesn't have it.

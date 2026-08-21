@@ -70,7 +70,7 @@ FInstancedStruct& FFaerieReplicatedSimMap::GetOrCreateValue(const FFaerieAddress
 	}
 
 	// Otherwise, make a new entry.
-	FFaerieReplicatedValue& NewEntry = Insert(FFaerieReplicatedValue(Address,
+	FFaerieReplicatedValue& NewEntry = Insert_GetRef(FFaerieReplicatedValue(Address,
 		FInstancedStruct(OwningWrapper->GetOuterUInventoryReplicatedDataExtensionBase()->GetDataScriptStruct())));
 	MarkItemDirty(NewEntry);
 
@@ -98,7 +98,7 @@ void FFaerieReplicatedSimMap::SetValue(const FFaerieAddress Address, const FInst
 	}
 	else
 	{
-		FFaerieReplicatedValue& NewEntry = Insert(FFaerieReplicatedValue(Address, Data));
+		FFaerieReplicatedValue& NewEntry = Insert_GetRef(FFaerieReplicatedValue(Address, Data));
 		MarkItemDirty(NewEntry);
 
 		// Notify server of this change.
@@ -405,7 +405,7 @@ bool UInventoryReplicatedDataExtensionBase::EditDataForHandle(const TNotNull<con
 	}
 
 	// Otherwise, make a new entry.
-	FFaerieReplicatedValue& NewEntry = Ref.Insert(FFaerieReplicatedValue(Address, FInstancedStruct(GetDataScriptStruct())));
+	FFaerieReplicatedValue& NewEntry = Ref.Insert_GetRef(FFaerieReplicatedValue(Address, FInstancedStruct(GetDataScriptStruct())));
 
 	Edit(NewEntry.Value);
 	Ref.MarkItemDirty(NewEntry);

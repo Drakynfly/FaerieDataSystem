@@ -30,7 +30,7 @@ bool FFaerieItemMutatorGroup::IsDataValid(FDataValidationContext& Context) const
 
 #endif
 
-void FFaerieItemMutatorGroup::GetRequiredAssets(TArray<TSoftObjectPtr<UObject>>& RequiredAssets) const
+void FFaerieItemMutatorGroup::GetRequiredAssets(const TAdderRef<FSoftObjectPath> RequiredAssets) const
 {
 	switch (Policy)
 	{

@@ -12,7 +12,7 @@ void UInventoryItemLimitExtension::InitializeExtension(const TNotNull<const UFae
 {
 	for (auto It = Faerie::Container::KeyRange(Container); It; ++It)
 	{
-		UpdateCacheForEntry(Container, *It);
+		UpdateCacheForEntry(It.GetKey(), It.GetCopies());
 	}
 }
 
@@ -72,7 +72,23 @@ void UInventoryItemLimitExtension::PostEventBatch(const TNotNull<const UFaerieIt
 {
 	for (auto&& Event : Events.Data)
 	{
-		UpdateCacheForEntry(Container, Event.EntryTouched);
+		if (Event.EntryRemoved)
+		{
+			// Entry was removed, delete cache.
+			RemoveCacheForEntry(Event.EntryTouched);
+		}
+		else
+		{
+			if (Events.IsRemovalEvent())
+			{
+				// Event is removal, pass negative Copies as delta
+				UpdateCacheForEntry(Event.EntryTouched, -Event.Copies);
+			}
+			else
+			{
+				UpdateCacheForEntry(Event.EntryTouched, Event.Copies);
+			}
+		}
 	}
 }
 
@@ -122,25 +138,26 @@ bool UInventoryItemLimitExtension::CanContain(const int32 Count) const
 	return true;
 }
 
-void UInventoryItemLimitExtension::UpdateCacheForEntry(const TNotNull<const UFaerieItemContainerBase*> Container, const FFaerieEntryKey Key)
+void UInventoryItemLimitExtension::UpdateCacheForEntry(const FFaerieEntryKey Key, const int32 Delta)
 {
-	int32 PrevEntryAmount = 0;
+	int32 EntryAmount = 0;
 	if (auto&& ExistingCache = EntryAmountCache.Find(Key))
 	{
-		PrevEntryAmount = *ExistingCache;
+		EntryAmount = *ExistingCache;
 	}
 
-	const Faerie::ItemData::FScopeProxy View = Container->ViewEntry(Key);
-	if (!View.IsValid())
+	EntryAmount += Delta;
+	check(EntryAmount > 0);
+
+	EntryAmountCache.Add(Key, EntryAmount);
+	CurrentTotalItemCopies += Delta;
+}
+
+void UInventoryItemLimitExtension::RemoveCacheForEntry(const FFaerieEntryKey Key)
+{
+	if (const int32* ExistingCache = EntryAmountCache.Find(Key))
 	{
-		CurrentTotalItemCopies -= PrevEntryAmount;
+		CurrentTotalItemCopies -= *ExistingCache;
 		EntryAmountCache.Remove(Key);
-		return;
 	}
-
-	const int32 StackAtKey = View.Copies;
-	const int32 Diff = StackAtKey - PrevEntryAmount;
-
-	EntryAmountCache.Add(Key, StackAtKey);
-	CurrentTotalItemCopies += Diff;
 }

@@ -11,7 +11,7 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemUpgradeConfig)
 
-void UFaerieItemUpgradeConfigBase::GetRequiredAssets(TArray<TSoftObjectPtr<UObject>>& Array) {}
+void UFaerieItemUpgradeConfigBase::GetRequiredAssets(const TAdderRef<FSoftObjectPath> Array) {}
 
 #if WITH_EDITOR
 
@@ -36,7 +36,7 @@ EDataValidationResult UFaerieItemUpgradeConfig::IsDataValid(FDataValidationConte
 
 #endif
 
-void UFaerieItemUpgradeConfig::GetRequiredAssets(TArray<TSoftObjectPtr<UObject>>& Array)
+void UFaerieItemUpgradeConfig::GetRequiredAssets(const TAdderRef<FSoftObjectPath> Array)
 {
 	Mutators.GetRequiredAssets(Array);
 }

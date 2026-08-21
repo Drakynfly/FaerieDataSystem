@@ -23,7 +23,7 @@ protected:
 
 	//~ UInventoryGridExtensionBase
 	virtual void PreStackRemove_Client(const FFaerieGridKeyedStack& Stack) override;
-	virtual void PreStackRemove_Server(const FFaerieGridKeyedStack& Stack, Faerie::TValid<const FFaerieItemInstance&> Item) override;
+	virtual void PreStackRemove_Server(const FFaerieGridKeyedStack& Stack, const FFaerieItemInstance& Item) override;
 	virtual void PostStackAdd(const FFaerieGridKeyedStack& Stack) override;
 	virtual void PostStackChange(const FFaerieGridKeyedStack& Stack) override;
 

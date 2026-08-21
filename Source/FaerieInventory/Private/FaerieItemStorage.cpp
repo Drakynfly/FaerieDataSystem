@@ -6,6 +6,7 @@
 #include "FaerieItemStorageIterators.h"
 #include "FaerieItemOwnership.h"
 #include "FaerieSubObjectFilter.h"
+#include "ItemEntryProxy.h"
 #include "ItemStackProxy.h"
 #include "ItemContainerExtensionBase.h"
 #include "EntityManagerHelpers.h"
@@ -68,6 +69,13 @@ namespace Faerie::Container
 	}
 
 	static const FText AdditionFailure_FailedCanAddStack = LOCTEXT("AdditionFailure_FailedCanAddStack", "Refused by CanAddStack");
+}
+
+namespace Faerie::Inventory
+{
+	UE_DEFINE_GAMEPLAY_TAG_TYPED(FFaerieInventoryTag, ProxyCreated, "Fae.Inventory.ProxyCreated")
+	UE_DEFINE_GAMEPLAY_TAG_TYPED(FFaerieInventoryTag, ProxyUpdated, "Fae.Inventory.ProxyUpdated")
+	UE_DEFINE_GAMEPLAY_TAG_TYPED(FFaerieInventoryTag, ProxyRemoved, "Fae.Inventory.ProxyRemoved")
 }
 
 void UFaerieItemStorage::PostInitProperties()
@@ -176,8 +184,6 @@ void UFaerieItemStorage::LoadSaveData(const FConstStructView ItemData, const TSh
 
 	// Rebuild extension state
 
-	//@todo broadcast full refresh event?
-
 	Extensions::FGroupAPI::InitializeExtension(Extensions, this);
 
 	if (ExtensionData.IsValid())
@@ -191,16 +197,16 @@ bool UFaerieItemStorage::Contains(const FFaerieAddress Address) const
 	return ContainsAddress(Address);
 }
 
-FFaerieItemInstance UFaerieItemStorage::ViewInstance(const FFaerieEntryKey Key) const
+TOptional<FFaerieItemInstance> UFaerieItemStorage::ViewInstance(const FFaerieEntryKey Key) const
 {
 	if (const FFaerieStorageEntry* EntryPtr = GetEntrySafe(Key))
 	{
 		return EntryPtr->GetInstance();
 	}
-	return FFaerieItemInstance();
+	return NullOpt;
 }
 
-FFaerieItemInstance UFaerieItemStorage::ViewInstance(const FFaerieAddress Address) const
+TOptional<FFaerieItemInstance> UFaerieItemStorage::ViewInstance(const FFaerieAddress Address) const
 {
 	FFaerieEntryKey Entry;
 	Container::Address::Decode_Entry(Address, Entry);
@@ -208,7 +214,7 @@ FFaerieItemInstance UFaerieItemStorage::ViewInstance(const FFaerieAddress Addres
 	{
 		return EntryPtr->GetInstance();
 	}
-	return FFaerieItemInstance();
+	return NullOpt;
 }
 
 ItemData::FScopeProxy UFaerieItemStorage::ViewEntry(const FFaerieEntryKey Key) const
@@ -230,6 +236,11 @@ ItemData::FScopeProxy UFaerieItemStorage::ViewAddress(const FFaerieAddress Addre
 		return ItemData::FScopeProxy(EntryPtr->GetInstance(), EntryPtr->GetStack(Stack), this);
 	}
 	return nullptr;
+}
+
+FFaerieItemProxy UFaerieItemStorage::Proxy(const FFaerieEntryKey Key) const
+{
+	return FFaerieItemProxy(GetEntryProxyImpl(Key));
 }
 
 FFaerieItemProxy UFaerieItemStorage::Proxy(const FFaerieAddress Address) const
@@ -298,9 +309,9 @@ bool UFaerieItemStorage::CanPossess(const FFaerieItemProxy& Proxy) const
 	return CanAddStack(Proxy, EFaerieStorageAddStackBehavior::AddToAnyStack);
 }
 
-void UFaerieItemStorage::GetAllAddresses(TArray<FFaerieAddress>& Addresses) const
+void UFaerieItemStorage::GetAllAddresses(const TAdderReserverRef<FFaerieAddress> Addresses) const
 {
-	Addresses.Reset(Algo::TransformAccumulate(EntryMap, &FFaerieStorageEntry::NumStacks, 0));
+	Addresses.Reserve(Algo::TransformAccumulate(EntryMap, &FFaerieStorageEntry::NumStacks, 0));
 	for (const FFaerieStorageEntry& Entry : EntryMap)
 	{
 		for (const FFaerieKeyedStack& Stack : Entry.GetStacks())
@@ -334,12 +345,15 @@ TUniquePtr<Container::IAddressIterator> UFaerieItemStorage::CreateSingleEntryIte
 	return nullptr;
 }
 
-void UFaerieItemStorage::OnItemDataChanged(const TValid<const FFaerieItemInstance&> Instance, const TNotNull<const UScriptStruct*> FragmentType, const FGameplayTag EditTag)
+void UFaerieItemStorage::OnItemDataChanged(const FFaerieItemInstance& Instance, const TNotNull<const UScriptStruct*> FragmentType, const FGameplayTag EditTag)
 {
 	Super::OnItemDataChanged(Instance, FragmentType, EditTag);
 
 	if (const FFaerieStorageEntry* Entry = FindEntry(Instance))
 	{
+		// Mutable entries should not generate Entry Proxies, see GetEntryProxyImpl
+		check(LocalEntryProxies.Contains(Entry->GetKey()))
+
 		// There should only be a single address for a mutable item, so only try to update one.
 		const FFaerieAddress Address = Entry->FirstAddress();
 
@@ -380,7 +394,7 @@ const FFaerieStorageEntry* UFaerieItemStorage::GetEntrySafe(const FFaerieEntryKe
 	return EntryMap.Find(Key);
 }
 
-const FFaerieStorageEntry* UFaerieItemStorage::FindEntry(const TValid<const FFaerieItemInstance&> Item) const
+const FFaerieStorageEntry* UFaerieItemStorage::FindEntry(const FFaerieItemInstance& Item) const
 {
 	for (const FFaerieStorageEntry& Entry : EntryMap)
 	{
@@ -391,6 +405,50 @@ const FFaerieStorageEntry* UFaerieItemStorage::FindEntry(const TValid<const FFae
 	}
 
 	return nullptr;
+}
+
+UObject* UFaerieItemStorage::GetEntryProxyImpl(const FFaerieEntryKey Key) const
+{
+	// Don't create proxies for invalid keys.
+	if (!Key.IsValid()) return nullptr;
+
+	if (auto&& ExistingProxy = LocalEntryProxies.Find(Key))
+	{
+		if (ExistingProxy && ExistingProxy->IsValid())
+		{
+			return ExistingProxy->Get();
+		}
+	}
+
+	// If the entry is mutable, then there is only ever one stack proxy, and we can use that as our entry proxy,
+	// saving an extra object creation, and providing extra data to the receiving end.
+	// We also can then safely restrict EntryProxies to only describing immutable instances, lightening their API surface.
+	if (const FFaerieStorageEntry* EntryPtr = GetEntrySafe(Key))
+	{
+		if (EntryPtr->GetInstance().IsMutable())
+		{
+			return GetStackProxyImpl(EntryPtr->FirstAddress());
+		}
+	}
+
+	ThisClass* This = const_cast<ThisClass*>(this);
+
+	const FName ProxyName = MakeUniqueObjectName(This, UFaerieItemEntryProxy::StaticClass(),
+												 *FString::Printf(TEXT("ENTRY_PROXY_%s"),
+												 *Key.ToString()));
+	const TNotNull<UFaerieItemEntryProxy*> NewEntryProxy =
+		NewObject<UFaerieItemEntryProxy>(This, UFaerieItemEntryProxy::StaticClass(), ProxyName);
+
+	NewEntryProxy->Key = Key;
+
+	This->LocalEntryProxies.Add(Key, NewEntryProxy);
+
+	if (ContainsKey(Key))
+	{
+		NewEntryProxy->NotifyLocalCreation();
+	}
+
+	return NewEntryProxy;
 }
 
 UFaerieItemStackProxy* UFaerieItemStorage::GetStackProxyImpl(const FFaerieAddress Address) const
@@ -417,7 +475,6 @@ UFaerieItemStackProxy* UFaerieItemStorage::GetStackProxyImpl(const FFaerieAddres
 	const TNotNull<UFaerieItemStackProxy*> NewStackProxy =
 		NewObject<UFaerieItemStackProxy>(This, UFaerieItemStackProxy::StaticClass(), ProxyName);
 
-	NewStackProxy->ItemStorage = This;
 	NewStackProxy->Address = Address;
 
 	This->LocalStackProxies.Add(Address, NewStackProxy);
@@ -426,7 +483,7 @@ UFaerieItemStackProxy* UFaerieItemStorage::GetStackProxyImpl(const FFaerieAddres
 	{
 		if (EntryPtr->Contains(Stack))
 		{
-			NewStackProxy->NotifyCreation();
+			NewStackProxy->NotifyLocalCreation();
 		}
 	}
 
@@ -435,11 +492,11 @@ UFaerieItemStackProxy* UFaerieItemStorage::GetStackProxyImpl(const FFaerieAddres
 
 Inventory::FEventData UFaerieItemStorage::AddStackImplNoBroadcast(const TValid<const FFaerieUnownedItemStack&> ItemStack, const bool ForceNewStack)
 {
-	static auto FindExistingEntry = [](const TNotNull<const UFaerieItemStorage*> Storage, const TValid<const FFaerieItemInstance&> Item) -> const FFaerieStorageEntry*
+	static auto FindExistingEntry = [](const TNotNull<const UFaerieItemStorage*> Storage, const FFaerieItemInstance& Item) -> const FFaerieStorageEntry*
 		{
 			// Mutables cannot stack, due to, well, being mutable, meaning that each instance retains the ability to
 			// uniquely differ from others.
-			if (!ValidGet(Item).IsMutable())
+			if (!Item.IsMutable())
 			{
 				return Storage->FindEntry(Item);
 			}
@@ -725,19 +782,41 @@ void UFaerieItemStorage::Server_PreContentRemoved(const FFaerieStorageEntry& Ent
 	check(Event.EntryRemoved);
 
 	// Cleanup local views.
+	TWeakObjectPtr<UFaerieItemEntryProxy> EntryProxy;
+	LocalEntryProxies.RemoveAndCopyValue(Event.EntryTouched, EntryProxy);
+	if (UFaerieItemEntryProxy* EntryProxyObject = EntryProxy.Get())
+	{
+		EntryProxyObject->NotifyRemoval();
+	}
+
 	for (const FFaerieAddress Address : Event.AddressesTouched)
 	{
 		TWeakObjectPtr<UFaerieItemStackProxy> StackProxy;
 		LocalStackProxies.RemoveAndCopyValue(Address, StackProxy);
-		if (UFaerieItemStackProxy* ProxyObject = StackProxy.Get())
+		if (UFaerieItemStackProxy* StackProxyObject = StackProxy.Get())
 		{
-			ProxyObject->NotifyRemoval();
+			StackProxyObject->NotifyRemoval();
 		}
 	}
 }
 
 void UFaerieItemStorage::Server_PostContentChanged(const FFaerieStorageEntry& Entry, const Inventory::FEventData& Event)
 {
+	if (const TWeakObjectPtr<UFaerieItemEntryProxy>* FoundEntry = LocalEntryProxies.Find(Event.EntryTouched))
+	{
+		TWeakObjectPtr<UFaerieItemEntryProxy> LocalEntryProxy = *FoundEntry;
+
+		// Cleanup invalid entries.
+		if (LocalEntryProxy.IsStale() || LocalEntryProxy.IsExplicitlyNull())
+		{
+			LocalEntryProxies.Remove(Event.EntryTouched);
+		}
+		else
+		{
+			LocalEntryProxy->NotifyUpdate();
+		}
+	}
+
 	// Call updates on any stack proxies.
 	for (const FFaerieAddress Address : Event.AddressesTouched)
 	{
@@ -779,20 +858,25 @@ void UFaerieItemStorage::Client_PostContentAdded(const FFaerieStorageEntry& Entr
 	}
 
 	// Prepare event data.
-	Inventory::FEventData Event(Entry.GetKey());
-	Event.Instance = Entry.GetInstance();
-	Event.Copies = Entry.StackSum();
-	Event.AddressesTouched = CollateAddresses(Entry);
+	const Inventory::FEventData Event(Entry.GetInstance(), Entry.StackSum(), Entry.GetKey(), CollateAddresses(Entry));
 
 	// Proxies may already exist for keys on the client if they are replicated by extensions or other means, and
 	// happened to arrive before we got them.
+	if (auto&& EntryProxy = LocalEntryProxies.Find(Event.EntryTouched))
+	{
+		if (EntryProxy->IsValid())
+		{
+			EntryProxy->Get()->NotifyDelayedCreation();
+		}
+	}
+
 	for (FFaerieAddress Address : Event.AddressesTouched)
 	{
 		if (auto&& StackProxy = LocalStackProxies.Find(Address))
 		{
 			if (StackProxy->IsValid())
 			{
-				StackProxy->Get()->NotifyCreation();
+				StackProxy->Get()->NotifyDelayedCreation();
 			}
 		}
 	}
@@ -812,23 +896,26 @@ void UFaerieItemStorage::Client_PreContentRemoved(const FFaerieStorageEntry& Ent
 	// removal notice.
 
 	// Prepare event data. Item may not be valid.
-	Inventory::FEventData Event(Entry.GetKey());
-	Event.Instance = Entry.GetInstance();
-	Event.Copies = Entry.StackSum();
-	Event.AddressesTouched = CollateAddresses(Entry);
-
+	Inventory::FEventData Event(Entry.GetInstance(), Entry.StackSum(), Entry.GetKey(), CollateAddresses(Entry));
 	// Client_PreContentRemoved is only called by replication callback on FFaerieStorageEntry, so it only gets called
 	// when the entry is being removed.
 	Event.EntryRemoved = true;
 
-	// Cleanup local views.
+	// Cleanup local proxy objects.
+	TWeakObjectPtr<UFaerieItemEntryProxy> EntryProxy;
+	LocalEntryProxies.RemoveAndCopyValue(Event.EntryTouched, EntryProxy);
+	if (UFaerieItemEntryProxy* EntryProxyObject = EntryProxy.Get())
+	{
+		EntryProxyObject->NotifyRemoval();
+	}
+
 	for (const FFaerieAddress Address : Event.AddressesTouched)
 	{
 		TWeakObjectPtr<UFaerieItemStackProxy> StackProxy;
 		LocalStackProxies.RemoveAndCopyValue(Address, StackProxy);
-		if (UFaerieItemStackProxy* ProxyObject = StackProxy.Get())
+		if (UFaerieItemStackProxy* StackProxyObject = StackProxy.Get())
 		{
-			ProxyObject->NotifyRemoval();
+			StackProxyObject->NotifyRemoval();
 		}
 	}
 
@@ -872,6 +959,23 @@ void UFaerieItemStorage::Client_PostContentChanged(const FFaerieStorageEntry& En
 		const FFaerieAddress Address = Container::Address::Encode(Entry.GetKey(), Stack.Key);
 		Addresses.Add(Address);
 		Event.AddressesTouched.Add(Address);
+	}
+
+	if (TWeakObjectPtr<UFaerieItemEntryProxy>* LocalEntryProxy = LocalEntryProxies.Find(Event.EntryTouched))
+	{
+		// Cleanup invalid entries.
+		if (LocalEntryProxy->IsStale() || LocalEntryProxy->IsExplicitlyNull())
+		{
+			LocalEntryProxies.Remove(Event.EntryTouched);
+		}
+		else
+		{
+			// Check for local proxies that match this entry
+			if ((*LocalEntryProxy)->GetKey() == Entry.GetKey())
+			{
+				(*LocalEntryProxy)->NotifyUpdate();
+			}
+		}
 	}
 
 	for (auto It = LocalStackProxies.CreateIterator(); It; ++It)
@@ -945,7 +1049,16 @@ TTuple<FFaerieEntryKey, FFaerieStackKey> UFaerieItemStorage::BreakAddress(const 
 	return MakeTuple(Entry, Stack);
 }
 
-int32 UFaerieItemStorage::GetStack(const FFaerieAddress Address) const
+int32 UFaerieItemStorage::GetEntryCopies(const FFaerieEntryKey Key) const
+{
+	if (const FFaerieStorageEntry* EntryPtr = GetEntrySafe(Key))
+	{
+		return EntryPtr->StackSum();
+	}
+	return 0;
+}
+
+int32 UFaerieItemStorage::GetStackCopies(const FFaerieAddress Address) const
 {
 	FFaerieEntryKey Entry;
 	FFaerieStackKey Stack;
@@ -1095,21 +1208,23 @@ bool UFaerieItemStorage::CanAddStack(const FFaerieItemProxy& Proxy, const EFaeri
 		return false;
 	}
 
-	if (const FFaerieItemInstance Instance = Proxy.GetItemInstance().GetValue();
-		Instance.IsMutable())
+	const TOptional<FFaerieItemInstance> Instance = Proxy.GetItemInstance();
+	if (!Instance.IsSet())
 	{
-		auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
-		// Prevent recursive storage for mutable items
-		// @todo replace with non-allocating solution that early outs
-		TArray<TNotNull<UFaerieItemContainerBase*>> Containers;
-		SubObject::GetContainersInInstanceRecursive(EntityManager, Instance, Containers);
-		if (Containers.Contains(this))
+		return false;
+	}
+
+	// Prevent recursive storage: don't allow adding an item that contains ourself.
+	const FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked();
+	if (EntityManager.IsEntityValid(Instance.GetValue().GetMassEntityHandle()))
+	{
+		if (SubObject::HasContainerInInstanceRecursive(EntityManager, Instance.GetValue(), TNotNull<const ThisClass*>(this)))
 		{
 			return false;
 		}
 	}
 
-	const FFaerieExtensionAllowsAdditionArgs CanAddStackArgs { AddStackBehavior };
+	const FFaerieExtensionAllowsAdditionArgs CanAddStackArgs { .AddStackBehavior = AddStackBehavior };
 
 	switch (Extensions::FGroupAPI::AllowsAddition(Extensions, this, MakeConstArrayView(&Proxy, 1), CanAddStackArgs))
 	{
@@ -1122,7 +1237,7 @@ bool UFaerieItemStorage::CanAddStack(const FFaerieItemProxy& Proxy, const EFaeri
 
 bool UFaerieItemStorage::CanAddStacks(const TArray<FFaerieItemProxy>& Proxies, const FFaerieExtensionAllowsAdditionArgs Args) const
 {
-	auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
+	const FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked();
 	for (const FFaerieItemProxy& Proxy : Proxies)
 	{
 		if (!Proxy.IsValid())
@@ -1130,14 +1245,16 @@ bool UFaerieItemStorage::CanAddStacks(const TArray<FFaerieItemProxy>& Proxies, c
 			return false;
 		}
 
-		if (const FFaerieItemInstance& Instance = Proxy.GetItemInstance().GetValue();
-			Instance.IsMutable())
+		const TOptional<FFaerieItemInstance> Instance = Proxy.GetItemInstance();
+		if (!Instance.IsSet())
 		{
-			// Prevent recursive storage for mutable items
-			// @todo replace with non-allocating solution that early outs
-			TArray<TNotNull<UFaerieItemContainerBase*>> Containers;
-			SubObject::GetContainersInInstanceRecursive(EntityManager, Instance, Containers);
-			if (Containers.Contains(this))
+			return false;
+		}
+
+		// Prevent recursive storage: don't allow adding an item that contains ourself.
+		if (EntityManager.IsEntityValid(Instance.GetValue().GetMassEntityHandle()))
+		{
+			if (SubObject::HasContainerInInstanceRecursive(EntityManager, Instance.GetValue(), TNotNull<const ThisClass*>(this)))
 			{
 				return false;
 			}
@@ -1153,7 +1270,7 @@ bool UFaerieItemStorage::CanAddStacks(const TArray<FFaerieItemProxy>& Proxies, c
 	}
 }
 
-bool UFaerieItemStorage::CanAddStacks(const Utils::TArrayAdapter<FFaerieItemProxy>& Stacks, const FFaerieExtensionAllowsAdditionArgs Args) const
+bool UFaerieItemStorage::CanAddStacks(const Utils::TArrayAdapter<FFaerieItemProxy> Stacks, const FFaerieExtensionAllowsAdditionArgs Args) const
 {
 	auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
 	for (int32 i = 0; i < Stacks.Num(); ++i)
@@ -1165,14 +1282,17 @@ bool UFaerieItemStorage::CanAddStacks(const Utils::TArrayAdapter<FFaerieItemProx
 			return false;
 		}
 
-		if (const FFaerieItemInstance& Instance = Proxy.GetItemInstance().GetValue();
-			Instance.IsMutable())
+		const TOptional<FFaerieItemInstance> Instance = Proxy.GetItemInstance();
+		if (!Instance.IsSet())
+		{
+			return false;
+		}
+
+		// Prevent recursive storage: don't allow adding an item that contains ourself.
+		if (EntityManager.IsEntityValid(Instance.GetValue().GetMassEntityHandle()))
 		{
 			// Prevent recursive storage for mutable items
-			// @todo replace with non-allocating solution that early outs
-			TArray<TNotNull<UFaerieItemContainerBase*>> Containers;
-			SubObject::GetContainersInInstanceRecursive(EntityManager, Instance, Containers);
-			if (Containers.Contains(this))
+			if (SubObject::HasContainerInInstanceRecursive(EntityManager, Instance.GetValue(), TNotNull<const ThisClass*>(this)))
 			{
 				return false;
 			}
@@ -1236,21 +1356,6 @@ bool UFaerieItemStorage::CanRemoveStack(const FFaerieAddress Address, const FFae
 	/**---------------------------------*/
 	/*	 STORAGE API - AUTHORITY ONLY   */
 	/**---------------------------------*/
-
-bool UFaerieItemStorage::AddEntryFromInstance(const FFaerieItemInstance& Instance, const EFaerieStorageAddStackBehavior AddStackBehavior)
-{
-	if (!Instance.IsValid()) return false;
-
-	const ItemData::FScopeProxy Proxy(Instance, 1, nullptr);
-	if (!CanAddStack(FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, &Proxy), AddStackBehavior))
-	{
-		return false;
-	}
-
-	const FFaerieUnownedItemStack Stack(Instance, 1);
-	(void)AddStackImpl(Stack, Container::IfOnlyNewStacks(AddStackBehavior));
-	return true;
-}
 
 bool UFaerieItemStorage::AddItemStack(const FFaerieUnownedItemStack& Stack, const EFaerieStorageAddStackBehavior AddStackBehavior)
 {

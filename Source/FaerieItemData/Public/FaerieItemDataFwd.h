@@ -6,6 +6,7 @@ class IFaerieItemDataProxy;
 class IFaerieItemOwnerInterface;
 class IFaerieItemSource;
 class UFaerieItem;
+struct FFaerieItemInstance;
 struct FFaerieItemProxy;
 struct FFaerieMassFragment;
 struct FFaerieUnownedItemStack;

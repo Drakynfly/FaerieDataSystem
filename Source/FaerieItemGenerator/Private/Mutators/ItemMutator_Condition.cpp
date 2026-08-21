@@ -9,7 +9,7 @@
 
 FAERIE_MUTATOR_IMPL(FFaerieItemMutator_TemplateCondition)
 
-void FFaerieItemMutator_TemplateCondition::GetRequiredAssets(TArray<TSoftObjectPtr<UObject>>& RequiredAssets) const
+void FFaerieItemMutator_TemplateCondition::GetRequiredAssets(const TAdderRef<FSoftObjectPath> RequiredAssets) const
 {
 	Mutators.GetRequiredAssets(RequiredAssets);
 }

@@ -19,5 +19,5 @@ struct FFaerieStackLimitFragment : public FFaerieMassFragment
 
 namespace Faerie::Container
 {
-	FAERIEINVENTORY_API int32 GetItemStackLimit(const FMassEntityManager* EntityManager, TValid<const FFaerieItemInstance&> Item);
+	FAERIEINVENTORY_API int32 GetItemStackLimit(const FMassEntityManager* EntityManager, const FFaerieItemInstance& Item);
 }

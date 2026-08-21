@@ -41,9 +41,9 @@ FFaerieHash UFaerieEquipmentLibrary::HashEquipment(const UFaerieEquipmentManager
 	auto* EntityManager = Faerie::ItemData::GetFaerieEntityManager();
 
 	return Faerie::Hash::HashEquipment(Manager, EntityManager, Config.Slots,
-		[&Config](const FMassEntityManager*, const Faerie::TValid<const FFaerieItemInstance&> Item)
+		[&Config](const FMassEntityManager*, const FFaerieItemInstance& Item)
 		{
-			return Config.HashFunction.Execute(ValidGet(Item));
+			return Config.HashFunction.Execute(Item);
 		});
 }
 
@@ -73,7 +73,6 @@ FBlueprintEquipmentHash UFaerieEquipmentLibrary::GetEquipmentHash_ByName()
 
 int32 UFaerieEquipmentLibrary::ExecHashItemByName(const FFaerieItemInstance& Instance)
 {
-	if (!Instance.IsValid()) return 0;
 	auto* EntityManager = Faerie::ItemData::GetFaerieEntityManager();
 	return Faerie::Hash::HashItemByName(EntityManager, Instance);
 }

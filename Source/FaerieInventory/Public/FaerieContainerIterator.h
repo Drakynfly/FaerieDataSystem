@@ -152,7 +152,19 @@ namespace Faerie::Container
 		// As we are in FaerieInventory, we can cast to the actual UObject type.
 		[[nodiscard]] UE_REWRITE const UFaerieItemContainerBase* GetOwner() const { return CastChecked<UFaerieItemContainerBase>(IteratorPtr->GetItemOwner()); }
 
-		[[nodiscard]] UE_REWRITE FFaerieItemProxy GetProxy() const { return FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, IteratorPtr.Get()); }
+		[[nodiscard]] UE_REWRITE FFaerieItemProxy GetSingleFrameProxy() const UE_LIFETIMEBOUND { return FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, IteratorPtr.Get()); }
+
+		[[nodiscard]] UE_REWRITE FFaerieItemProxy GetPersistentProxy() const
+		{
+			if constexpr (std::is_same_v<ResolveType, FFaerieAddress>)
+			{
+				return GetOwner()->Proxy(GetAddress());
+			}
+			else
+			{
+				return GetOwner()->Proxy(GetKey());
+			}
+		}
 
 		UE_REWRITE void operator++()
 		{

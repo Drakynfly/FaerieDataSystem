@@ -8,11 +8,16 @@
 
 FAERIE_MUTATOR_IMPL(FFaerieItemMutator_Blueprint)
 
-void FFaerieItemMutator_Blueprint::GetRequiredAssets(TArray<TSoftObjectPtr<UObject>>& RequiredAssets) const
+void FFaerieItemMutator_Blueprint::GetRequiredAssets(const TAdderRef<FSoftObjectPath> RequiredAssets) const
 {
 	if (IsValid(Blueprint))
 	{
-		return GetDefault<UFaerieItemMutator_BlueprintBase>(Blueprint)->GetRequiredAssets(RequiredAssets);
+		TArray<FSoftObjectPath> PathsFromBP;
+		GetDefault<UFaerieItemMutator_BlueprintBase>(Blueprint)->GetRequiredAssets(PathsFromBP);
+		for (auto&& Path : PathsFromBP)
+		{
+			RequiredAssets.Add(Path);
+		}
 	}
 }
 
@@ -26,7 +31,7 @@ bool FFaerieItemMutator_Blueprint::Apply(FFaerieItemInstance& Item, const FFaeri
 	return false;
 }
 
-void UFaerieItemMutator_BlueprintBase::GetRequiredAssets_Implementation(TArray<TSoftObjectPtr<UObject>>& RequiredAssets) const {}
+void UFaerieItemMutator_BlueprintBase::GetRequiredAssets_Implementation(TArray<FSoftObjectPath>& RequiredAssets) const {}
 
 bool UFaerieItemMutator_BlueprintBase::Apply_Implementation(const FFaerieItemProxy& Proxy, USquirrel* Squirrel) const
 {

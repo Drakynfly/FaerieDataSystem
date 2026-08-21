@@ -214,8 +214,8 @@ FFaerieItemFilter_HasFragments::FFaerieItemFilter_HasFragments()
 
 bool FFaerieItemFilter_HasFragments::Exec(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy) const
 {
-	FFaerieItemInstance Instance = ValidGet(Proxy).GetItemInstanceOrInvalid();
-	if (!Instance.IsValid())
+	TOptional<FFaerieItemInstance> Instance = ValidGet(Proxy).GetItemInstance();
+	if (!Instance.IsSet())
 	{
 		return false;
 	}
@@ -229,7 +229,7 @@ bool FFaerieItemFilter_HasFragments::Exec(const FMassEntityManager* EntityManage
 			continue;
 		}
 
-		auto FragmentView = ItemData::GetEntityFragmentOrDefault(EntityManager, Instance, StructType, ReferenceTag);
+		auto FragmentView = ItemData::GetEntityFragmentOrDefault(EntityManager, Instance.GetValue(), StructType, ReferenceTag);
 		if (FragmentView.IsValid())
 		{
 			FragmentTypesCopy.Remove(StructType);
@@ -247,8 +247,8 @@ bool FFaerieItemFilter_HasFragments::ExecWithLog(const FMassEntityManager* Entit
 	static const FTextFormat MissingStructErrorFormat = LOCTEXT("HasFragments_MissingClassError", "Missing required fragment of type: '{0}'");
 	static const FTextFormat InvalidTypeErrorFormat = LOCTEXT("HasFragments_InvalidType", "Invalid fragment type at index '{0}'");
 
-	const FFaerieItemInstance& Instance = ValidGet(Proxy).GetItemInstance().GetValue();
-	if (!Instance.IsValid())
+	const TOptional<FFaerieItemInstance> Instance = ValidGet(Proxy).GetItemInstance();
+	if (!Instance.IsSet())
 	{
 		Logger.Errors.Add(InvalidViewError);
 		return false;
@@ -264,7 +264,7 @@ bool FFaerieItemFilter_HasFragments::ExecWithLog(const FMassEntityManager* Entit
 			continue;
 		}
 
-		auto FragmentView = ItemData::GetEntityFragmentOrDefault(EntityManager, Instance, *It, ReferenceTag);
+		auto FragmentView = ItemData::GetEntityFragmentOrDefault(EntityManager, Instance.GetValue(), *It, ReferenceTag);
 		if (FragmentView.IsValid())
 		{
 			FragmentTypesCopy.Remove(*It);

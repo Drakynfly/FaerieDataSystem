@@ -133,7 +133,7 @@ int32 FFaerieStorageEntry::StackSum() const
 bool FFaerieStorageEntry::IsValid() const
 {
 	// No instance, obviously invalid
-	if (!ItemInstance.IsValid()) return false;
+	if (ItemInstance.IsEmpty()) return false;
 
 	// No stacks, invalid
 	if (Stacks.IsEmpty()) return false;
@@ -458,7 +458,7 @@ void FFaerieStorageContent::Append(const FFaerieStorageEntry& Entry)
 	if (!Entries.IsEmpty())
 	{
 		checkf(Entries.Last().Key < Entry.Key,
-			TEXT("If this is hit, then Key is not sequential and Append was not safe to use. Either use a validated Key, or use FFaerieStorageContent::Insert"));
+			TEXT("If this is hit, then Key is not sequential and Append was not safe to use. Either use a validated Key, or use FFaerieStorageContent::Insert_GetRef"));
 	}
 
 	FFaerieStorageEntry& NewItemRef = Entries.Emplace_GetRef(Entry);
@@ -487,7 +487,7 @@ void FFaerieStorageContent::Insert(const FFaerieStorageEntry& Entry)
 
 	LLM_SCOPE_BYTAG(ItemStorage);
 
-	FFaerieStorageEntry& NewEntry = BSOA::Insert(Entry);
+	FFaerieStorageEntry& NewEntry = BSOA::Insert_GetRef(Entry);
 
 	MarkItemDirty(NewEntry);
 }

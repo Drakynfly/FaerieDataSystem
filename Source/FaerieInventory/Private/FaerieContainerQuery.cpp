@@ -163,21 +163,18 @@ FFaerieAddress UFaerieContainerQuery::QueryFirstAddress(const UFaerieItemContain
 
 	if (!IsFilterBound()) return {};
 
-	Container::FCallbackFilter IteratorPredicate{
-		ItemData::FViewPredicate::CreateUObject(this, &ThisClass::IsIteratorFiltered)};
-
 	auto* EntityManager = ItemData::GetFaerieEntityManager();
 
 	if (InvertFilter)
 	{
 		return Container::FAddressFilter()
 			   .Invert()
-			   .By(MoveTemp(IteratorPredicate))
+			   .By(Container::FCallbackFilter{FilterFunction})
 			   .First(EntityManager, Container);
 	}
 
 	return Container::FAddressFilter()
-		   .By(MoveTemp(IteratorPredicate))
+		   .By((Container::FCallbackFilter{FilterFunction}))
 		   .First(EntityManager, Container);
 }
 
@@ -197,21 +194,18 @@ void UFaerieContainerQuery::QueryAllAddresses(const UFaerieItemContainerBase* Co
 	{
 		auto* EntityManager = ItemData::GetFaerieEntityManager();
 
-		Container::FCallbackFilter IteratorPredicate{
-			ItemData::FViewPredicate::CreateUObject(this, &ThisClass::IsIteratorFiltered)};
-
 		if (InvertFilter)
 		{
-			OutAddresses = Container::FAddressFilter()
-						   .Invert()
-						   .By(MoveTemp(IteratorPredicate))
-						   .Emit(EntityManager, Container);
+			Container::FAddressFilter()
+				.Invert()
+				.By(Container::FCallbackFilter{FilterFunction})
+				.Emit(EntityManager, Container, OutAddresses);
 		}
 		else
 		{
-			OutAddresses = Container::FAddressFilter()
-						   .By(MoveTemp(IteratorPredicate))
-						   .Emit(EntityManager, Container);
+			Container::FAddressFilter()
+				.By(Container::FCallbackFilter{FilterFunction})
+				.Emit(EntityManager, Container, OutAddresses);
 		}
 	}
 	else
@@ -286,9 +280,4 @@ bool UFaerieContainerQuery::CompareAddresses_Impl(const TNotNull<const UFaerieIt
 		return SortFunction.Execute(EntityManager, ProxyA, ProxyB);
 	}
 	return false;
-}
-
-bool UFaerieContainerQuery::IsIteratorFiltered(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Iterator) const
-{
-	return FilterFunction.Execute(EntityManager, Iterator);
 }

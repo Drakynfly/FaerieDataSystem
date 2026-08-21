@@ -149,22 +149,22 @@ bool UFaerieItemStackContainer::Contains(const FFaerieAddress Address) const
 	return IsOurAddress(Address);
 }
 
-FFaerieItemInstance UFaerieItemStackContainer::ViewInstance(const FFaerieEntryKey Key) const
+TOptional<FFaerieItemInstance> UFaerieItemStackContainer::ViewInstance(const FFaerieEntryKey Key) const
 {
 	if (IsOurKey(Key))
 	{
 		return ItemStack.Instance;
 	}
-	return FFaerieItemInstance();
+	return NullOpt;
 }
 
-FFaerieItemInstance UFaerieItemStackContainer::ViewInstance(const FFaerieAddress Address) const
+TOptional<FFaerieItemInstance> UFaerieItemStackContainer::ViewInstance(const FFaerieAddress Address) const
 {
 	if (IsOurAddress(Address))
 	{
 		return ItemStack.Instance;
 	}
-	return FFaerieItemInstance();
+	return NullOpt;
 }
 
 ItemData::FScopeProxy UFaerieItemStackContainer::ViewEntry(const FFaerieEntryKey Key) const
@@ -183,6 +183,15 @@ ItemData::FScopeProxy UFaerieItemStackContainer::ViewAddress(const FFaerieAddres
 		return GetView();
 	}
 	return nullptr;
+}
+
+FFaerieItemProxy UFaerieItemStackContainer::Proxy(const FFaerieEntryKey Key) const
+{
+	if (IsOurKey(Key))
+	{
+		return FFaerieItemProxy(this);
+	}
+	return FFaerieItemProxy();
 }
 
 FFaerieItemProxy UFaerieItemStackContainer::Proxy(const FFaerieAddress Address) const
@@ -246,7 +255,7 @@ bool UFaerieItemStackContainer::CanPossess(const FFaerieItemProxy& Proxy) const
 	return CanSetInSlot(Proxy);
 }
 
-void UFaerieItemStackContainer::GetAllAddresses(TArray<FFaerieAddress>& Addresses) const
+void UFaerieItemStackContainer::GetAllAddresses(const TAdderReserverRef<FFaerieAddress> Addresses) const
 {
 	if (IsFilled())
 	{
@@ -276,7 +285,7 @@ TUniquePtr<Container::IAddressIterator> UFaerieItemStackContainer::CreateSingleE
 
 TOptional<FFaerieItemInstance> UFaerieItemStackContainer::GetItemInstance() const
 {
-	if (ItemStack.Instance.IsValid())
+	if (!ItemStack.Instance.IsEmpty())
 	{
 		return ItemStack.Instance;
 	}
@@ -303,7 +312,7 @@ FFaerieItemNetworkHandle UFaerieItemStackContainer::Proxy_GetNetworkHandle() con
 	return GetNetworkHandle();
 }
 
-void UFaerieItemStackContainer::OnItemDataChanged(const TValid<const FFaerieItemInstance&> Instance, const TNotNull<const UScriptStruct*> FragmentType, const FGameplayTag EditTag)
+void UFaerieItemStackContainer::OnItemDataChanged(const FFaerieItemInstance& Instance, const TNotNull<const UScriptStruct*> FragmentType, const FGameplayTag EditTag)
 {
 	Super::OnItemDataChanged(Instance, FragmentType, EditTag);
 	check(ItemStack.Instance == Instance);
@@ -398,8 +407,8 @@ bool UFaerieItemStackContainer::CanSetInSlot(const FFaerieItemProxy& Proxy) cons
 {
 	if (!Proxy.IsValid()) return false;
 
-	const FFaerieItemInstance Instance = Proxy.GetItemInstanceOrInvalid();
-	if (!Instance.IsValid())
+	const TOptional<FFaerieItemInstance> Instance = Proxy.GetItemInstance();
+	if (Instance.IsSet())
 	{
 		return false;
 	}
@@ -407,7 +416,7 @@ bool UFaerieItemStackContainer::CanSetInSlot(const FFaerieItemProxy& Proxy) cons
 	if (IsFilled())
 	{
 		// Cannot switch items. Remove current first.
-		if (Instance != ItemStack.Instance)
+		if (Instance.GetValue() != ItemStack.Instance)
 		{
 			return false;
 		}
@@ -567,7 +576,7 @@ FFaerieItemNetworkHandle UFaerieItemStackContainer::GetNetworkHandle() const
 
 bool UFaerieItemStackContainer::IsFilled() const
 {
-	return ItemStack.Instance.IsValid() && ItemStack.Copies > 0;
+	return !ItemStack.Instance.IsEmpty() && ItemStack.Copies > 0;
 }
 
 void UFaerieItemStackContainer::OnRep_ItemStack(const FFaerieStackContainerContent& OldValue)
