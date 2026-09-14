@@ -18,6 +18,8 @@ struct FFaerieMeshFragment : public FFaerieMassFragment
 #if WITH_EDITOR
 	EDataValidationResult IsDataValid(FDataValidationContext& Context) const;
 #endif
+
+____FAERIE_FRAGMENT_DECL(FFaerieMeshFragment)
 };
 
 template<>

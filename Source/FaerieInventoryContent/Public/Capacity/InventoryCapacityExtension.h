@@ -4,12 +4,24 @@
 
 #include "ItemContainerExtensionBase.h"
 #include "CapacityStructs.h"
+#include "FaerieContainerDataViewModelBase.h"
 #include "FaerieItemContainerStructs.h"
 #include "FaerieItemProxy.h"
+#include "MVVMViewModelBase.h"
+#include "MassProcessor.h"
 #include "InventoryCapacityExtension.generated.h"
 
+#define FAE_API FAERIEINVENTORYCONTENT_API
+
+namespace Faerie::Container
+{
+    struct FEvent;
+}
+
+class UFaerieItemContainerCapacityView;
+
 UENUM(BlueprintType, Flags, Meta = (Bitflags, UseEnumValuesAsMaskValuesInEditor = "true"))
-enum class ECapacityChecks : uint8
+enum class EFaerieCapacityExtensionChecks : uint8
 {
     None    = 0 UMETA(Hidden),
 
@@ -25,38 +37,38 @@ enum class ECapacityChecks : uint8
     // Require items to have a Capacity Fragment
     Fragment   = 1 << 3
 };
-ENUM_CLASS_FLAGS(ECapacityChecks)
+ENUM_CLASS_FLAGS(EFaerieCapacityExtensionChecks)
 
 USTRUCT(BlueprintType)
-struct FCapacityExtensionConfig
+struct FFaerieCapacityExtensionConfig
 {
     GENERATED_BODY()
 
     /** Which capacity checks are performed when determining if an entry can "fit" in the inventory. */
-    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Capacity Config", meta = (Bitmask, BitmaskEnum = "/Script/FaerieInventoryContent.ECapacityChecks"))
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "CapacityExtensionConfig", meta = (Bitmask, BitmaskEnum = "/Script/FaerieInventoryContent.EFaerieCapacityExtensionChecks"))
     int32 Checks = 0;
 
     /** Size in centimeters of the maximum bounding box for contained items. */
-    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Capacity Config", meta = (Units = cm))
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "CapacityExtensionConfig", meta = (Units = cm))
     FIntVector Bounds = FIntVector(0);
 
     /** How much items can exceed the bounds, but still be allowed to be contained. Useful for soft containers */
-    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Capacity Config")
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "CapacityExtensionConfig")
     float BoundsFudgeFactor = 1.1f;
 
-    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Capacity Config")
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "CapacityExtensionConfig")
     FFaerieWeightEditor MaxWeight = 0;
 
     /** If enabled, MaxVolume will be set to Bounds.X*Bounds.Y*Bounds.Z. Disable to manually edit MaxVolume */
-    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Capacity Config")
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "CapacityExtensionConfig")
     bool DeriveVolumeFromBounds = true;
 
-    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Capacity Config", meta = (EditCondition = "!DeriveVolumeFromBounds"))
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "CapacityExtensionConfig", meta = (EditCondition = "!DeriveVolumeFromBounds"))
     int64 MaxVolume = 0;
 
-    bool HasCheck(const ECapacityChecks Check) const
+    bool HasCheck(const EFaerieCapacityExtensionChecks Check) const
     {
-        return EnumHasAnyFlags(static_cast<ECapacityChecks>(Checks), Check);
+        return EnumHasAnyFlags(static_cast<EFaerieCapacityExtensionChecks>(Checks), Check);
     }
 };
 
@@ -64,137 +76,109 @@ struct FCapacityExtensionConfig
  * The state of the capacity that is replicated to all clients.
  */
 USTRUCT(BlueprintType)
-struct FCapacityExtensionState
+struct FFaerieCapacityExtensionState
 {
     GENERATED_BODY()
 
-    UPROPERTY(BlueprintReadOnly, VisibleInstanceOnly, Category = "Weight", meta = (Units = g))
+    UPROPERTY(BlueprintReadOnly, VisibleInstanceOnly, Category = "CapacityExtensionState", meta = (Units = g))
     int32 CurrentWeight = 0;
 
-    UPROPERTY(BlueprintReadOnly, VisibleInstanceOnly, Category = "Volume")
+    UPROPERTY(BlueprintReadOnly, VisibleInstanceOnly, Category = "CapacityExtensionState")
     int64 CurrentVolume = 0;
 };
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FInventoryCapacityEvent);
+USTRUCT()
+struct FFaerieItemContainerCapacityData : public FFaerieItemContainerExtensionBase
+{
+    GENERATED_BODY()
 
-/**
- * This class uses the Capacity from items to maintain an aggregated capacity of all items across each
- * registered container. This allows for keeping track of a summed weight and volume of inventory content.
- * Additionally, in the Config, Checks can be enabled, to disable adding more items to the container once limits
- * are reached.
- */
+    friend class UFaerieItemContainerCapacityUpdater;
+
+    //~ FFaerieItemContainerExtensionBase
+    virtual void InitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
+    virtual EFaerieExtensionResponse AllowsAddition(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args) const override;
+    //~ FFaerieItemContainerExtensionBase
+
+    const FFaerieCapacityExtensionConfig& GetConfig() const { return Config; }
+    const FFaerieCapacityExtensionState& GetState() const { return State; }
+
+private:
+    bool HandleEvent(const FMassEntityManager& EntityManager, const Faerie::Container::FEvent& Event);
+
+    // Tests if the capacity of a stack can fit in this container.
+    bool CanContain(const FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container, Faerie::TValid<const FFaerieItemProxy&> Proxy) const;
+
+    // Tests if the capacity of multiple stacks can fit in this container at once.
+    bool CanContain_Multi(const FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies) const;
+
+    bool UpdateCacheForEntry(const FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container, FFaerieEntryKey Key);
+    bool RemoveCacheForEntry(TNotNull<const UFaerieItemContainerBase*> Container, FFaerieEntryKey Key);
+
+    void AddWeightAndVolume(FFaerieWeightAndVolume Value);
+
+protected:
+    UPROPERTY(EditAnywhere, Category = "Capacity", meta = (ShowOnlyInnerProperties))
+    FFaerieCapacityExtensionConfig Config;
+
+    UPROPERTY(VisibleInstanceOnly, Category = "Capacity", meta = (ShowOnlyInnerProperties))
+    FFaerieCapacityExtensionState State;
+
+    TMap<FFaerieEntryKey, FFaerieWeightAndVolume> EntryCache;
+
+____FAERIE_CONTAINER_DATA_DECL(FFaerieItemContainerCapacityData)
+};
+
 UCLASS()
-class FAERIEINVENTORYCONTENT_API UInventoryCapacityExtension : public UItemContainerExtensionBase
+class UFaerieItemContainerCapacityView : public UFaerieContainerDataViewModelBase
 {
     GENERATED_BODY()
 
 public:
-    virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+    //~ UFaerieContainerDataViewModelBase
+    virtual void SyncView() override;
+    //~ UFaerieContainerDataViewModelBase
 
-#if WITH_EDITOR
-    virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-    virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
-#endif
+    UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainerCapacityView")
+    void SetConfiguration(const FFaerieCapacityExtensionConfig& NewConfig);
 
-protected:
-    //~ UItemContainerExtensionBase
-    virtual void InitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
-    virtual void DeinitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
-    virtual EEventExtensionResponse AllowsAddition(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args) const override;
-    virtual void PostEventBatch(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Inventory::FEventLogBatch& Events) override;
-    //~ UItemContainerExtensionBase
-
-private:
-    void UpdateCacheForEntry(TNotNull<const UFaerieItemContainerBase*> Container, FFaerieEntryKey Key);
-    void RemoveCacheForEntry(TNotNull<const UFaerieItemContainerBase*> Container, FFaerieEntryKey Key);
-
-    bool CanContainItem(Faerie::TValid<const FFaerieItemProxy&> Proxy) const;
-
-    void AddWeightAndVolume(FFaerieWeightAndVolume Value);
-
-    void HandleStateChanged();
-    void HandleConfigChanged();
-
-public:
-    FSimpleMulticastDelegate::RegistrationType& GetOnStateChanged() { return OnStateChangedNative; }
-    FSimpleMulticastDelegate::RegistrationType& GetOnConfigurationChanged() { return OnConfigurationChangedNative; }
-
-    // Tests if the capacity of a stack can fit in this container.
-    UFUNCTION(BlueprintPure, Category = "Faerie|InventoryCapacity")
-    bool CanContain(const FFaerieItemProxy& Proxy) const;
-
-    // Tests if the capacity of multiple stacks can fit in this container at once.
-    //UFUNCTION(BlueprintPure, Category = "Faerie|InventoryCapacity")
-    bool CanContain_Multi(Faerie::Utils::TArrayAdapter<FFaerieItemProxy> Proxies) const;
-
-    // Tests if the capacity of an item can fit in this container.
-    UFUNCTION(BlueprintPure, Category = "Faerie|InventoryCapacity")
-    bool CanContainProxy(const FFaerieItemProxy& Proxy) const;
-
-    // Get the configuration struct.
-    UFUNCTION(BlueprintPure, Category = "Faerie|InventoryCapacity")
-    const FCapacityExtensionConfig& GetCapacityConfig() const { return Config; }
-
-    // Get the current state struct.
-    UFUNCTION(BlueprintPure, Category = "Faerie|InventoryCapacity")
-    FCapacityExtensionState GetCurrentState() const { return State; }
-
-    // Get the current amount filled.
-    UFUNCTION(BlueprintPure, Category = "Faerie|InventoryCapacity")
-    FFaerieWeightAndVolume GetCurrentCapacity() const;
-
-    // Get the maximum amount that this manager can hold.
-    UFUNCTION(BlueprintPure, Category = "Faerie|InventoryCapacity")
-    FFaerieWeightAndVolume GetMaxCapacity() const;
-
-    UFUNCTION(BlueprintPure, Category = "Faerie|InventoryCapacity")
-    bool IsOverMaxWeight() const;
-
-    UFUNCTION(BlueprintPure, Category = "Faerie|InventoryCapacity")
-    bool IsOverMaxVolume() const;
-
-    UFUNCTION(BlueprintCallable, Category = "Faerie|InventoryCapacity")
-    void SetConfiguration(const FCapacityExtensionConfig& NewConfig);
-
-    UFUNCTION(BlueprintCallable, Category = "Faerie|InventoryCapacity")
+    UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainerCapacityView")
     void SetBounds(const FIntVector NewBounds);
 
-    UFUNCTION(BlueprintCallable, Category = "Faerie|InventoryCapacity")
+    UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainerCapacityView")
     void SetMaxCapacity(const FFaerieWeightAndVolume NewMax);
 
-    UFUNCTION(BlueprintPure, Category = "Faerie|InventoryCapacity")
-    float GetPercentageFullForWeightAndVolume(const FFaerieWeightAndVolume& WeightAndVolume) const;
+protected:
+    UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "ItemContainerCapacityView", meta = (ShowOnlyInnerProperties))
+    FFaerieCapacityExtensionConfig Config;
 
-    // Get our current percentage "fullness"
-    UFUNCTION(BlueprintPure, Category = "Faerie|InventoryCapacity")
-    float GetPercentageFull() const;
+    UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "ItemContainerCapacityView", meta = (ShowOnlyInnerProperties))
+    FFaerieCapacityExtensionState State;
+};
+
+namespace Faerie::Content
+{
+    USTRUCT()
+    struct FCapacityViewFragment : public Container::FViewModelFragment
+    {
+        GENERATED_BODY()
+    };
+}
+
+UCLASS()
+class UFaerieItemContainerCapacityUpdater : public UMassProcessor
+{
+    GENERATED_BODY()
+
+public:
+    UFaerieItemContainerCapacityUpdater();
 
 protected:
-    UFUNCTION(/* Replication */)
-    virtual void OnRep_Config();
-
-    UFUNCTION(/* Replication */)
-    virtual void OnRep_State();
-
-    // Broadcast whenever the state changes.
-    UPROPERTY(BlueprintAssignable, Category = "Events")
-    FInventoryCapacityEvent OnStateChanged;
-
-    // Broadcast whenever the config changes.
-    UPROPERTY(BlueprintAssignable, Category = "Events")
-    FInventoryCapacityEvent OnConfigurationChanged;
-
-    UPROPERTY(ReplicatedUsing = "OnRep_Config", EditAnywhere, Category = "Capacity", meta = (ShowOnlyInnerProperties))
-    FCapacityExtensionConfig Config;
-
-    UPROPERTY(ReplicatedUsing = "OnRep_State", VisibleInstanceOnly, Category = "Capacity")
-    FCapacityExtensionState State;
-
-    // Cache of all entries to maintain serverside integrity.
-    // @todo actually use this to validate State
-    TMap<TWeakObjectPtr<const UFaerieItemContainerBase>, TMap<FFaerieEntryKey, FFaerieWeightAndVolume>> ServerCapacityCache;
+    virtual void ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager) override;
+    virtual void Execute(FMassEntityManager& EntityManager, FMassExecutionContext& Context) override;
 
 private:
-    FSimpleMulticastDelegate OnStateChangedNative;
-    FSimpleMulticastDelegate OnConfigurationChangedNative;
+    FMassEntityQuery EventQuery;
+    FMassEntityQuery ViewQuery;
 };
+
+#undef FAE_API

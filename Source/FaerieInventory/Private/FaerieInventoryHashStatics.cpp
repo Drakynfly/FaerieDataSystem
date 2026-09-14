@@ -12,7 +12,7 @@ namespace Faerie::Hash
 
 		for (auto It = Container::ItemRange(Container); It; ++It)
 		{
-			Hashes.Add(Function(EntityManager, *It));
+			Hashes.Add(Function(EntityManager, It.GetSingleFrameProxy()));
 		}
 
 		return CombineHashes(Hashes);
@@ -31,7 +31,7 @@ namespace Faerie::Hash
 		{
 			for (auto It = Container::ItemRange(Container); It; ++It)
 			{
-				Hashes.Add(Function(EntityManager, *It));
+				Hashes.Add(Function(EntityManager, It.GetSingleFrameProxy()));
 			}
 		}
 

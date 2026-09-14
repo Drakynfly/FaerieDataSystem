@@ -50,13 +50,13 @@ public:
 	//~ UObject
 
 	//~ UNetSupportedObject
-	virtual void InitializeNetObject(TNotNull<AActor*> Actor) override;
-	virtual void DeinitializeNetObject(TNotNull<AActor*> Actor) override;
+	//virtual void InitializeNetObject(TNotNull<AActor*> Actor) override;
+	//virtual void DeinitializeNetObject(TNotNull<AActor*> Actor) override;
 	//~ UNetSupportedObject
 
 	//~ UFaerieItemContainerBase
-	virtual FInstancedStruct MakeSaveData(FFaerieItemContainerExtensionData& ExtensionData) const override;
-	virtual void LoadSaveData(FConstStructView ItemData, const TSharedStruct<FFaerieItemContainerExtensionData>& ExtensionData) override;
+	virtual FInstancedStruct MakeSaveData(Faerie::Container::FSaveParams Params) const override;
+	virtual void LoadSaveData(FConstStructView ItemData, Faerie::Container::FLoadParams Params) override;
 
 	virtual bool Contains(FFaerieAddress Address) const override;
 	virtual TOptional<FFaerieItemInstance> ViewInstance(FFaerieEntryKey Key) const override;
@@ -69,9 +69,10 @@ public:
 	virtual void DestroyStack(FFaerieEntryKey Key, int32 Copies) override;
 	virtual void DestroyStack(FFaerieAddress Address, int32 Copies) override;
 	virtual void DestroyStack(const FFaerieItemProxy& Proxy, int32 Copies) override;
-	virtual TOptional<FFaerieUnownedItemStack> Release(FFaerieEntryKey Key, int32 Copies) override;
-	virtual TOptional<FFaerieUnownedItemStack> Release(FFaerieAddress Address, int32 Copies) override;
+	virtual TOptional<FFaerieUnownedItemStack> Release(FFaerieEntryKey Key, int32 Copies, FFaerieInventoryTag Reason) override;
+	virtual TOptional<FFaerieUnownedItemStack> Release(FFaerieAddress Address, int32 Copies, FFaerieInventoryTag Reason) override;
 	virtual bool CanPossess(const FFaerieItemProxy& Proxy) const override;
+	virtual bool CanRelease(const FFaerieItemProxy& Proxy, FFaerieInventoryTag Reason) const override;
 	virtual void GetAllAddresses(TAdderReserverRef<FFaerieAddress> Addresses) const override;
 
 protected:
@@ -82,7 +83,7 @@ protected:
 
 public:
 	//~ IFaerieItemOwnerInterface
-	virtual void OnItemDataChanged(const FFaerieItemInstance& Instance, TNotNull<const UScriptStruct*> FragmentType, FGameplayTag EditTag) override;
+	virtual void OnItemDataChanged(const FFaerieItemInstance& Instance, FGameplayTag EditTag) override;
 	//~ IFaerieItemOwnerInterface
 
 
@@ -90,7 +91,7 @@ public:
 	/*	  INTERNAL IMPLEMENTATIONS	 */
 	/**------------------------------*/
 private:
-	[[nodiscard]] TArray<FFaerieEntryKey> CopyEntryKeys() const;
+	void CopyEntryKeys(TAdderReserverRef<FFaerieEntryKey> OutKeys) const;
 
 	// Collect all addresses for an entry into an array.
 	[[nodiscard]] static TArray<FFaerieAddress> CollateAddresses(const FFaerieStorageEntry& Entry);
@@ -129,6 +130,9 @@ private:
 	/*	  STORAGE API - ALL USERS    */
 	/**------------------------------*/
 public:
+	void MakeSaveData(FFaerieStorageExportData& OutItemData, Faerie::Container::FSaveParams Params) const;
+	void LoadSaveData(const FFaerieStorageExportData& InItemData, Faerie::Container::FLoadParams Params);
+
 	static FFaerieAddress MakeAddress(FFaerieEntryKey Entry, FFaerieStackKey Stack);
 	static FFaerieEntryKey GetAddressEntry(FFaerieAddress Address);
 	static FFaerieStackKey GetAddressStack(FFaerieAddress Address);
@@ -186,20 +190,25 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Storage|Access")
 	FFaerieAddress GetFirstAddress() const;
 
+	// Check if a stack can be added to this storage. This is only a physical check not a permissions check.
 	UFUNCTION(BlueprintCallable, Category = "Storage|Permissions")
 	bool CanAddStack(const FFaerieItemProxy& Proxy, EFaerieStorageAddStackBehavior AddStackBehavior) const;
 
+	// Check if several stacks can be added to this storage. This is only a physical check not a permissions check.
 	UFUNCTION(BlueprintCallable, Category = "Storage|Permissions")
 	bool CanAddStacks(const TArray<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args) const;
-	bool CanAddStacks(Faerie::Utils::TArrayAdapter<FFaerieItemProxy> Stacks, FFaerieExtensionAllowsAdditionArgs Args) const;
+	bool CanAddStacks(const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Stacks, FFaerieExtensionAllowsAdditionArgs Args) const;
 
+	// Check if an edit may be performed on stack in this storage. This is only a physical check not a permissions check.
 	UFUNCTION(BlueprintCallable, Category = "Storage|Permissions")
 	bool CanEditStack(FFaerieAddress Address, FFaerieInventoryTag EditTag) const;
 
+	// Check if an entry can be removed from this storage. This is only a physical check not a permissions check.
 	UFUNCTION(BlueprintCallable, Category = "Storage|Permissions")
 	bool CanRemoveEntry(FFaerieEntryKey Key,
 		UPARAM(meta = (Categories = "Fae.Inventory.Removal")) FFaerieInventoryTag Reason) const;
 
+	// Check if a stack can be removed from this storage. This is only a physical check not a permissions check.
 	UFUNCTION(BlueprintCallable, Category = "Storage|Permissions")
 	bool CanRemoveStack(FFaerieAddress Address,
 		UPARAM(meta = (Categories = "Fae.Inventory.Removal")) FFaerieInventoryTag Reason) const;

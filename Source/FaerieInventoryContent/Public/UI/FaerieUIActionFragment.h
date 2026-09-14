@@ -7,7 +7,7 @@
 #include "Mass/ExternalSubsystemTraits.h"
 #include "FaerieUIActionFragment.generated.h"
 
-class UInventoryUIAction;
+class UFaerieUIActionBase;
 
 USTRUCT(BlueprintType)
 struct FFaeriePlayerActionFragment : public FFaerieMassFragment
@@ -15,7 +15,9 @@ struct FFaeriePlayerActionFragment : public FFaerieMassFragment
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI Actions")
-	TArray<TSubclassOf<UInventoryUIAction>> Actions;
+	TArray<TSubclassOf<UFaerieUIActionBase>> Actions;
+
+____FAERIE_FRAGMENT_DECL(FFaeriePlayerActionFragment)
 };
 
 template<>

@@ -6,7 +6,7 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventoryUIActionContainer)
 
-bool UInventoryUIActionContainer::AddAction(const TSubclassOf<UInventoryUIAction> Class)
+bool UInventoryUIActionContainer::AddAction(const TSubclassOf<UFaerieUIActionBase> Class)
 {
 	if (IsValid(Class))
 	{
@@ -16,13 +16,13 @@ bool UInventoryUIActionContainer::AddAction(const TSubclassOf<UInventoryUIAction
 	return false;
 }
 
-bool UInventoryUIActionContainer::AddActions(const TSet<TSubclassOf<UInventoryUIAction>> Classes)
+bool UInventoryUIActionContainer::AddActions(const TSet<TSubclassOf<UFaerieUIActionBase>> Classes)
 {
 	ActionClasses.Append(Classes);
 	return true;
 }
 
-bool UInventoryUIActionContainer::AddActionInstance(UInventoryUIAction* Action)
+bool UInventoryUIActionContainer::AddActionInstance(UFaerieUIActionBase* Action)
 {
 	if (IsValid(Action))
 	{
@@ -42,7 +42,7 @@ bool UInventoryUIActionContainer::AddSubContainer(UInventoryUIActionContainer* C
 	return false;
 }
 
-bool UInventoryUIActionContainer::RemoveAction(const TSubclassOf<UInventoryUIAction> Class)
+bool UInventoryUIActionContainer::RemoveAction(const TSubclassOf<UFaerieUIActionBase> Class)
 {
 	if (IsValid(Class))
 	{
@@ -51,7 +51,7 @@ bool UInventoryUIActionContainer::RemoveAction(const TSubclassOf<UInventoryUIAct
 	return false;
 }
 
-bool UInventoryUIActionContainer::RemoveActions(TSet<TSubclassOf<UInventoryUIAction>> Classes)
+bool UInventoryUIActionContainer::RemoveActions(TSet<TSubclassOf<UFaerieUIActionBase>> Classes)
 {
 	for (auto Class : Classes)
 	{
@@ -60,7 +60,7 @@ bool UInventoryUIActionContainer::RemoveActions(TSet<TSubclassOf<UInventoryUIAct
 	return true;
 }
 
-bool UInventoryUIActionContainer::RemoveActionInstance(UInventoryUIAction* Action)
+bool UInventoryUIActionContainer::RemoveActionInstance(UFaerieUIActionBase* Action)
 {
 	if (IsValid(Action))
 	{
@@ -78,10 +78,10 @@ bool UInventoryUIActionContainer::RemoveSubContainer(UInventoryUIActionContainer
 	return false;
 }
 
-TArray<UInventoryUIAction*> UInventoryUIActionContainer::GetAllActions() const
+TArray<UFaerieUIActionBase*> UInventoryUIActionContainer::GetAllActions() const
 {
-	TSet<UInventoryUIAction*> AllInstances { ActionInstances };
-	TSet<TSubclassOf<UInventoryUIAction>> AllClasses { ActionClasses };
+	TSet<UFaerieUIActionBase*> AllInstances { ActionInstances };
+	TSet<TSubclassOf<UFaerieUIActionBase>> AllClasses { ActionClasses };
 
 	TSet<FObjectKey> HitSubcontainers;
 	HitSubcontainers.Add(this);
@@ -104,12 +104,12 @@ TArray<UInventoryUIAction*> UInventoryUIActionContainer::GetAllActions() const
 		}
 	}
 
-	TArray<UInventoryUIAction*> AllActions;
+	TArray<UFaerieUIActionBase*> AllActions;
 	AllActions.Reserve(AllInstances.Num() + AllClasses.Num());
 	AllActions.Append(AllInstances.Array());
 	for (auto&& ActionClass : AllClasses)
 	{
-		AllActions.Add(ActionClass->GetDefaultObject<UInventoryUIAction>());
+		AllActions.Add(ActionClass->GetDefaultObject<UFaerieUIActionBase>());
 	}
 
 	return AllActions;

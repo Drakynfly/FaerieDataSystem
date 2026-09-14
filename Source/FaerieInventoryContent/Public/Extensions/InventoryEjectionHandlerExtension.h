@@ -4,87 +4,75 @@
 
 #include "FaerieItemContainerStructs.h"
 #include "ItemContainerExtensionBase.h"
+#include "MassProcessor.h"
 #include "TypedGameplayTags.h"
 #include "Actions/FaerieClientActionBase.h"
 
 #include "InventoryEjectionHandlerExtension.generated.h"
-
-class UFaerieItemStorage;
 
 namespace Faerie::Inventory::Tags
 {
 	FAERIEINVENTORYCONTENT_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, RemovalEject)
 }
 
+namespace Faerie::Content
+{
+	struct FEjectionData
+	{
+		TWeakObjectPtr<AActor> Owner;
+		FFaerieUnownedItemStack Stack;
+	};
+}
+
 class AFaerieItemOwningActorBase;
 
 /**
- * An inventory extension that allows items to be removed from the inventory with the "Ejection" reason, and spawns
- * pickups for them.
+ * A container extension that allows items to be removed with the "Ejection" tag, and spawns pickups for them.
  */
-UCLASS()
-class FAERIEINVENTORYCONTENT_API UInventoryEjectionHandlerExtension : public UItemContainerExtensionBase
+USTRUCT()
+struct FFaerieItemContainerEjectionConfig : public FFaerieItemContainerData
 {
 	GENERATED_BODY()
 
-	friend struct FFaerieClientAction_EjectViaRelease;
+	void HandleNextInQueue(const Faerie::Content::FEjectionData& Ejection) const;
+	void PostLoadClassToSpawn(TSharedPtr<struct FStreamableHandle> Handle, const Faerie::Content::FEjectionData Ejection) const;
+	void SpawnVisualizer(const TSubclassOf<AFaerieItemOwningActorBase>& Class, const Faerie::Content::FEjectionData& Ejection) const;
 
-protected:
-	//~ UItemContainerExtensionBase
-	virtual EEventExtensionResponse AllowsRemoval(TNotNull<const UFaerieItemContainerBase*> Container,
-												  const TNotNull<const Faerie::Container::IAddressView*> DataView, FFaerieInventoryTag Reason) const override;
-	virtual void PostEventBatch(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Inventory::FEventLogBatch& Events) override;
-	//~ UItemContainerExtensionBase
-
-private:
-	void Enqueue(const FFaerieUnownedItemStack& Stack);
-
-	void HandleNextInQueue();
-
-	void PostLoadClassToSpawn(TSharedPtr<struct FStreamableHandle> Handle);
-	void SpawnVisualizer(const TSubclassOf<AFaerieItemOwningActorBase>& Class);
-
-protected:
 	// Default visual actor when the item has no custom class.
 	UPROPERTY(EditAnywhere, Category = "Config")
 	TSoftClassPtr<AFaerieItemOwningActorBase> ExtensionDefaultClass;
 
 	// Component to get a transform to spawn the actor with.
-	UPROPERTY(BlueprintReadWrite, VisibleInstanceOnly, Category = "Config")
+	UPROPERTY(VisibleInstanceOnly, Category = "Config")
 	TObjectPtr<USceneComponent> RelativeSpawningComponent;
 
 	// Relative transform to spawn the actor with.
 	UPROPERTY(EditAnywhere, Category = "Config")
 	FTransform RelativeSpawningTransform;
-
-	UPROPERTY()
-	TArray<FFaerieUnownedItemStack> PendingEjectionQueue;
-
-private:
-	bool IsStreaming = false;
 };
 
-// Ejects an item in an Inventory Component
-USTRUCT(BlueprintType)
-struct FFaerieClientAction_EjectEntry final : public FFaerieClientActionBase
+UCLASS()
+class UFaerieContainerEjectionHandler : public UMassProcessor
 {
 	GENERATED_BODY()
 
-	virtual bool Server_Execute(TNotNull<const UFaerieInventoryClient*> Client) const override;
+public:
+	UFaerieContainerEjectionHandler();
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "EjectEntry")
-	TWeakObjectPtr<UFaerieItemStorage> ItemStorage;
+protected:
+	virtual void ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager) override;
+	virtual void Execute(FMassEntityManager& EntityManager, FMassExecutionContext& Context) override;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "EjectEntry")
-	FFaerieAddress Address;
-
-	UPROPERTY(BlueprintReadWrite, Category = "EjectEntry")
-	int32 Amount = -1;
+private:
+	FMassEntityQuery EntityQuery;
 };
 
-// Ejects an item generically by releasing the content.
+/*
+ * Ejects a stack of items from a container, dropping it on the ground as a pickup. Requires the container to be
+ * configured with a FFaerieItemContainerEjectionConfig
+ */
 USTRUCT(BlueprintType)
-struct FFaerieClientAction_EjectViaRelease final : public FFaerieClientActionBase
+struct FFaerieClientAction_EjectEntry final : public FFaerieClientActionBase
 {
 	GENERATED_BODY()
 
@@ -93,6 +81,6 @@ struct FFaerieClientAction_EjectViaRelease final : public FFaerieClientActionBas
 	UPROPERTY(BlueprintReadWrite, Category = "EjectViaRelease")
 	FFaerieItemNetworkHandle Handle;
 
-	UPROPERTY(BlueprintReadWrite, Category = "EjectViaRelease")
+	UPROPERTY(BlueprintReadWrite, Category = "EjectEntry")
 	int32 Amount = -1;
 };

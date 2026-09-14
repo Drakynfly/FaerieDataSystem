@@ -31,8 +31,7 @@ void FFaerieItemInstance::InitializeMassEntityImpl(FMassEntityManager& EntityMan
 		if (Traits && Traits->HasInitializeRuntime)
 		{
 			FInstancedStruct FragmentCopy = DefaultFragment;
-			// @todo we might want to do a pass the rename fragment subobjects when we are possessed...
-			if (Traits->InitializeRuntime(FragmentCopy.GetMutableMemory(), GetTransientPackage(), *this))
+			if (Traits->InitializeRuntime(FragmentCopy.GetMutableMemory(), EntityManager, *this))
 			{
 				Builder.Add(MoveTemp(FragmentCopy));
 			}
@@ -78,11 +77,11 @@ void FFaerieItemInstance::UpdateTimestamp(const FMassEntityManager& EntityManage
 		});
 }
 
-void FFaerieItemInstance::NotifyOwnerOfChange(const FMassEntityManager& EntityManager, const TNotNull<const UScriptStruct*> FragmentType, const FGameplayTag Tag) const
+void FFaerieItemInstance::NotifyOwnerOfChange(const FMassEntityManager& EntityManager, const FGameplayTag Tag) const
 {
 	if (const FFaerieMassItemOwner* OwnerFragment = EntityManager.GetConstSharedFragmentDataPtr<FFaerieMassItemOwner>(EntityHandle))
 	{
-		OwnerFragment->GetInterface()->OnItemDataChanged(*this, FragmentType, Tag);
+		OwnerFragment->GetInterface()->OnItemDataChanged(*this, Tag);
 	}
 }
 
@@ -90,15 +89,19 @@ bool FFaerieItemInstance::IsMutable() const
 {
 	if (Item)
 	{
-		// If the ItemAsset disallows mutation, then we are not mutable.
-		if (!Item->CanMutate())
-		{
-			return false;
-		}
+		// Always report if the ItemAsset is mutable.
+		return Item->CanMutate();
 	}
 
-	// Otherwise MassEntity based instances are always mutable.
-	return true;
+	// Otherwise MassEntity-based instances with no item asset are always mutable.
+	return HasMassEntity();
+}
+
+bool FFaerieItemInstance::CanStack() const
+{
+	// Mutable instances cannot stack, due to, well, being mutable, meaning that each instance retains the ability to
+	// uniquely differ from others.
+	return !IsMutable();
 }
 
 bool FFaerieItemInstance::UEOpEquals(const FFaerieItemInstance& Other) const
@@ -191,7 +194,7 @@ void FFaerieItemInstance::AddFragment(FMassEntityManager& EntityManager, FInstan
 		InitializeMassEntityImpl(EntityManager, MakeArrayView(&Fragment, 1));
 	}
 
-	NotifyOwnerOfChange(EntityManager, Fragment.GetScriptStruct(), ItemData::Tags::FragmentAdd);
+	NotifyOwnerOfChange(EntityManager, ItemData::Tags::FragmentAdd);
 }
 
 void FFaerieItemInstance::AddFragments(FMassEntityManager& EntityManager, const TArrayView<FInstancedStruct> Fragments)
@@ -212,7 +215,7 @@ void FFaerieItemInstance::AddFragments(FMassEntityManager& EntityManager, const 
 	// @Todo make bundled event API
 	for (auto&& Fragment : Fragments)
 	{
-		NotifyOwnerOfChange(EntityManager, Fragment.GetScriptStruct(), ItemData::Tags::FragmentAdd);
+		NotifyOwnerOfChange(EntityManager, ItemData::Tags::FragmentAdd);
 	}
 }
 
@@ -225,15 +228,15 @@ void FFaerieItemInstance::RemoveFragment(FMassEntityManager& EntityManager,
 
 		UpdateTimestamp(EntityManager, true);
 
-		NotifyOwnerOfChange(EntityManager, FragmentType, ItemData::Tags::FragmentRemove);
+		NotifyOwnerOfChange(EntityManager, ItemData::Tags::FragmentRemove);
 	}
 }
 
-void FFaerieItemInstance::OnItemFragmentEdited(const FMassEntityManager& EntityManager, const TNotNull<const UScriptStruct*> FragmentType, FGameplayTag Tag) const
+void FFaerieItemInstance::TempNestedContainerChanged(const FMassEntityManager& EntityManager) const
 {
 	// @todo figure out how to handle the Tag from the fragment event
 	UpdateTimestamp(EntityManager, true);
-	NotifyOwnerOfChange(EntityManager, FragmentType, ItemData::Tags::FragmentGenericPropertyEdit);
+	NotifyOwnerOfChange(EntityManager, ItemData::Tags::FragmentGenericPropertyEdit);
 
 	// @Todo Subsystem broadcasts...
 }
@@ -241,22 +244,9 @@ void FFaerieItemInstance::OnItemFragmentEdited(const FMassEntityManager& EntityM
 void FFaerieItemInstance::OnItemFragmentEdited(const FMassEntityManager& EntityManager, const TConstStructView<FFaerieMassFragment> FragmentView, const ItemData::FFieldChange& FieldChange) const
 {
 	UpdateTimestamp(EntityManager, true);
-	NotifyOwnerOfChange(EntityManager, FragmentView.GetScriptStruct(), ItemData::Tags::FragmentGenericPropertyEdit);
+	NotifyOwnerOfChange(EntityManager, ItemData::Tags::FragmentGenericPropertyEdit);
 
 	const UWorld* World = EntityManager.GetWorld();
 	World->GetSubsystemChecked<UFaerieViewModelSubsystem>()->HandleFieldChange(EntityManager, *this, FieldChange);
 	World->GetSubsystemChecked<UFaerieMassReplicationSubsystem>()->Server_UpdateFragment(*this, MakeConstArrayView(&FragmentView, 1));
-}
-
-FDateTime FFaerieItemInstance::GetLastModified(const FMassEntityManager& EntityManager) const
-{
-	if (EntityManager.IsEntityValid(EntityHandle))
-	{
-		if (auto* Ptr = EntityManager.GetFragmentDataPtr<FFaerieItemModificationDate>(EntityHandle))
-		{
-			return Ptr->LastModified;
-		}
-	}
-
-	return FDateTime();
 }

@@ -8,8 +8,6 @@
 #include "FaerieItemInstancingContext.h"
 #include "Fragments/FaerieReferenceFragment.h"
 
-#include "EntityManagerHelpers.h"
-
 #include "UObject/AssetRegistryTagsContext.h"
 #include "UObject/ObjectSaveContext.h"
 
@@ -191,7 +189,7 @@ ItemData::FGetInstanceResult UFaerieItemAsset::CreateItemStack(const FFaerieItem
 		else
 #endif
 		{
-			OutStack.Instance = CreateReferencingInstance_Runtime();
+			OutStack.Instance = CreateReferencingInstance_Runtime(*Context.EntityManager);
 		}
 	}
 	else
@@ -231,7 +229,7 @@ FFaerieItemInstance UFaerieItemAsset::CreateReferencingInstance_Editor(const TNo
 }
 #endif
 
-FFaerieItemInstance UFaerieItemAsset::CreateReferencingInstance_Runtime() const
+FFaerieItemInstance UFaerieItemAsset::CreateReferencingInstance_Runtime(FMassEntityManager& EntityManager) const
 {
 	const FFaerieTaggedReference Reference
 	{
@@ -245,7 +243,7 @@ FFaerieItemInstance UFaerieItemAsset::CreateReferencingInstance_Runtime() const
 	FInstancedStruct FragmentStruct;
 	FragmentStruct.InitializeAs<FFaerieReferenceFragment>(ReferenceFragment);
 
-	return FFaerieItemInstance::FromFragments(ItemData::GetFaerieEntityManagerChecked(), MakeArrayView(&FragmentStruct, 1));
+	return FFaerieItemInstance::FromFragments(EntityManager, MakeArrayView(&FragmentStruct, 1));
 }
 
 FFaerieItemInstance UFaerieItemAsset::GetTemplateInstance() const

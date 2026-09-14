@@ -73,7 +73,7 @@ namespace Faerie::Inventory
 
 		void SetPosition(const TKey Key)
 		{
-			ensureMsgf(Key.Value() > PreviousKey, TEXT("SetPosition should not be called, if it reversed to key order. In case of a full reset, call Reset first!"));
+			ensureMsgf(Key.Value() > PreviousKey, TEXT("SetPosition can not be called, if it reverses the key order. In case of a full reset, call Reset first!"));
 			PreviousKey = Key.Value();
 		}
 

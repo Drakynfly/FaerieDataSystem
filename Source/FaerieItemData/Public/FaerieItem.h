@@ -8,11 +8,14 @@
 #include "FaerieItemDataEnums.h"
 #include "FaerieMassFragment.h"
 #include "MassEntityManager.h"
+#include "MassEntityView.h"
 
 #include "Mass/EntityHandle.h"
 #include "NativeGameplayTags.h"
 
 #include "StructUtils/StructView.h"
+
+#include "Templates/SubScriptStructOf.h"
 
 #include "UObject/ObjectKey.h"
 
@@ -72,8 +75,16 @@ public:
 
 	UE_REWRITE int32 GetAssetFormatVersion() const { return FormatVersion; }
 
+	bool HasDefaultFragment(TNotNull<const UScriptStruct*> StructType, FGameplayTag ReferenceTag = Faerie::ItemData::Tags::ReferenceDefaults) const;
+
+	template <Faerie::ItemData::CFragmentImpl T>
+	UE_REWRITE bool HasDefaultFragment(const FGameplayTag ReferenceTag = Faerie::ItemData::Tags::ReferenceDefaults) const
+	{
+		return HasDefaultFragment(const_cast<UScriptStruct*>(T::StaticStruct()), ReferenceTag);
+	}
+
 	// Look for a default fragment value in an item asset.
-	TConstStructView<FFaerieMassFragment> GetDefaultFragment(TNotNull<const UScriptStruct*> StructType, const FGameplayTag ReferenceTag = Faerie::ItemData::Tags::ReferenceDefaults) const;
+	TConstStructView<FFaerieMassFragment> GetDefaultFragment(TNotNull<const UScriptStruct*> StructType, FGameplayTag ReferenceTag = Faerie::ItemData::Tags::ReferenceDefaults) const;
 
 	template <Faerie::ItemData::CFragmentImpl T>
 	UE_REWRITE const T* GetDefaultFragment(const FGameplayTag ReferenceTag = Faerie::ItemData::Tags::ReferenceDefaults) const
@@ -116,6 +127,40 @@ protected:
 
 namespace Faerie::ItemData
 {
+	template <CFragmentImpl T>
+	[[nodiscard]] UE_REWRITE bool HasEntityFragment(const FMassEntityManager& EntityManager, const FMassEntityHandle ItemHandle)
+	{
+		if (const FMassEntityView View = FMassEntityView::TryMakeView(EntityManager, ItemHandle);
+			View.IsValid())
+		{
+			return View.HasElement(T::StaticStruct(), UE::Mass::EIncludeSparseElements::Yes);
+		}
+
+		return false;
+	}
+
+	[[nodiscard]] FAERIEITEMDATA_API bool HasEntityFragment(const FMassEntityManager& EntityManager, FMassEntityHandle ItemHandle, TNotNull<const UScriptStruct*> FragmentType);
+
+
+	[[nodiscard]] FAERIEITEMDATA_API bool HasEntityFragmentOrDefault(const FMassEntityManager* EntityManager, const FFaerieItemInstance& Instance, TNotNull<const UScriptStruct*> FragmentType, FGameplayTag ReferenceTag = Tags::ReferenceDefaults);
+
+
+	template <CFragmentImpl T>
+	[[nodiscard]] UE_REWRITE bool HasEntityFragmentOrDefault(const FMassEntityManager* EntityManager, const FFaerieItemInstance& Instance, FGameplayTag ReferenceTag = Tags::ReferenceDefaults)
+	{
+		return HasEntityFragmentOrDefault(EntityManager, Instance, T::StaticStruct(), ReferenceTag);
+	}
+
+
+	[[nodiscard]] FAERIEITEMDATA_API bool HasDefaultFragment(const UFaerieItem* ItemAsset, TNotNull<const UScriptStruct*> FragmentType, FGameplayTag ReferenceTag = Tags::ReferenceDefaults);
+
+
+	template <CFragmentImpl T>
+	[[nodiscard]] bool HasDefaultFragment(const UFaerieItem* ItemAsset, FGameplayTag ReferenceTag = Tags::ReferenceDefaults)
+	{
+		return HasDefaultFragment(ItemAsset, T::StaticStruct(), ReferenceTag);
+	}
+
 	template <CFragmentImpl T>
 	[[nodiscard]] UE_REWRITE const T* GetEntityFragment(const FMassEntityManager& EntityManager, const FMassEntityHandle ItemHandle)
 	{
@@ -168,6 +213,8 @@ struct FFaerieItemModificationDate : public FFaerieMassFragment
 	  : LastModified(LastModified) {}
 
 	FDateTime LastModified = FDateTime();
+
+____FAERIE_FRAGMENT_DECL(FFaerieItemModificationDate)
 };
 
 /**

@@ -37,4 +37,6 @@ struct FFaerieConsumableFragment : public FFaerieMassFragment
 	TSubclassOf<UFaerieConsumableLogicBase> LogicClass;
 
 	const UFaerieConsumableLogicBase* GetConsumableLogic() const { return LogicClass.GetDefaultObject(); }
+
+____FAERIE_FRAGMENT_DECL(FFaerieConsumableFragment)
 };

@@ -2,51 +2,128 @@
 
 #pragma once
 
+#include "FaerieContainerDataViewModelBase.h"
 #include "ItemContainerExtensionBase.h"
 #include "ItemContainerEvent.h"
+#include "MassProcessor.h"
 #include "InventoryLoggerExtension.generated.h"
 
-using FInventoryEventLoggedNative = TMulticastDelegate<void(int32 /* NewEvents */)>;
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FInventoryEventLogged, int32, NewEvents);
+class UFaerieContainerEventLogView;
 
-/**
- * Logs events from additions, changes, and removals, and can parse them for data at request.
+/*
+ * Caches event history of a container, allowing UI to display a list of recent changes made.
  */
+USTRUCT()
+struct FFaerieContainerEventLog : public FFaerieItemContainerData
+{
+	GENERATED_BODY()
+
+	// @todo this is a trivial use-case, but it would be nice to use this as an example of figuring out how to use
+	// delta replication / fast arrays on a non-UObject owned array, as this is a rather lorge array to replicate
+	UPROPERTY()
+	TArray<FFaerieBlueprintInventoryEvent> EventLog;
+
+	UPROPERTY(EditAnywhere, Category = "ContainerEventLog")
+	int32 MaxEventsToStore = 50;
+
+____FAERIE_CONTAINER_DATA_DECL(FFaerieContainerEventLog)
+};
+
 UCLASS()
-class FAERIEINVENTORYCONTENT_API UInventoryLoggerExtension : public UItemContainerExtensionBase
+class UFaerieContainerEventLogView : public UFaerieContainerDataViewModelBase
 {
 	GENERATED_BODY()
 
 public:
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	//~ UFaerieContainerDataViewModelBase
+	virtual void SyncView() override;
+	//~ UFaerieContainerDataViewModelBase
+
+	UFUNCTION(BlueprintCallable, FieldNotify, Category = "Faerie|ContainerEventLogView")
+	bool AreEventsLogged() const;
+
+	UFUNCTION(BlueprintCallable, FieldNotify, Category = "Faerie|ContainerEventLogView")
+	int32 GetNumEvents() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ContainerEventLogView")
+	FFaerieBlueprintInventoryEvent GetEvent(int32 Index, bool FromEnd) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ContainerEventLogView")
+	void PreviousPageIndex();
+
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ContainerEventLogView")
+	void NextPageIndex();
+
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ContainerEventLogView")
+	void SetPageIndex(int32 Index);
+
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ContainerEventLogView")
+	void SetCountPerPage(int32 Count);
+
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ContainerEventLogView")
+	void SetFilterTags(FGameplayTagContainer Tags);
+
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ContainerEventLogView")
+	void SetInvertEventOrder(bool Invert);
 
 protected:
-	virtual void PostEventBatch(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Inventory::FEventLogBatch& Events) override;
+	void RecalculateEventTags();
+	void RecalculateLogView();
+
+protected:
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "ContainerEventLogView")
+	TArray<FFaerieBlueprintInventoryEvent> PageView;
+
+	// The current page index being viewed.
+	UPROPERTY(BlueprintReadWrite, FieldNotify, BlueprintSetter = SetPageIndex, Category = "ContainerEventLogView")
+	int32 PageIndex = 0;
+
+	UPROPERTY(BlueprintReadWrite, FieldNotify, BlueprintSetter = SetCountPerPage, Category = "ContainerEventLogView")
+	int32 CountPerPage = 10;
+
+	// Only show events with this tag.
+	UPROPERTY(BlueprintReadWrite, FieldNotify, BlueprintSetter = SetFilterTags, Category = "ContainerEventLogView", meta = (Categories = "Fae.Inventory"))
+	FGameplayTagContainer FilterTags;
+
+	// Switch between most-recent order (true) and chronological order (false).
+	UPROPERTY(BlueprintReadWrite, FieldNotify, BlueprintSetter = SetInvertEventOrder, Category = "ContainerEventLogView")
+	bool InvertEventOrder = false;
+
+	// The number of pages (with filter applied).
+	UPROPERTY(BlueprintReadWrite, FieldNotify, Category = "ContainerEventLogView")
+	int32 NumPages = 0;
+
+	// The total number of events captured (with filter applied).
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "ContainerEventLogView")
+	int32 NumFilteredEvents = 0;
+
+	// All tags for all logged events.
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "ContainerEventLogView")
+	FGameplayTagContainer EventTags;
+};
+
+namespace Faerie::Content
+{
+	USTRUCT()
+	struct FEventLogViewFragment : public Container::FViewModelFragment
+	{
+		GENERATED_BODY()
+	};
+}
+
+UCLASS()
+class UFaerieContainerEventLogUpdater : public UMassProcessor
+{
+	GENERATED_BODY()
 
 public:
-	FInventoryEventLoggedNative::RegistrationType& GetOnInventoryEventLogged() { return OnInventoryEventLoggedNative; }
-
-	UFUNCTION(BlueprintCallable, Category = "LoggerExtension")
-	int32 GetNumEvents() const { return EventLog.Num(); }
-
-	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "LoggerExtension")
-	const TArray<FFaerieBlueprintInventoryEvent>& GetAllEvents() const { return EventLog; }
-
-	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "LoggerExtension")
-	TArray<FFaerieBlueprintInventoryEvent> GetRecentEvents(int32 NumEvents, int32 Offset = 0) const;
+	UFaerieContainerEventLogUpdater();
 
 protected:
-	UFUNCTION(/* Replication */)
-	virtual void OnRep_EventLog();
-
-	UPROPERTY(BlueprintAssignable, Category = "Events")
-	FInventoryEventLogged OnInventoryEventLogged;
-
-	UPROPERTY(ReplicatedUsing = "OnRep_EventLog")
-	TArray<FFaerieBlueprintInventoryEvent> EventLog;
+	virtual void ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager) override;
+	virtual void Execute(FMassEntityManager& EntityManager, FMassExecutionContext& Context) override;
 
 private:
-	FInventoryEventLoggedNative OnInventoryEventLoggedNative;
-
-	int32 LocalEventLogCount = 0;
+	FMassEntityQuery EventQuery;
+	FMassEntityQuery ViewQuery;
 };

@@ -4,11 +4,10 @@
 #include "EquipmentQueryTypes.h"
 
 #include "FaerieEquipmentManager.h"
-#include "FaerieEquipmentSlot.h"
 
 namespace Faerie::Equipment
 {
-	bool RunEquipmentQuery(const TNotNull<UFaerieEquipmentManager*> Manager, const FFaerieEquipmentSetQuery& SetQuery, UFaerieEquipmentSlot*& PassingSlot)
+	bool RunEquipmentQuery(const TNotNull<UFaerieEquipmentManager*> Manager, const FFaerieEquipmentSetQuery& SetQuery, UFaerieItemStackContainer*& PassingSlot)
 	{
 		for (auto&& QueryTag : SetQuery.TagSet.Tags)
 		{

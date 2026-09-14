@@ -15,13 +15,15 @@ enum class EFaerieStorageAddStackBehavior : uint8
 };
 
 UENUM(BlueprintType)
-enum class EFaerieStorageAddStackTestMultiType : uint8
+enum class EFaerieContainerAddStackCheckType : uint8
 {
-	// Test if each stack can be added individually.
-	IndividualTests,
+	// State and Config check.
+	// Tests if the stacks can be added in the current state.
+	CanAddNow,
 
-	// Test if all stacks can be added at once.
-	GroupTest
+	// Config-only check.
+	// Only tests if the stacks *could* ever pass the configuration requirement, but not current state.
+	CouldEverAdd
 };
 
 UENUM(BlueprintType)

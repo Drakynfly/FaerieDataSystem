@@ -142,6 +142,35 @@ TNotNull<const UFaerieItem*> UFaerieItem::CreateDuplicate(const TNotNull<UObject
 }
 #endif
 
+bool UFaerieItem::HasDefaultFragment(const TNotNull<const UScriptStruct*> StructType, const FGameplayTag ReferenceTag) const
+{
+	for (auto&& DefaultFragment : FragmentDefaults)
+	{
+		if (DefaultFragment.GetScriptStruct()->IsChildOf(StructType))
+		{
+			return true;
+		}
+	}
+
+	// Fallback to retrieving a default value via reference.
+	// Iterate in reverse for now (since static references are usually placed at the end.
+	// @todo control with a cvar or replace with order sorted fragments...
+	for (int32 i = FragmentDefaults.Num() - 1; i >= 0; --i)
+	{
+		if (FragmentDefaults[i].GetScriptStruct() == FFaerieReferenceFragment::StaticStruct())
+		{
+			auto&& ReferenceFragment = FragmentDefaults[i].Get<FFaerieReferenceFragment>();
+			if (auto&& Reference = ReferenceFragment.GetReferencedItem(ReferenceTag, false))
+			{
+				// Recurse our search into the referenced asset.
+				return Reference->HasDefaultFragment(StructType, ReferenceTag);
+			}
+		}
+	}
+
+	return false;
+}
+
 TConstStructView<FFaerieMassFragment> UFaerieItem::GetDefaultFragment(const TNotNull<const UScriptStruct*> StructType, const FGameplayTag ReferenceTag) const
 {
 	for (auto&& DefaultFragment : FragmentDefaults)
@@ -219,7 +248,65 @@ IFaerieItemOwnerInterface* FFaerieMassItemOwner::GetInterface() const
 
 namespace Faerie::ItemData
 {
-	FConstStructView GetEntityFragment(const FMassEntityManager& EntityManager, const FMassEntityHandle ItemHandle, const TNotNull<const UScriptStruct*> FragmentType)
+	bool HasEntityFragment(const FMassEntityManager& EntityManager, const FMassEntityHandle ItemHandle,
+		const TNotNull<const UScriptStruct*> FragmentType)
+	{
+		if (const FMassEntityView View = FMassEntityView::TryMakeView(EntityManager, ItemHandle);
+			View.IsValid())
+		{
+			return View.HasElement(FragmentType, UE::Mass::EIncludeSparseElements::Yes);
+		}
+
+		return false;
+	}
+
+	bool HasEntityFragmentOrDefault(const FMassEntityManager* EntityManager, const FFaerieItemInstance& Instance,
+		const TNotNull<const UScriptStruct*> FragmentType, const FGameplayTag ReferenceTag)
+	{
+		if (EntityManager)
+		{
+			if (EntityManager->IsEntityValid(Instance.GetMassEntityHandle()))
+			{
+				// Look for a live fragment of the given type.
+				if (const FMassEntityView View = FMassEntityView::TryMakeView(*EntityManager, Instance.GetMassEntityHandle());
+					View.IsValid())
+				{
+					if (View.HasElement(FragmentType, UE::Mass::EIncludeSparseElements::Yes))
+					{
+						return true;
+					}
+				}
+
+				if (auto&& ReferenceFragment = GetEntityFragment<FFaerieReferenceFragment>(*EntityManager, Instance.GetMassEntityHandle()))
+				{
+					if (const UFaerieItem* ReferencedAsset = ReferenceFragment->GetReferencedItem(ReferenceTag, false))
+					{
+						// Recurse our search into the referenced asset.
+						if (ReferencedAsset->HasDefaultFragment(FragmentType, ReferenceTag))
+						{
+							return true;
+						}
+					}
+				}
+			}
+		}
+
+		return HasDefaultFragment(Instance.GetItemPtr(), FragmentType);
+	}
+
+	bool HasDefaultFragment(const UFaerieItem* ItemAsset, const TNotNull<const UScriptStruct*> FragmentType,
+		const FGameplayTag ReferenceTag)
+	{
+		if (ItemAsset)
+		{
+			return ItemAsset->HasDefaultFragment(FragmentType, ReferenceTag);
+		}
+
+		return false;
+	}
+
+	FConstStructView GetEntityFragment(const FMassEntityManager& EntityManager, const FMassEntityHandle ItemHandle,
+		const TNotNull<const UScriptStruct*> FragmentType)
 	{
 		if (EntityManager.IsEntityValid(ItemHandle))
 		{
@@ -261,7 +348,8 @@ namespace Faerie::ItemData
 		return GetDefaultFragment(Instance.GetItemPtr(), FragmentType);
 	}
 
-	TConstStructView<FFaerieMassFragment> GetDefaultFragment(const UFaerieItem* ItemAsset, const TNotNull<const UScriptStruct*> FragmentType, const FGameplayTag ReferenceTag)
+	TConstStructView<FFaerieMassFragment> GetDefaultFragment(const UFaerieItem* ItemAsset,
+		const TNotNull<const UScriptStruct*> FragmentType, const FGameplayTag ReferenceTag)
 	{
 		if (ItemAsset)
 		{

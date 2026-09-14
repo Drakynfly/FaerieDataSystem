@@ -12,12 +12,12 @@
 
 #define LOCTEXT_NAMESPACE "InventoryWeightCustomization"
 
-TSharedRef<IPropertyTypeCustomization> FInventoryWeightCustomization::MakeInstance()
+TSharedRef<IPropertyTypeCustomization> FFaerieWeightEditorCustomization::MakeInstance()
 {
-    return MakeShared<FInventoryWeightCustomization>();
+    return MakeShared<FFaerieWeightEditorCustomization>();
 }
 
-void FInventoryWeightCustomization::CustomizeHeader(const TSharedRef<IPropertyHandle> PropertyHandle,
+void FFaerieWeightEditorCustomization::CustomizeHeader(const TSharedRef<IPropertyHandle> PropertyHandle,
                                                     FDetailWidgetRow& HeaderRow,
                                                     IPropertyTypeCustomizationUtils& CustomizationUtils)
 {
@@ -46,15 +46,15 @@ void FInventoryWeightCustomization::CustomizeHeader(const TSharedRef<IPropertyHa
     ];
 }
 
-void FInventoryWeightCustomization::CreateWeightHelp()
+void FFaerieWeightEditorCustomization::CreateWeightHelp()
 {
     WeightHelpText = SNew(STextBlock);
     UpdateWeightHelp();
-    FSimpleDelegate Delegate = FSimpleDelegate::CreateSP(this, &FInventoryWeightCustomization::UpdateWeightHelp);
+    FSimpleDelegate Delegate = FSimpleDelegate::CreateSP(this, &FFaerieWeightEditorCustomization::UpdateWeightHelp);
     WeightHandlePtr.Get()->SetOnPropertyValueChanged(Delegate);
 }
 
-void FInventoryWeightCustomization::UpdateWeightHelp() const
+void FFaerieWeightEditorCustomization::UpdateWeightHelp() const
 {
     int32 NewValue;
     WeightHandlePtr.Get()->GetValue(NewValue);

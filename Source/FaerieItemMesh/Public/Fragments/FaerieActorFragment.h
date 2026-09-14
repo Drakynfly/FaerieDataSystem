@@ -20,6 +20,8 @@ struct FAERIEITEMMESH_API FFaerieActorFragment : public FFaerieMassFragment
 	TSoftClassPtr<AFaerieItemOwningActorBase> OwningActorClass;
 
 	TSubclassOf<AFaerieItemOwningActorBase> LoadOwningActorClassSynchronous() const;
+
+____FAERIE_FRAGMENT_DECL(FFaerieActorFragment)
 };
 
 // Actor class to use when spawning proxy visualizations of this item (e.g. equipment)
@@ -32,4 +34,6 @@ struct FAERIEITEMMESH_API FFaerieProxyActorFragment : public FFaerieMassFragment
 	TSoftClassPtr<AFaerieProxyActorBase> ProxyActorClass;
 
 	TSubclassOf<AFaerieProxyActorBase> LoadProxyActorClassSynchronous() const;
+
+____FAERIE_FRAGMENT_DECL(FFaerieProxyActorFragment)
 };

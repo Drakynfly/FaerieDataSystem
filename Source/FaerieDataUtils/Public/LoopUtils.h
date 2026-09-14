@@ -9,4 +9,10 @@ namespace Faerie::Utils
 	{
 		End
 	};
+
+	enum EIteratorFunctorReturn
+	{
+		Break,
+		Continue
+	};
 }

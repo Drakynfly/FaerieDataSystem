@@ -25,7 +25,7 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Blueprint")
 	TSubclassOf<class UFaerieItemMutator_BlueprintBase> Blueprint;
 
-	FAERIE_MUTATOR_HEADER(FFaerieItemMutator_Blueprint)
+____FAERIE_MUTATOR_DECL(FFaerieItemMutator_Blueprint)
 };
 
 /*

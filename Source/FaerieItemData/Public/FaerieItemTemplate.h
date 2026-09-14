@@ -11,7 +11,7 @@
 #include "UObject/Object.h"
 #include "FaerieItemTemplate.generated.h"
 
-struct FFaerieItemDataFilterBase;
+struct FFaerieItemFilterBase;
 
 /**
  * A wrapper around an ItemDataFilter, used by Item Assets to validate what they generate.
@@ -32,19 +32,21 @@ public:
 	bool TryMatchWithDescriptions(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy, TArray<FText>& Errors) const;
 #endif
 
+protected:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemTemplate")
 	bool TryMatch(const FFaerieItemProxy& Proxy) const;
 
+public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemTemplate")
 	const FFaerieAssetInfo& GetDescription() const { return Info; }
 
-	TConstStructView<FFaerieItemDataFilterBase> GetFilter() const { return Filter; }
+	TConstStructView<FFaerieItemFilterBase> GetFilter() const { return Filter; }
 
 protected:
 	UPROPERTY(EditInstanceOnly, Category = "Template")
 	FFaerieAssetInfo Info;
 
 	// Filter used to determine if an item qualifies as fitting this template.
-	UPROPERTY(EditInstanceOnly, Category = "Template")
-	TInstancedStruct<FFaerieItemDataFilterBase> Filter;
+	UPROPERTY(EditInstanceOnly, Category = "Template", meta = (ExcludeBaseStruct))
+	TInstancedStruct<FFaerieItemFilterBase> Filter;
 };

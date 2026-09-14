@@ -1,7 +1,7 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieItemTemplate.h"
-#include "FaerieItemDataFilter.h"
+#include "FaerieItemFilter.h"
 
 #if WITH_EDITOR
 #include "Misc/DataValidation.h"

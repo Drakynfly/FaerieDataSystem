@@ -5,17 +5,8 @@
 #include "Engine/DeveloperSettings.h"
 #include "FaerieInventorySettings.generated.h"
 
-UENUM()
-enum class EFaerieContainerOwnershipBehavior : uint8
-{
-	None,
-
-	// Use Rename to change the outer of items to the container when ownership is taken.
-	Rename
-};
-
 /**
- *
+ * Empty place holder.
  */
 UCLASS(config = Project, defaultconfig, meta = (DisplayName = "Faerie Inventory"))
 class FAERIEINVENTORY_API UFaerieInventorySettings : public UDeveloperSettings
@@ -26,10 +17,4 @@ public:
 	// UDeveloperSettings implementation
 	virtual FName GetCategoryName() const override;
 	// End UDeveloperSettings implementation
-
-	// Behavior when containers take ownership of mutable items.
-	// If a system expects items to be outer'd to their container, set this to 'Rename'.
-	// Usage of the MakeSaveData/LoadSaveData functions' default implementations require this.
-	UPROPERTY(EditAnywhere, Config, Category = "Faerie|Inventory")
-	EFaerieContainerOwnershipBehavior ContainerMutableBehavior = EFaerieContainerOwnershipBehavior::None;
 };

@@ -16,16 +16,10 @@ UFaerieInventoryClient::UFaerieInventoryClient()
 
 bool UFaerieInventoryClient::CanAccessContainer(const TNotNull<const UFaerieItemContainerBase*> Container, const TNotNull<const UScriptStruct*> RequestType) const
 {
+	const FFaerieItemContainerClientPermissions* Permissions = Container->ReadContainerData<FFaerieItemContainerClientPermissions>(true);
+
 	// @todo implement
-	/*
-	if (auto&& PermissionExtensions = Extensions::Get<UInventoryClientPermissionExtensions>(Container->GetExtensions()))
-	{
-		if (!PermissionExtensions->AllowsClient(this))
-		{
-			return false;
-		}
-	}
-	*/
+
 	return true;
 }
 

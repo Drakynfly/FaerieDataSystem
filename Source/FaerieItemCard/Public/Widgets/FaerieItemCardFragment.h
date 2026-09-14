@@ -32,4 +32,6 @@ struct FAERIEITEMCARD_API FFaerieItemCardClassFragment : public FFaerieMassFragm
 	FFaerieItemCardElement Classes[5];
 
 	TSoftClassPtr<UFaerieCardBase> GetCardClass(FFaerieItemCardType Tag) const;
+
+____FAERIE_FRAGMENT_DECL(FFaerieItemCardClassFragment)
 };

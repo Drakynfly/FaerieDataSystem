@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Engine/DeveloperSettings.h"
+#include "UObject/SoftObjectPtr.h"
 #include "FaerieItemDataSettings.generated.h"
 
 class UMassEntityConfigAsset;

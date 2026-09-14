@@ -80,7 +80,7 @@ FFaerieAddress UFaerieStorageLibrary::QueryFirst(UFaerieItemStorage* Storage, co
 		.First(ItemData::GetFaerieEntityManager(), Storage);
 }
 
-UFaerieItemContainerBase* UFaerieStorageLibrary::GetOwningContainer_Proxy(const FFaerieItemProxy& Proxy)
+UFaerieItemContainerBase* UFaerieStorageLibrary::GetOwningContainer(const FFaerieItemProxy& Proxy)
 {
 	return Cast<UFaerieItemContainerBase>(Proxy.GetItemOwner());
 }
@@ -182,7 +182,7 @@ void UFaerieStorageLibrary::FindSubObjectsByClass(const FFaerieItemProxy& Proxy,
 		auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
 		if (Recursive)
 		{
-			SubObject::GetContainersInInstanceRecursive(EntityManager, Instance, *reinterpret_cast<TArray<TNotNull<UFaerieItemContainerBase*>>*>(&FoundContainers), Class);
+			SubObject::GetContainersInInstanceRecursive(EntityManager, Instance, FoundContainers, Class);
 		}
 		else
 		{
@@ -211,13 +211,15 @@ void UFaerieStorageLibrary::GetAllContainersInItem(const FFaerieItemProxy& Proxy
 #if WITH_EDITOR
 	if (!ItemData::HasFaerieEntityManagerBeenAssigned())
 	{
+		// Blueprint should normally not get access to read-only containers... but only the editor can run this code anyway so its *fine*
+		TArray<const UFaerieItemContainerBase*>& ConstContainerArray = reinterpret_cast<TArray<const UFaerieItemContainerBase*>&>(FoundContainers);
 		if (Recursive)
 		{
-			SubObject::GetTemplateContainersInInstanceRecursive(Instance, *reinterpret_cast<TArray<TNotNull<const UFaerieItemContainerBase*>>*>(&FoundContainers));
+			SubObject::GetTemplateContainersInInstanceRecursive(Instance, ConstContainerArray);
 		}
 		else
 		{
-			SubObject::GetTemplateContainersInInstanceDirect(Instance, *reinterpret_cast<TArray<TNotNull<const UFaerieItemContainerBase*>>*>(&FoundContainers));
+			SubObject::GetTemplateContainersInInstanceDirect(Instance, ConstContainerArray);
 		}
 	}
 	else
@@ -226,11 +228,11 @@ void UFaerieStorageLibrary::GetAllContainersInItem(const FFaerieItemProxy& Proxy
 		auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
 		if (Recursive)
 		{
-			SubObject::GetContainersInInstanceRecursive(EntityManager, Instance, *reinterpret_cast<TArray<TNotNull<UFaerieItemContainerBase*>>*>(&FoundContainers));
+			SubObject::GetContainersInInstanceRecursive<UFaerieItemContainerBase>(EntityManager, Instance, FoundContainers);
 		}
 		else
 		{
-			SubObject::GetContainersInInstanceDirect(EntityManager, Instance, *reinterpret_cast<TArray<TNotNull<UFaerieItemContainerBase*>>*>(&FoundContainers));
+			SubObject::GetContainersInInstanceDirect<UFaerieItemContainerBase>(EntityManager, Instance, FoundContainers);
 		}
 	}
 }
@@ -267,4 +269,23 @@ void UFaerieStorageLibrary::GetItemChildren(const FFaerieItemProxy& Proxy, TArra
 	{
 		SubObject::GetChildrenInItem(EntityManager, Instance, FoundChildren);
 	}
+}
+
+bool UFaerieStorageLibrary::FindExtension(const UFaerieItemContainerBase* Container, UScriptStruct* ExtensionType,
+	FInstancedStruct& FoundExtension, const bool RecurseParents)
+{
+	if (!IsValid(Container))
+	{
+		FFrame::KismetExecutionMessage(TEXT("Invalid Container passed to UFaerieStorageLibrary::FindExtension"), ELogVerbosity::Error);
+		return false;
+	}
+
+	if (!IsValid(ExtensionType))
+	{
+		FFrame::KismetExecutionMessage(TEXT("Invalid ExtensionType passed to UFaerieStorageLibrary::FindExtension"), ELogVerbosity::Error);
+		return false;
+	}
+
+	FoundExtension = Container->ReadContainerData(ExtensionType, RecurseParents);
+	return FoundExtension.IsValid();
 }

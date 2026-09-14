@@ -44,22 +44,140 @@ namespace Faerie::SubObject
 		}
 	}
 
-	void GetTemplateContainersInInstanceRecursive(const FFaerieItemInstance& Item,
-		TArray<TNotNull<const UFaerieItemContainerBase*>>& Containers, const TNotNull<const UClass*> Class)
+	void GetTemplateContainersInInstanceRecursive(const FFaerieItemInstance& Item, const TAdderRef<TNotNull<const UFaerieItemContainerBase*>> Containers, const TNotNull<const UClass*> Class)
 	{
-		const int32 CountBeforeThisRecursion = Containers.Num();
-		GetTemplateContainersInInstanceDirect(Item, Containers, Class);
-		const int32 CountAfterThisRecursion = Containers.Num();
-		for (int32 i = CountBeforeThisRecursion; i < CountAfterThisRecursion; ++i)
+		/*
+		 * Most item instances will not contain more than 3 containers. That allows 1 storage and 2 slots or 3 slots,
+		 * which is more than most will have.
+		 */
+		TArray<TNotNull<const UFaerieItemContainerBase*>, TInlineAllocator<3>> Children;
+		GetTemplateContainersInInstanceDirect(Item, Children, Class);
+		for (auto&& Child : Children)
 		{
-			for (auto It = Container::ItemRange(Containers[i]); It; ++It)
+			Containers.Add(Child);
+			for (auto It = Container::ItemRange(Child); It; ++It)
 			{
 				GetTemplateContainersInInstanceRecursive(*It, Containers, Class);
 			}
 		}
 	}
 
-	void GetContainersInInstanceDirect(const FMassEntityManager& EntityManager, const FFaerieItemInstance& Item, const TAdderRef<TNotNull<UFaerieItemContainerBase*>> Containers, const TNotNull<const UClass*> Class)
+	bool HasContainerInInstanceDirect_Stack(const FMassEntityManager& EntityManager, const FFaerieItemInstance& Item, const TNotNull<const UFaerieItemStackContainer*> TestContainer)
+	{
+		const FMassEntityHandle Entity = Item.GetMassEntityHandle();
+		if (!EntityManager.IsEntityValid(Entity))
+		{
+			return false;
+		}
+
+		if (auto* StacksFragment = ItemData::GetEntityFragment<FFaerieChildStackFragment>(EntityManager, Entity))
+		{
+			for (auto&& Slot : StacksFragment->Slots)
+			{
+				if (IsValid(Slot.Stack) && Slot.Stack == TestContainer)
+				{
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
+
+	bool HasContainerInInstanceDirect_Storage(const FMassEntityManager& EntityManager, const FFaerieItemInstance& Item, const TNotNull<const UFaerieItemStorage*> TestContainer)
+	{
+		const FMassEntityHandle Entity = Item.GetMassEntityHandle();
+		if (!EntityManager.IsEntityValid(Entity))
+		{
+			return false;
+		}
+
+		if (auto* StorageFragment = ItemData::GetEntityFragment<FFaerieItemStorageFragment>(EntityManager, Entity))
+		{
+			const TObjectPtr<UFaerieItemStorage>& ItemStorage = StorageFragment->Storage.Storage;
+			if (!IsValid(ItemStorage))
+			{
+				UE_LOGF(LogFaerieInventory, Error, "Storage invalid in ItemStorageFragment. This fragment should not contain a null container!")
+			}
+			else
+			{
+				if (ItemStorage == TestContainer)
+				{
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
+
+	bool HasContainerInInstanceRecursive_Stack(const FMassEntityManager& EntityManager,
+		const FFaerieItemInstance& Item, const TNotNull<const UFaerieItemStackContainer*> TestContainer)
+	{
+		const FMassEntityHandle Entity = Item.GetMassEntityHandle();
+		if (!EntityManager.IsEntityValid(Entity))
+		{
+			return false;
+		}
+
+		if (auto* StacksFragment = ItemData::GetEntityFragment<FFaerieChildStackFragment>(EntityManager, Entity))
+		{
+			for (auto&& Slot : StacksFragment->Slots)
+			{
+				if (IsValid(Slot.Stack) && Slot.Stack == TestContainer)
+				{
+					return true;
+				}
+
+				for (auto It = Container::MutableItemRange(Slot.Stack); It; ++It)
+				{
+					if (HasContainerInInstanceRecursive_Stack(EntityManager, *It, TestContainer))
+					{
+						return true;
+					}
+				}
+			}
+		}
+		return false;
+	}
+
+	bool HasContainerInInstanceRecursive_Storage(const FMassEntityManager& EntityManager,
+		const FFaerieItemInstance& Item, const TNotNull<const UFaerieItemStorage*> TestContainer)
+	{
+		const FMassEntityHandle Entity = Item.GetMassEntityHandle();
+		if (!EntityManager.IsEntityValid(Entity))
+		{
+			return false;
+		}
+
+		if (auto* StorageFragment = ItemData::GetEntityFragment<FFaerieItemStorageFragment>(EntityManager, Entity))
+		{
+			const TObjectPtr<UFaerieItemStorage>& ItemStorage = StorageFragment->Storage.Storage;
+			if (!IsValid(ItemStorage))
+			{
+				UE_LOGF(LogFaerieInventory, Error, "Storage invalid in ItemStorageFragment. This fragment should not contain a null container!")
+			}
+			else
+			{
+				if (ItemStorage == TestContainer)
+				{
+					return true;
+				}
+
+				for (auto It = Container::MutableItemRange(ItemStorage); It; ++It)
+				{
+					if (HasContainerInInstanceRecursive_Storage(EntityManager, *It, TestContainer))
+					{
+						return true;
+					}
+				}
+			}
+		}
+
+		return false;
+	}
+
+	void GetContainersInInstanceDirect_All(const FMassEntityManager& EntityManager, const FFaerieItemInstance& Item, TAdderRef<TNotNull<UFaerieItemContainerBase*>> Containers)
 	{
 		const FMassEntityHandle Entity = Item.GetMassEntityHandle();
 		if (!EntityManager.IsEntityValid(Entity))
@@ -71,9 +189,9 @@ namespace Faerie::SubObject
 		{
 			for (auto&& Slot : StacksFragment->Slots)
 			{
-				if (IsValid(Slot.Stack) && Slot.Stack.IsA(Class))
+				if (IsValid(Slot.Stack))
 				{
-					Containers.Add(Slot.Stack);
+					Containers.Add(Slot.Stack.Get());
 				}
 			}
 		}
@@ -87,163 +205,139 @@ namespace Faerie::SubObject
 			}
 			else
 			{
-				if (ItemStorage.IsA(Class))
-				{
-					Containers.Add(ItemStorage);
-				}
+				Containers.Add(ItemStorage.Get());
 			}
 		}
 	}
 
-	void GetContainersInInstanceRecursive(const FMassEntityManager& EntityManager,
-		const FFaerieItemInstance& Item, TArray<TNotNull<UFaerieItemContainerBase*>>& Containers,
-		const TNotNull<const UClass*> Class)
-	{
-		const int32 CountBeforeThisRecursion = Containers.Num();
-		GetContainersInInstanceDirect(EntityManager, Item, Containers, Class);
-		const int32 CountAfterThisRecursion = Containers.Num();
-		for (int32 i = CountBeforeThisRecursion; i < CountAfterThisRecursion; ++i)
-		{
-			for (auto It = Container::ItemRange(Containers[i]); It; ++It)
-			{
-				GetContainersInInstanceRecursive(EntityManager, *It, Containers, Class);
-			}
-		}
-	}
-
-	template <typename TFaerieItemContainerBase>
-	bool HasContainerInInstanceDirect(const FMassEntityManager& EntityManager, const FFaerieItemInstance& Item,
-		const TNotNull<const TFaerieItemContainerBase*> TestContainer)
+	void GetContainersInInstanceDirect_Stack(const FMassEntityManager& EntityManager, const FFaerieItemInstance& Item, TAdderRef<TNotNull<UFaerieItemStackContainer*>> Containers)
 	{
 		const FMassEntityHandle Entity = Item.GetMassEntityHandle();
 		if (!EntityManager.IsEntityValid(Entity))
 		{
-			return false;
+			return;
 		}
 
-		if constexpr (std::is_base_of_v<UFaerieItemStackContainer, TFaerieItemContainerBase>)
+		if (auto* StacksFragment = ItemData::GetEntityFragment<FFaerieChildStackFragment>(EntityManager, Entity))
 		{
-			if (auto* StacksFragment = ItemData::GetEntityFragment<FFaerieChildStackFragment>(EntityManager, Entity))
+			for (auto&& Slot : StacksFragment->Slots)
 			{
-				for (auto&& Slot : StacksFragment->Slots)
+				if (IsValid(Slot.Stack))
 				{
-					if (IsValid(Slot.Stack) && Slot.Stack == TestContainer)
-					{
-						return true;
-					}
+					Containers.Add(Slot.Stack);
 				}
 			}
 		}
-		if constexpr (std::is_base_of_v<UFaerieItemStorage, TFaerieItemContainerBase>)
-		{
-			if (auto* StorageFragment = ItemData::GetEntityFragment<FFaerieItemStorageFragment>(EntityManager, Entity))
-            {
-            	const TObjectPtr<UFaerieItemStorage>& ItemStorage = StorageFragment->Storage.Storage;
-            	if (!IsValid(ItemStorage))
-            	{
-            		UE_LOGF(LogFaerieInventory, Error, "Storage invalid in ItemStorageFragment. This fragment should not contain a null container!")
-            	}
-            	else
-            	{
-            		if (ItemStorage == TestContainer)
-            		{
-            			return true;
-            		}
-            	}
-            }
-		}
-
-		return false;
 	}
 
-	template bool FAERIEINVENTORY_API HasContainerInInstanceDirect(const FMassEntityManager&, const FFaerieItemInstance&, const TNotNull<const UFaerieItemStackContainer*>);
-	template bool FAERIEINVENTORY_API HasContainerInInstanceDirect(const FMassEntityManager&, const FFaerieItemInstance&, const TNotNull<const UFaerieItemStorage*>);
-
-	template <typename TFaerieItemContainerBase>
-	bool HasContainerInInstanceRecursive(const FMassEntityManager& EntityManager, const FFaerieItemInstance& Item,
-		const TNotNull<const TFaerieItemContainerBase*> TestContainer)
+	void GetContainersInInstanceDirect_Storage(const FMassEntityManager& EntityManager, const FFaerieItemInstance& Item, TAdderRef<TNotNull<UFaerieItemStorage*>> Containers)
 	{
-		struct FLocal
+		const FMassEntityHandle Entity = Item.GetMassEntityHandle();
+		if (!EntityManager.IsEntityValid(Entity))
 		{
-			static bool HasContainerInInstanceRecursive_Stack(const FMassEntityManager& EntityManager, const FFaerieItemInstance& Item, const TNotNull<const UFaerieItemContainerBase*> TestContainer)
-			{
-				const FMassEntityHandle Entity = Item.GetMassEntityHandle();
-				if (!EntityManager.IsEntityValid(Entity))
-				{
-					return false;
-				}
-
-				if (auto* StacksFragment = ItemData::GetEntityFragment<FFaerieChildStackFragment>(EntityManager, Entity))
-				{
-					for (auto&& Slot : StacksFragment->Slots)
-					{
-						if (IsValid(Slot.Stack) && Slot.Stack == TestContainer)
-						{
-							return true;
-						}
-
-						for (auto It = Container::MutableItemRange(Slot.Stack); It; ++It)
-						{
-							if (HasContainerInInstanceRecursive_Stack(EntityManager, *It, TestContainer))
-							{
-								return true;
-							}
-						}
-					}
-				}
-				return false;
-			}
-
-			static bool HasContainerInInstanceRecursive_Storage(const FMassEntityManager& EntityManager, const FFaerieItemInstance& Item, const TNotNull<const UFaerieItemContainerBase*> TestContainer)
-			{
-				const FMassEntityHandle Entity = Item.GetMassEntityHandle();
-				if (!EntityManager.IsEntityValid(Entity))
-				{
-					return false;
-				}
-
-				if (auto* StorageFragment = ItemData::GetEntityFragment<FFaerieItemStorageFragment>(EntityManager, Entity))
-				{
-					const TObjectPtr<UFaerieItemStorage>& ItemStorage = StorageFragment->Storage.Storage;
-					if (!IsValid(ItemStorage))
-					{
-						UE_LOGF(LogFaerieInventory, Error, "Storage invalid in ItemStorageFragment. This fragment should not contain a null container!")
-					}
-					else
-					{
-						if (ItemStorage == TestContainer)
-						{
-							return true;
-						}
-
-						for (auto It = Container::MutableItemRange(ItemStorage); It; ++It)
-						{
-							if (HasContainerInInstanceRecursive_Storage(EntityManager, *It, TestContainer))
-							{
-								return true;
-							}
-						}
-					}
-				}
-
-				return false;
-			}
-		};
-
-		if constexpr (std::is_base_of_v<UFaerieItemStackContainer, TFaerieItemContainerBase>)
-		{
-			return FLocal::HasContainerInInstanceRecursive_Stack(EntityManager, Item, TestContainer);
+			return;
 		}
-		if constexpr (std::is_base_of_v<UFaerieItemStorage, TFaerieItemContainerBase>)
+
+		if (auto* StorageFragment = ItemData::GetEntityFragment<FFaerieItemStorageFragment>(EntityManager, Entity))
 		{
-			return FLocal::HasContainerInInstanceRecursive_Storage(EntityManager, Item, TestContainer);
+			const TObjectPtr<UFaerieItemStorage>& ItemStorage = StorageFragment->Storage.Storage;
+			if (!IsValid(ItemStorage))
+			{
+				UE_LOGF(LogFaerieInventory, Error, "Storage invalid in ItemStorageFragment. This fragment should not contain a null container!")
+			}
+			else
+			{
+				Containers.Add(ItemStorage);
+			}
 		}
 	}
 
-	template bool FAERIEINVENTORY_API HasContainerInInstanceRecursive(const FMassEntityManager&, const FFaerieItemInstance&, const TNotNull<const UFaerieItemStackContainer*>);
-	template bool FAERIEINVENTORY_API HasContainerInInstanceRecursive(const FMassEntityManager&, const FFaerieItemInstance&, const TNotNull<const UFaerieItemStorage*>);
+	void GetContainersInInstanceRecursive_All(const FMassEntityManager& EntityManager, const FFaerieItemInstance& Item, TAdderRef<TNotNull<UFaerieItemContainerBase*>> Containers)
+	{
+		/*
+		 * Most item instances will not contain more than 3 containers. That allows 1 storage and 2 slots or 3 slots,
+		 * which is more than most will have.
+		 */
+		TArray<TNotNull<UFaerieItemContainerBase*>, TInlineAllocator<3>> Children;
+		GetContainersInInstanceDirect_All(EntityManager, Item, Children);
+		for (auto&& Child : Children)
+		{
+			Containers.Add(Child);
+			for (auto It = Container::ItemRange(Child); It; ++It)
+			{
+				GetContainersInInstanceRecursive_Stack(EntityManager, *It, Containers);
+			}
+		}
+	}
 
-	void GetChildrenInItem(const FMassEntityManager& EntityManager, const FFaerieItemInstance& Item, TArray<FFaerieItemProxy>& OutProxies)
+	void GetContainersInInstanceRecursive_Stack(const FMassEntityManager& EntityManager, const FFaerieItemInstance& Item, TAdderRef<TNotNull<UFaerieItemStackContainer*>> Containers)
+	{
+		/*
+		 * Most item instances will not contain more than 3 containers.
+		 */
+		TArray<TNotNull<UFaerieItemStackContainer*>, TInlineAllocator<3>> Children;
+		GetContainersInInstanceDirect_Stack(EntityManager, Item, Children);
+		for (auto&& Child : Children)
+		{
+			Containers.Add(Child);
+			for (auto It = Container::ItemRange(Child); It; ++It)
+			{
+				GetContainersInInstanceRecursive_Stack(EntityManager, *It, Containers);
+			}
+		}
+	}
+
+	void GetContainersInInstanceRecursive_Storage(const FMassEntityManager& EntityManager, const FFaerieItemInstance& Item, TAdderRef<TNotNull<UFaerieItemStorage*>> Containers)
+	{
+		/*
+		 * Most item instances will not contain more than 1 storage.
+		 */
+		TArray<TNotNull<UFaerieItemStorage*>, TInlineAllocator<1>> Children;
+		GetContainersInInstanceDirect_Storage(EntityManager, Item, Children);
+		for (auto&& Child : Children)
+		{
+			Containers.Add(Child);
+			for (auto It = Container::ItemRange(Child); It; ++It)
+			{
+				GetContainersInInstanceRecursive_Storage(EntityManager, *It, Containers);
+			}
+		}
+	}
+
+	void GetContainersInInstanceDirect(const FMassEntityManager& EntityManager, const FFaerieItemInstance& Item,
+		TAdderRef<TNotNull<UFaerieItemContainerBase*>> Containers, const TNotNull<const UClass*> Class)
+	{
+		if (Class == UFaerieItemContainerBase::StaticClass())
+		{
+			GetContainersInInstanceDirect_All(EntityManager, Item, Containers);
+		}
+		else if (Class == UFaerieItemStackContainer::StaticClass())
+		{
+			GetContainersInInstanceDirect_Stack(EntityManager, Item, Containers);
+		}
+		else if (Class == UFaerieItemStorage::StaticClass())
+		{
+			GetContainersInInstanceDirect_Storage(EntityManager, Item, Containers);
+		}
+	}
+
+	void GetContainersInInstanceRecursive(const FMassEntityManager& EntityManager, const FFaerieItemInstance& Item, TAdderRef<TNotNull<UFaerieItemContainerBase*>> Containers, const TNotNull<const UClass*> Class)
+	{
+		if (Class == UFaerieItemContainerBase::StaticClass())
+		{
+			GetContainersInInstanceRecursive_All(EntityManager, Item, Containers);
+		}
+		else if (Class == UFaerieItemStackContainer::StaticClass())
+		{
+			GetContainersInInstanceRecursive_Stack(EntityManager, Item, Containers);
+		}
+		else if (Class == UFaerieItemStorage::StaticClass())
+		{
+			GetContainersInInstanceRecursive_Storage(EntityManager, Item, Containers);
+		}
+	}
+
+	void GetChildrenInItem(const FMassEntityManager& EntityManager, const FFaerieItemInstance& Item, const TAdderRef<FFaerieItemProxy> OutProxies)
 	{
 		for (UFaerieItemContainerBase* Container : SubObject::Iterate(EntityManager, Item))
 		{
@@ -254,18 +348,18 @@ namespace Faerie::SubObject
 		}
 	}
 
-	void GetChildrenInItemRecursive(const FMassEntityManager& EntityManager, const FFaerieItemInstance& Item, TArray<FFaerieItemProxy>& OutProxies)
+	void GetChildrenInItemRecursive(const FMassEntityManager& EntityManager, const FFaerieItemInstance& Item, const TAdderRef<FFaerieItemProxy> OutProxies)
 	{
-		const int32 CountBeforeThisRecursion = OutProxies.Num();
-		GetChildrenInItem(EntityManager, Item, OutProxies);
-		const int32 CountAfterThisRecursion = OutProxies.Num();
-		for (int32 i = CountBeforeThisRecursion; i < CountAfterThisRecursion; ++i)
+		TArray<FFaerieItemProxy> Children;
+		GetChildrenInItem(EntityManager, Item, Children);
+		for (auto&& Child : Children)
 		{
-			auto&& Child = OutProxies[i].GetItemInstanceOrInvalid();
+			OutProxies.Add(Child);
 
-			if (Child.IsMutable())
+			const FFaerieItemInstance Instance = Child.GetItemInstanceOrInvalid();
+			if (Instance.IsMutable())
 			{
-				for (UFaerieItemContainerBase* Container : SubObject::Iterate(EntityManager, Child))
+				for (UFaerieItemContainerBase* Container : SubObject::Iterate(EntityManager, Instance))
 				{
 					for (auto It = Container::MutableItemRange(Container); It; ++It)
 					{
@@ -276,30 +370,17 @@ namespace Faerie::SubObject
 		}
 	}
 
-	namespace StaticPredicates
-	{
-		bool ClassEquals(const TNotNull<const UFaerieItemContainerBase*> Container, const TSubclassOf<UFaerieItemContainerBase>& Class)
-		{
-			return Class == Container->GetClass();
-		}
-
-		bool ClassEqualsOrChildOf(const TNotNull<const UFaerieItemContainerBase*> Container, const TSubclassOf<UFaerieItemContainerBase>& Class)
-		{
-			return Class->IsChildOf(Container->GetClass());
-		}
-	}
-
 	static TArray<TNotNull<UFaerieItemContainerBase*>> GetAllContainersInItem_Inline(const FMassEntityManager& EntityManager, const FFaerieItemInstance& Item)
 	{
 		TArray<TNotNull<UFaerieItemContainerBase*>> Containers;
-		GetContainersInInstanceDirect(EntityManager, Item, Containers);
+		GetContainersInInstanceDirect<UFaerieItemContainerBase>(EntityManager, Item, Containers);
 		return Containers;
 	}
 
 	static TArray<TNotNull<UFaerieItemContainerBase*>> GetAllContainersInItemRecursive_Inline(const FMassEntityManager& EntityManager, const FFaerieItemInstance& Item)
 	{
 		TArray<TNotNull<UFaerieItemContainerBase*>> Containers;
-		GetContainersInInstanceRecursive(EntityManager, Item, Containers);
+		GetContainersInInstanceRecursive<UFaerieItemContainerBase>(EntityManager, Item, Containers);
 		return Containers;
 	}
 

@@ -14,7 +14,7 @@ struct FFaerieStackLimitFragment : public FFaerieMassFragment
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ClampMin = 0))
 	int32 MaxStackSize = 0;
 
-	int32 GetStackLimit() const;
+____FAERIE_FRAGMENT_DECL(FFaerieStackLimitFragment)
 };
 
 namespace Faerie::Container

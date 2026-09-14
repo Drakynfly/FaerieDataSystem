@@ -3,11 +3,12 @@
 #include "Capacity/InventoryCapacityExtension.h"
 
 #include "EntityManagerHelpers.h"
+#include "FaerieContainerEvent.h"
 
 #include "FaerieContainerIterator.h"
 #include "FaerieInventoryContentLog.h"
 
-#include "ItemContainerEvent.h"
+#include "MassExecutionContext.h"
 
 #include "Capacity/FaerieCapacityHelper.h"
 
@@ -17,217 +18,71 @@
 
 using namespace Faerie;
 
-void UInventoryCapacityExtension::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+void FFaerieItemContainerCapacityData::InitializeExtension(const TNotNull<const UFaerieItemContainerBase*> Container)
 {
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	FDoRepLifetimeParams SharedParams;
-	SharedParams.bIsPushBased = true;
-
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, Config, SharedParams)
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, State, SharedParams)
-}
-
-#if WITH_EDITOR
-void UInventoryCapacityExtension::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
-{
-	Super::PostEditChangeProperty(PropertyChangedEvent);
-
-	if (Config.DeriveVolumeFromBounds)
-	{
-		Config.MaxVolume = Config.Bounds.X;
-		Config.MaxVolume *= Config.Bounds.Y;
-		Config.MaxVolume *= Config.Bounds.Z;
-	}
-}
-
-void UInventoryCapacityExtension::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent)
-{
-	Super::PostEditChangeChainProperty(PropertyChangedEvent);
-
-	if (Config.DeriveVolumeFromBounds)
-	{
-		Config.MaxVolume = Config.Bounds.X;
-		Config.MaxVolume *= Config.Bounds.Y;
-		Config.MaxVolume *= Config.Bounds.Z;
-	}
-}
-#endif
-
-void UInventoryCapacityExtension::InitializeExtension(const TNotNull<const UFaerieItemContainerBase*> Container)
-{
+	auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
 	for (auto It = Container::KeyRange(Container); It; ++It)
 	{
-		UpdateCacheForEntry(Container, *It);
+		UpdateCacheForEntry(EntityManager, Container, *It);
 	}
-
-	HandleStateChanged();
 }
 
-void UInventoryCapacityExtension::DeinitializeExtension(const TNotNull<const UFaerieItemContainerBase*> Container)
-{
-	if (!ServerCapacityCache.Contains(Container)) return;
-
-	for (auto&& Cache = ServerCapacityCache[Container];
-		auto&& Element : Cache)
-	{
-		// Remove the existing cache by adding its inverse
-		AddWeightAndVolume(-Element.Value);
-	}
-
-	ServerCapacityCache.Remove(Container);
-
-	HandleStateChanged();
-}
-
-EEventExtensionResponse UInventoryCapacityExtension::AllowsAddition(const TNotNull<const UFaerieItemContainerBase*> Container,
-																	const Utils::TArrayAdapter<FFaerieItemProxy>& Proxies,
-																	const FFaerieExtensionAllowsAdditionArgs Args) const
+EFaerieExtensionResponse FFaerieItemContainerCapacityData::AllowsAddition(const TNotNull<const UFaerieItemContainerBase*> Container, const Utils::TArrayAdapter<FFaerieItemProxy>& Proxies,
+	FFaerieExtensionAllowsAdditionArgs Args) const
 {
 	// @todo Args.AddStackBehavior is not used at all.
 	// Because CanContain doesnt check for Efficiency, there is no differance, but its technically incorrect.
 
+	auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
 	if (Proxies.Num() == 1)
 	{
 		if (const FFaerieItemProxy Proxy0 = Proxies[0];
-			!CanContain(Proxy0))
+			!CanContain(EntityManager, Container, Proxy0))
 		{
 			const UFaerieItem* Item = Proxy0.GetItemInstanceOrInvalid().GetItemPtr();
-			UE_LOGF(LogFaerieInventoryContent, Verbose, "PreAddition: Cannot add Stack (Item: '%ls' Copies: %i)",
+			UE_LOGF(LogFaerieInventoryContent, Verbose, "AllowsAddition: Cannot add Stack (Item: '%ls' Copies: %i)",
 				Item ? *Item->GetName() : TEXT("null"), Proxy0.GetCopies());
-			return EEventExtensionResponse::Disallowed;
+			return EFaerieExtensionResponse::Disallowed;
 		}
-		return EEventExtensionResponse::Allowed;
+		return EFaerieExtensionResponse::Allowed;
 	}
 
-	switch (Args.TestType)
+	if (!CanContain_Multi(EntityManager, Container, Proxies))
 	{
-	case EFaerieStorageAddStackTestMultiType::IndividualTests:
-		{
-			for (int32 i = 0; i < Proxies.Num(); ++i)
-			{
-				const FFaerieItemProxy Proxy = Proxies[i];
-
-				if (!CanContain(Proxy))
-				{
-					const UFaerieItem* Item = Proxy.GetItemInstanceOrInvalid().GetItemPtr();
-					UE_LOGF(LogFaerieInventoryContent, Verbose, "PreAddition: Cannot add Stack (Item: '%ls' Copies: %i)",
-						Item ? *Item->GetName() : TEXT("null"), Proxy.GetCopies());
-					return EEventExtensionResponse::Disallowed;
-				}
-			}
-			return EEventExtensionResponse::Allowed;
-		}
-
-	case EFaerieStorageAddStackTestMultiType::GroupTest:
-		{
-			if (!CanContain_Multi(Proxies))
-			{
-				UE_LOGF(LogFaerieInventoryContent, Verbose, "PreAddition: Cannot add Stacks in GroupTest");
-				return EEventExtensionResponse::Disallowed;
-			}
-		}
-		return EEventExtensionResponse::Allowed;
+		UE_LOGF(LogFaerieInventoryContent, Verbose, "AllowsAddition: Cannot add Stacks in GroupTest");
+		return EFaerieExtensionResponse::Disallowed;
 	}
 
-	// Should not reach this;
-	return EEventExtensionResponse::NoExplicitResponse;
+	return EFaerieExtensionResponse::Allowed;
 }
 
-void UInventoryCapacityExtension::PostEventBatch(const TNotNull<const UFaerieItemContainerBase*> Container, const Inventory::FEventLogBatch& Events)
+bool FFaerieItemContainerCapacityData::HandleEvent(const FMassEntityManager& EntityManager, const Container::FEvent& Event)
 {
-	for (auto&& Event : Events.Data)
+	if (Event.EntryRemoved)
 	{
-		if (Event.EntryRemoved)
-		{
-			// Entry was removed, delete cache.
-			RemoveCacheForEntry(Container, Event.EntryTouched);
-		}
-		else
-		{
-			UpdateCacheForEntry(Container, Event.EntryTouched);
-		}
+		// Entry was removed, delete cache.
+		return RemoveCacheForEntry(Event.Container.Get(), Event.EntryTouched);
 	}
-	HandleStateChanged();
+
+	return UpdateCacheForEntry(EntityManager, Event.Container.Get(), Event.EntryTouched);
 }
 
-void UInventoryCapacityExtension::UpdateCacheForEntry(const TNotNull<const UFaerieItemContainerBase*> Container,
-	const FFaerieEntryKey Key)
-{
-	auto&& ContainerCache = ServerCapacityCache.FindOrAdd(Container);
-	auto&& PrevCache = ContainerCache.Find(Key);
-
-	const ItemData::FScopeProxy View = Container->ViewEntry(Key);
-	if (!View.IsValid())
-	{
-		UE_LOGF(LogFaerieInventoryContent, Error, "UpdateCacheForEntry should not handle removed entries!")
-
-		if (PrevCache)
-		{
-			// Remove the existing cache by adding its inverse
-			AddWeightAndVolume(-*PrevCache);
-			ContainerCache.Remove(Key);
-		}
-		return;
-	}
-
-	FFaerieWeightAndVolume Total;
-
-	auto* EntityManager = ItemData::GetFaerieEntityManager();
-	const ItemData::FCapacityHelper Capacity(EntityManager, View.Instance);
-	if (Capacity.HasCapacity())
-	{
-		// Get the weight of the sum of all stacks.
-		Total.GramWeight = Capacity.GetWeightOfStack(View.Copies);
-
-		// Calculate and add up the volumes of each stack.
-		for (auto It = Container::SingleKeyRange(Container, Key); It; ++It)
-		{
-			Total.Volume += Capacity.GetVolumeOfStack(It.GetCopies());
-		}
-	}
-
-	FFaerieWeightAndVolume Diff = Total;
-
-	if (PrevCache)
-	{
-		Diff -= *PrevCache;
-	}
-
-	ContainerCache.Add(Key, Total);
-	AddWeightAndVolume(Diff);
-}
-
-void UInventoryCapacityExtension::RemoveCacheForEntry(const TNotNull<const UFaerieItemContainerBase*> Container,
-	const FFaerieEntryKey Key)
-{
-	if (auto&& ContainerCache = ServerCapacityCache.Find(Container))
-	{
-		if (auto&& PrevCache = ContainerCache->Find(Key))
-		{
-			// Remove the existing cache by adding its inverse
-			AddWeightAndVolume(-*PrevCache);
-			ContainerCache->Remove(Key);
-		}
-	}
-}
-
-bool UInventoryCapacityExtension::CanContainItem(const TValid<const FFaerieItemProxy&> Proxy) const
+bool FFaerieItemContainerCapacityData::CanContain(const FMassEntityManager& EntityManager,
+	TNotNull<const UFaerieItemContainerBase*> Container, const TValid<const FFaerieItemProxy&> Proxy) const
 {
 	// @todo this does not account for the idea that if we add to an existing stack, the Efficiency would reduce the weight.
 
-	auto* EntityManager = ItemData::GetFaerieEntityManager();
-	const ItemData::FCapacityHelper Capacity(EntityManager, ValidGet(Proxy).GetItemInstance().GetValue());
+	const ItemData::FCapacityHelper Capacity(&EntityManager, ValidGet(Proxy).GetItemInstanceOrInvalid());
 
 	// If the fragment is invalid, return true if we don't require one.
 	if (!Capacity.HasCapacity())
 	{
-		return !Config.HasCheck(ECapacityChecks::Fragment);
+		return !Config.HasCheck(EFaerieCapacityExtensionChecks::Fragment);
 	}
 
 	// Determine if the entry cannot physically fit inside the dimensions of this container.
 	// Fudged slightly to account for "cramming"
-	if (Config.HasCheck(ECapacityChecks::Bounds))
+	if (Config.HasCheck(EFaerieCapacityExtensionChecks::Bounds))
 	{
 		// Convert Bounds to a FVector so we can multiply by a float, then convert back
 		const FIntVector TestBounds = FIntVector(FVector(Config.Bounds) * Config.BoundsFudgeFactor);
@@ -241,7 +96,7 @@ bool UInventoryCapacityExtension::CanContainItem(const TValid<const FFaerieItemP
 	}
 
 	// Determine if the entry would put the container over max weight.
-	if (Config.HasCheck(ECapacityChecks::Weight))
+	if (Config.HasCheck(EFaerieCapacityExtensionChecks::Weight))
 	{
 		const int32 TestWeight = State.CurrentWeight + Capacity.GetWeightOfStack(ValidGet(Proxy).GetCopies());
 		const bool WouldExceedWeight = TestWeight > Config.MaxWeight;
@@ -253,7 +108,7 @@ bool UInventoryCapacityExtension::CanContainItem(const TValid<const FFaerieItemP
 	}
 
 	// Determine if the entry would put the container over max volume.
-	if (Config.HasCheck(ECapacityChecks::Volume))
+	if (Config.HasCheck(EFaerieCapacityExtensionChecks::Volume))
 	{
 		const int64 TestVolume = State.CurrentVolume + Capacity.GetVolumeOfStack(ValidGet(Proxy).GetCopies());
 		const bool WouldExceedVolume = TestVolume > Config.MaxVolume;
@@ -267,41 +122,11 @@ bool UInventoryCapacityExtension::CanContainItem(const TValid<const FFaerieItemP
 	return true;
 }
 
-void UInventoryCapacityExtension::AddWeightAndVolume(const FFaerieWeightAndVolume Value)
-{
-	State.CurrentWeight += Value.GramWeight;
-	State.CurrentVolume += Value.Volume;
-}
-
-void UInventoryCapacityExtension::HandleStateChanged()
-{
-	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, State, this);
-	OnStateChangedNative.Broadcast();
-	OnStateChanged.Broadcast();
-}
-
-void UInventoryCapacityExtension::HandleConfigChanged()
-{
-	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Config, this);
-	OnConfigurationChangedNative.Broadcast();
-	OnConfigurationChanged.Broadcast();
-}
-
-bool UInventoryCapacityExtension::CanContain(const FFaerieItemProxy& Proxy) const
-{
-	if (!Proxy.IsValid())
-	{
-		return false;
-	}
-
-	return CanContainItem(Proxy);
-}
-
-bool UInventoryCapacityExtension::CanContain_Multi(const Utils::TArrayAdapter<FFaerieItemProxy> Proxies) const
+bool FFaerieItemContainerCapacityData::CanContain_Multi(const FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container,
+	const Utils::TArrayAdapter<FFaerieItemProxy>& Proxies) const
 {
 	// @todo this does not account for the idea that if we add to an existing stack, the Efficiency would reduce the weight.
 
-	auto* EntityManager = ItemData::GetFaerieEntityManager();
 	TArray<TUniquePtr<ItemData::FCapacityHelper>> Capacities;
 	Capacities.Reserve(Proxies.Num());
 	for (int32 i = 0; i < Proxies.Num(); ++i)
@@ -313,11 +138,11 @@ bool UInventoryCapacityExtension::CanContain_Multi(const Utils::TArrayAdapter<FF
 		}
 
 		TUniquePtr<ItemData::FCapacityHelper>& HelperPtr = Capacities.Add_GetRef(
-			MakeUnique<ItemData::FCapacityHelper>(EntityManager, Proxy.GetItemInstance().GetValue()));
+			MakeUnique<ItemData::FCapacityHelper>(&EntityManager, Proxy.GetItemInstance().GetValue()));
 		if (!HelperPtr->HasCapacity())
 		{
 			// If the fragment is invalid, return false if we require one.
-			if (Config.HasCheck(ECapacityChecks::Fragment))
+			if (Config.HasCheck(EFaerieCapacityExtensionChecks::Fragment))
 			{
 				return false;
 			}
@@ -326,7 +151,7 @@ bool UInventoryCapacityExtension::CanContain_Multi(const Utils::TArrayAdapter<FF
 
 	// Determine if the entry cannot physically fit inside the dimensions of this container.
 	// Fudged slightly to account for "cramming"
-	if (Config.HasCheck(ECapacityChecks::Bounds))
+	if (Config.HasCheck(EFaerieCapacityExtensionChecks::Bounds))
 	{
 		const FIntVector BoundsSum = [&Capacities]()
 			{
@@ -350,7 +175,7 @@ bool UInventoryCapacityExtension::CanContain_Multi(const Utils::TArrayAdapter<FF
 	}
 
 	// Determine if the entry would put the container over max weight.
-	if (Config.HasCheck(ECapacityChecks::Weight))
+	if (Config.HasCheck(EFaerieCapacityExtensionChecks::Weight))
 	{
 		const int32 WeightsSum = [&Capacities, &Proxies]()
 			{
@@ -376,7 +201,7 @@ bool UInventoryCapacityExtension::CanContain_Multi(const Utils::TArrayAdapter<FF
 	}
 
 	// Determine if the entry would put the container over max volume.
-	if (Config.HasCheck(ECapacityChecks::Volume))
+	if (Config.HasCheck(EFaerieCapacityExtensionChecks::Volume))
 	{
 		const int64 VolumesSum = [&Capacities, &Proxies]()
 			{
@@ -404,37 +229,94 @@ bool UInventoryCapacityExtension::CanContain_Multi(const Utils::TArrayAdapter<FF
 	return true;
 }
 
-bool UInventoryCapacityExtension::CanContainProxy(const FFaerieItemProxy& Proxy) const
+bool FFaerieItemContainerCapacityData::UpdateCacheForEntry(const FMassEntityManager& EntityManager, const TNotNull<const UFaerieItemContainerBase*> Container, const FFaerieEntryKey Key)
 {
-	if (!ensure(Proxy.IsValid()))
+	auto&& PrevCache = EntryCache.Find(Key);
+
+	const ItemData::FScopeProxy View = Container->ViewEntry(Key);
+	if (!View.IsValid())
 	{
+		UE_LOGF(LogFaerieInventoryContent, Error, "UpdateCacheForEntry should not handle removed entries!")
+
+		if (PrevCache)
+		{
+			// Remove the existing cache by adding its inverse
+			AddWeightAndVolume(-*PrevCache);
+			EntryCache.Remove(Key);
+			return true;
+		}
+
+		// We had nothing to do.
 		return false;
 	}
 
-	return CanContainItem(Proxy);
+	FFaerieWeightAndVolume Total;
+
+	// @todo we need to calculate the recursive capacity, not just the direct capacity.
+	const ItemData::FCapacityHelper Capacity(&EntityManager, View.Instance);
+	if (Capacity.HasCapacity())
+	{
+		// Get the weight of the sum of all stacks.
+		Total.GramWeight = Capacity.GetWeightOfStack(View.Copies);
+
+		// Calculate and add up the volumes of each stack.
+		for (auto It = Container::SingleKeyRange(Container, Key); It; ++It)
+		{
+			Total.Volume += Capacity.GetVolumeOfStack(It.GetCopies());
+		}
+	}
+
+	FFaerieWeightAndVolume Diff = Total;
+
+	if (PrevCache)
+	{
+		Diff -= *PrevCache;
+	}
+
+	EntryCache.Add(Key, Total);
+	AddWeightAndVolume(Diff);
+
+	return true;
 }
 
-FFaerieWeightAndVolume UInventoryCapacityExtension::GetCurrentCapacity() const
+bool FFaerieItemContainerCapacityData::RemoveCacheForEntry(TNotNull<const UFaerieItemContainerBase*> Container, const FFaerieEntryKey Key)
 {
-    return FFaerieWeightAndVolume(State.CurrentWeight, State.CurrentVolume);
+	if (auto&& PrevCache = EntryCache.Find(Key))
+	{
+		// Remove the existing cache by adding its inverse
+		AddWeightAndVolume(-*PrevCache);
+		EntryCache.Remove(Key);
+		return true;
+	}
+	return false;
 }
 
-FFaerieWeightAndVolume UInventoryCapacityExtension::GetMaxCapacity() const
+void FFaerieItemContainerCapacityData::AddWeightAndVolume(const FFaerieWeightAndVolume Value)
 {
-    return FFaerieWeightAndVolume(Config.MaxWeight, Config.MaxVolume);
+	State.CurrentWeight += Value.GramWeight;
+	State.CurrentVolume += Value.Volume;
 }
 
-bool UInventoryCapacityExtension::IsOverMaxWeight() const
+void UFaerieItemContainerCapacityView::SyncView()
 {
-	return State.CurrentWeight > Config.MaxWeight;
+	if (!ContainerExtensionPtr.Key.IsValid())
+	{
+		return;
+	}
+
+	if (auto CapacityView = ContainerExtensionPtr.Value->Find(FFaerieItemContainerCapacityData::StaticStruct(), false);
+		CapacityView.IsValid())
+	{
+		// @todo don't broadcast both, figure out what changed, either via equality check or pass changemask as parameter.
+		auto& Capacity = CapacityView.Get<FFaerieItemContainerCapacityData>();
+		Config = Capacity.GetConfig();
+		State = Capacity.GetState();
+		BroadcastFieldValueChanged(FFieldNotificationClassDescriptor::Config);
+		BroadcastFieldValueChanged(FFieldNotificationClassDescriptor::State);
+	}
 }
 
-bool UInventoryCapacityExtension::IsOverMaxVolume() const
-{
-	return State.CurrentVolume > Config.MaxVolume;
-}
-
-void UInventoryCapacityExtension::SetConfiguration(const FCapacityExtensionConfig& NewConfig)
+void UFaerieItemContainerCapacityView::SetConfiguration(const FFaerieCapacityExtensionConfig& NewConfig)
 {
 	Config = NewConfig;
 
@@ -444,58 +326,84 @@ void UInventoryCapacityExtension::SetConfiguration(const FCapacityExtensionConfi
 		Config.MaxVolume *= Config.Bounds.Y;
 		Config.MaxVolume *= Config.Bounds.Z;
 	}
-
-	HandleConfigChanged();
+	BroadcastFieldValueChanged(FFieldNotificationClassDescriptor::Config);
 }
 
-void UInventoryCapacityExtension::SetBounds(const FIntVector NewBounds)
+void UFaerieItemContainerCapacityView::SetBounds(const FIntVector NewBounds)
 {
 	Config.Bounds = NewBounds;
-	HandleConfigChanged();
+	BroadcastFieldValueChanged(FFieldNotificationClassDescriptor::Config);
 }
 
-void UInventoryCapacityExtension::SetMaxCapacity(const FFaerieWeightAndVolume NewMax)
+void UFaerieItemContainerCapacityView::SetMaxCapacity(const FFaerieWeightAndVolume NewMax)
 {
 	Config.MaxWeight = NewMax.GramWeight;
 	Config.MaxVolume = NewMax.Volume;
-	HandleConfigChanged();
+	BroadcastFieldValueChanged(FFieldNotificationClassDescriptor::Config);
 }
 
-float UInventoryCapacityExtension::GetPercentageFullForWeightAndVolume(const FFaerieWeightAndVolume& WeightAndVolume) const
+UFaerieItemContainerCapacityUpdater::UFaerieItemContainerCapacityUpdater()
+  : EventQuery(*this), ViewQuery(*this)
 {
-	float ScalarWeightFull = 0;
-	float ScalarVolumeFull = 0;
+	ExecutionFlags = static_cast<uint8>(EProcessorExecutionFlags::AllNetModes);
 
-	if (Config.MaxWeight > 0)
-	{
-		ScalarWeightFull = static_cast<float>(WeightAndVolume.GramWeight) / static_cast<float>(Config.MaxWeight);
-	}
+	ExecutionOrder.ExecuteBefore.Add(Container::EventCleanup);
 
-	if (Config.MaxVolume > 0)
-	{
-		ScalarVolumeFull = static_cast<float>(WeightAndVolume.Volume) / static_cast<float>(Config.MaxVolume);
-	}
-
-	const float LargerFull = FMath::Max(ScalarWeightFull, ScalarVolumeFull);
-	const float SmallerFull = FMath::Min(ScalarWeightFull, ScalarVolumeFull);
-
-	const float SecondAmountToFill = 1 - LargerFull;
-	return LargerFull + (SmallerFull * SecondAmountToFill);
+	// We write to container data and send events to game-thread UI
+	bRequiresGameThreadExecution = true;
 }
 
-float UInventoryCapacityExtension::GetPercentageFull() const
+void UFaerieItemContainerCapacityUpdater::ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager)
 {
-	return GetPercentageFullForWeightAndVolume(GetCurrentCapacity());
+	EventQuery.AddRequirement<Container::FEvent>(EMassFragmentAccess::ReadOnly, EMassFragmentPresence::All);
+	ViewQuery.AddRequirement<Content::FCapacityViewFragment>(EMassFragmentAccess::ReadOnly, EMassFragmentPresence::All);
 }
 
-void UInventoryCapacityExtension::OnRep_Config()
+void UFaerieItemContainerCapacityUpdater::Execute(FMassEntityManager& EntityManager, FMassExecutionContext& Context)
 {
-	OnConfigurationChangedNative.Broadcast();
-	OnConfigurationChanged.Broadcast();
-}
+	// Track the containers we updated, so we can notify any active views of them.
+	TSet<UObject*> ContainersUpdated;
 
-void UInventoryCapacityExtension::OnRep_State()
-{
-	OnStateChangedNative.Broadcast();
-	OnStateChanged.Broadcast();
+	EventQuery.ForEachEntityChunk(Context, [this, &ContainersUpdated](const FMassExecutionContext& InContext)
+		{
+			const TConstArrayView<Container::FEvent> Events = InContext.GetFragmentView<Container::FEvent>();
+			for (const Container::FEvent& Event : Events)
+			{
+				UFaerieItemContainerBase* Container = Event.Container.Get();
+				if (!IsValid(Container))
+				{
+					continue;
+				}
+
+				bool StateChanged = false;
+				Container->WriteContainerData(FFaerieItemContainerCapacityData::StaticStruct(), [&InContext, &Event, &StateChanged](const FStructView Element)
+				{
+					auto& ContentHash = Element.Get<FFaerieItemContainerCapacityData>();
+					StateChanged = ContentHash.HandleEvent(InContext.GetEntityManagerChecked(), Event);
+				}, false);
+
+				if (StateChanged)
+				{
+					ContainersUpdated.Add(Container);
+				}
+			}
+		});
+
+	ViewQuery.ForEachEntityChunk(Context, [&ContainersUpdated](const FMassExecutionContext& InContext)
+		{
+			const TConstArrayView<Container::FViewModelFragment> Views = InContext.GetFragmentView<Container::FViewModelFragment>(Content::FCapacityViewFragment::StaticStruct());
+			for (const Container::FViewModelFragment& ViewFragment : Views)
+			{
+				UFaerieContainerDataViewModelBase* View = Cast<UFaerieContainerDataViewModelBase>(ViewFragment.ViewObject.Get());
+				if (!IsValid(View))
+				{
+					continue;
+				}
+
+				if (ContainersUpdated.Contains(View->GetContainerObject()))
+				{
+					View->SyncView();
+				}
+			}
+		});
 }

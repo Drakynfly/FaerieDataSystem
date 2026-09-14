@@ -20,6 +20,36 @@ void FFaerieGridKeyedStack::PostReplicatedChange(const FFaerieGridContent& InArr
 	InArraySerializer.PostStackReplicatedChange(*this);
 }
 
+void FFaerieGridContent::PreStackReplicatedRemove(const FFaerieGridKeyedStack& Stack) const
+{
+	if (IsValid(ChangeListener))
+	{
+		FFaerieContainerGridWriteContext Context;
+		Context.Data = ChangeListener;
+		ChangeListener->Logic->PreStackRemove_Client(Context, Stack);
+	}
+}
+
+void FFaerieGridContent::PostStackReplicatedAdd(const FFaerieGridKeyedStack& Stack) const
+{
+	if (IsValid(ChangeListener))
+	{
+		FFaerieContainerGridWriteContext Context;
+		Context.Data = ChangeListener;
+		ChangeListener->Logic->PostStackAdd(Context, Stack);
+	}
+}
+
+void FFaerieGridContent::PostStackReplicatedChange(const FFaerieGridKeyedStack& Stack) const
+{
+	if (IsValid(ChangeListener))
+	{
+		FFaerieContainerGridWriteContext Context;
+		Context.Data = ChangeListener;
+		ChangeListener->Logic->PostStackChange(Context, Stack);
+	}
+}
+
 FFaerieGridContent::FScopedStackHandle::FScopedStackHandle(const FFaerieAddress Key, FFaerieGridContent& Source)
   : Handle(Source.Items[Source.IndexOf(Key)]),
 	Source(Source)
@@ -44,30 +74,6 @@ FFaerieGridContent::FScopedStackHandle::~FScopedStackHandle()
 
 	// Broadcast change on server
 	Source.PostStackReplicatedChange(Handle);
-}
-
-void FFaerieGridContent::PreStackReplicatedRemove(const FFaerieGridKeyedStack& Stack) const
-{
-	if (IsValid(ChangeListener))
-	{
-		ChangeListener->PreStackRemove_Client(Stack);
-	}
-}
-
-void FFaerieGridContent::PostStackReplicatedAdd(const FFaerieGridKeyedStack& Stack) const
-{
-	if (IsValid(ChangeListener))
-	{
-		ChangeListener->PostStackAdd(Stack);
-	}
-}
-
-void FFaerieGridContent::PostStackReplicatedChange(const FFaerieGridKeyedStack& Stack) const
-{
-	if (IsValid(ChangeListener))
-	{
-		ChangeListener->PostStackChange(Stack);
-	}
 }
 
 void FFaerieGridContent::Insert(FFaerieAddress Key, const FFaerieGridPlacement& Value)

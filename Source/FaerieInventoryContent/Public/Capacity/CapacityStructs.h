@@ -42,7 +42,7 @@ struct FAERIEINVENTORYCONTENT_API FFaerieWeightEditor_Float
 {
 	GENERATED_BODY()
 
-	friend class FInventoryWeightCustomization;
+	friend class FFaerieWeightEditorCustomization;
 	friend class FItemCapacityCustomization;
 
 	FFaerieWeightEditor_Float()
@@ -100,6 +100,8 @@ struct FAERIEINVENTORYCONTENT_API FFaerieItemCapacity : public FFaerieMassFragme
     {
     	return static_cast<double>(Weight) / GetEfficientVolume();
     }
+
+____FAERIE_FRAGMENT_DECL(FFaerieItemCapacity)
 };
 
 

@@ -26,6 +26,8 @@ struct FFaerieGuidFragment : public FFaerieMassFragment
 	{
 		return GetTypeHash(Value.Guid);
 	}
+
+____FAERIE_FRAGMENT_DECL(FFaerieGuidFragment)
 };
 
 template <>

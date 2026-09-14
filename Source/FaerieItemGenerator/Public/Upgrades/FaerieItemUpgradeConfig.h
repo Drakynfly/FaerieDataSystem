@@ -5,6 +5,8 @@
 #include "FaerieItemMutator.h"
 #include "FaerieItemSlotInterface.h"
 
+#include "Containers/AdderRef.h"
+
 #include "Mutators/ItemMutatorGroup.h"
 
 #include "FaerieItemUpgradeConfig.generated.h"

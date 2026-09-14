@@ -6,6 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "FaerieItemContainerStructs.h"
 #include "FaerieItemProxy.h"
+#include "ItemContainerExtensionBase.h"
 
 #include "StructUtils/InstancedStruct.h"
 #include "FaerieInventoryClient.generated.h"
@@ -50,6 +51,18 @@ struct FFaerieClientStackPromptArgs
 };
 
 DECLARE_DYNAMIC_DELEGATE_OneParam(FFaerieClientStackPromptHandler, const FFaerieClientStackPromptArgs&, Args);
+
+USTRUCT()
+struct FFaerieItemContainerClientPermissions : public FFaerieItemContainerData
+{
+	GENERATED_BODY()
+
+	// Tagged actions that are allowed to run on this container.
+	UPROPERTY()
+	FGameplayTagContainer AllowedActions;
+
+____FAERIE_CONTAINER_DATA_DECL(FFaerieItemContainerClientPermissions)
+};
 
 
 /**

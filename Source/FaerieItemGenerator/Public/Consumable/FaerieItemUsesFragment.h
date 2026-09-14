@@ -21,6 +21,8 @@ protected:
 
 public:
 	void HandleOnLastUse(const FFaerieItemLastUseLogicBase* ThisBase, FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy, bool ProcessAsync) const;
+
+____FAERIE_FRAGMENT_DECL(FFaerieItemLastUseLogicBase)
 };
 
 // Destroys the item when uses run out.
@@ -59,6 +61,8 @@ struct FFaerieItemUses : public FFaerieMassFragment
 
 	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "ItemUses")
 	int32 UsesRemaining = 0;
+
+____FAERIE_FRAGMENT_DECL(FFaerieItemUses)
 };
 
 namespace Faerie::ItemData

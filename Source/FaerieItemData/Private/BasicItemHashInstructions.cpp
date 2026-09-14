@@ -3,8 +3,9 @@
 #include "BasicItemHashInstructions.h"
 #include "FaerieHashStatics.h"
 #include "FaerieItem.h"
-#include "FaerieItemDataFilter.h"
+#include "FaerieItemFilter.h"
 #include "FaerieItemDataView.h"
+#include "FaerieItemTemplate.h"
 #include "Squirrel.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(BasicItemHashInstructions)
@@ -55,12 +56,12 @@ uint32 FISHI_Or::Hash(const FMassEntityManager* EntityManager, const Faerie::TVa
 
 uint32 FISHI_BooleanFilter::Hash(const FMassEntityManager* EntityManager, const Faerie::TValid<const FFaerieItemProxy&> View) const
 {
-	if (!ensure(Pattern.IsValid()))
+	if (!ensure(IsValid(Pattern)))
 	{
 		return HASH_FAILURE;
 	}
 
-	if (Pattern->Exec(EntityManager, View))
+	if (Pattern->TryMatch(EntityManager, View))
 	{
 		return BOOLEAN_FILTER_TRUE;
 	}
@@ -70,12 +71,12 @@ uint32 FISHI_BooleanFilter::Hash(const FMassEntityManager* EntityManager, const 
 
 uint32 FISHI_BooleanSelect::Hash(const FMassEntityManager* EntityManager, const Faerie::TValid<const FFaerieItemProxy&> View) const
 {
-	if (!ensure(Pattern.IsValid()))
+	if (!ensure(IsValid(Pattern)))
 	{
 		return HASH_FAILURE;
 	}
 
-	if (Pattern->Exec(EntityManager, View))
+	if (Pattern->TryMatch(EntityManager, View))
 	{
 		if (True.IsValid())
 		{
@@ -97,7 +98,7 @@ uint32 FISHI_Fragments::Hash(const FMassEntityManager* EntityManager, const Faer
 
 	uint32 Hash = 0;
 
-	const TOptional<FFaerieItemInstance> Instance = ValidGet(View).GetItemInstance();
+	const TOptional<FFaerieItemInstance> Instance = Faerie::ValidGet(View).GetItemInstance();
 	if (!Instance.IsSet()) return 0;
 
 	for (auto&& FragmentType : FragmentTypes)

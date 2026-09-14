@@ -1,9 +1,13 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
+#include "FaerieContainerEvent.h"
+
 #include "GridLayout/InventoryGridExtensionBase.h"
 #include "FaerieItemContainerBase.h"
 #include "FaerieItemStorage.h"
 #include "FaerieItemStorageIterators.h"
+#include "MassExecutionContext.h"
+
 #include "Net/UnrealNetwork.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventoryGridExtensionBase)
@@ -21,20 +25,15 @@ namespace Faerie::Extensions
 		return CellBits[Index];
 	}
 
-	FIntPoint FCellGrid::GetDimensions() const
-	{
-		return Dimensions;
-	}
-
-	void FCellGrid::Reset(const FIntPoint Size)
+	void FCellGrid::Reset(const FIntVector2 Size)
 	{
 		Dimensions = Size;
 		CellBits.Init(false, Size.X * Size.Y);
 	}
 
-	void FCellGrid::Resize(const FIntPoint NewSize)
+	void FCellGrid::Resize(const FIntVector2 NewSize)
 	{
-		const FIntPoint OldSize = Dimensions;
+		const FIntVector2 OldSize = Dimensions;
 		TBitArray<> OldBits = CellBits;
 
         Reset(NewSize);
@@ -111,7 +110,15 @@ namespace Faerie::Extensions
 	}
 }
 
-void UInventoryGridExtensionBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+using namespace Faerie;
+
+void UFaerieContainerGridWrapper::PostInitProperties()
+{
+	Super::PostInitProperties();
+	GridContent.ChangeListener = this;
+}
+
+void UFaerieContainerGridWrapper::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
@@ -120,91 +127,181 @@ void UInventoryGridExtensionBase::GetLifetimeReplicatedProps(TArray<class FLifet
 
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, GridContent, SharedParams)
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, GridSize, SharedParams)
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, InitializedContainer, SharedParams)
 }
 
-void UInventoryGridExtensionBase::PostInitProperties()
+void FFaerieContainerGridData::InitializeExtension(const TNotNull<const UFaerieItemContainerBase*> Container)
 {
-	Super::PostInitProperties();
-	GridContent.ChangeListener = this;
+	UFaerieItemStorage* Storage = const_cast<UFaerieItemStorage*>(CastChecked<UFaerieItemStorage>(Container));
+	GridWrapper = NewObject<UFaerieContainerGridWrapper>();
+	GridWrapper->Storage = Storage;
+	GridWrapper->Logic = GetGridLogic();
+
+	return GetGridLogic()->InitializeGrid(GetWriteContext());
 }
 
-void UInventoryGridExtensionBase::InitializeExtension(const TNotNull<const UFaerieItemContainerBase*> Container)
+EFaerieExtensionResponse FFaerieContainerGridData::AllowsAddition(const TNotNull<const UFaerieItemContainerBase*> Container,
+	const Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, const FFaerieExtensionAllowsAdditionArgs Args) const
 {
-	checkf(!IsValid(InitializedContainer), TEXT("UInventoryGridExtensionBase doesn't support multi-initialization!"))
-	InitializedContainer = const_cast<UFaerieItemContainerBase*>(NotNullGet(Container));
-	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, InitializedContainer, this);
+	check(Container == GridWrapper->Storage);
+	return GetGridLogic()->AllowsAddition(GetReadContext(), Proxies, Args);
+}
 
-	// Add all existing items to the grid on startup.
-	// This is dumb, and just adds them in order, it doesn't space pack them. To do that, we would want to sort items by size, and add largest first.
-	// This is also skipping possible serialization of grid data.
-	// @todo handle serialization loading
-	// @todo handle items that are too large to fit / too many items (log error?)
-	OccupiedCells.Reset(GridSize);
-	if (const UFaerieItemStorage* ItemStorage = Cast<UFaerieItemStorage>(Container))
-	{
-		for (Faerie::Container::FIterator_AllAddresses It(ItemStorage); It; ++It)
+EFaerieExtensionResponse FFaerieContainerGridData::AllowsEdit(const TNotNull<const UFaerieItemContainerBase*> Container,
+	const TNotNull<const Container::IAddressView*> DataView, const FFaerieInventoryTag EditType) const
+{
+	check(Container == GridWrapper->Storage);
+	return GetGridLogic()->AllowsEdit(GetReadContext(), DataView, EditType);
+}
+
+FFaerieContainerGridReadContext FFaerieContainerGridData::GetReadContext() const
+{
+	FFaerieContainerGridReadContext Context;
+	Context.Data = GridWrapper;
+	return Context;
+}
+
+FFaerieContainerGridWriteContext FFaerieContainerGridData::GetWriteContext()
+{
+	FFaerieContainerGridWriteContext Context;
+	Context.Data = GridWrapper;
+	return Context;
+}
+
+const UInventoryGridExtensionBase* FFaerieContainerGridData::GetGridLogic() const
+{
+	return GridClass.GetDefaultObject();
+}
+
+void UFaerieContainerGridDataView::SyncView()
+{
+	// @Todo implement
+}
+
+UFaerieContainerGridDataUpdater::UFaerieContainerGridDataUpdater()
+  : EventQuery(*this), ViewQuery(*this)
+{
+	ExecutionFlags = static_cast<uint8>(EProcessorExecutionFlags::AllNetModes);
+
+	ExecutionOrder.ExecuteBefore.Add(Container::EventCleanup);
+
+	// We write to container data and send events to game-thread UI
+	bRequiresGameThreadExecution = true;
+}
+
+void UFaerieContainerGridDataUpdater::ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager)
+{
+	EventQuery.AddRequirement<Container::FEvent>(EMassFragmentAccess::ReadOnly, EMassFragmentPresence::All);
+	ViewQuery.AddRequirement<Content::FGridDataViewFragment>(EMassFragmentAccess::ReadOnly, EMassFragmentPresence::All);
+}
+
+void UFaerieContainerGridDataUpdater::Execute(FMassEntityManager& EntityManager, FMassExecutionContext& Context)
+{
+	// Track the containers we updated, so we can notify any active views of them.
+	TSet<UObject*> ContainersUpdated;
+
+	EventQuery.ForEachEntityChunk(Context, [this, &ContainersUpdated](const FMassExecutionContext& InContext)
 		{
-			const FFaerieItemInstance Instance = It.GetInstance();
-			const FFaerieAddress Address = It.GetAddress();
-			if (!AddItemToGrid(Address, Instance))
+			const TConstArrayView<Container::FEvent> Events = InContext.GetFragmentView<Container::FEvent>();
+			for (const Container::FEvent& Event : Events)
 			{
-				// @todo Cannot add this item, ignore and try next for now...
+				UFaerieItemStorage* Storage = Cast<UFaerieItemStorage>(Event.Container.Get());
+				if (!IsValid(Storage))
+				{
+					continue;
+				}
+
+				Storage->WriteContainerData(FFaerieContainerGridData::StaticStruct(), [&InContext, &Event, Storage](const FStructView Element)
+				{
+					auto& GridData = Element.Get<FFaerieContainerGridData>();
+					GridData.GetGridLogic()->HandleEvent(GridData.GetWriteContext(), Event);
+				}, false);
+
+				ContainersUpdated.Add(Storage);
 			}
-		}
-	}
-}
+		});
 
-void UInventoryGridExtensionBase::DeinitializeExtension(const TNotNull<const UFaerieItemContainerBase*> Container)
-{
-	// Remove all entries for this container on shutdown
-	// @todo its only okay to reset these because we don't suppose multi-container! revisit later
-	OccupiedCells.Reset(0);
-	GridContent.Items.Reset();
-	InitializedContainer = nullptr;
-	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, InitializedContainer, this);
-}
+	ViewQuery.ForEachEntityChunk(Context, [&ContainersUpdated](const FMassExecutionContext& InContext)
+		{
+			const TConstArrayView<Container::FViewModelFragment> Views = InContext.GetFragmentView<Container::FViewModelFragment>(Content::FGridDataViewFragment::StaticStruct());
+			for (const Container::FViewModelFragment& ViewFragment : Views)
+			{
+				UFaerieContainerDataViewModelBase* View = Cast<UFaerieContainerDataViewModelBase>(ViewFragment.ViewObject.Get());
+				if (!IsValid(View))
+				{
+					continue;
+				}
 
-bool UInventoryGridExtensionBase::IsCellOccupied(const FIntPoint& Point) const
-{
-	return OccupiedCells.GetCell(Point);
+				if (ContainersUpdated.Contains(View->GetContainerObject()))
+				{
+					View->SyncView();
+				}
+			}
+		});
 }
 
 void UInventoryGridExtensionBase::BroadcastEvent(const FFaerieAddress Address, const EFaerieGridEventType EventType)
 {
-	SpatialStackChangedNative.Broadcast(Address, EventType);
-	SpatialStackChangedDelegate.Broadcast(Address, EventType);
+	// @Todo broadcast event for views???
 }
 
-void UInventoryGridExtensionBase::OnRep_GridSize()
+const UFaerieItemStorage* FFaerieContainerGridReadContext::GetStorage() const
 {
-	GridSizeChangedNative.Broadcast(GridSize);
-	GridSizeChangedDelegate.Broadcast(GridSize);
+	return Data->Storage.Get();
 }
 
-Faerie::ItemData::FScopeProxy UInventoryGridExtensionBase::ViewAt_Native(const FIntPoint& Position) const
+const FFaerieGridContent& FFaerieContainerGridReadContext::GetGrid() const
 {
-	if (const FFaerieAddress Address = GetKeyAt(Position);
-		Address.IsValid())
+	return Data->GridContent;
+}
+
+const Extensions::FCellGrid& FFaerieContainerGridReadContext::GetOccupiedCells() const
+{
+	return Data->OccupiedCells;
+}
+
+FIntVector2 FFaerieContainerGridReadContext::GetGridSize() const
+{
+	return Data->GridSize;
+}
+
+TOptional<FFaerieAddress> FFaerieContainerGridReadContext::FindAddress(const FIntPoint& Position) const
+{
+	return Data->Logic->GetKeyAt(*this, Position);
+}
+
+ItemData::FScopeProxy FFaerieContainerGridReadContext::ViewAt_Native(const FIntPoint& Position) const
+{
+	if (const TOptional<FFaerieAddress> Address = Data->Logic->GetKeyAt(*this, Position);
+		Address.IsSet())
 	{
-		return Cast<UFaerieItemStorage>(InitializedContainer)->ViewAddress(Address);
+		return Data->Storage->ViewAddress(Address.GetValue());
 	}
 	return nullptr;
 }
 
-FFaerieItemProxy UInventoryGridExtensionBase::ViewAt(const FIntPoint& Position) const
+FFaerieItemProxy FFaerieContainerGridReadContext::ViewAt(const FIntPoint& Position) const
 {
-	if (const FFaerieAddress Address = GetKeyAt(Position);
-		Address.IsValid())
+	if (const TOptional<FFaerieAddress> Address = Data->Logic->GetKeyAt(*this, Position);
+		Address.IsSet())
 	{
-		return Cast<UFaerieItemStorage>(InitializedContainer)->Proxy(Address);
+		return Data->Storage->Proxy(Address.GetValue());
 	}
 	return FFaerieItemProxy();
 }
 
-FFaerieGridPlacement UInventoryGridExtensionBase::GetStackPlacementData(const FFaerieAddress Address) const
+bool FFaerieContainerGridReadContext::IsCellOccupied(const FIntPoint& Position) const
 {
-	if (const FFaerieGridKeyedStack* KeyedStack = GridContent.Find(Address))
+	return Data->OccupiedCells.GetCell(Position);
+}
+
+bool FFaerieContainerGridReadContext::IsInGrid(const FFaerieAddress Address) const
+{
+	return Data->GridContent.Contains(Address);
+}
+
+FFaerieGridPlacement FFaerieContainerGridReadContext::GetStackPlacementData(const FFaerieAddress Address) const
+{
+	if (const FFaerieGridKeyedStack* KeyedStack = Data->GridContent.BSOA::Find(Address))
 	{
 		return KeyedStack->Value;
 	}
@@ -212,17 +309,38 @@ FFaerieGridPlacement UInventoryGridExtensionBase::GetStackPlacementData(const FF
 	return FFaerieGridPlacement();
 }
 
-void UInventoryGridExtensionBase::SetGridSize(const FIntPoint& NewGridSize)
+bool FFaerieContainerGridReadContext::CanAddAtLocation(const TValid<const FFaerieItemProxy&> Proxy, const FIntPoint& Position) const
 {
-	if (GridSize != NewGridSize)
+	return Data->Logic->CanAddAtLocation(*this, Proxy, Position);
+}
+
+UFaerieItemStorage* FFaerieContainerGridWriteContext::GetStorage() const
+{
+	return Data->Storage.Get();
+}
+
+void FFaerieContainerGridWriteContext::SetGridSize(const FIntPoint& NewGridSize) const
+{
+	if (Data->GridSize != NewGridSize)
 	{
 		// Resize to new dimensions
-		GridSize = NewGridSize;
-		OccupiedCells.Resize(GridSize);
+		Data->GridSize = NewGridSize;
+		Data->OccupiedCells.Resize(Data->GridSize);
 
-		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, GridSize, this);
+		MARK_PROPERTY_DIRTY_FROM_NAME(UFaerieContainerGridWrapper, GridSize, Data);
 
 		// OnReps must be called manually on the server in c++
-		OnRep_GridSize();
+		//OnRep_GridSize();
+		// @todo alert view???
 	}
+}
+
+bool FFaerieContainerGridWriteContext::MoveItem(const FFaerieAddress Address, const FIntPoint Position) const
+{
+	return Data->Logic->MoveItem(*this, Address, Position);
+}
+
+bool FFaerieContainerGridWriteContext::RotateItem(const FFaerieAddress Address, const EFaerieSpatialItemRotation RotationBy) const
+{
+	return Data->Logic->RotateItem(*this, Address, RotationBy);
 }

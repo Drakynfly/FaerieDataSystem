@@ -55,7 +55,7 @@ public:
 	static const FName MutableSourceTag;
 
 	// Can this source create mutable items? If this can return true in an implementing class, you must also override
-	// GetAssetRegistryTags and add MutableSourceTag.
+	// GetAssetRegistryTags to add MutableSourceTag.
 	virtual bool CanBeMutable() const { return false; }
 
 	// Create an item stack from this source.

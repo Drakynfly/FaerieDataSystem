@@ -22,6 +22,8 @@ struct FFaerieTagFragment : public FFaerieMassFragment
 	{
 		return GetTypeHash(Value.Tags.GetGameplayTagArray());
 	}
+
+____FAERIE_FRAGMENT_DECL(FFaerieTagFragment)
 };
 
 template <>

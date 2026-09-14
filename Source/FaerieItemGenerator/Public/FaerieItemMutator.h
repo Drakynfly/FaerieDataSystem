@@ -3,8 +3,11 @@
 #pragma once
 
 #include "UObject/SoftObjectPtr.h"
+#include "Containers/AdderRef.h"
 
-#include "FaerieItemGeneratorModule.h" // Needed for FAERIE_IMPL_StructTypeCustomization macro
+#include "FaerieItemGeneratorModule.h" // Needed for FAERIE_IMPL_MutatorStructTypeCustomization macro
+#include "StructImplementationMacros.h"
+
 #include "FaerieItemMutator.generated.h"
 
 struct FFaerieItemInstance;
@@ -76,33 +79,6 @@ struct FAERIEITEMGENERATOR_API FFaerieItemMutator
 	virtual bool Apply(FFaerieItemInstance& Item, const FFaerieItemMutatorContext& Context) const PURE_VIRTUAL(FFaerieItemMutator::Apply, return false; )
 };
 
-// Macro to semi-automate implementation of virtual struct machinery.
-#define FAERIE_IMPL_GetScriptStruct() public: virtual const UScriptStruct* GetScriptStruct() const override { return StaticStruct(); }
-
-#if WITH_EDITOR
-// Declare editor-only type customization auto register RAII static.
-#define FAERIE_IMPL_StructTypeCustomization(Type)\
-	[[maybe_unused]] static Faerie::Generation::TMutatorStructTypeCustomizationAutoRegister<Type> Type##_CustomizationRegister;
-#else
-#define FAERIE_IMPL_StructTypeCustomization(Type)
-#endif
-
-#define FAERIE_IMPL_TStructOpsTypeTraits(Type)\
-template<> struct TStructOpsTypeTraits<Type> : public TStructOpsTypeTraitsBase2<Type>\
-{\
-	enum\
-	{\
-		WithPostSerialize = true, \
-	};
-
-#define FAERIE_MUTATOR_HEADER(Type)\
-	FAERIE_IMPL_GetScriptStruct()\
-	};\
-	FAERIE_IMPL_TStructOpsTypeTraits(Type)
-
-#define FAERIE_MUTATOR_IMPL(Type)\
-	FAERIE_IMPL_StructTypeCustomization(Type)
-
 template<>
 struct TStructOpsTypeTraits<FFaerieItemMutator> : public TStructOpsTypeTraitsBase2<FFaerieItemMutator>
 {
@@ -111,3 +87,26 @@ struct TStructOpsTypeTraits<FFaerieItemMutator> : public TStructOpsTypeTraitsBas
 		WithPostSerialize = true,
 	};
 };
+
+#if WITH_EDITOR
+// Declare editor-only type customization auto register RAII.
+#define FAERIE_IMPL_MutatorStructTypeCustomization(Type)\
+namespace\
+{\
+	[[maybe_unused]] Faerie::Generation::TMutatorStructTypeCustomizationAutoRegister<Type> Type##_CustomizationRegister;\
+}
+#else
+#define FAERIE_IMPL_MutatorStructTypeCustomization(Type)
+#endif
+
+// Macro to implement a faerie mutator type. Place in header at end of struct declaration.
+#define ____FAERIE_MUTATOR_DECL(Type)\
+	FAERIE_IMPL_GetScriptStruct()\
+	};\
+	FAERIE_IMPL_TStructOpsTypeTraits_BEGIN(Type)\
+	WithPostSerialize = true,\
+	FAERIE_IMPL_TStructOpsTypeTraits_END(Type)
+
+// Macro to implement a faerie mutator type. Place in cpp file.
+#define FAERIE_MUTATOR_IMPL(Type)\
+	FAERIE_IMPL_MutatorStructTypeCustomization(Type)

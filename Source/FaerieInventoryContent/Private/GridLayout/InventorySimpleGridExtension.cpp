@@ -1,198 +1,206 @@
 // Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
+#include "FaerieContainerEvent.h"
+
 #include "GridLayout/InventorySimpleGridExtension.h"
 
 #include "FaerieItemContainerBase.h"
 #include "FaerieItemStorage.h"
+#include "FaerieItemStorageIterators.h"
 #include "ItemContainerEvent.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventorySimpleGridExtension)
 
 using namespace Faerie;
 
-EEventExtensionResponse UInventorySimpleGridExtension::AllowsAddition(const TNotNull<const UFaerieItemContainerBase*> Container,
+void UInventorySimpleGridExtension::InitializeGrid(const FFaerieContainerGridWriteContext& Context) const
+{
+	// Add all existing items to the grid on startup.
+	// This is dumb, and just adds them in order, it doesn't space pack them. To do that, we would want to sort items by size, and add largest first.
+	// This is also skipping possible serialization of grid data.
+	// @todo handle serialization loading
+	// @todo handle items that are too large to fit / too many items (log error?)
+	Context.Unwrap().OccupiedCells.Reset(Context.GetGridSize());
+
+	for (Container::FIterator_AllAddresses It(Context.GetStorage()); It; ++It)
+	{
+		const FFaerieItemInstance Instance = It.GetInstance();
+		const FFaerieAddress Address = It.GetAddress();
+		if (!AddItemToGrid(Context, Address, Instance))
+		{
+			// @todo Cannot add this item, ignore and try next for now...
+		}
+	}
+}
+
+EFaerieExtensionResponse UInventorySimpleGridExtension::AllowsAddition(const FFaerieContainerGridReadContext& Context,
 																	  const Utils::TArrayAdapter<FFaerieItemProxy>& Proxies,
 																	  const FFaerieExtensionAllowsAdditionArgs Args) const
 {
-	if (OccupiedCells.GetNumUnmarked() > Proxies.Num())
+	if (Context.GetEmptyCellCount() >= Proxies.Num())
 	{
-		return EEventExtensionResponse::Allowed;
+		return EFaerieExtensionResponse::Allowed;
 	}
-	return EEventExtensionResponse::Disallowed;
+	return EFaerieExtensionResponse::Disallowed;
 }
 
-EEventExtensionResponse UInventorySimpleGridExtension::AllowsEdit(const TNotNull<const UFaerieItemContainerBase*> Container,
+EFaerieExtensionResponse UInventorySimpleGridExtension::AllowsEdit(const FFaerieContainerGridReadContext& Context,
 																  const TNotNull<const Container::IAddressView*> DataView,
 																  const FFaerieInventoryTag EditType) const
 {
 	if (EditType == Inventory::Tags::Split)
 	{
-		if (OccupiedCells.IsFull())
+		if (Context.IsFull())
 		{
-			return EEventExtensionResponse::Disallowed;
+			// If we are full, no open slots to split into.
+			return EFaerieExtensionResponse::Disallowed;
 		}
 	}
 
-	return EEventExtensionResponse::NoExplicitResponse;
+	return EFaerieExtensionResponse::NoExplicitResponse;
 }
 
-void UInventorySimpleGridExtension::PostEventBatch(const TNotNull<const UFaerieItemContainerBase*> Container, const Inventory::FEventLogBatch& Events)
+void UInventorySimpleGridExtension::HandleEvent(const FFaerieContainerGridWriteContext& Context, const Container::FEvent& Event) const
 {
-	if (Container != InitializedContainer) return;
-
-	if (Events.IsAdditionEvent())
+	if (Event.IsAdditionEvent())
 	{
-		for (auto&& Event : Events.Data)
+		for (const FFaerieAddress Address : Event.AddressesTouched)
 		{
-            for (const FFaerieAddress Address : Event.AddressesTouched)
-            {
-            	if (GridContent.Contains(Address))
-            	{
-            		// Already in the grid...
-            		continue;
-            	}
+			if (Context.IsInGrid(Address))
+			{
+				// Already in the grid...
+				continue;
+			}
 
-                AddItemToGrid(Address, Event.Instance);
-            }
+			(void)AddItemToGrid(Context, Address, Event.Instance);
 		}
 	}
-	else if (Events.IsRemovalEvent())
+	else if (Event.IsRemovalEvent())
 	{
-		for (auto&& Event : Events.Data)
-		{
-            // Create a temporary array to store keys that need to be removed
-            TArray<FFaerieAddress> AddressesToRemove;
+		// Create a temporary array to store addresses that need to be removed
+		TArray<FFaerieAddress, TInlineAllocator<8>> AddressesToRemove;
 
-            for (const FFaerieAddress Address : Event.AddressesTouched)
+		for (const FFaerieAddress Address : Event.AddressesTouched)
+        {
+            if (Context.GetStorage()->ContainsAddress(Address))
             {
-                if (InitializedContainer->Contains(Address))
-                {
-                	PostStackChange({ Address, GetStackPlacementData(Address) });
-                }
-                else
-                {
-                	AddressesToRemove.Add(Address);
-                }
+                PostStackChange(Context, { Address, Context.GetStackPlacementData(Address) });
             }
-            RemoveItemBatch(AddressesToRemove, Event.Instance);
-		}
+            else
+            {
+                AddressesToRemove.Add(Address);
+            }
+        }
+        RemoveItemBatch(Context, AddressesToRemove, Event.Instance);
 	}
 	else
 	{
-		check(Events.IsEditEvent())
+		check(Event.IsEditEvent())
 
-		// Create a temporary array to store keys that need to be removed
-        TArray<FFaerieAddress> KeysToRemove;
+		// Create a temporary array to store addresses that need to be removed
+		TArray<FFaerieAddress, TInlineAllocator<8>> AddressesToRemove;
 
         // get keys to remove
-		for (auto&& Event : Events.Data)
-		{
-			for (const FFaerieAddress Address : Event.AddressesTouched)
+		for (const FFaerieAddress Address : Event.AddressesTouched)
+        {
+            if (!Context.GetStorage()->ContainsAddress(Address))
             {
-                if (const UFaerieItemStorage* Storage = Cast<UFaerieItemStorage>(InitializedContainer);
-                    !Storage->ContainsAddress(Address))
+                AddressesToRemove.Add(Address);
+            }
+            else
+            {
+            	if (Context.IsInGrid(Address))
                 {
-                    KeysToRemove.Add(Address);
+                    BroadcastEvent(Address, EFaerieGridEventType::ItemChanged);
                 }
                 else
                 {
-                    if (GridContent.Contains(Address))
-                    {
-                        BroadcastEvent(Address, EFaerieGridEventType::ItemChanged);
-                    }
-                    else
-                    {
-                        AddItemToGrid(Address, Event.Instance);
-                    }
+                    (void)AddItemToGrid(Context, Address, Event.Instance);
                 }
             }
-		}
+        }
 
         // remove the stored keys
-        for (const FFaerieAddress& AddressToRemove : KeysToRemove)
+        for (const FFaerieAddress& AddressToRemove : AddressesToRemove)
         {
-        	if (auto Instance = Container->ViewInstance(AddressToRemove);
+        	if (auto Instance = Context.GetStorage()->ViewInstance(AddressToRemove);
         		Instance.IsSet())
         	{
-        		RemoveItem(AddressToRemove, Instance.GetValue());
+        		RemoveItem(Context, AddressToRemove, Instance.GetValue());
         	}
             BroadcastEvent(AddressToRemove, EFaerieGridEventType::ItemRemoved);
         }
-        GridContent.MarkArrayDirty();
+        Context.Unwrap().GridContent.MarkArrayDirty();
 	}
 }
 
-void UInventorySimpleGridExtension::PreStackRemove_Client(const FFaerieGridKeyedStack& Stack)
+void UInventorySimpleGridExtension::PreStackRemove_Client(const FFaerieContainerGridWriteContext& Context, const FFaerieGridKeyedStack& Stack) const
 {
 	// This is to account for removals through proxies that don't directly interface with the grid
-	OccupiedCells.UnmarkCell(Stack.Value.Origin);
+	Context.Unwrap().OccupiedCells.UnmarkCell(Stack.Value.Origin);
 	BroadcastEvent(Stack.Key, EFaerieGridEventType::ItemRemoved);
 }
 
-void UInventorySimpleGridExtension::PreStackRemove_Server(const FFaerieGridKeyedStack& Stack, const FFaerieItemInstance& Item)
+void UInventorySimpleGridExtension::PreStackRemove_Server(const FFaerieContainerGridWriteContext& Context, const FFaerieGridKeyedStack& Stack, const FFaerieItemInstance& Item) const
 {
 	// This is to account for removals through proxies that don't directly interface with the grid
-	OccupiedCells.UnmarkCell(Stack.Value.Origin);
+	Context.Unwrap().OccupiedCells.UnmarkCell(Stack.Value.Origin);
 	BroadcastEvent(Stack.Key, EFaerieGridEventType::ItemRemoved);
 }
 
-void UInventorySimpleGridExtension::PostStackAdd(const FFaerieGridKeyedStack& Stack)
+void UInventorySimpleGridExtension::PostStackAdd(const FFaerieContainerGridWriteContext& Context, const FFaerieGridKeyedStack& Stack) const
 {
 	BroadcastEvent(Stack.Key, EFaerieGridEventType::ItemAdded);
 }
 
-void UInventorySimpleGridExtension::PostStackChange(const FFaerieGridKeyedStack& Stack)
+void UInventorySimpleGridExtension::PostStackChange(const FFaerieContainerGridWriteContext& Context, const FFaerieGridKeyedStack& Stack) const
 {
-	if (const UFaerieItemStorage* Storage = Cast<UFaerieItemStorage>(InitializedContainer);
-		Storage->ContainsAddress(Stack.Key))
+	if (Context.GetStorage()->ContainsAddress(Stack.Key))
 	{
 		BroadcastEvent(Stack.Key, EFaerieGridEventType::ItemChanged);
 	}
 }
 
-FFaerieAddress UInventorySimpleGridExtension::GetKeyAt(const FIntPoint& Position) const
+TOptional<FFaerieAddress> UInventorySimpleGridExtension::GetKeyAt(const FFaerieContainerGridReadContext& Context, const FIntPoint& Position) const
 {
-	for (auto&& Element : GridContent)
+	if (const FFaerieGridKeyedStack* Stack = Context.GetGrid().Find(Position))
 	{
-		if (Element.Value.Origin == Position)
-		{
-			return Element.Key;
-		}
+		return Stack->Key;
 	}
-	return FFaerieAddress();
+	return NullOpt;
 }
 
-bool UInventorySimpleGridExtension::CanAddAtLocation(const TValid<const FFaerieItemProxy&> Proxy, const FIntPoint IntPoint) const
+bool UInventorySimpleGridExtension::CanAddAtLocation(const FFaerieContainerGridReadContext& Context, const TValid<const FFaerieItemProxy&> Proxy, const FIntPoint IntPoint) const
 {
-	return !IsCellOccupied(IntPoint);
+	return !Context.IsCellOccupied(IntPoint);
 }
 
-bool UInventorySimpleGridExtension::AddItemToGrid(const FFaerieAddress Address, const FFaerieItemInstance& Instance)
+bool UInventorySimpleGridExtension::AddItemToGrid(const FFaerieContainerGridWriteContext& Context, const FFaerieAddress Address, const FFaerieItemInstance& Instance) const
 {
 	if (!Address.IsValid())
 	{
 		return false;
 	}
 
-	const FFaerieGridPlacement DesiredItemPlacement = FindFirstEmptyLocation();
+	const FFaerieGridPlacement DesiredItemPlacement = FindFirstEmptyLocation(Context);
 
 	if (DesiredItemPlacement.Origin == FIntPoint::NoneValue)
 	{
 		return false;
 	}
 
-	GridContent.Insert(Address, DesiredItemPlacement);
-	OccupiedCells.MarkCell(DesiredItemPlacement.Origin);
+	Context.Unwrap().GridContent.Insert(Address, DesiredItemPlacement);
+	Context.Unwrap().OccupiedCells.MarkCell(DesiredItemPlacement.Origin);
 	return true;
 }
 
-bool UInventorySimpleGridExtension::MoveItem(const FFaerieAddress Address, const FIntPoint& TargetPoint)
+bool UInventorySimpleGridExtension::MoveItem(const FFaerieContainerGridWriteContext& Context, const FFaerieAddress Address, const FIntPoint& TargetPoint) const
 {
-	if (const FFaerieAddress OverlappingAddress = FindOverlappingItem(Address);
-		OverlappingAddress.IsValid())
+	if (const TOptional<FFaerieAddress> OverlappingAddress = FindOverlappingItem(Context, TargetPoint, Address);
+		OverlappingAddress.IsSet())
 	{
 		const TTuple<FFaerieEntryKey, FFaerieStackKey> Key = UFaerieItemStorage::BreakAddress(Address);
-		const TTuple<FFaerieEntryKey, FFaerieStackKey> OverlappingKey = UFaerieItemStorage::BreakAddress(OverlappingAddress);
+		const TTuple<FFaerieEntryKey, FFaerieStackKey> OverlappingKey = UFaerieItemStorage::BreakAddress(OverlappingAddress.GetValue());
 
 		// If the Entry keys are identical, it gives us some other things to test before Swapping.
 		if (Key.Get<0>() == OverlappingKey.Get<0>())
@@ -204,57 +212,53 @@ bool UInventorySimpleGridExtension::MoveItem(const FFaerieAddress Address, const
 			}
 
 			// Try merging them. This is known to be safe, since all stacks with the same key share immutability.
-			if (UFaerieItemStorage* Storage = Cast<UFaerieItemStorage>(InitializedContainer);
-				Storage->MergeStacks(Key.Get<0>(), Key.Get<1>(), OverlappingKey.Get<1>()))
+			if (Context.GetStorage()->MergeStacks(Key.Get<0>(), Key.Get<1>(), OverlappingKey.Get<1>()))
 			{
 				return true;
 			}
 		}
 
-		const FFaerieGridContent::FScopedStackHandle HandleA = GridContent.GetHandle(Address);
-		const FFaerieGridContent::FScopedStackHandle HandleB = GridContent.GetHandle(OverlappingAddress);
-		SwapItems(HandleA.Get(), HandleB.Get());
+		const FFaerieGridContent::FScopedStackHandle HandleA = Context.Unwrap().GridContent.GetHandle(Address);
+		const FFaerieGridContent::FScopedStackHandle HandleB = Context.Unwrap().GridContent.GetHandle(OverlappingAddress.GetValue());
+		Swap(HandleA.Get().Origin, HandleB.Get().Origin);
+		// No need to change cell marking, because swaps don't change any.
 		return true;
 	}
 
-	const FFaerieGridContent::FScopedStackHandle Handle = GridContent.GetHandle(Address);
-	MoveSingleItem(Handle.Get(), TargetPoint);
+	const FFaerieGridContent::FScopedStackHandle Handle = Context.Unwrap().GridContent.GetHandle(Address);
+	MoveSingleItem(Context, Handle.Get(), TargetPoint);
 	return true;
 }
 
-bool UInventorySimpleGridExtension::RotateItem(const FFaerieAddress Address, const EFaerieSpatialItemRotation RotationToAdd)
+bool UInventorySimpleGridExtension::RotateItem(const FFaerieContainerGridWriteContext& Context, const FFaerieAddress Address, const EFaerieSpatialItemRotation RotationToAdd) const
 {
-	const FFaerieGridContent::FScopedStackHandle Handle = GridContent.GetHandle(Address);
+	const FFaerieGridContent::FScopedStackHandle Handle = Context.Unwrap().GridContent.GetHandle(Address);
 	Handle->Rotation = Spatial::AddRotations(Handle->Rotation, RotationToAdd);
 	return true;
 }
 
-void UInventorySimpleGridExtension::RemoveItem(const FFaerieAddress Address, const FFaerieItemInstance& Instance)
+void UInventorySimpleGridExtension::RemoveItem(const FFaerieContainerGridWriteContext& Context, const FFaerieAddress Address, const FFaerieItemInstance& Instance) const
 {
-	GridContent.BSOA::Remove(Address,
-		[Instance, this](const FFaerieGridKeyedStack& Stack)
+	Context.Unwrap().GridContent.BSOA::Remove(Address,
+		[Instance, Context, this](const FFaerieGridKeyedStack& Stack)
 		{
-			PreStackRemove_Server(Stack, Instance);
+			PreStackRemove_Server(Context, Stack, Instance);
 		});
 }
 
-void UInventorySimpleGridExtension::RemoveItemBatch(const TConstArrayView<FFaerieAddress>& Keys, const FFaerieItemInstance& Instance)
+void UInventorySimpleGridExtension::RemoveItemBatch(const FFaerieContainerGridWriteContext& Context, const TConstArrayView<FFaerieAddress>& Keys, const FFaerieItemInstance& Instance) const
 {
 	for (const FFaerieAddress& KeyToRemove : Keys)
 	{
-		RemoveItem(KeyToRemove, Instance);
+		RemoveItem(Context, KeyToRemove, Instance);
 		BroadcastEvent(KeyToRemove, EFaerieGridEventType::ItemRemoved);
 	}
-	GridContent.MarkArrayDirty();
+	Context.Unwrap().GridContent.MarkArrayDirty();
 }
 
-FFaerieGridPlacement UInventorySimpleGridExtension::FindFirstEmptyLocation() const
+FFaerieGridPlacement UInventorySimpleGridExtension::FindFirstEmptyLocation(const FFaerieContainerGridReadContext& Context)
 {
-	// Early exit if grid is empty or invalid
-	if (GridSize.X <= 0 || GridSize.Y <= 0)
-	{
-		return FFaerieGridPlacement{FIntPoint::NoneValue};
-	}
+	const FIntVector2 GridSize = Context.GetGridSize();
 
 	// For each cell in the grid
 	FIntPoint TestPoint = FIntPoint::ZeroValue;
@@ -263,7 +267,7 @@ FFaerieGridPlacement UInventorySimpleGridExtension::FindFirstEmptyLocation() con
 		for (TestPoint.X = 0; TestPoint.X < GridSize.X; TestPoint.X++)
 		{
 			// Skip if current cell is occupied
-			if (IsCellOccupied(TestPoint))
+			if (Context.IsCellOccupied(TestPoint))
 			{
 				continue;
 			}
@@ -275,28 +279,26 @@ FFaerieGridPlacement UInventorySimpleGridExtension::FindFirstEmptyLocation() con
 	return FFaerieGridPlacement{FIntPoint::NoneValue};
 }
 
-FFaerieAddress UInventorySimpleGridExtension::FindOverlappingItem(const FFaerieAddress ExcludeAddress) const
+TOptional<FFaerieAddress> UInventorySimpleGridExtension::FindOverlappingItem(const FFaerieContainerGridReadContext& Context, const FIntPoint& Position, const FFaerieAddress ExcludeAddress) const
 {
-	if (GridContent.Contains(ExcludeAddress))
+	if (TOptional<FFaerieAddress> Address = GetKeyAt(Context, Position);
+		Address.IsSet())
 	{
-		return GridContent.GetElement(ExcludeAddress).Key;
+		if (Address.GetValue() != ExcludeAddress)
+		{
+			return Address.GetValue();
+		}
 	}
 	return FFaerieAddress();
 }
 
-void UInventorySimpleGridExtension::SwapItems(FFaerieGridPlacement& PlacementA, FFaerieGridPlacement& PlacementB)
-{
-	Swap(PlacementA.Origin, PlacementB.Origin);
-	// No need to change cell marking, because swaps don't change any.
-}
-
-void UInventorySimpleGridExtension::MoveSingleItem(FFaerieGridPlacement& Placement, const FIntPoint& NewPosition)
+void UInventorySimpleGridExtension::MoveSingleItem(const FFaerieContainerGridWriteContext& Context, FFaerieGridPlacement& Placement, const FIntPoint& NewPosition)
 {
 	// Clear old position first
-	OccupiedCells.UnmarkCell(Placement.Origin);
+	Context.Unwrap().OccupiedCells.UnmarkCell(Placement.Origin);
 
 	// Then set new positions
-	OccupiedCells.MarkCell(NewPosition);
+	Context.Unwrap().OccupiedCells.MarkCell(NewPosition);
 
 	Placement.Origin = NewPosition;
 }

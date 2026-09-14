@@ -18,11 +18,13 @@ bool FFaerieClientAction_MoveToGrid::IsValid(const TNotNull<const UFaerieInvento
 
 bool FFaerieClientAction_MoveToGrid::View(ItemData::FScopeProxy& Proxy) const
 {
-	if (auto&& GridExtension = Extensions::Get<UInventoryGridExtensionBase>(Storage->GetExtensions(), true))
+	if (const FFaerieContainerGridData* GridData = Storage->ReadContainerData<FFaerieContainerGridData>(false))
 	{
-		if (GridExtension->IsCellOccupied(Position))
+		const FFaerieContainerGridReadContext Context = GridData->GetReadContext();
+
+		if (Context.IsCellOccupied(Position))
 		{
-			Proxy = GridExtension->ViewAt_Native(Position);
+			Proxy = Context.ViewAt_Native(Position);
 			return true;
 		}
 	}
@@ -31,21 +33,16 @@ bool FFaerieClientAction_MoveToGrid::View(ItemData::FScopeProxy& Proxy) const
 
 bool FFaerieClientAction_MoveToGrid::CanMove(const TValid<const FFaerieItemProxy&> Proxy) const
 {
-	// Fetch the Grid Extension and ensure it exists
-	auto&& GridExtension = Extensions::Get<UInventoryGridExtensionBase>(Storage->GetExtensions(), true);
-	if (!::IsValid(GridExtension))
+	if (const FFaerieContainerGridData* GridData = Storage->ReadContainerData<FFaerieContainerGridData>(false))
 	{
-		return false;
+		const FFaerieContainerGridReadContext Context = GridData->GetReadContext();
+		return Context.CanAddAtLocation(Proxy, Position);
 	}
-
-	return GridExtension->CanAddAtLocation(Proxy, Position);
+	return false;
 }
 
 bool FFaerieClientAction_MoveToGrid::Possess(const TValid<const FFaerieUnownedItemStack&> Stack) const
 {
-	auto&& GridExtension = Extensions::Get<UInventoryGridExtensionBase>(Storage->GetExtensions(), true);
-	check(GridExtension);
-
 	// Must be a new stack, since we intend to manually place it in the grid.
 	TValueOrError<Inventory::FEventData, FText> Result{MakeError(FText::GetEmpty())};
 	Storage->AddItemStack(Stack, EFaerieStorageAddStackBehavior::OnlyNewStacks, Result);
@@ -56,24 +53,38 @@ bool FFaerieClientAction_MoveToGrid::Possess(const TValid<const FFaerieUnownedIt
 
 	const FFaerieAddress TargetAddress = Result.GetValue().AddressesTouched.Last();
 
-	// Finally, move item to the cell client requested.
-	return GridExtension->MoveItem(TargetAddress, Position);
+	bool Out = false;
+	Storage->WriteContainerData(FFaerieContainerGridData::StaticStruct(),
+		[this, &Out, TargetAddress](const FStructView Element)
+		{
+			Out = Element.Get<FFaerieContainerGridData>().GetWriteContext().MoveItem(TargetAddress, Position);
+		}, false);
+
+	return Out;
 }
 
 bool FFaerieClientAction_MoveToGrid::Release(FFaerieUnownedItemStack& Stack) const
 {
-	auto&& GridExtension = Extensions::Get<UInventoryGridExtensionBase>(Storage->GetExtensions(), true);
-	check(GridExtension);
-
-	const FFaerieAddress Address = GridExtension->GetKeyAt(Position);
-	return Storage->TakeStack(Address, Stack, Inventory::Tags::RemovalMoving, ItemData::EntireStack);
+	bool Out = false;
+	Storage->WriteContainerData(FFaerieContainerGridData::StaticStruct(),
+		[this, &Out, &Stack](const FStructView Element)
+		{
+			auto Context = Element.Get<FFaerieContainerGridData>().GetWriteContext();
+			const TOptional<FFaerieAddress> Address = Context.FindAddress(Position);
+			if (Address.IsSet())
+			{
+				Out = Context.GetStorage()->TakeStack(Address.GetValue(), Stack, Inventory::Tags::RemovalMoving, ItemData::EntireStack);
+			}
+		}, false);
+	return Out;
 }
 
 bool FFaerieClientAction_MoveToGrid::IsSwap() const
 {
-	if (auto&& GridExtension = Extensions::Get<UInventoryGridExtensionBase>(Storage->GetExtensions(), true))
+	if (const FFaerieContainerGridData* GridData = Storage->ReadContainerData<FFaerieContainerGridData>(false))
 	{
-		return CanSwapSlots && GridExtension->IsCellOccupied(Position);
+		const FFaerieContainerGridReadContext Context = GridData->GetReadContext();
+		return Context.IsCellOccupied(Position);
 	}
 	return false;
 }
@@ -83,10 +94,12 @@ bool FFaerieClientAction_MoveItemOnGrid::Server_Execute(const TNotNull<const UFa
 	if (!IsValid(Storage)) return false;
 	if (!Client->CanAccessContainer(Storage, StaticStruct())) return false;
 
-	if (auto&& GridExtension = Extensions::Get<UInventoryGridExtensionBase>(Storage->GetExtensions(), true))
-	{
-		return GridExtension->MoveItem(Address, DragEnd);
-	}
+	Storage->WriteContainerData(FFaerieContainerGridData::StaticStruct(),
+		[this](const FStructView Element)
+		{
+			const FFaerieContainerGridWriteContext Context = Element.Get<FFaerieContainerGridData>().GetWriteContext();
+			(void)Context.MoveItem(Address, Position);
+		}, false);
 
 	return false;
 }
@@ -99,10 +112,12 @@ bool FFaerieClientAction_RotateGridEntry::Server_Execute(const TNotNull<const UF
 	// Don't bother with this.
 	if (RotateBy == EFaerieSpatialItemRotation::None) return true;
 
-	if (auto&& GridExtension = Extensions::Get<UInventoryGridExtensionBase>(Storage->GetExtensions(), true))
-	{
-		return GridExtension->RotateItem(Address, RotateBy);
-	}
+	Storage->WriteContainerData(FFaerieContainerGridData::StaticStruct(),
+		[this](const FStructView Element)
+		{
+			const FFaerieContainerGridWriteContext Context = Element.Get<FFaerieContainerGridData>().GetWriteContext();
+			(void)Context.RotateItem(Address, RotateBy);
+		}, false);
 
 	return false;
 }

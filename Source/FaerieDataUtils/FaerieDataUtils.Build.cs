@@ -28,6 +28,8 @@ public class FaerieDataUtils : ModuleRules
 
 	public static void ApplySharedModuleSetup(ModuleRules Module, ReadOnlyTargetRules Target)
     {
+        Module.bAllowUETypesInNamespaces = true;
+
         Module.PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
         Module.DefaultBuildSettings = BuildSettingsVersion.Latest;
         Module.IncludeOrderVersion = EngineIncludeOrderVersion.Latest;

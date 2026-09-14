@@ -17,19 +17,14 @@ namespace Faerie::Container
 		// If the item has its own Limit Fragment, defer to member function.
 		if (LimitView.IsValid())
 		{
-			return LimitView->GetStackLimit();
+			// Interpret a limit of 0 as no limit.
+			if (LimitView->MaxStackSize <= 0) return ItemData::UnlimitedStack;
+
+			// Otherwise, use authored value for stack size.
+			return LimitView->MaxStackSize;
 		}
 
 		// If no stack limiter is present, and the item is immutable, it can always stack
 		return ItemData::UnlimitedStack;
 	}
-}
-
-int32 FFaerieStackLimitFragment::GetStackLimit() const
-{
-	// Interpret a limit of 0 as no limit.
-	if (MaxStackSize <= 0) return Faerie::ItemData::UnlimitedStack;
-
-	// Otherwise, use authored value for stack size.
-	return MaxStackSize;
 }

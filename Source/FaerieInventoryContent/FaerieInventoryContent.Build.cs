@@ -39,6 +39,7 @@ public class FaerieInventoryContent : ModuleRules
                 "FaerieDataUtils",
                 "GeometryScriptingCore",
                 "GeometryFramework",
+                "MassCore",
                 "MassEntity",
                 "Squirrel"
             });

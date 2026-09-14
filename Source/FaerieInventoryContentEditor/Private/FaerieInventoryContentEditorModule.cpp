@@ -6,8 +6,6 @@
 #include "GridLayout/SpatialTypes.h"
 #include "Customizations/ItemCapacityCustomization.h"
 #include "Customizations/ItemShapeCustomization.h"
-#include "Extensions/InventoryMetadataExtension.h"
-#include "Extensions/InventoryUserdataExtension.h"
 #include "Capacity/FaerieCapacityHelper.h"
 
 #define LOCTEXT_NAMESPACE "FaerieInventoryContentEditorModule"
@@ -19,14 +17,10 @@ void FFaerieInventoryContentEditorModule::StartupModule()
 	TMap<FName, FOnGetDetailCustomizationInstance> ClassCustomizations;
 	TMap<FName, FOnGetPropertyTypeCustomizationInstance> StructCustomizations;
 
-	StructCustomizations.Add(FFaerieInventoryMetaTag::StaticStruct()->GetFName(),
-		FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FGameplayTagCustomizationPublic::MakeInstance));
-	StructCustomizations.Add(FFaerieInventoryUserTag::StaticStruct()->GetFName(),
-		FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FGameplayTagCustomizationPublic::MakeInstance));
 	StructCustomizations.Add(FFaerieWeightEditor::StaticStruct()->GetFName(),
-		FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FInventoryWeightCustomization::MakeInstance));
+		FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FFaerieWeightEditorCustomization::MakeInstance));
 	StructCustomizations.Add(FFaerieWeightEditor_Float::StaticStruct()->GetFName(),
-		FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FInventoryWeightCustomization::MakeInstance));
+		FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FFaerieWeightEditorCustomization::MakeInstance));
 	StructCustomizations.Add(FFaerieItemCapacity::StaticStruct()->GetFName(),
 		FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FItemCapacityCustomization::MakeInstance));
 	StructCustomizations.Add(FFaerieGridShape::StaticStruct()->GetFName(),

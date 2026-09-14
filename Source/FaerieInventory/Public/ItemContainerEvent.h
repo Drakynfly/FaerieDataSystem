@@ -55,7 +55,7 @@ namespace Faerie::Inventory
 	class FAERIEINVENTORY_API FEventLogSingle
 	{
 	public:
-		UE_NONCOPYABLE(FEventLogSingle)
+		//UE_NONCOPYABLE(FEventLogSingle)
 
 		FEventLogSingle(const FFaerieInventoryTag Type, const FFaerieItemInstance& Instance, const int32 Copies, const FFaerieEntryKey Entry, const TConstArrayView<FFaerieAddress> Addresses)
 		  : Type(Type),
@@ -105,29 +105,29 @@ namespace Faerie::Inventory
 	};
 }
 
+namespace Faerie::Container
+{
+	struct FEvent;
+}
+
 /*
- * Blueprint wrapper of Faerie::Inventory::FEventLogSingle
+ * Blueprint wrapper of Faerie::Container::FEvent. The data is the same, but I keep it a separate type for flexibility.
  */
 USTRUCT(BlueprintType)
 struct FAERIEINVENTORY_API FFaerieBlueprintInventoryEvent
 {
 	GENERATED_BODY()
 
-	UPROPERTY(BlueprintReadOnly, Category = "InventoryEvent")
-	FDateTime Timestamp;
-
 	// Which storage logged this event
 	UPROPERTY(BlueprintReadOnly, Category = "InventoryEvent")
 	TWeakObjectPtr<const class UFaerieItemContainerBase> Container = nullptr;
 
+	UPROPERTY(BlueprintReadOnly, Category = "InventoryEvent")
+	FDateTime Timestamp;
+
 	// Either the Addition tag, some kind of Removal, or an edit tag.
 	UPROPERTY(BlueprintReadOnly, Category = "InventoryEvent")
 	FFaerieInventoryTag Type;
-
-	// The item from this entry.
-	// @todo not exposed to Blueprint
-	UPROPERTY()
-	FFaerieItemInstance Item;
 
 	// The number of item copies added or removed.
 	UPROPERTY(BlueprintReadOnly, Category = "InventoryEvent")
@@ -141,6 +141,7 @@ struct FAERIEINVENTORY_API FFaerieBlueprintInventoryEvent
 	UPROPERTY(BlueprintReadOnly, Category = "InventoryEvent")
 	TArray<FFaerieAddress> AddressesTouched;
 
+	static FFaerieBlueprintInventoryEvent FromNativeEvent(const Faerie::Container::FEvent& NativeEvent);
 	static FFaerieBlueprintInventoryEvent FromNativeEvent(const TNotNull<const UFaerieItemContainerBase*>& Container, FFaerieInventoryTag Type, const Faerie::Inventory::FEventData& Data, FDateTime Timestamp);
 	static FFaerieBlueprintInventoryEvent FromNativeEvent(const TNotNull<const UFaerieItemContainerBase*>& Container, const Faerie::Inventory::FEventLogSingle& Event);
 };

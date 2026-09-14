@@ -6,6 +6,8 @@
 #include "FaerieItemContainerBase.h"
 #include "FaerieSubObjectFilter.h"
 #include "ItemContainerExtensionBase.h"
+#include "MassCommandBuffer.h"
+#include "MassCommands.h"
 
 #include "GameFramework/Actor.h"
 
@@ -54,7 +56,7 @@ namespace Faerie::Container
 		void ReleaseOwnership_Impl(FMassEntityManager& EntityManager, AActor* RegisteringActor, const TNotNull<UFaerieItemContainerBase*> Owner, const FFaerieItemInstance& Instance)
 		{
 			TArray<TNotNull<UFaerieItemContainerBase*>> Containers;
-			SubObject::GetContainersInInstanceDirect(EntityManager, Instance, Containers);
+			SubObject::GetContainersInInstanceDirect<UFaerieItemContainerBase>(EntityManager, Instance, Containers);
 			for (TNotNull<UFaerieItemContainerBase*> Container : Containers)
 			{
 				if (RegisteringActor)
@@ -63,8 +65,8 @@ namespace Faerie::Container
 					RegisteringActor->RemoveReplicatedSubObject(Container);
 				}
 
-				// If the object has an extension group, clear its parent.
-				Container->GetExtensions()->ClearParentGroup();
+				// If the object has an extension parent, clear it.
+				Container->ClearParentExtensions();
 
 				// If the object contains nested items, release ownership recursively.
 				for (auto It = Container::MutableItemRange(Container); It; ++It)
@@ -82,10 +84,10 @@ namespace Faerie::Container
 
 		void TakeOwnership_Impl_SubItem(FMassEntityManager& EntityManager, AActor* RegisteringActor, const TNotNull<UFaerieItemContainerBase*> Owner, const FFaerieItemInstance& Instance)
 		{
-			UItemContainerExtensionGroup* OuterExtensions = Owner->GetExtensions();
+			auto& ExtensionData = Owner->GetExtensionData();
 
 			TArray<TNotNull<UFaerieItemContainerBase*>> Containers;
-			SubObject::GetContainersInInstanceDirect(EntityManager, Instance, Containers);
+			SubObject::GetContainersInInstanceDirect<UFaerieItemContainerBase>(EntityManager, Instance, Containers);
 			for (TNotNull<UFaerieItemContainerBase*> Container : Containers)
 			{
 				if (RegisteringActor)
@@ -94,11 +96,7 @@ namespace Faerie::Container
 					Container->InitializeNetObject(RegisteringActor);
 				}
 
-				// If the object has an extension group, set its parent to ours.
-				if (IsValid(OuterExtensions))
-				{
-					Container->GetExtensions()->SetParentGroup(OuterExtensions);
-				}
+				Container->SetParentExtensions(Owner, ExtensionData);
 
 				// If the object contains nested items, take ownership recursively.
 				for (auto It = Container::MutableItemRange(Container); It; ++It)
@@ -125,7 +123,20 @@ namespace Faerie::Container
 
 			// Mark the instance with an owner fragment.
 			const FConstSharedStruct SharedOwner = EntityManager.GetOrCreateConstSharedFragment<FFaerieMassItemOwner>(Owner);
-			EntityManager.AddConstSharedFragmentToEntity(Entity, SharedOwner);
+			if (EntityManager.IsProcessing())
+			{
+				EntityManager.Defer().PushCommand<FMassDeferredAddCommand>([Entity, SharedOwner](FMassEntityManager& InEntityManager)
+					{
+						if (InEntityManager.IsEntityValid(Entity))
+						{
+							InEntityManager.AddConstSharedFragmentToEntity(Entity, SharedOwner);
+						}
+					});
+			}
+			else
+			{
+				EntityManager.AddConstSharedFragmentToEntity(Entity, SharedOwner);
+			}
 
 			// Also perform subitem logic.
 			TakeOwnership_Impl_SubItem(EntityManager, RegisteringActor, Owner, Instance);

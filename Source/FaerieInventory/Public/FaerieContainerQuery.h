@@ -8,7 +8,7 @@
 #include "UObject/Object.h"
 #include "FaerieContainerQuery.generated.h"
 
-class UFaerieItemDataComparator;
+class UFaerieItemComparator;
 class UFaerieItemTemplate;
 class UFaerieContainerQuery;
 
@@ -58,7 +58,7 @@ public:
 	void SetSortByDelegate(const UFaerieFunctionTemplates::FFaerieProxyComparator& Delegate);
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|Container Query")
-	void SetSortByObject(const UFaerieItemDataComparator* Comparator);
+	void SetSortByObject(const UFaerieItemComparator* Comparator);
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|Container Query")
 	void SetInvertFilter(bool Invert);

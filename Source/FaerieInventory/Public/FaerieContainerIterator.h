@@ -4,8 +4,10 @@
 
 #include "LoopUtils.h"
 #include "DebuggingFlags.h"
-#include "FaerieItemContainerBase.h"
+#include "FaerieContainerViewBases.h"
 #include "FaerieInventoryLog.h"
+#include "FaerieItemContainerBase.h"
+#include "FaerieItemProxy.h"
 
 namespace Faerie::Container
 {

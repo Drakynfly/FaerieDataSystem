@@ -1,48 +1,37 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieItemGeneratorModule.h"
+
 #include "Modules/ModuleManager.h"
+#include "UObject/Class.h"
 
 #define LOCTEXT_NAMESPACE "FaerieItemGeneratorModule"
 
 namespace Faerie::Generation
 {
 #if WITH_EDITOR
-	TArray<IMutatorStructTypeCustomizationAutoRegister*> Pending;
-
-	TArray<IMutatorStructTypeCustomizationAutoRegister*> IMutatorStructTypeCustomizationAutoRegister::FlushPending()
+	void IMutatorStructTypeCustomizationAutoRegister::Register(const TNotNull<const UScriptStruct*> StructType)
 	{
-		auto PendingCopy = Pending;
-		Pending.Empty();
-		return PendingCopy;
-	}
+		checkf(StructType->GetCppStructOps()->HasPostSerialize(), TEXT("Mutator struct must implement PostSerialize! FAERIE_MUTATOR_HEADER is likely missing from header declaration."))
 
-	void IMutatorStructTypeCustomizationAutoRegister::Register(IMutatorStructTypeCustomizationAutoRegister* Registrar)
-	{
 		if (FModule* Module = FModuleManager::GetModulePtr<FModule>("FaerieItemGenerator"))
 		{
 			if (Module->Editor_AddMutatorType.IsBound())
 			{
-				Module->Editor_AddMutatorType.Execute(Registrar);
-				return;
+				Module->Editor_AddMutatorType.Execute(StructType);
 			}
 		}
-
-		Pending.Add(Registrar);
 	}
 
-	void IMutatorStructTypeCustomizationAutoRegister::Unregister(IMutatorStructTypeCustomizationAutoRegister* Registrar)
+	void IMutatorStructTypeCustomizationAutoRegister::Unregister(const TNotNull<const UScriptStruct*> StructType)
 	{
 		if (FModule* Module = FModuleManager::GetModulePtr<FModule>("FaerieItemGenerator"))
 		{
 			if (Module->Editor_RemoveMutatorType.IsBound())
 			{
-				Module->Editor_RemoveMutatorType.Execute(Registrar);
-				return;
+				Module->Editor_RemoveMutatorType.Execute(StructType);
 			}
 		}
-
-		Pending.Remove(Registrar);
 	}
 #endif
 

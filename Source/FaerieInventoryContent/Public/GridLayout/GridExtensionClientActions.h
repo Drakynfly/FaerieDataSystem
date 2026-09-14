@@ -9,6 +9,7 @@
 
 class UFaerieItemStorage;
 
+// Move item to the cell client requested.
 USTRUCT(BlueprintType)
 struct FFaerieClientAction_MoveToGrid final : public FFaerieClientAction_MoveHandlerBase
 {
@@ -45,7 +46,7 @@ struct FFaerieClientAction_MoveItemOnGrid final : public FFaerieClientActionBase
 	FFaerieAddress Address;
 
 	UPROPERTY(BlueprintReadWrite, Category = "MoveItemOnGrid")
-	FIntPoint DragEnd = FIntPoint::ZeroValue;
+	FIntPoint Position = FIntPoint::ZeroValue;
 };
 
 USTRUCT(BlueprintType)

@@ -7,6 +7,7 @@
 #include "FaerieItemAssetThumbnailRenderer.generated.h"
 
 class UFaerieItemAsset;
+class UThumbnailInfo;
 
 namespace Faerie::Editor
 {

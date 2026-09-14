@@ -8,13 +8,13 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "EquipmentQueryLibrary.generated.h"
 
-struct FFaerieItemInstance;
 struct FFaerieEquipmentSetQuery;
+struct FFaerieItemProxy;
 class UFaerieEquipmentHashAsset;
 class UFaerieEquipmentManager;
-class UFaerieEquipmentSlot;
+class UFaerieItemStackContainer;
 
-DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(int32, FBlueprintEquipmentHash, const FFaerieItemInstance&, Instance);
+DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(int32, FBlueprintEquipmentHash, const FFaerieItemProxy&, Instance);
 
 USTRUCT(BlueprintType)
 struct FFaerieEquipmentHashConfig
@@ -48,7 +48,7 @@ public:
 	static bool NotEqual_FaerieSlotTag(const FFaerieSlotTag A, const FFaerieSlotTag B)  { return A != B; }
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentQuery")
-	static bool RunEquipmentQuery(UFaerieEquipmentManager* Manager, const FFaerieEquipmentSetQuery& SetQuery, UFaerieEquipmentSlot*& PassingSlot);
+	static bool RunEquipmentQuery(UFaerieEquipmentManager* Manager, const FFaerieEquipmentSetQuery& SetQuery, UFaerieItemStackContainer*& PassingSlot);
 
 	// Generate a hash from a set of slots. Typically used for checksum'ing.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentHashing")
@@ -62,5 +62,5 @@ public:
 	static FBlueprintEquipmentHash GetEquipmentHash_ByName();
 
 protected:
-	static int32 ExecHashItemByName(const FFaerieItemInstance& Instance);
+	static int32 ExecHashItemByName(const FFaerieItemProxy& Instance);
 };

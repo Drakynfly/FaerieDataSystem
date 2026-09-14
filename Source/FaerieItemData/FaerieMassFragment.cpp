@@ -47,3 +47,15 @@ namespace Faerie::ItemData
 		return nullptr;
 	}
 }
+
+bool FFaerieMassFragment::Serialize(FArchive& Ar, const UStruct* DefaultsStruct, const void* Defaults)
+{
+	if (Ar.IsSaving())
+	{
+		Ar.MarkSearchableName(FFaerieMassFragment::StaticStruct(), *DefaultsStruct->GetName());
+	}
+
+	// Returning false, will report to UScriptStruct::SerializeItem that it should fallback to default serialization logic.
+	// That is fine, as we are only using this as a point to inject the searchable name.
+	return false;
+}

@@ -4,10 +4,13 @@
 
 #include "PropertyEditorModule.h"
 #include "PropertyEditorDelegates.h"
+#include "SubScriptStructOfMulti.h"
+
 #include "Modules/ModuleManager.h"
 #include "Interfaces/IPluginManager.h"
 #include "Styling/SlateStyleRegistry.h"
 #include "Customizations/SGameplayTagGraphPin_FIXED.h"
+#include "Customizations/SubScriptStructOfMultiCustomization.h"
 
 #define LOCTEXT_NAMESPACE "FaerieDataSystemEditorModule"
 
@@ -43,6 +46,13 @@ using namespace Faerie;
 void IFaerieDataSystemEditorModuleBase::StartupModule()
 {
     FCoreDelegates::GetOnPostEngineInit().AddRaw(this, &IFaerieDataSystemEditorModuleBase::OnPostEngineInit);
+
+    TMap<FName, FOnGetPropertyTypeCustomizationInstance> StructCustomizations;
+
+    StructCustomizations.Add(FSubScriptStructOfMulti::StaticStruct()->GetFName(),
+        FOnGetPropertyTypeCustomizationInstance::CreateStatic(&Editor::FSubScriptStructOfMultiCustomization::MakeInstance));
+
+    RegisterCustomizations({}, StructCustomizations);
 }
 
 void IFaerieDataSystemEditorModuleBase::ShutdownModule()

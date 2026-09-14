@@ -16,7 +16,7 @@ namespace Faerie::Generation
 		const TNotNull<const AActor*> Consumer, const int32 Cost)
 	{
 		auto* EntityManager = ItemData::GetFaerieEntityManager();
-		TConstStructView<FFaerieMassFragment> Fragment = ItemData::GetEntityFragmentOrDefault(EntityManager, Proxy.GetItemInstance().GetValue(), FragmentType);
+		TConstStructView<FFaerieMassFragment> Fragment = ItemData::GetEntityFragmentOrDefault(EntityManager, Proxy.GetItemInstanceOrInvalid(), FragmentType);
 		if (Fragment.IsValid())
 		{
 			if (const FFaerieConsumableFragment* ConsumableFragment = Fragment.GetPtr<FFaerieConsumableFragment>())
@@ -34,7 +34,7 @@ namespace Faerie::Generation
 	bool TryConsume(const FFaerieItemProxy& Proxy, const TNotNull<const UScriptStruct*> FragmentType, const TNotNull<AActor*> Consumer, const int32 Cost)
 	{
 		auto* EntityManager = ItemData::GetFaerieEntityManager();
-		TConstStructView<FFaerieMassFragment> Fragment = ItemData::GetEntityFragmentOrDefault(EntityManager, Proxy.GetItemInstance().GetValue(), FragmentType);
+		TConstStructView<FFaerieMassFragment> Fragment = ItemData::GetEntityFragmentOrDefault(EntityManager, Proxy.GetItemInstanceOrInvalid(), FragmentType);
 		if (Fragment.IsValid())
 		{
 			if (const FFaerieConsumableFragment* ConsumableFragment = Fragment.GetPtr<FFaerieConsumableFragment>())

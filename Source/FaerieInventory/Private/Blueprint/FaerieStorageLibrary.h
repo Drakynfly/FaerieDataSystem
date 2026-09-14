@@ -85,7 +85,7 @@ public:
 
 	// Gets the owner of an item from a proxy, if one exists.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|Storage Library", meta = (DisplayName = "Get Owning Container"))
-	static UFaerieItemContainerBase* GetOwningContainer_Proxy(const FFaerieItemProxy& Proxy);
+	static UFaerieItemContainerBase* GetOwningContainer(const FFaerieItemProxy& Proxy);
 
 	// Gets the first subobject of the given class
 	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Faerie|Subobject", meta = (DeterminesOutputType = "Class", DynamicOutputParam = "FoundContainers", ExpandBoolAsExecs = "ReturnValue"))
@@ -102,4 +102,9 @@ public:
 	// Get all child items from an item.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|SubObjects")
 	static void GetItemChildren(const FFaerieItemProxy& Proxy, TArray<FFaerieItemProxy>& FoundChildren, bool Recursive);
+
+	// Gets the fragment of the given type if it exists in the either the asset's defaults or runtime entity.
+	// @Todo replace with a version that auto-cast's the output to Extension type.
+	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Faerie|Container", meta = (ExpandBoolAsExecs = "ReturnValue"))
+	static bool FindExtension(const UFaerieItemContainerBase* Container, UScriptStruct* ExtensionType, FInstancedStruct& FoundExtension, bool RecurseParents);
 };

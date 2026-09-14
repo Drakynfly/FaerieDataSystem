@@ -15,6 +15,8 @@ public class FaerieEquipment : ModuleRules
 				"CoreUObject",
 				"Engine",
 				"GameplayTags",
+				"MassCore",
+				"MassEntity",
 				"NetCore",
 			});
 
@@ -23,14 +25,15 @@ public class FaerieEquipment : ModuleRules
 			{
 				"FaerieItemData",
 				"FaerieItemMesh",
-				"FaerieInventory"
+				"FaerieInventory",
+				"FaerieInventoryContent"
 			});
 
 		PrivateDependencyModuleNames.AddRange(
 			new []
 			{
 				"FaerieDataUtils",
-				"Squirrel"
+				"Squirrel",
 			});
 	}
 }

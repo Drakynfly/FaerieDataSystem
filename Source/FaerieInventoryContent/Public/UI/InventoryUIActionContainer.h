@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "InventoryUIAction.h"
+#include "FaerieUIActionBase.h"
 #include "Templates/SubclassOf.h"
 #include "UObject/Object.h"
 #include "InventoryUIActionContainer.generated.h"
@@ -17,40 +17,40 @@ class FAERIEINVENTORYCONTENT_API UInventoryUIActionContainer : public UObject
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "UIActionContainer")
-	bool AddAction(TSubclassOf<UInventoryUIAction> Class);
+	bool AddAction(TSubclassOf<UFaerieUIActionBase> Class);
 
 	UFUNCTION(BlueprintCallable, Category = "UIActionContainer")
-	bool AddActions(TSet<TSubclassOf<UInventoryUIAction>> Classes);
+	bool AddActions(TSet<TSubclassOf<UFaerieUIActionBase>> Classes);
 
 	UFUNCTION(BlueprintCallable, Category = "UIActionContainer")
-	bool AddActionInstance(UInventoryUIAction* Action);
+	bool AddActionInstance(UFaerieUIActionBase* Action);
 
 	UFUNCTION(BlueprintCallable, Category = "UIActionContainer")
 	bool AddSubContainer(UInventoryUIActionContainer* Container);
 
 	UFUNCTION(BlueprintCallable, Category = "UIActionContainer")
-	bool RemoveAction(TSubclassOf<UInventoryUIAction> Class);
+	bool RemoveAction(TSubclassOf<UFaerieUIActionBase> Class);
 
 	UFUNCTION(BlueprintCallable, Category = "UIActionContainer")
-	bool RemoveActions(TSet<TSubclassOf<UInventoryUIAction>> Classes);
+	bool RemoveActions(TSet<TSubclassOf<UFaerieUIActionBase>> Classes);
 
 	UFUNCTION(BlueprintCallable, Category = "UIActionContainer")
-	bool RemoveActionInstance(UInventoryUIAction* Action);
+	bool RemoveActionInstance(UFaerieUIActionBase* Action);
 
 	UFUNCTION(BlueprintCallable, Category = "UIActionContainer")
 	bool RemoveSubContainer(UInventoryUIActionContainer* Container);
 
 	UFUNCTION(BlueprintCallable, Category = "UIActionContainer")
-	TArray<UInventoryUIAction*> GetAllActions() const;
+	TArray<UFaerieUIActionBase*> GetAllActions() const;
 
 protected:
 	// Actions that run on the CDO
 	UPROPERTY(EditAnywhere, Category = "UIActionContainer")
-	TSet<TSubclassOf<UInventoryUIAction>> ActionClasses;
+	TSet<TSubclassOf<UFaerieUIActionBase>> ActionClasses;
 
 	// Actions that run on an instance
 	UPROPERTY(EditAnywhere, Instanced, Category = "UIActionContainer")
-	TArray<TObjectPtr<UInventoryUIAction>> ActionInstances;
+	TArray<TObjectPtr<UFaerieUIActionBase>> ActionInstances;
 
 	UPROPERTY()
 	TArray<TObjectPtr<UInventoryUIActionContainer>> SubContainers;

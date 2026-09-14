@@ -53,8 +53,7 @@ void UFaerieMassReplicationSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 
 void UFaerieMassReplicationSubsystem::Deinitialize()
 {
-	// @todo this can crash things that attempt to access the manager on shutdown, like the auto-save.
-	//Faerie::ItemData::SetFaerieEntityManager(nullptr);
+	ItemData::SetFaerieEntityManager(nullptr);
 
 	Super::Deinitialize();
 }

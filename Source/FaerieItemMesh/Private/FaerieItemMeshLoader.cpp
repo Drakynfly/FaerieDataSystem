@@ -211,7 +211,10 @@ void UFaerieItemMeshLoader::HandleAsyncLoadResult(FFaerieItemMesh&& Mesh, Mesh::
 bool UFaerieItemMeshLoader_Cached::LoadMeshFromProxySynchronous(const FFaerieItemProxy& InProxy, const FGameplayTag Purpose,
 	FFaerieItemMesh& Mesh)
 {
-	const FFaerieCachedMeshKey Key = {InProxy.GetProxyObject(), Purpose};
+	const Mesh::FCachedMeshKey Key = {
+		.WeakProxy = InProxy.GetProxyObject(),
+		.Purpose = Purpose
+	};
 
 	// If we have already generated this mesh, return that one.
 	if (auto&& CachedMesh = GeneratedMeshes.Find(Key))
@@ -233,7 +236,10 @@ bool UFaerieItemMeshLoader_Cached::LoadMeshFromProxySynchronous(const FFaerieIte
 
 void UFaerieItemMeshLoader_Cached::HandleAsyncLoadResult(FFaerieItemMesh&& Mesh, Mesh::FAsyncLoadRequest&& Request)
 {
-	const FFaerieCachedMeshKey Key = {Request.WeakProxy, Request.Purpose};
+	const Mesh::FCachedMeshKey Key = {
+		.WeakProxy = Request.WeakProxy,
+		.Purpose = Request.Purpose
+	};
 	GeneratedMeshes.Add(Key, Mesh);
 	Super::HandleAsyncLoadResult(MoveTemp(Mesh), MoveTemp(Request));
 }
@@ -245,6 +251,9 @@ void UFaerieItemMeshLoader_Cached::ResetCache()
 
 void UFaerieItemMeshLoader_Cached::ResetCacheByKey(const FFaerieItemProxy& Proxy, const FGameplayTag Purpose)
 {
-	const FFaerieCachedMeshKey Key = {Proxy.GetProxyObject(), Purpose};
+	const Mesh::FCachedMeshKey Key = {
+		.WeakProxy = Proxy.GetProxyObject(),
+		.Purpose = Purpose
+	};
 	GeneratedMeshes.Remove(Key);
 }

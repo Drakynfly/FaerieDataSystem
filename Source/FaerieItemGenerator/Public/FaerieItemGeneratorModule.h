@@ -10,25 +10,22 @@ namespace Faerie::Generation
 #if WITH_EDITOR
     struct FAERIEITEMGENERATOR_API IMutatorStructTypeCustomizationAutoRegister
     {
-        static TArray<IMutatorStructTypeCustomizationAutoRegister*> FlushPending();
-        static void Register(IMutatorStructTypeCustomizationAutoRegister* Registrar);
-        static void Unregister(IMutatorStructTypeCustomizationAutoRegister* Registrar);
-
-        UScriptStruct* (*StaticStructAccessor)() = nullptr;
+        static void Register(const TNotNull<const UScriptStruct*>);
+        static void Unregister(const TNotNull<const UScriptStruct*>);
     };
 
     template <typename T>
-    struct TMutatorStructTypeCustomizationAutoRegister : IMutatorStructTypeCustomizationAutoRegister
+    struct TMutatorStructTypeCustomizationAutoRegister : FDelayedAutoRegisterHelper
     {
         TMutatorStructTypeCustomizationAutoRegister()
-        {
-            StaticStructAccessor = &T::StaticStruct;
-            Register(this);
-        }
+          : FDelayedAutoRegisterHelper(EDelayedRegisterRunPhase::EndOfEngineInit, []()
+            {
+                IMutatorStructTypeCustomizationAutoRegister::Register(T::StaticStruct());
+            }) {}
 
         ~TMutatorStructTypeCustomizationAutoRegister()
         {
-            Unregister(this);
+            IMutatorStructTypeCustomizationAutoRegister::Unregister(T::StaticStruct());
         }
     };
 #endif
@@ -40,7 +37,7 @@ namespace Faerie::Generation
         virtual void ShutdownModule() override;
 
 #if WITH_EDITOR
-        using FRegisterMutatorType = TDelegate<void(IMutatorStructTypeCustomizationAutoRegister*)>;
+        using FRegisterMutatorType = TDelegate<void(const TNotNull<const UScriptStruct*>)>;
         FRegisterMutatorType Editor_AddMutatorType;
         FRegisterMutatorType Editor_RemoveMutatorType;
 #endif

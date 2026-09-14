@@ -49,7 +49,11 @@ FDateTime UFaerieItemDataLibrary::GetItemLastModified(const FFaerieItemProxy& Pr
 	}
 
 	auto& EntityManager = Faerie::ItemData::GetFaerieEntityManagerChecked();
-	return InstanceOpt.GetValue().GetLastModified(EntityManager);
+	if (auto ModificationData = Faerie::ItemData::GetEntityFragment<FFaerieItemModificationDate>(EntityManager, InstanceOpt->GetMassEntityHandle()))
+	{
+		return ModificationData->LastModified;
+	}
+	return FDateTime();
 }
 
 FFaerieUnownedItemStack UFaerieItemDataLibrary::GetTemplateInstance(const UFaerieItemAsset* Asset)
@@ -109,8 +113,7 @@ bool UFaerieItemDataLibrary::HasItemFragment(const FFaerieItemProxy& Proxy, UScr
 		return false;
 	}
 
-	auto FoundFragment = Faerie::ItemData::GetEntityFragmentOrDefault(Faerie::ItemData::GetFaerieEntityManager(), InstanceOpt.GetValue(), FragmentType);
-	return FoundFragment.IsValid();
+	return Faerie::ItemData::HasEntityFragmentOrDefault(Faerie::ItemData::GetFaerieEntityManager(), InstanceOpt.GetValue(), FragmentType);
 }
 
 /*
@@ -177,18 +180,18 @@ bool UFaerieItemDataLibrary::RemoveFragment(FFaerieItemInstance& Instance, const
 }
 */
 
-bool UFaerieItemDataLibrary::FindFragment_Proxy(const FFaerieItemProxy& Proxy, UScriptStruct* FragmentType,
+bool UFaerieItemDataLibrary::FindFragment(const FFaerieItemProxy& Proxy, UScriptStruct* FragmentType,
 	TInstancedStruct<FFaerieMassFragment>& FoundFragment)
 {
 	if (!Proxy.IsValid())
 	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieItemDataLibrary::FindFragment_Proxy"), ELogVerbosity::Error);
+		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieItemDataLibrary::FindFragment"), ELogVerbosity::Error);
 		return false;
 	}
 
 	if (!IsValid(FragmentType))
 	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid FragmentType passed to UFaerieItemDataLibrary::FindFragment_Proxy"), ELogVerbosity::Error);
+		FFrame::KismetExecutionMessage(TEXT("Invalid FragmentType passed to UFaerieItemDataLibrary::FindFragment"), ELogVerbosity::Error);
 		return false;
 	}
 
@@ -322,7 +325,13 @@ bool UFaerieItemDataLibrary::ItemDateModifiedComparator(const FFaerieItemProxy& 
 
 	if (const FMassEntityManager* EntityManager = Faerie::ItemData::GetFaerieEntityManager())
 	{
-		return ItemA.GetLastModified(*EntityManager) < ItemB.GetLastModified(*EntityManager);
+		const FFaerieItemModificationDate* ModificationDataA = Faerie::ItemData::GetEntityFragment<FFaerieItemModificationDate>(*EntityManager, ItemA.GetMassEntityHandle());
+		const FFaerieItemModificationDate* ModificationDataB = Faerie::ItemData::GetEntityFragment<FFaerieItemModificationDate>(*EntityManager, ItemB.GetMassEntityHandle());
+
+		const FDateTime DataA = ModificationDataA ? ModificationDataA->LastModified : FDateTime();
+		const FDateTime DataB = ModificationDataB ? ModificationDataB->LastModified : FDateTime();
+
+		return DataA < DataB;
 	}
 	return false;
 }

@@ -65,7 +65,7 @@ struct FFaerieGridKeyedStack : public FFastArraySerializerItem
 	void PostReplicatedChange(const FFaerieGridContent& InArraySerializer);
 };
 
-class UInventoryGridExtensionBase;
+class UFaerieContainerGridWrapper;
 
 USTRUCT(BlueprintType)
 struct FFaerieGridContent : public FFaerieFastArraySerializer
@@ -75,8 +75,9 @@ struct FFaerieGridContent : public FFaerieFastArraySerializer
 {
 	GENERATED_BODY()
 
+	friend FFaerieGridKeyedStack;
 	friend TBinarySearchOptimizedArray;
-	friend UInventoryGridExtensionBase;
+	friend UFaerieContainerGridWrapper;
 
 private:
 	UPROPERTY(VisibleAnywhere, Category = "FaerieGridContent")
@@ -87,7 +88,11 @@ private:
 	/** Owning extension to send Fast Array callbacks to */
 	// UPROPERTY() Fast Arrays cannot have additional properties with Iris
 	// ReSharper disable once CppUE4ProbableMemoryIssuesWithUObject
-	TObjectPtr<UInventoryGridExtensionBase> ChangeListener;
+	TObjectPtr<UFaerieContainerGridWrapper> ChangeListener;
+
+	void PreStackReplicatedRemove(const FFaerieGridKeyedStack& Stack) const;
+	void PostStackReplicatedAdd(const FFaerieGridKeyedStack& Stack) const;
+	void PostStackReplicatedChange(const FFaerieGridKeyedStack& Stack) const;
 
 #if FAERIE_DEBUG
 	// Is writing to Items locked? Enabled while StackHandles are active.
@@ -95,6 +100,18 @@ private:
 #endif
 
 public:
+	const FFaerieGridKeyedStack* Find(const FIntPoint Position) const
+	{
+		for (auto&& Stack : Items)
+		{
+			if (Stack.Value.Origin == Position)
+			{
+				return &Stack;
+			}
+		}
+		return nullptr;
+	}
+
 	template <typename Predicate>
 	const FFaerieGridKeyedStack* FindByPredicate(Predicate Pred) const
 	{
@@ -123,10 +140,6 @@ public:
 	{
 		return FScopedStackHandle(Key, *this);
 	}
-
-	void PreStackReplicatedRemove(const FFaerieGridKeyedStack& Stack) const;
-	void PostStackReplicatedAdd(const FFaerieGridKeyedStack& Stack) const;
-	void PostStackReplicatedChange(const FFaerieGridKeyedStack& Stack) const;
 
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
 	{

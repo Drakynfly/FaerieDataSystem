@@ -5,9 +5,9 @@
 #include "DebuggingFlags.h"
 #include "FaerieFastArraySerializer.h"
 #include "BinarySearchOptimizedArray.h"
+#include "FaerieContainerViewBases.h"
 #include "FaerieFastArraySerializerHack.h"
 #include "FaerieItem.h"
-#include "FaerieItemContainerBase.h"
 #include "FaerieItemContainerStructs.h"
 #include "FaerieItemKey.h"
 #include "FaerieStorageStructs.generated.h"
@@ -380,4 +380,7 @@ struct FFaerieStorageExportData
 
 	UPROPERTY()
 	TArray<FFaerieStorageEntryExportData> Entries;
+
+	UPROPERTY()
+	TArray<FInstancedStruct> ExtensionData;
 };

@@ -10,7 +10,6 @@
 #include "FaerieItemOwnership.h"
 #include "FaerieItemStackContainer.h"
 #include "ItemContainerEvent.h"
-#include "ItemContainerExtensionBase.h"
 
 #include "Modules/ModuleManager.h"
 #include "Net/UnrealNetwork.h"
@@ -147,7 +146,6 @@ void AFaerieItemOwningActorBase::GetLifetimeReplicatedProps(TArray<class FLifeti
 void AFaerieItemOwningActorBase::BeginPlay()
 {
 	Utils::ClearLoadFlags(ItemStack);
-	Utils::ClearLoadFlags(ItemStack->GetExtensions());
 
 	AddReplicatedSubObject(ItemStack);
 	ItemStack->InitializeNetObject(this);

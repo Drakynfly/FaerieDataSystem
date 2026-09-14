@@ -1,6 +1,8 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "ItemContainerEvent.h"
+#include "FaerieContainerEvent.h"
+#include "FaerieItemContainerBase.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ItemContainerEvent)
 
@@ -46,14 +48,25 @@ namespace Faerie::Inventory::Tags
 	}
 }
 
+FFaerieBlueprintInventoryEvent FFaerieBlueprintInventoryEvent::FromNativeEvent(const Faerie::Container::FEvent& NativeEvent)
+{
+	return FFaerieBlueprintInventoryEvent{
+		.Container = NativeEvent.Container,
+		.Timestamp = NativeEvent.Timestamp,
+		.Type = NativeEvent.Type,
+		.Copies = NativeEvent.Copies,
+		.EntryTouched = NativeEvent.EntryTouched,
+		.AddressesTouched = NativeEvent.AddressesTouched
+	};
+}
+
 FFaerieBlueprintInventoryEvent FFaerieBlueprintInventoryEvent::FromNativeEvent(const TNotNull<const UFaerieItemContainerBase*>& Container,
-	const FFaerieInventoryTag Type, const Faerie::Inventory::FEventData& Data, const FDateTime Timestamp)
+																			   const FFaerieInventoryTag Type, const Faerie::Inventory::FEventData& Data, const FDateTime Timestamp)
 {
 	return FFaerieBlueprintInventoryEvent(
-		Timestamp,
 		Container,
+		Timestamp,
 		Type,
-		Data.Instance,
 		Data.Copies,
 		Data.EntryTouched,
 		Data.AddressesTouched);
@@ -63,10 +76,9 @@ FFaerieBlueprintInventoryEvent FFaerieBlueprintInventoryEvent::FromNativeEvent(c
 	const Faerie::Inventory::FEventLogSingle& Event)
 {
 	return FFaerieBlueprintInventoryEvent(
-		Event.GetTimestamp(),
 		Container,
+		Event.GetTimestamp(),
 		Event.Type,
-		Event.Data.Instance,
 		Event.Data.Copies,
 		Event.Data.EntryTouched,
 		Event.Data.AddressesTouched);

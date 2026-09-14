@@ -39,5 +39,5 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "MutatorGroup")
 	EFaerieItemMutatorGroupPolicy Policy = EFaerieItemMutatorGroupPolicy::ApplyAny;
 
-	FAERIE_MUTATOR_HEADER(FFaerieItemMutatorGroup)
+____FAERIE_MUTATOR_DECL(FFaerieItemMutatorGroup)
 };

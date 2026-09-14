@@ -3,29 +3,40 @@
 #pragma once
 
 #include "Blueprint/UserWidget.h"
-#include "FaerieItemStorage.h"
+#include "Extensions/ContainerEventSubscription.h"
 #include "FaerieStorageWidgetBase.generated.h"
 
+struct FFaerieAddress;
+class UFaerieItemStorage;
 class UFaerieContainerQuery;
+class UFaerieStorageWidgetBase;
 class UInventoryUIActionContainer;
+
+#define FAE_API FAERIEINVENTORYCONTENT_API
 
 /**
  *
  */
 UCLASS(Abstract)
-class FAERIEINVENTORYCONTENT_API UFaerieStorageWidgetBase : public UUserWidget
+class FAE_API UFaerieStorageWidgetBase : public UUserWidget, public IFaerieContainerEventSubscriber
 {
 	GENERATED_BODY()
 
 public:
 	UFaerieStorageWidgetBase(const FObjectInitializer& ObjectInitializer);
 
+	//~ UUserWidget
 	virtual bool Initialize() override;
 
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+	//~ UUserWidget
+
+	//~ IFaerieContainerEventSubscriber
+	virtual void OnContainerEventBatch(TNotNull<UFaerieItemContainerBase*> Container, TConstArrayView<const Faerie::Container::FEvent*> Events) override;
+	//~ IFaerieContainerEventSubscriber
 
 	/**
 	 * This must be called *after* this widget is added to viewport. Initialization of child widgets cannot be performed
@@ -33,8 +44,6 @@ protected:
 	 */
 	void InitWithStorage();
 	virtual void Reset();
-
-	void OnPostEventBatch(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Inventory::FEventLogBatch& Events);
 
 public:
 	// Set the inventory that will be used when this widget is constructed.
@@ -96,3 +105,5 @@ private:
 	bool NeedsNewQuery = false;
 	bool NeedsReDisplay = false;
 };
+
+#undef FAE_API

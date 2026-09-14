@@ -1,7 +1,6 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "Capacity/FaerieCapacityHelper.h"
-#include "Capacity/InventoryCapacityExtension.h"
 
 #include "FaerieItem.h"
 #include "MassCommandBuffer.h"
@@ -196,7 +195,7 @@ namespace Faerie::ItemData
 				[Instance = Item, NewValue](FMassEntityManager& InEntityManager)
 				{
 					const FMassEntityHandle Entity = Instance.GetMassEntityHandle();
-					if (InEntityManager.IsEntityValid(Entity))
+					if (!InEntityManager.IsEntityValid(Entity))
 					{
 						return;
 					}
@@ -226,7 +225,7 @@ namespace Faerie::ItemData
 				[Instance = Item, NewValue](FMassEntityManager& InEntityManager)
 				{
 					const FMassEntityHandle Entity = Instance.GetMassEntityHandle();
-					if (InEntityManager.IsEntityValid(Entity))
+					if (!InEntityManager.IsEntityValid(Entity))
 					{
 						return;
 					}
@@ -256,7 +255,7 @@ namespace Faerie::ItemData
 				[Instance = Item, NewValue](FMassEntityManager& InEntityManager)
 				{
 					const FMassEntityHandle Entity = Instance.GetMassEntityHandle();
-					if (InEntityManager.IsEntityValid(Entity))
+					if (!InEntityManager.IsEntityValid(Entity))
 					{
 						return;
 					}
@@ -286,7 +285,7 @@ namespace Faerie::ItemData
 				[Instance = Item, NewValue](FMassEntityManager& InEntityManager)
 				{
 					const FMassEntityHandle Entity = Instance.GetMassEntityHandle();
-					if (InEntityManager.IsEntityValid(Entity))
+					if (!InEntityManager.IsEntityValid(Entity))
 					{
 						return;
 					}
@@ -316,7 +315,7 @@ namespace Faerie::ItemData
 				[Instance = Item, NewValue = GetDefaultCapacity()](FMassEntityManager& InEntityManager)
 				{
 					const FMassEntityHandle Entity = Instance.GetMassEntityHandle();
-					if (InEntityManager.IsEntityValid(Entity))
+					if (!InEntityManager.IsEntityValid(Entity))
 					{
 						return;
 					}

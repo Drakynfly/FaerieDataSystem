@@ -29,5 +29,5 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "MutatorTemplateCondition", meta = (ExcludeBaseStruct))
 	FFaerieItemMutatorGroup Mutators;
 
-	FAERIE_MUTATOR_HEADER(FFaerieItemMutator_TemplateCondition)
+____FAERIE_MUTATOR_DECL(FFaerieItemMutator_TemplateCondition)
 };

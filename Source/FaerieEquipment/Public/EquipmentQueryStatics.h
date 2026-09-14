@@ -6,9 +6,9 @@
 
 struct FFaerieEquipmentSetQuery;
 class UFaerieEquipmentManager;
-class UFaerieEquipmentSlot;
+class UFaerieItemStackContainer;
 
 namespace Faerie::Equipment
 {
-	bool RunEquipmentQuery(TNotNull<UFaerieEquipmentManager*> Manager, const FFaerieEquipmentSetQuery& SetQuery, UFaerieEquipmentSlot*& PassingSlot);
+	bool RunEquipmentQuery(TNotNull<UFaerieEquipmentManager*> Manager, const FFaerieEquipmentSetQuery& SetQuery, UFaerieItemStackContainer*& PassingSlot);
 }

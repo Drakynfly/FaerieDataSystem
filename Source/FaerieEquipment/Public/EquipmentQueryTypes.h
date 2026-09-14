@@ -23,10 +23,10 @@ struct FFaerieEquipmentBlueprintQuery
 {
 	GENERATED_BODY()
 
-	UPROPERTY(BlueprintReadWrite, Category = "Faerie|EquipmentQuery")
+	UPROPERTY(BlueprintReadWrite, Category = "EquipmentQuery")
 	FBlueprintEquipmentFilter Filter;
 
-	UPROPERTY(BlueprintReadWrite, Category = "Faerie|EquipmentQuery")
+	UPROPERTY(BlueprintReadWrite, Category = "EquipmentQuery")
 	bool InvertFilter = false;
 };
 
@@ -36,10 +36,10 @@ struct FFaerieEquipmentSetQuery
 	GENERATED_BODY()
 
 	// Tags to run the query on.
-	UPROPERTY(BlueprintReadWrite, Category = "Faerie|EquipmentSetQuery")
+	UPROPERTY(BlueprintReadWrite, Category = "EquipmentSetQuery")
 	FFaerieEquipmentQueryTagSet TagSet;
 
 	// Query to run on each tag.
-	UPROPERTY(BlueprintReadWrite, Category = "Faerie|EquipmentSetQuery")
+	UPROPERTY(BlueprintReadWrite, Category = "EquipmentSetQuery")
 	FFaerieEquipmentBlueprintQuery Query;
 };

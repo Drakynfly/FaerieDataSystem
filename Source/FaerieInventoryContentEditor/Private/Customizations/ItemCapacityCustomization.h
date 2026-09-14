@@ -7,7 +7,7 @@
 class SWidget;
 class STextBlock;
 
-class FInventoryWeightCustomization final : public IPropertyTypeCustomization
+class FFaerieWeightEditorCustomization final : public IPropertyTypeCustomization
 {
 public:
     static TSharedRef<IPropertyTypeCustomization> MakeInstance();

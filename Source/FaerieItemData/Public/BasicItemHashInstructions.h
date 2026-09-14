@@ -11,7 +11,8 @@
 
 #include "BasicItemHashInstructions.generated.h"
 
-struct FFaerieItemDataFilterBase;
+class UFaerieItemTemplate;
+struct FFaerieItemFilterBase;
 
 /**
  * Inject a manually defined hash.
@@ -39,7 +40,7 @@ struct FAERIEITEMDATA_API FISHI_And : public FFaerieItemDataHashInstruction
 	virtual uint32 Hash(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> View) const override;
 
 protected:
-	UPROPERTY(EditAnywhere, Category = "FISHI")
+	UPROPERTY(EditAnywhere, Category = "FISHI", meta = (ExcludeBaseStruct))
 	TArray<TInstancedStruct<FFaerieItemDataHashInstruction>> Instructions;
 };
 
@@ -54,7 +55,7 @@ struct FAERIEITEMDATA_API FISHI_Or : public FFaerieItemDataHashInstruction
 	virtual uint32 Hash(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> View) const override;
 
 protected:
-	UPROPERTY(EditAnywhere, Category = "FISHI")
+	UPROPERTY(EditAnywhere, Category = "FISHI", meta = (ExcludeBaseStruct))
 	TArray<TInstancedStruct<FFaerieItemDataHashInstruction>> Instructions;
 };
 
@@ -71,7 +72,7 @@ struct FAERIEITEMDATA_API FISHI_BooleanFilter : public FFaerieItemDataHashInstru
 protected:
 	// Pattern used to determine if an item qualifies as fitting this template.
 	UPROPERTY(EditInstanceOnly, Category = "FISHI", meta = (DisplayThumbnail = false))
-	TInstancedStruct<FFaerieItemDataFilterBase> Pattern;
+	TObjectPtr<UFaerieItemTemplate> Pattern;
 };
 
 /**
@@ -87,12 +88,12 @@ struct FAERIEITEMDATA_API FISHI_BooleanSelect : public FFaerieItemDataHashInstru
 protected:
 	// Pattern used to determine if an item qualifies as fitting this template.
 	UPROPERTY(EditInstanceOnly, Category = "FISHI", meta = (DisplayThumbnail = false))
-	TInstancedStruct<FFaerieItemDataFilterBase> Pattern;
+	TObjectPtr<UFaerieItemTemplate> Pattern;
 
-	UPROPERTY(EditAnywhere, Category = "FISHI")
+	UPROPERTY(EditAnywhere, Category = "FISHI", meta = (ExcludeBaseStruct))
 	TInstancedStruct<FFaerieItemDataHashInstruction> False;
 
-	UPROPERTY(EditAnywhere, Category = "FISHI")
+	UPROPERTY(EditAnywhere, Category = "FISHI", meta = (ExcludeBaseStruct))
 	TInstancedStruct<FFaerieItemDataHashInstruction> True;
 };
 

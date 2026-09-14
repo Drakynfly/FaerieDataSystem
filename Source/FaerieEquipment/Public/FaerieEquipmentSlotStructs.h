@@ -2,12 +2,22 @@
 
 #pragma once
 
-#include "FaerieItemContainerStructs.h"
 #include "FaerieSlotTag.h"
+#include "ItemContainerExtensionBase.h"
 #include "FaerieEquipmentSlotStructs.generated.h"
 
-class UFaerieItem;
 class UFaerieEquipmentSlotDescription;
+
+USTRUCT()
+struct FFaerieContainerDataSlotTag : public FFaerieItemContainerData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, Category = "ContainerDataSlotTag")
+	FFaerieSlotTag SlotTag;
+
+____FAERIE_CONTAINER_DATA_DECL(FFaerieContainerDataSlotTag)
+};
 
 USTRUCT(BlueprintType)
 struct FFaerieEquipmentSlotConfig
@@ -24,24 +34,4 @@ struct FFaerieEquipmentSlotConfig
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Config")
 	bool SingleItemSlot = true;
-};
-
-USTRUCT()
-struct FFaerieEquipmentSlotSaveData
-{
-	GENERATED_BODY()
-
-	// The ID of the configured slot this save data belongs to.
-	UPROPERTY()
-	FFaerieSlotTag SlotID;
-
-	UPROPERTY()
-	TObjectPtr<const UFaerieItem> ItemObject;
-
-	UPROPERTY()
-	int32 Copies = 0;
-
-	// Additional data stored with this item instance.
-	UPROPERTY()
-	FFaerieItemExportData ExportData;
 };

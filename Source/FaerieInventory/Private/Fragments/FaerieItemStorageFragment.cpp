@@ -2,15 +2,15 @@
 
 #include "Fragments/FaerieItemStorageFragment.h"
 #include "FaerieItemStorage.h"
-#include "ItemContainerExtensionBase.h"
 #include "GameFramework/Actor.h"
 #include "AssetLoadFlagFixer.h"
-#include "EntityManagerHelpers.h"
+#include "FaerieInventoryLog.h"
+#include "FaerieItemOwnership.h"
 #include "FaerieItemStackContainer.h"
 
-#include "Extensions/ItemContainerExtensionEvents.h"
-
+#if WITH_EDITOR
 #include "Misc/DataValidation.h"
+#endif
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemStorageFragment)
 
@@ -36,43 +36,51 @@ EDataValidationResult FFaerieItemStorageFragment::IsDataValid(FDataValidationCon
 
 #endif
 
-bool FFaerieItemStorageFragment::InitializeRuntime(const TNotNull<UObject*> Outer, const FFaerieItemInstance& Instance)
+bool FFaerieItemStorageFragment::InitializeRuntime(FMassEntityManager& EntityManager, const FFaerieItemInstance& Instance)
 {
 	if (IsValid(Storage.Storage))
 	{
-		Storage.Storage = Utils::DuplicateObjectFromDiskForReplication(Storage.Storage.Get(), Outer);
-
-		if (UItemContainerExtensionEvents* Events = Extensions::Get<UItemContainerExtensionEvents>(Storage.Storage->GetExtensions(), true))
+		UObject* OwnerObj = Container::GetItemOwner(EntityManager, Instance);
+		if (!OwnerObj)
 		{
-			Events->GetOnPostEventBatch().AddStatic(&FFaerieItemStorageFragment::OnStorageItemChanged, Instance);
+			// @todo handle these
+			UE_LOGF(LogFaerieInventory, Warning, "Unable to retrieve owner from instance. This instance must be reparented when possessed!")
+			OwnerObj = GetTransientPackageAsObject();
 		}
+
+		Storage.Storage = Utils::DuplicateObjectFromDiskForReplication(Storage.Storage.Get(), OwnerObj);
+		Storage.Storage->WriteContainerData(Container::FNestedContainer::StaticStruct(),
+			[Instance](const FStructView Element)
+			{
+				Element.Get<Container::FNestedContainer>().ItemHandle = Instance.GetMassEntityHandle();
+			});
 	}
 	return true;
-}
-
-void FFaerieItemStorageFragment::OnStorageItemChanged(const TNotNull<const UFaerieItemContainerBase*> Container, const Inventory::FEventLogBatch& EventLog, FFaerieItemInstance Instance)
-{
-	auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
-	Instance.OnItemFragmentEdited(EntityManager, FFaerieItemStorageFragment::StaticStruct(), ItemData::Tags::FragmentGenericPropertyEdit);
 }
 
 FAERIE_REGISTER_TRAITS(FFaerieChildStackFragment)
 
-bool FFaerieChildStackFragment::InitializeRuntime(const TNotNull<UObject*> Outer, const FFaerieItemInstance& Instance)
+bool FFaerieChildStackFragment::InitializeRuntime(FMassEntityManager& EntityManager, const FFaerieItemInstance& Instance)
 {
+	UObject* OwnerObj = Container::GetItemOwner(EntityManager, Instance);
+	if (!OwnerObj)
+	{
+		// @todo handle these
+		UE_LOGF(LogFaerieInventory, Warning, "Unable to retrieve owner from instance. This instance must be reparented when possessed!")
+		OwnerObj = GetTransientPackageAsObject();
+	}
+
 	for (FFaerieInlineStackContainer& InlineStack : Slots)
 	{
 		if (InlineStack.Stack)
 		{
-			InlineStack.Stack = Utils::DuplicateObjectFromDiskForReplication(InlineStack.Stack.Get(), Outer);
-			InlineStack.Stack->GetOnContainerEvent().AddStatic(&FFaerieChildStackFragment::OnSlotItemChanged, Instance);
+			InlineStack.Stack = Utils::DuplicateObjectFromDiskForReplication(InlineStack.Stack.Get(), OwnerObj);
+			InlineStack.Stack->WriteContainerData(Container::FNestedContainer::StaticStruct(),
+				[Instance](const FStructView Element)
+				{
+					Element.Get<Container::FNestedContainer>().ItemHandle = Instance.GetMassEntityHandle();
+				});
 		}
 	}
 	return true;
-}
-
-void FFaerieChildStackFragment::OnSlotItemChanged(const FFaerieItemProxy& Proxy, const FGameplayTag Tag, FFaerieItemInstance Instance)
-{
-	auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
-	Instance.OnItemFragmentEdited(EntityManager, FFaerieChildStackFragment::StaticStruct(), ItemData::Tags::FragmentGenericPropertyEdit);
 }

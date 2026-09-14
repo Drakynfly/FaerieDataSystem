@@ -6,7 +6,7 @@
 #include "FaerieContainerFilter.h"
 #include "FaerieContainerFilterTypes.h"
 #include "FaerieFunctionTemplates.h"
-#include "FaerieItemDataComparator.h"
+#include "FaerieItemComparator.h"
 #include "FaerieItemStorage.h"
 #include "FaerieItemTemplate.h"
 
@@ -100,12 +100,12 @@ void UFaerieContainerQuery::SetSortByDelegate(const UFaerieFunctionTemplates::FF
 	}
 }
 
-void UFaerieContainerQuery::SetSortByObject(const UFaerieItemDataComparator* Comparator)
+void UFaerieContainerQuery::SetSortByObject(const UFaerieItemComparator* Comparator)
 {
 	if (Comparator != SortObject)
 	{
 		SortObject = Comparator;
-		SortFunction = ItemData::FViewComparator::CreateUObject(Comparator, &UFaerieItemDataComparator::Exec);
+		SortFunction = ItemData::FViewComparator::CreateUObject(Comparator, &UFaerieItemComparator::Exec);
 		OnQueryChanged.Broadcast(this);
 	}
 	else

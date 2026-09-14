@@ -163,21 +163,9 @@ namespace Faerie::Hash
 		return HashPropsImpl(Obj, Obj->GetClass(), IncludeSuper);
 	}
 
-	FFaerieHash HashItems(const FMassEntityManager* EntityManager, const TConstArrayView<const FFaerieItemInstance> Items, const FItemHashFunction& Function)
+	uint32 HashItemByName(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Item)
 	{
-		TArray<uint32> Hashes;
-
-		for (auto&& Item : Items)
-		{
-			Hashes.Add(Function(EntityManager, Item));
-		}
-
-		return CombineHashes(Hashes);
-	}
-
-	uint32 HashItemByName(const FMassEntityManager* EntityManager, const FFaerieItemInstance& Item)
-	{
-		auto ItemInfo = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieAssetInfo>(EntityManager, Item);
+		auto ItemInfo = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieAssetInfo>(EntityManager, ValidGet(Item).GetItemInstanceOrInvalid());
 		if (ItemInfo.IsValid())
 		{
 			return GetTypeHash(ItemInfo.Get());

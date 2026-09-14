@@ -37,19 +37,14 @@ void FFaerieItemGeneratorEditorModule::StartupModule()
 
 	MutatorTypeCustomizationInstance = FOnGetPropertyTypeCustomizationInstance::CreateStatic(&GeneratorEditor::FItemMutatorCustomization::MakeInstance);
 
-	TArray<Generation::IMutatorStructTypeCustomizationAutoRegister*> Pending = Generation::IMutatorStructTypeCustomizationAutoRegister::FlushPending();
-	for (auto&& PendingRegistrar : Pending)
-	{
-		StructCustomizations.Add(PendingRegistrar->StaticStructAccessor()->GetFName(), MutatorTypeCustomizationInstance);
-	}
 	Generation::FModule* GenerationModule = static_cast<Generation::FModule*>(FModuleManager::Get().LoadModule("FaerieItemGenerator"));
-	GenerationModule->Editor_AddMutatorType.BindLambda([this](const Generation::IMutatorStructTypeCustomizationAutoRegister* Register)
+	GenerationModule->Editor_AddMutatorType.BindLambda([this](const TNotNull<const UScriptStruct*> StructType)
 	{
-		this->RegisterMutatorType(Register->StaticStructAccessor()->GetFName());
+		this->RegisterMutatorType(StructType->GetFName());
 	});
-	GenerationModule->Editor_RemoveMutatorType.BindLambda([this](const Generation::IMutatorStructTypeCustomizationAutoRegister* Register)
+	GenerationModule->Editor_RemoveMutatorType.BindLambda([this](const TNotNull<const UScriptStruct*> StructType)
 	{
-		this->UnregisterMutatorType(Register->StaticStructAccessor()->GetFName());
+		this->UnregisterMutatorType(StructType->GetFName());
 	});
 
 	RegisterCustomizations(ClassCustomizations, StructCustomizations);

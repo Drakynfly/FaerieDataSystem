@@ -44,7 +44,7 @@ private:
 #if WITH_EDITOR
 	FFaerieItemInstance CreateReferencingInstance_Editor(TNotNull<UObject*> InstanceOuter) const;
 #endif
-	FFaerieItemInstance CreateReferencingInstance_Runtime() const;
+	FFaerieItemInstance CreateReferencingInstance_Runtime(FMassEntityManager& EntityManager) const;
 
 public:
 	// Get the immutable template item this asset holds.

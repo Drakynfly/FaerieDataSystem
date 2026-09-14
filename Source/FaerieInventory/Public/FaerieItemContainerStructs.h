@@ -104,3 +104,26 @@ struct FAERIEINVENTORY_API FFaerieItemExportData
 	UPROPERTY()
 	TArray<FInstancedStruct> MassInstances;
 };
+
+namespace Faerie::Container
+{
+	// Control how loading container data is handled.
+	struct FLoadParams
+	{
+		// Should existing extension data be discarded before the loaded data is applied.
+		bool ClearExtensionsBeforeImport = true;
+
+		// Should existing item data be discarded before the loaded data is applied.
+		bool ClearItemDataBeforeImport = true;
+	};
+
+	// Control how saving container data is handled.
+	struct FSaveParams
+	{
+		// Should the export contain extension data.
+		bool ExportExtensionData = true;
+
+		// Should the export contain item data.
+		bool ExportItemData = true;
+	};
+}

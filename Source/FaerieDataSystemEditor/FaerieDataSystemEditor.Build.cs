@@ -1,5 +1,6 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
+using System.IO;
 using UnrealBuildTool;
 
 public class FaerieDataSystemEditor : ModuleRules
@@ -17,10 +18,17 @@ public class FaerieDataSystemEditor : ModuleRules
                 "InputCore"
             });
 
+        PublicDependencyModuleNames.AddRange(
+            new []
+            {
+                "FaerieDataUtils"
+            });
+
         PrivateDependencyModuleNames.AddRange(
             new []
             {
                 "AssetDefinition",
+                "SceneOutliner",
                 "Slate",
                 "SlateCore",
                 "InputCore",
@@ -42,7 +50,13 @@ public class FaerieDataSystemEditor : ModuleRules
                 "AssetTools",
                 "GameplayTags",
                 "GameplayTagsEditor",
-                "UnrealEd"
+                "UnrealEd",
             });
+
+        PrivateIncludePaths.AddRange(
+            new string[] {
+                Path.Combine(GetModuleDirectory("PropertyEditor"), "Private")
+            }
+        );
     }
 }

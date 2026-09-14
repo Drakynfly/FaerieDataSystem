@@ -34,6 +34,8 @@ struct FFaerieAssetInfo : public FFaerieMassFragment
 
 	// Hash this struct. Only uses ObjectName to generate hash for speed.
 	friend uint32 GetTypeHash(const FFaerieAssetInfo& Value);
+
+____FAERIE_FRAGMENT_DECL(FFaerieAssetInfo)
 };
 
 template <>

@@ -1,13 +1,12 @@
 // Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "UI/FaerieStorageWidgetBase.h"
-#include "UI/InventoryUIAction.h"
 #include "UI/InventoryUIActionContainer.h"
 
+#include "FaerieContainerEvent.h"
 #include "FaerieInventoryContentLog.h"
 #include "FaerieContainerQuery.h"
-
-#include "Extensions/ItemContainerExtensionEvents.h"
+#include "FaerieItemStorage.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieStorageWidgetBase)
 
@@ -69,6 +68,98 @@ void UFaerieStorageWidgetBase::NativeTick(const FGeometry& MyGeometry, const flo
 	}
 }
 
+void UFaerieStorageWidgetBase::OnContainerEventBatch(TNotNull<UFaerieItemContainerBase*> Container, const TConstArrayView<const Container::FEvent*> Events)
+{
+	// If we are going to perform a full query next frame anyway, then this is pointless.
+	if (NeedsNewQuery)
+	{
+		return;
+	}
+
+	// @todo do we need a way to customize this value
+	if (Events.Num() > 1)
+	{
+		RequestQuery();
+		return;
+	}
+
+	for (auto&& Event : Events)
+	{
+		if (Event->IsAdditionEvent())
+		{
+			for (auto&& Address : Event->AddressesTouched)
+			{
+				// @Todo we don't know if the address was added "to" or added for the first time. separate "Addition" tag
+				// into "NewEntry" versus "CountIncrement".
+				int32 Index = SortedAndFilteredAddresses.Find(Address);
+				if (Index != INDEX_NONE)
+				{
+					OnAddressUpdated(Address, Index);
+				}
+				else
+				{
+					Index = AddToSortOrder(Address, true);
+					if (Index != INDEX_NONE)
+					{
+						OnAddressAdded(Address, Index);
+					}
+				}
+			}
+		}
+		else if (Event->IsRemovalEvent())
+		{
+			for (auto&& Address : Event->AddressesTouched)
+            {
+                if (const int32 Index = SortedAndFilteredAddresses.Find(Address);
+                	Index != INDEX_NONE)
+                {
+                	SortedAndFilteredAddresses.RemoveAt(Index);
+                	OnAddressRemoved(Address, Index);
+                }
+            }
+		}
+		else
+		{
+			check(Event->IsEditEvent())
+
+			for (auto&& Address : Event->AddressesTouched)
+			{
+				int32 Index = AddToSortOrder(Address, false);
+				if (Index != INDEX_NONE)
+				{
+					OnAddressAdded(Address, Index);
+				}
+				else
+				{
+					Index = SortedAndFilteredAddresses.Find(Address);
+					OnAddressUpdated(Address, Index);
+				}
+			}
+		}
+	}
+}
+
+void UFaerieStorageWidgetBase::InitWithStorage()
+{
+	// Reset state fully.
+	Reset();
+
+	UFaerieItemStorage* Storage = ItemStorage.Get();
+
+	if (ensure(IsValid(Storage)))
+	{
+		if (EnableUpdateEvents)
+		{
+			Content::SubscribeToContainerEvents(Storage, this);
+		}
+
+		OnInitWithInventory();
+
+		// Load in entries that should be initially displayed
+		NeedsNewQuery = true;
+	}
+}
+
 void UFaerieStorageWidgetBase::Reset()
 {
 	SortedAndFilteredAddresses.Empty();
@@ -78,84 +169,12 @@ void UFaerieStorageWidgetBase::Reset()
 		StorageQuery->SetInvertFilter(false);
 	}
 
-	if (ItemStorage.IsValid())
+	if (UFaerieItemStorage* Storage = ItemStorage.Get())
 	{
-		if (auto EventsExtension = Extensions::Get<UItemContainerExtensionEvents>(ItemStorage->GetExtensions(), false))
-		{
-			EventsExtension->GetOnPostEventBatch().RemoveAll(this);
-		}
+		Content::UnsubscribeFromContainerEvents(Storage, this);
 	}
 
 	OnReset();
-}
-
-void UFaerieStorageWidgetBase::OnPostEventBatch(const TNotNull<const UFaerieItemContainerBase*> Container,
-	const Inventory::FEventLogBatch& Events)
-{
-	if (Container != ItemStorage) return;
-
-	// If we are going to perform a full query next frame anyway, then this is pointless.
-	if (NeedsNewQuery)
-	{
-		return;
-	}
-
-	// @todo do we need a way to customize this value
-	if (Events.Data.Num() > 1)
-	{
-		RequestQuery();
-		return;
-	}
-
-	if (Events.IsAdditionEvent())
-	{
-		for (auto&& Event : Events.Data)
-        {
-            for (auto&& Address : Event.AddressesTouched)
-            {
-            	const int32 Index = AddToSortOrder(Address, true);
-            	if (Index != INDEX_NONE)
-            	{
-            		OnAddressAdded(Address, Index);
-            	}
-            }
-        }
-	}
-	else if (Events.IsRemovalEvent())
-	{
-		for (auto&& Event : Events.Data)
-		{
-			for (auto&& Address : Event.AddressesTouched)
-            {
-				if (const int32 Index = SortedAndFilteredAddresses.Find(Address);
-					Index != INDEX_NONE)
-				{
-					SortedAndFilteredAddresses.RemoveAt(Index);
-					OnAddressRemoved(Address, Index);
-				}
-            }
-		}
-	}
-	else
-	{
-		check(Events.IsEditEvent())
-
-		for (auto&& Event : Events.Data)
-		{
-			for (auto&& Address : Event.AddressesTouched)
-            {
-            	const int32 Index = AddToSortOrder(Address, false);
-            	if (Index != INDEX_NONE)
-            	{
-            		OnAddressAdded(Address, Index);
-            	}
-            	else
-            	{
-            		OnAddressUpdated(Address, INDEX_NONE);
-            	}
-            }
-		}
-	}
 }
 
 void UFaerieStorageWidgetBase::SetLinkedStorage(UFaerieItemStorage* Storage)
@@ -176,37 +195,6 @@ void UFaerieStorageWidgetBase::SetLinkedStorage(UFaerieItemStorage* Storage)
 			}
         }
 	}
-}
-
-void UFaerieStorageWidgetBase::InitWithStorage()
-{
-	// Reset state fully.
-    Reset();
-
-	UFaerieItemStorage* Storage = ItemStorage.Get();
-
-    if (ensure(IsValid(Storage)))
-    {
-        if (EnableUpdateEvents)
-        {
-        	auto EventsExtension = Extensions::Get<UItemContainerExtensionEvents>(Storage->GetExtensions(), false);
-        	if (!IsValid(EventsExtension))
-        	{
-        		UE_LOGF(LogFaerieInventoryContent, Error,
-        			"Storage Widget failed to find Events Extension. Dynamic updates disabled! Please add a Extension Events object to '%ls' or disable EnableUpdateEvents",
-        			*Storage->GetPathName())
-        	}
-        	else
-        	{
-        		EventsExtension->GetOnPostEventBatch().AddUObject(this, &ThisClass::OnPostEventBatch);
-        	}
-        }
-
-        OnInitWithInventory();
-
-        // Load in entries that should be initially displayed
-        NeedsNewQuery = true;
-    }
 }
 
 int32 UFaerieStorageWidgetBase::AddToSortOrder(const FFaerieAddress Address, const bool WarnIfAlreadyExists)

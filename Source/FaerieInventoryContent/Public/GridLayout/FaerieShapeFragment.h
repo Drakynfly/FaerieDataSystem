@@ -18,6 +18,8 @@ struct FFaerieShapeFragment : public FFaerieMassFragment
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ShowOnlyInnerProperties))
 	FFaerieGridShape Shape;
+
+____FAERIE_FRAGMENT_DECL(FFaerieShapeFragment)
 };
 
 // @Todo make shape stored by pointer or something so this can be removed

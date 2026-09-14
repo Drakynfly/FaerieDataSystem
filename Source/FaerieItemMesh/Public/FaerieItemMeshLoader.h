@@ -46,36 +46,39 @@ protected:
 	virtual void HandleAsyncLoadResult(FFaerieItemMesh&& Mesh, Faerie::Mesh::FAsyncLoadRequest&& Request);
 };
 
-/**
- *
- */
-USTRUCT()
-struct FFaerieCachedMeshKey
+namespace Faerie::Mesh
 {
-	GENERATED_BODY()
-
-	UPROPERTY()
-	TWeakObjectPtr<const UObject> WeakProxy;
-
-	UPROPERTY()
-	FGameplayTag Purpose;
-
-	bool IsKeyValid() const
+	/**
+	 * A key per unique mesh/purpose combination.
+	 */
+	USTRUCT()
+	struct FCachedMeshKey
 	{
-		return WeakProxy.IsValid();
-	}
+		GENERATED_BODY()
 
-	[[nodiscard]] UE_REWRITE bool UEOpEquals(const FFaerieCachedMeshKey& Other) const
-	{
-		return WeakProxy == Other.WeakProxy &&
-			   Purpose == Other.Purpose;
-	}
+		UPROPERTY()
+		TWeakObjectPtr<const UObject> WeakProxy;
 
-	friend [[nodiscard]] UE_REWRITE uint32 GetTypeHash(const FFaerieCachedMeshKey& Key)
-	{
-		return HashCombineFast(GetTypeHash(Key.WeakProxy), GetTypeHash(Key.Purpose));
-	}
-};
+		UPROPERTY()
+		FGameplayTag Purpose;
+
+		bool IsKeyValid() const
+		{
+			return WeakProxy.IsValid();
+		}
+
+		[[nodiscard]] UE_REWRITE bool UEOpEquals(const FCachedMeshKey& Other) const
+		{
+			return WeakProxy == Other.WeakProxy &&
+				   Purpose == Other.Purpose;
+		}
+
+		friend [[nodiscard]] UE_REWRITE uint32 GetTypeHash(const FCachedMeshKey& Key)
+		{
+			return HashCombineFast(GetTypeHash(Key.WeakProxy), GetTypeHash(Key.Purpose));
+		}
+	};
+}
 
 /**
  * Implementation of MeshLoader that caches results for each proxy.
@@ -105,5 +108,5 @@ private:
 	 * Stored meshes for quick lookup
 	 */
 	UPROPERTY(Transient)
-	TMap<FFaerieCachedMeshKey, FFaerieItemMesh> GeneratedMeshes;
+	TMap<Faerie::Mesh::FCachedMeshKey, FFaerieItemMesh> GeneratedMeshes;
 };

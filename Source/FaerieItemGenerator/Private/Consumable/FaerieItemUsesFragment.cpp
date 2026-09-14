@@ -205,7 +205,7 @@ namespace Faerie::ItemData
 			[Instance = Item, Amount, ClampToMax](FMassEntityManager& InEntityManager)
 			{
 				const FMassEntityHandle Entity = Instance.GetMassEntityHandle();
-				if (InEntityManager.IsEntityValid(Entity))
+				if (!InEntityManager.IsEntityValid(Entity))
 				{
 					return;
 				}
@@ -285,7 +285,7 @@ namespace Faerie::ItemData
 			[Instance = Item, Amount](FMassEntityManager& InEntityManager)
 			{
 				const FMassEntityHandle Entity = Instance.GetMassEntityHandle();
-				if (InEntityManager.IsEntityValid(Entity))
+				if (!InEntityManager.IsEntityValid(Entity))
 				{
 					return;
 				}
@@ -322,7 +322,7 @@ namespace Faerie::ItemData
 			[Instance = Item, NewValue = Defaults_FragmentPtr->UsesRemaining](FMassEntityManager& InEntityManager)
 			{
 				const FMassEntityHandle Entity = Instance.GetMassEntityHandle();
-				if (InEntityManager.IsEntityValid(Entity))
+				if (!InEntityManager.IsEntityValid(Entity))
 				{
 					return;
 				}
@@ -357,7 +357,7 @@ namespace Faerie::ItemData
 			[Instance = Item, Value, ClampRemainingIfOverMax](FMassEntityManager& InEntityManager)
 			{
 				const FMassEntityHandle Entity = Instance.GetMassEntityHandle();
-				if (InEntityManager.IsEntityValid(Entity))
+				if (!InEntityManager.IsEntityValid(Entity))
 				{
 					return;
 				}
