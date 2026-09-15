@@ -1,6 +1,7 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieItemStorage.h"
+#include "FaerieContainerEvent.h"
 #include "FaerieInventoryLog.h"
 #include "FaerieItem.h"
 #include "FaerieItemStorageIterators.h"
@@ -442,7 +443,7 @@ UFaerieItemStackProxy* UFaerieItemStorage::GetStackProxyImpl(const FFaerieAddres
 	return NewStackProxy;
 }
 
-Inventory::FEventData UFaerieItemStorage::AddStackImplNoBroadcast(const TValid<const FFaerieUnownedItemStack&> ItemStack, const bool ForceNewStack)
+Container::FEvent UFaerieItemStorage::AddStackImplNoBroadcast(const TValid<const FFaerieUnownedItemStack&> ItemStack, const bool ForceNewStack)
 {
 	static auto FindExistingEntry = [](const TNotNull<const UFaerieItemStorage*> Storage, const FFaerieItemInstance& Item) -> const FFaerieStorageEntry*
 		{
@@ -459,7 +460,10 @@ Inventory::FEventData UFaerieItemStorage::AddStackImplNoBroadcast(const TValid<c
 	if (const FFaerieStorageEntry* const ExistingEntry = FindExistingEntry(this, ItemInstance))
 	{
 		// Setup Log for this event
-		Inventory::FEventData Event(ExistingEntry->GetKey());
+		Container::FEvent Event;
+		Event.EntryTouched = ExistingEntry->GetKey();
+		Event.Timestamp = FDateTime::UtcNow();
+		Event.Type = Inventory::Tags::Addition;
 		Event.Instance = ItemInstance;
 		Event.Copies = Copies;
 
@@ -478,7 +482,10 @@ Inventory::FEventData UFaerieItemStorage::AddStackImplNoBroadcast(const TValid<c
 	}
 
 	// Setup Log for this event
-	Inventory::FEventData Event(KeyGen.NextKey());
+	Container::FEvent Event;
+	Event.EntryTouched = KeyGen.NextKey();
+	Event.Timestamp = FDateTime::UtcNow();
+	Event.Type = Inventory::Tags::Addition;
 	Event.Instance = ItemInstance;
 	Event.Copies = Copies;
 
@@ -498,22 +505,23 @@ Inventory::FEventData UFaerieItemStorage::AddStackImplNoBroadcast(const TValid<c
 	return Event;
 }
 
-Inventory::FEventData UFaerieItemStorage::AddStackImpl(const TValid<const FFaerieUnownedItemStack&> ItemStack, const bool ForceNewStack)
+Container::FEvent UFaerieItemStorage::AddStackImpl(const TValid<const FFaerieUnownedItemStack&> ItemStack, const bool ForceNewStack)
 {
 	SCOPE_CYCLE_COUNTER(STAT_Storage_Add);
 
-	Inventory::FEventData Event = AddStackImplNoBroadcast(ItemStack, ForceNewStack);
+	Container::FEvent Event = AddStackImplNoBroadcast(ItemStack, ForceNewStack);
 
 	// Execute PostEventBatch on all extensions with the finished Event
-	PostEvent(Event, Inventory::Tags::Addition);
+	PostEvent(Event);
 
 	return Event;
 }
 
-Inventory::FEventData UFaerieItemStorage::RemoveFromEntryImplNoBroadcast(const FFaerieStorageEntry& InEntry, const int32 Amount)
+Container::FEvent UFaerieItemStorage::RemoveFromEntryImplNoBroadcast(const FFaerieStorageEntry& InEntry, const int32 Amount, const FFaerieInventoryTag Reason)
 {
 	// Log for this event
-	Inventory::FEventData Event(InEntry.GetKey());
+	Container::FEvent Event = Container::FEvent::MakeBlank(this, InEntry.GetKey());
+	Event.Type = Reason;
 
 	// Open Mutable Scope
 	{
@@ -556,10 +564,11 @@ Inventory::FEventData UFaerieItemStorage::RemoveFromEntryImplNoBroadcast(const F
 	return Event;
 }
 
-Inventory::FEventData UFaerieItemStorage::RemoveFromStackImplNoBroadcast(const FFaerieStorageEntry& InEntry, const FFaerieStackKey Stack, const int32 Amount)
+Faerie::Container::FEvent UFaerieItemStorage::RemoveFromStackImplNoBroadcast(const FFaerieStorageEntry& InEntry, const FFaerieStackKey Stack, const int32 Amount, const FFaerieInventoryTag Reason)
 {
 	// Log for this event
-	Inventory::FEventData Event(InEntry.GetKey());
+	Container::FEvent Event = Container::FEvent::MakeBlank(this, InEntry.GetKey());
+	Event.Type = Reason;
 	Event.AddressesTouched.Add(Container::Address::Encode(InEntry.GetKey(), Stack));
 
 	// Open Mutable Scope
@@ -615,8 +624,8 @@ Inventory::FEventData UFaerieItemStorage::RemoveFromStackImplNoBroadcast(const F
 	return Event;
 }
 
-Inventory::FEventData UFaerieItemStorage::RemoveFromEntryImpl(const FFaerieStorageEntry& Entry, const int32 Amount,
-															  const FFaerieInventoryTag Reason)
+Container::FEvent UFaerieItemStorage::RemoveFromEntryImpl(const FFaerieStorageEntry& Entry, const int32 Amount,
+														  const FFaerieInventoryTag Reason)
 {
 	SCOPE_CYCLE_COUNTER(STAT_Storage_Remove);
 
@@ -624,9 +633,9 @@ Inventory::FEventData UFaerieItemStorage::RemoveFromEntryImpl(const FFaerieStora
 	checkSlow(Faerie::ItemData::IsValidStackAmount(Amount));
 	checkSlow(Reason.MatchesTag(Faerie::Inventory::Tags::RemovalBase))
 
-	Inventory::FEventData Event = RemoveFromEntryImplNoBroadcast(Entry, Amount);
+	Container::FEvent Event = RemoveFromEntryImplNoBroadcast(Entry, Amount, Reason);
 
-	PostEvent(Event, Reason);
+	PostEvent(Event);
 
 	// Destroy the mass entity, if this stack is being deleted.
 	if (Reason == Inventory::Tags::RemovalDeletion && Event.EntryRemoved)
@@ -638,7 +647,7 @@ Inventory::FEventData UFaerieItemStorage::RemoveFromEntryImpl(const FFaerieStora
 	return Event;
 }
 
-Inventory::FEventData UFaerieItemStorage::RemoveFromStackImpl(const FFaerieStorageEntry& InEntry, const FFaerieStackKey Stack,
+Container::FEvent UFaerieItemStorage::RemoveFromStackImpl(const FFaerieStorageEntry& InEntry, const FFaerieStackKey Stack,
 															  const int32 Amount, const FFaerieInventoryTag Reason)
 {
 	SCOPE_CYCLE_COUNTER(STAT_Storage_Remove);
@@ -647,9 +656,9 @@ Inventory::FEventData UFaerieItemStorage::RemoveFromStackImpl(const FFaerieStora
 	checkSlow(Faerie::ItemData::IsValidStackAmount(Amount));
 	checkSlow(Reason.MatchesTag(Faerie::Inventory::Tags::RemovalBase))
 
-	Inventory::FEventData Event = RemoveFromStackImplNoBroadcast(InEntry, Stack, Amount);
+	Container::FEvent Event = RemoveFromStackImplNoBroadcast(InEntry, Stack, Amount, Reason);
 
-	PostEvent(Event, Reason);
+	PostEvent(Event);
 
 	// Destroy the mass entity, if this stack is being deleted.
 	if (Reason == Inventory::Tags::RemovalDeletion && Event.EntryRemoved)
@@ -696,9 +705,9 @@ bool UFaerieItemStorage::CanRemoveStackImpl(const FFaerieStorageEntry& Entry, co
 	return AllowsRemoval(&ReadAccess, Reason, Default);
 }
 
-void UFaerieItemStorage::Server_PostContentAdded(const FFaerieStorageEntry& Entry, const Inventory::FEventData& Event) {}
+void UFaerieItemStorage::Server_PostContentAdded(const FFaerieStorageEntry& Entry, const Container::FEvent& Event) {}
 
-void UFaerieItemStorage::Server_PreContentRemoved(const FFaerieStorageEntry& Entry, const Inventory::FEventData& Event)
+void UFaerieItemStorage::Server_PreContentRemoved(const FFaerieStorageEntry& Entry, const Container::FEvent& Event)
 {
 	// We should only be called when the entry is being deleted.
 	check(Event.EntryRemoved);
@@ -722,7 +731,7 @@ void UFaerieItemStorage::Server_PreContentRemoved(const FFaerieStorageEntry& Ent
 	}
 }
 
-void UFaerieItemStorage::Server_PostContentChanged(const FFaerieStorageEntry& Entry, const Inventory::FEventData& Event)
+void UFaerieItemStorage::Server_PostContentChanged(const FFaerieStorageEntry& Entry, const Container::FEvent& Event)
 {
 	if (const TWeakObjectPtr<UFaerieItemEntryProxy>* FoundEntry = LocalEntryProxies.Find(Event.EntryTouched))
 	{
@@ -780,7 +789,7 @@ void UFaerieItemStorage::Client_PostContentAdded(const FFaerieStorageEntry& Entr
 	}
 
 	// Prepare event data.
-	const Inventory::FEventData Event(Entry.GetInstance(), Entry.StackSum(), Entry.GetKey(), CollateAddresses(Entry));
+	const Container::FEvent Event = Container::FEvent::MakeAddition(this, Entry.GetInstance(), Entry.StackSum(), Entry.GetKey(), CollateAddresses(Entry));
 
 	// Proxies may already exist for keys on the client if they are replicated by extensions or other means, and
 	// happened to arrive before we got them.
@@ -803,7 +812,7 @@ void UFaerieItemStorage::Client_PostContentAdded(const FFaerieStorageEntry& Entr
 		}
 	}
 
-	PostEvent(Event, Inventory::Tags::Addition);
+	PostEvent(Event);
 }
 
 void UFaerieItemStorage::Client_PreContentRemoved(const FFaerieStorageEntry& Entry)
@@ -812,10 +821,10 @@ void UFaerieItemStorage::Client_PreContentRemoved(const FFaerieStorageEntry& Ent
 	// removal notice.
 
 	// Prepare event data. Item may not be valid.
-	Inventory::FEventData Event(Entry.GetInstance(), Entry.StackSum(), Entry.GetKey(), CollateAddresses(Entry));
 	// Client_PreContentRemoved is only called by replication callback on FFaerieStorageEntry, so it only gets called
 	// when the entry is being removed.
-	Event.EntryRemoved = true;
+	const Container::FEvent Event = Container::FEvent::MakeRemoval(this, Entry.GetInstance(), Entry.StackSum(),
+		Inventory::Tags::RemovalDeletion, Entry.GetKey(), CollateAddresses(Entry), true);
 
 	// Cleanup local proxy objects.
 	TWeakObjectPtr<UFaerieItemEntryProxy> EntryProxy;
@@ -835,7 +844,7 @@ void UFaerieItemStorage::Client_PreContentRemoved(const FFaerieStorageEntry& Ent
 		}
 	}
 
-	PostEvent(Event, Inventory::Tags::RemovalDeletion);
+	PostEvent(Event);
 }
 
 void UFaerieItemStorage::Client_PostContentChanged(const FFaerieStorageEntry& Entry)
@@ -852,7 +861,8 @@ void UFaerieItemStorage::Client_PostContentChanged(const FFaerieStorageEntry& En
 		return;
 	}
 
-	Inventory::FEventData Event(Entry.GetKey());
+	Container::FEvent Event = Container::FEvent::MakeBlank(this, Entry.GetKey());
+	Event.Type = Inventory::Tags::ReplicationEdit;
 	Event.Instance = Entry.GetInstance();
 	Event.AddressesTouched.Reserve(Entry.NumStacks());
 
@@ -918,7 +928,7 @@ void UFaerieItemStorage::Client_PostContentChanged(const FFaerieStorageEntry& En
 		}
 	}
 
-	PostEvent(Event, Inventory::Tags::ReplicationEdit);
+	PostEvent(Event);
 }
 
 
@@ -1320,7 +1330,7 @@ bool UFaerieItemStorage::AddItemStack(const FFaerieUnownedItemStack& Stack, cons
 }
 
 void UFaerieItemStorage::AddItemStack(const TValid<const FFaerieUnownedItemStack&> Stack,
-	const EFaerieStorageAddStackBehavior AddStackBehavior, TValueOrError<Inventory::FEventData, FText>& OutResult)
+	const EFaerieStorageAddStackBehavior AddStackBehavior, TValueOrError<Container::FEvent, FText>& OutResult)
 {
 	const ItemData::FScopeProxy Proxy(ValidGet(Stack).Instance, ValidGet(Stack).Copies, nullptr);
 	if (!CanAddStack(FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, &Proxy), AddStackBehavior))
@@ -1338,17 +1348,15 @@ bool UFaerieItemStorage::AddItemStacks(const Utils::TArrayAdapter<FFaerieUnowned
 
 	const bool ForceNewStack = Container::IfOnlyNewStacks(AddStackBehavior);
 
-	TArray<Inventory::FEventData> Events;
+	TArray<Container::FEvent> Events;
 	Events.Reserve(Adapter.Num());
 
 	ON_SCOPE_EXIT
 	{
 		if (!Events.IsEmpty())
 		{
-			const Inventory::FEventLogBatch Batch(Events, Inventory::Tags::Addition);
-
 			// Execute PostEventBatch on all extensions with the finished Event
-			PostEventBatch(Batch);
+			PostEventBatch(Events);
 		}
 	};
 
@@ -1386,11 +1394,11 @@ void UFaerieItemStorage::AddItemStackBulk(const TArray<FFaerieUnownedItemStack>&
 
 bool UFaerieItemStorage::AddItemStackWithLog(const FFaerieUnownedItemStack& Stack, const EFaerieStorageAddStackBehavior AddStackBehavior, FFaerieBlueprintInventoryEvent& Event)
 {
-	TValueOrError<Inventory::FEventData, FText> Result = MakeError(FText::GetEmpty());
+	TValueOrError<Container::FEvent, FText> Result = MakeError(FText::GetEmpty());
 	AddItemStack(Stack, AddStackBehavior, Result);
 	if (Result.HasValue())
 	{
-		Event = FFaerieBlueprintInventoryEvent::FromNativeEvent(this, Inventory::Tags::Addition, Result.GetValue(), FDateTime::UtcNow());
+		Event = FFaerieBlueprintInventoryEvent::FromNativeEvent(Result.GetValue());
 	}
 	return false;
 }
@@ -1440,7 +1448,7 @@ bool UFaerieItemStorage::TakeEntry(const FFaerieEntryKey Key, FFaerieUnownedItem
 	{
 		if (CanRemoveEntryImpl(*EntryPtr, RemovalTag))
 		{
-			const Inventory::FEventData Event = RemoveFromEntryImpl(*EntryPtr, Amount, RemovalTag);
+			const Container::FEvent Event = RemoveFromEntryImpl(*EntryPtr, Amount, RemovalTag);
 			OutStack = FFaerieUnownedItemStack(Event.Instance, Event.Copies);
             return true;
 		}
@@ -1462,7 +1470,7 @@ bool UFaerieItemStorage::TakeStack(const FFaerieAddress Address, FFaerieUnownedI
 	{
 		if (CanRemoveStackImpl(*EntryPtr, Stack, RemovalTag))
 		{
-			const Inventory::FEventData Event = RemoveFromStackImpl(*EntryPtr, Stack, Amount, RemovalTag);
+			const Container::FEvent Event = RemoveFromStackImpl(*EntryPtr, Stack, Amount, RemovalTag);
 			OutStack = FFaerieUnownedItemStack(Event.Instance, Event.Copies);
 			return true;
 		}
@@ -1481,7 +1489,7 @@ void UFaerieItemStorage::Clear(FFaerieInventoryTag RemovalTag)
 	TArray<FFaerieEntryKey> Entries;
 	CopyEntryKeys(Entries);
 
-	TArray<Inventory::FEventData> Events;
+	TArray<Container::FEvent> Events;
 	Events.Reserve(Entries.Num());
 
 	for (const FFaerieEntryKey EntryKey : Entries)
@@ -1494,16 +1502,15 @@ void UFaerieItemStorage::Clear(FFaerieInventoryTag RemovalTag)
 		}
 
 		// RemoveFromEntryImplNoBroadcast should not be called with unvalidated parameters.
-		Events.Add(RemoveFromEntryImplNoBroadcast(Entry, ItemData::EntireStack));
+		Events.Add(RemoveFromEntryImplNoBroadcast(Entry, ItemData::EntireStack, RemovalTag));
 	}
 
-	const Inventory::FEventLogBatch Batch(Events, RemovalTag);
-	PostEventBatch(Batch);
+	PostEventBatch(Events);
 
 	if (RemovalTag == Inventory::Tags::RemovalDeletion)
 	{
 		FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked();
-		for (Inventory::FEventData& Event : Events)
+		for (Container::FEvent& Event : Events)
 		{
 			Event.Instance.DestroyMassEntity(EntityManager);
 		}
@@ -1561,7 +1568,7 @@ FFaerieEntryKey UFaerieItemStorage::MoveStack(UFaerieItemStorage* ToStorage, con
 		return FFaerieEntryKey::InvalidKey;
 	}
 
-	const Inventory::FEventData Event = RemoveFromStackImpl(*EntryPtr, Stack, Amount, Inventory::Tags::RemovalMoving);
+	const Container::FEvent Event = RemoveFromStackImpl(*EntryPtr, Stack, Amount, Inventory::Tags::RemovalMoving);
 
 	const TValid<FFaerieUnownedItemStack> ItemStack(Event.Instance, Event.Copies);
 	return ToStorage->AddStackImpl(ItemStack, Container::IfOnlyNewStacks(AddStackBehavior)).EntryTouched;
@@ -1593,7 +1600,7 @@ FFaerieEntryKey UFaerieItemStorage::MoveEntry(UFaerieItemStorage* ToStorage, con
 		return FFaerieEntryKey::InvalidKey;
 	}
 
-	const Inventory::FEventData RemoveResult = RemoveFromEntryImpl(*EntryPtr,
+	const Container::FEvent RemoveResult = RemoveFromEntryImpl(*EntryPtr,
 		ItemData::EntireStack, Inventory::Tags::RemovalMoving);
 
 	const TValid<FFaerieUnownedItemStack> ItemStack(RemoveResult.Instance, RemoveResult.Copies);
@@ -1628,7 +1635,8 @@ bool UFaerieItemStorage::MergeStacks(const FFaerieEntryKey Entry, const FFaerieS
 		return false;
 	}
 
-	Inventory::FEventData Event(Entry);
+	Container::FEvent Event = Container::FEvent::MakeBlank(this, Entry);
+	Event.Type = Inventory::Tags::Merge;
 	Event.Copies = AmountB; // Initially store the amount in stack B here.
 	Event.Instance = EntryPtr->GetInstance();
 	Event.AddressesTouched.Add(FromAddress);
@@ -1646,7 +1654,7 @@ bool UFaerieItemStorage::MergeStacks(const FFaerieEntryKey Entry, const FFaerieS
 	}
 	// Close Mutable scope
 
-	PostEvent(Event, Inventory::Tags::Merge);
+	PostEvent(Event);
 
 	return true;
 }
@@ -1675,7 +1683,8 @@ bool UFaerieItemStorage::SplitStack(const FFaerieAddress Address, const int32 Am
 		return false;
 	}
 
-	Inventory::FEventData Event(Entry);
+	Container::FEvent Event = Container::FEvent::MakeBlank(this, Entry);
+	Event.Type = Inventory::Tags::Split;
 	Event.Instance = EntryPtr->GetInstance();
 	Event.Copies = Amount;
 	Event.AddressesTouched.Add(Address);
@@ -1691,7 +1700,7 @@ bool UFaerieItemStorage::SplitStack(const FFaerieAddress Address, const int32 Am
 		Server_PostContentChanged(Handle.Get(), Event);
 	}
 
-	PostEvent(Event, Inventory::Tags::Split);
+	PostEvent(Event);
 
 	return true;
 }
@@ -1709,7 +1718,7 @@ void UFaerieItemStorage::Dump(UFaerieItemStorage* ToStorage)
 	TArray<FFaerieEntryKey> Entries;
 	CopyEntryKeys(Entries);
 
-	TArray<Inventory::FEventData> Events;
+	TArray<Container::FEvent> Events;
 	Events.Reserve(Entries.Num());
 
 	TArray<FFaerieUnownedItemStack> Stacks;
@@ -1730,13 +1739,12 @@ void UFaerieItemStorage::Dump(UFaerieItemStorage* ToStorage)
 			continue;
 		}
 
-		Inventory::FEventData& Event = Events.Add_GetRef(RemoveFromEntryImplNoBroadcast(Entry, ItemData::EntireStack));
+		Container::FEvent& Event = Events.Add_GetRef(RemoveFromEntryImplNoBroadcast(Entry, ItemData::EntireStack, Inventory::Tags::RemovalMoving));
 
 		Stacks.Emplace(Event.Instance, Event.Copies);
 	}
 
-	const Inventory::FEventLogBatch EventBatch(Events, Inventory::Tags::RemovalMoving);
-	PostEventBatch(EventBatch);
+	PostEventBatch(Events);
 
 	ToStorage->AddItemStacks(Stacks, DumpBehavior, false);
 }

@@ -8,11 +8,6 @@
 
 #include "FaerieItemStorageFragment.generated.h"
 
-namespace Faerie::Inventory
-{
-	class FEventLogBatch;
-}
-
 class UFaerieItemContainerBase;
 class UFaerieItemStackContainer;
 class UFaerieItemStorage;

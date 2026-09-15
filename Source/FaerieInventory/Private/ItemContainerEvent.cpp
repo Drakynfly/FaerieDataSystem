@@ -59,27 +59,3 @@ FFaerieBlueprintInventoryEvent FFaerieBlueprintInventoryEvent::FromNativeEvent(c
 		.AddressesTouched = NativeEvent.AddressesTouched
 	};
 }
-
-FFaerieBlueprintInventoryEvent FFaerieBlueprintInventoryEvent::FromNativeEvent(const TNotNull<const UFaerieItemContainerBase*>& Container,
-																			   const FFaerieInventoryTag Type, const Faerie::Inventory::FEventData& Data, const FDateTime Timestamp)
-{
-	return FFaerieBlueprintInventoryEvent(
-		Container,
-		Timestamp,
-		Type,
-		Data.Copies,
-		Data.EntryTouched,
-		Data.AddressesTouched);
-}
-
-FFaerieBlueprintInventoryEvent FFaerieBlueprintInventoryEvent::FromNativeEvent(const TNotNull<const UFaerieItemContainerBase*>& Container,
-	const Faerie::Inventory::FEventLogSingle& Event)
-{
-	return FFaerieBlueprintInventoryEvent(
-		Container,
-		Event.GetTimestamp(),
-		Event.Type,
-		Event.Data.Copies,
-		Event.Data.EntryTouched,
-		Event.Data.AddressesTouched);
-}

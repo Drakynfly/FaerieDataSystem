@@ -3,6 +3,7 @@
 #pragma once
 
 #include "FaerieContainerDataViewModelBase.h"
+#include "NetSupportedObject.h"
 #include "FaerieGridEnums.h"
 #include "FaerieGridStructs.h"
 #include "FaerieItemDataView.h"

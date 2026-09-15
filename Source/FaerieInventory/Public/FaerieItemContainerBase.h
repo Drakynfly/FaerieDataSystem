@@ -20,20 +20,12 @@
 
 #include "FaerieItemContainerBase.generated.h"
 
-struct FMassArchetypeHandle;
-
-namespace Faerie::Inventory
-{
-	class FEventLogBatch;
-	class FEventData;
-}
-
 namespace Faerie::Container
 {
+	struct FEvent;
 	class IEntryIterator;
 	class IAddressIterator;
 	class IAddressView;
-	class IEntryView;
 
 	namespace Private
 	{
@@ -52,15 +44,6 @@ namespace Faerie::Container
 
 struct FFaerieExtensionAllowsAdditionArgs;
 struct FFaerieInventoryTag;
-
-USTRUCT()
-struct FFaerieItemContainerExtensionSaveData
-{
-	GENERATED_BODY()
-
-	UPROPERTY()
-	TMap<uint32, FInstancedStruct> Data;
-};
 
 USTRUCT()
 struct FFaerieItemContainerExtensionStorageElement : public FFastArraySerializerItem
@@ -264,9 +247,9 @@ public:
 
 	[[nodiscard]] bool AllowsEdit(const TNotNull<const Faerie::Container::IAddressView*> DataView, const FFaerieInventoryTag EditTag, const bool DefaultResult) const;
 
-	void PostEvent(const Faerie::Inventory::FEventData& Event, FFaerieInventoryTag Reason);
+	void PostEvent(const Faerie::Container::FEvent& Event);
 
-	void PostEventBatch(const Faerie::Inventory::FEventLogBatch& Events);
+	void PostEventBatch(TConstArrayView<Faerie::Container::FEvent> Events);
 
 
 	/**------------------------------*/

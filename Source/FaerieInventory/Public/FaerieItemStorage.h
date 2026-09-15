@@ -104,22 +104,22 @@ private:
 	[[nodiscard]] UFaerieItemStackProxy* GetStackProxyImpl(FFaerieAddress Address) const;
 
 	// Internal implementation for adding items.
-	[[nodiscard]] Faerie::Inventory::FEventData AddStackImplNoBroadcast(const Faerie::TValid<const FFaerieUnownedItemStack&> ItemStack, bool ForceNewStack);
-	[[nodiscard]] Faerie::Inventory::FEventData AddStackImpl(const Faerie::TValid<const FFaerieUnownedItemStack&> ItemStack, bool ForceNewStack);
+	[[nodiscard]] Faerie::Container::FEvent AddStackImplNoBroadcast(const Faerie::TValid<const FFaerieUnownedItemStack&> ItemStack, bool ForceNewStack);
+	[[nodiscard]] Faerie::Container::FEvent AddStackImpl(const Faerie::TValid<const FFaerieUnownedItemStack&> ItemStack, bool ForceNewStack);
 
 	// Internal implementations for removing items, specifying an amount.
-	[[nodiscard]] Faerie::Inventory::FEventData RemoveFromEntryImplNoBroadcast(const FFaerieStorageEntry& Entry, int32 Amount);
-	[[nodiscard]] Faerie::Inventory::FEventData RemoveFromStackImplNoBroadcast(const FFaerieStorageEntry& Entry, FFaerieStackKey Stack, int32 Amount);
-	[[nodiscard]] Faerie::Inventory::FEventData RemoveFromEntryImpl(const FFaerieStorageEntry& Entry, int32 Amount, FFaerieInventoryTag Reason);
-	[[nodiscard]] Faerie::Inventory::FEventData RemoveFromStackImpl(const FFaerieStorageEntry& Entry, FFaerieStackKey Stack, int32 Amount, FFaerieInventoryTag Reason);
+	[[nodiscard]] Faerie::Container::FEvent RemoveFromEntryImplNoBroadcast(const FFaerieStorageEntry& Entry, int32 Amount, const FFaerieInventoryTag Reason);
+	[[nodiscard]] Faerie::Container::FEvent RemoveFromStackImplNoBroadcast(const FFaerieStorageEntry& Entry, FFaerieStackKey Stack, int32 Amount, const FFaerieInventoryTag Reason);
+	[[nodiscard]] Faerie::Container::FEvent RemoveFromEntryImpl(const FFaerieStorageEntry& Entry, int32 Amount, FFaerieInventoryTag Reason);
+	[[nodiscard]] Faerie::Container::FEvent RemoveFromStackImpl(const FFaerieStorageEntry& Entry, FFaerieStackKey Stack, int32 Amount, FFaerieInventoryTag Reason);
 
 	bool CanEditStackImpl(const FFaerieStorageEntry& Entry, FFaerieStackKey Stack, FFaerieInventoryTag EditTag) const;
 	bool CanRemoveEntryImpl(const FFaerieStorageEntry& Entry, FFaerieInventoryTag Reason) const;
 	bool CanRemoveStackImpl(const FFaerieStorageEntry& Entry, FFaerieStackKey Stack, FFaerieInventoryTag Reason) const;
 
-	void Server_PostContentAdded(const FFaerieStorageEntry& Entry, const Faerie::Inventory::FEventData& Event);
-	void Server_PreContentRemoved(const FFaerieStorageEntry& Entry, const Faerie::Inventory::FEventData& Event);
-	void Server_PostContentChanged(const FFaerieStorageEntry& Entry, const Faerie::Inventory::FEventData& Event);
+	void Server_PostContentAdded(const FFaerieStorageEntry& Entry, const Faerie::Container::FEvent& Event);
+	void Server_PreContentRemoved(const FFaerieStorageEntry& Entry, const Faerie::Container::FEvent& Event);
+	void Server_PostContentChanged(const FFaerieStorageEntry& Entry, const Faerie::Container::FEvent& Event);
 
 	void Client_PostContentAdded(const FFaerieStorageEntry& Entry);
 	void Client_PreContentRemoved(const FFaerieStorageEntry& Entry);
@@ -223,7 +223,7 @@ public:
 	bool AddItemStack(const FFaerieUnownedItemStack& Stack, EFaerieStorageAddStackBehavior AddStackBehavior);
 
 	// Add an item stack into storage, and return the full data about the change.
-	void AddItemStack(const Faerie::TValid<const FFaerieUnownedItemStack&> Stack, EFaerieStorageAddStackBehavior AddStackBehavior, TValueOrError<Faerie::Inventory::FEventData, FText>& OutResult);
+	void AddItemStack(const Faerie::TValid<const FFaerieUnownedItemStack&> Stack, EFaerieStorageAddStackBehavior AddStackBehavior, TValueOrError<Faerie::Container::FEvent, FText>& OutResult);
 
 	bool AddItemStacks(const Faerie::Utils::TArrayAdapter<FFaerieUnownedItemStack>& Adapter, EFaerieStorageAddStackBehavior AddStackBehavior, bool StopAfterFailure);
 

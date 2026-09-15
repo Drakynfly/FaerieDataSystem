@@ -484,23 +484,16 @@ bool UFaerieItemContainerBase::AllowsEdit(const TNotNull<const Container::IAddre
 	return DefaultResult;
 }
 
-void UFaerieItemContainerBase::PostEvent(const Inventory::FEventData& Event, const FFaerieInventoryTag Reason)
+void UFaerieItemContainerBase::PostEvent(const Container::FEvent& Event)
 {
-	const Inventory::FEventLogBatch Batch(MakeConstArrayView(&Event, 1), Reason);
-
-	FInstancedStruct EventStruct;
-	EventStruct.InitializeAs<Container::FEvent>(Container::FEvent{
-		.Timestamp = Batch.GetTimestamp(),
-		.Container = this,
-		.Instance = Event.Instance,
-		.Type = Reason,
-		.Copies = Event.Copies,
-		.EntryTouched = Event.EntryTouched,
-		.AddressesTouched = Event.AddressesTouched,
-		.EntryRemoved = Event.EntryRemoved,
-	});
-
 	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked();
+
+	FInstancedStruct EventStruct = FInstancedStruct::Make(Event);
+	EntityManager.Defer().PushCommand<FMassDeferredCreateCommand>(
+		[EventStruct = MoveTemp(EventStruct)](FMassEntityManager& DeferredEntityManager)
+		{
+			DeferredEntityManager.CreateEntity(MakeConstArrayView(&EventStruct, 1));
+		});
 
 	if (const Container::FNestedContainer* Nesting = ReadContainerData<Container::FNestedContainer>())
 	{
@@ -508,36 +501,27 @@ void UFaerieItemContainerBase::PostEvent(const Inventory::FEventData& Event, con
 		FFaerieItemInstance Instance(nullptr, Nesting->ItemHandle);
 		Instance.TempNestedContainerChanged(EntityManager);
 	}
-
-	EntityManager.Defer().PushCommand<FMassDeferredCreateCommand>(
-		[EventStruct](FMassEntityManager& DeferredEntityManager)
-		{
-			DeferredEntityManager.CreateEntity(MakeConstArrayView(&EventStruct, 1));
-		});
 }
 
-void UFaerieItemContainerBase::PostEventBatch(const Inventory::FEventLogBatch& Events)
+void UFaerieItemContainerBase::PostEventBatch(const TConstArrayView<Container::FEvent> Events)
 {
-	for (const Inventory::FEventData& Event : Events.Data)
+	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked();
+
+	// @Todo can we use a BatchCreateEntity here
+	for (const Container::FEvent& Event : Events)
 	{
-		FInstancedStruct EventStruct;
-		EventStruct.InitializeAs<Container::FEvent>(Container::FEvent{
-			.Timestamp = Events.GetTimestamp(),
-			.Container = this,
-			.Instance = Event.Instance,
-			.Type = Events.Type,
-			.Copies = Event.Copies,
-			.EntryTouched = Event.EntryTouched,
-			.AddressesTouched = Event.AddressesTouched,
-			.EntryRemoved = Event.EntryRemoved,
-		});
-
-		FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked();
-
+		FInstancedStruct EventStruct = FInstancedStruct::Make(Event);
 		EntityManager.Defer().PushCommand<FMassDeferredCreateCommand>(
-			[EventStruct](FMassEntityManager& DeferredEntityManager)
+			[EventStruct = MoveTemp(EventStruct)](FMassEntityManager& DeferredEntityManager)
 			{
 				DeferredEntityManager.CreateEntity(MakeConstArrayView(&EventStruct, 1));
 			});
+	}
+
+	if (const Container::FNestedContainer* Nesting = ReadContainerData<Container::FNestedContainer>())
+	{
+		// @todo we don't pass in the ItemAsset here, which isn't correct, but also isn't likely to matter
+		FFaerieItemInstance Instance(nullptr, Nesting->ItemHandle);
+		Instance.TempNestedContainerChanged(EntityManager);
 	}
 }

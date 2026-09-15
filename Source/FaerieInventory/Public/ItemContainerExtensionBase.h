@@ -3,16 +3,15 @@
 #pragma once
 
 #include "ArrayAdapter.h"
-#include "FaerieInventoryConcepts.h"
 #include "FaerieInventoryTag.h"
 #include "FaerieStorageEnums.h"
-#include "FaerieUnownedItemStack.h"
-#include "NetSupportedObject.h"
-#include "ValidParameter.h"
 
 #include "StructImplementationMacros.h"
 
 #include "ItemContainerExtensionBase.generated.h"
+
+struct FFaerieItemProxy;
+class UFaerieItemContainerBase;
 
 namespace Faerie::Container
 {

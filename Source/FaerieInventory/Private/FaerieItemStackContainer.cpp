@@ -2,6 +2,7 @@
 
 #include "FaerieItemStackContainer.h"
 #include "EntityManagerHelpers.h"
+#include "FaerieContainerEvent.h"
 
 #include "FaerieContainerIterator.h"
 #include "FaerieInventoryLog.h"
@@ -405,10 +406,10 @@ void UFaerieItemStackContainer::SetStoredItem_Impl(const TValid<FFaerieUnownedIt
 		ItemStack.Copies += Copies;
 	}
 
-	const FFaerieAddress CurrentAddress = GetCurrentAddress();
-	const Inventory::FEventData Event(Instance, Copies, StoredKey, MakeConstArrayView(&CurrentAddress, 1));
+	const FFaerieAddress Address = GetCurrentAddress();
+	const Container::FEvent Event = Container::FEvent::MakeAddition(this, Instance, Copies, StoredKey, MakeConstArrayView(&Address, 1));
 
-	PostEvent(Event, Inventory::Tags::Addition);
+	PostEvent(Event);
 
 	BroadcastChange(Inventory::Tags::Addition);
 }
@@ -515,13 +516,12 @@ FFaerieUnownedItemStack UFaerieItemStackContainer::TakeItemFromSlot(int32 Copies
 	}
 
 	const FFaerieAddress CurrentAddress = GetCurrentAddress();
-	Inventory::FEventData Event(ItemStack.Instance, Copies, StoredKey, MakeConstArrayView(&CurrentAddress, 1));
+	const Container::FEvent Event = Container::FEvent::MakeRemoval(this, ItemStack.Instance, Copies, Reason,
+		StoredKey, MakeConstArrayView(&CurrentAddress, 1), Copies == ItemStack.Copies);
 
 	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, ItemStack, this);
-	if (Copies == ItemStack.Copies)
+	if (Event.EntryRemoved)
 	{
-		Event.EntryRemoved = true;
-
 		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, StoredKey, this);
 		StoredKey = FFaerieEntryKey::InvalidKey;
 
@@ -541,7 +541,7 @@ FFaerieUnownedItemStack UFaerieItemStackContainer::TakeItemFromSlot(int32 Copies
 		ItemStack.Copies -= Copies;
 	}
 
-	PostEvent(Event, Reason);
+	PostEvent(Event);
 
 	BroadcastChange(Reason);
 

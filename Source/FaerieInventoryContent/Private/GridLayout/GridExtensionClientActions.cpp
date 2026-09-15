@@ -4,6 +4,7 @@
 #include "GridLayout/InventoryGridExtensionBase.h"
 #include "FaerieItemStorage.h"
 #include "Actions/FaerieInventoryClient.h"
+#include "FaerieContainerEvent.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(GridExtensionClientActions)
 
@@ -44,9 +45,9 @@ bool FFaerieClientAction_MoveToGrid::CanMove(const TValid<const FFaerieItemProxy
 bool FFaerieClientAction_MoveToGrid::Possess(const TValid<const FFaerieUnownedItemStack&> Stack) const
 {
 	// Must be a new stack, since we intend to manually place it in the grid.
-	TValueOrError<Inventory::FEventData, FText> Result{MakeError(FText::GetEmpty())};
+	TValueOrError<Container::FEvent, FText> Result{MakeError(FText::GetEmpty())};
 	Storage->AddItemStack(Stack, EFaerieStorageAddStackBehavior::OnlyNewStacks, Result);
-	if (Result.HasError())
+	if (!Result.HasValue())
 	{
 		return false;
 	}
