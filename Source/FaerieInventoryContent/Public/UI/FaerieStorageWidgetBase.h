@@ -35,7 +35,7 @@ protected:
 	//~ UUserWidget
 
 	//~ IFaerieContainerEventSubscriber
-	virtual void OnContainerEventBatch(TNotNull<UFaerieItemContainerBase*> Container, TConstArrayView<const Faerie::Container::FEvent*> Events) override;
+	virtual void OnContainerEventBatch(TNotNull<UFaerieItemContainerBase*> Container, TConstArrayView<const Faerie::Container::FContainerEventPayload*> Events) override;
 	//~ IFaerieContainerEventSubscriber
 
 	/**

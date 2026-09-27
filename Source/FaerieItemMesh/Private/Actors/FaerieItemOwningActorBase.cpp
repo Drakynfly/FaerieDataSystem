@@ -155,10 +155,10 @@ void AFaerieItemOwningActorBase::BeginPlay()
 	// register at a later point.
 	if (ItemStack->IsFilled())
 	{
-		auto Instance = ItemStack->GetItemInstance();
+		TOptional<FFaerieItemInstance> Instance = ItemStack->GetItemInstance();
 		if (Instance.IsSet() && Instance->IsMutable())
 		{
-			auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
+			FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
 			Instance->InitializeMassEntity(EntityManager);
 
 			Container::TakeOwnership(EntityManager, ItemStack, Instance.GetValue());

@@ -3,15 +3,14 @@
 #include "FaerieItemInstance.h"
 #include "FaerieItem.h"
 #include "FaerieItemDataLog.h"
+#include "FaerieItemEvent.h"
 #include "FaerieMassFragment.h"
-#include "FaerieItemOwnerInterface.h"
 #include "MassEntityBuilder.h"
 #include "MassEntityTemplate.h"
 
-#include "Engine/World.h"
+#include "Subsystems/ConfigLoaderSubsystem.h"
 
-#include "MassReplication/FaerieMassReplicationSubsystem.h"
-#include "MassReplication/FaerieViewModelSubsystem.h"
+#include "Engine/World.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemInstance)
 
@@ -19,10 +18,9 @@ using namespace Faerie;
 
 void FFaerieItemInstance::InitializeMassEntityImpl(FMassEntityManager& EntityManager, const TArrayView<FInstancedStruct> Fragments)
 {
-	const FMassEntityTemplate& EntityTemplate = EntityManager.GetWorld()->GetSubsystemChecked<UFaerieMassReplicationSubsystem>()->GetItemDataTemplate();
+	const FMassEntityTemplate& EntityTemplate = EntityManager.GetWorld()->GetSubsystemChecked<UFaerieMassConfigLoaderSubsystem>()->GetItemDataTemplate();
 	UE::Mass::FEntityBuilder Builder = EntityTemplate.CreateEntityBuilder(EntityManager.AsShared())
-		.Add<FFaerieMassItemPointer>(Item) // Add a MassItemPointer struct to label the entity as a faerie item whether there is a valid item pointer or not.
-		.Add<FFaerieItemModificationDate>(FDateTime::UtcNow());
+		.Add<FFaerieMassItemPointer>(Item); // Add a MassItemPointer struct to label the entity as a faerie item whether there is a valid item pointer or not.
 
 	// Look for fragments that need to always be moved into the runtime entity on creation
 	for (const FInstancedStruct& DefaultFragment : Item->GetFragmentDefaults())
@@ -48,41 +46,6 @@ void FFaerieItemInstance::InitializeMassEntityImpl(FMassEntityManager& EntityMan
 	// and they may want this item to already have an entity handle.
 	EntityHandle = Builder.GetEntityHandle();
 	Builder.Commit();
-}
-
-void FFaerieItemInstance::UpdateTimestamp(const FMassEntityManager& EntityManager, bool CreateIfMissing) const
-{
-	// Update timestamp should only be called on instances that already have a mass equivalence
-	EntityManager.CheckIfEntityIsValid(EntityHandle);
-
-	EntityManager.Defer().PushCommand<FMassDeferredSetCommand>(
-		[Handle = EntityHandle, CreateIfMissing](FMassEntityManager& InEntityManager)
-		{
-			if (FFaerieItemModificationDate* FragmentPtr = InEntityManager.GetFragmentDataPtr<FFaerieItemModificationDate>(Handle))
-			{
-				// Assign new value
-				FragmentPtr->LastModified = FDateTime::UtcNow();
-			}
-			else
-			{
-				if (CreateIfMissing)
-				{
-					InEntityManager.AddFragmentToEntity(Handle, FFaerieItemModificationDate::StaticStruct(),
-						[](void* Fragment, const UScriptStruct&)
-						{
-							static_cast<FFaerieItemModificationDate*>(Fragment)->LastModified = FDateTime::UtcNow();
-						});
-				}
-			}
-		});
-}
-
-void FFaerieItemInstance::NotifyOwnerOfChange(const FMassEntityManager& EntityManager, const FGameplayTag Tag) const
-{
-	if (const FFaerieMassItemOwner* OwnerFragment = EntityManager.GetConstSharedFragmentDataPtr<FFaerieMassItemOwner>(EntityHandle))
-	{
-		OwnerFragment->GetInterface()->OnItemDataChanged(*this, Tag);
-	}
 }
 
 bool FFaerieItemInstance::IsMutable() const
@@ -134,7 +97,6 @@ void FFaerieItemInstance::DestroyMassEntity(FMassEntityManager& EntityManager)
 	{
 		// @Todo
 		//EntityManager->GetWorld()->GetSubsystemChecked<UFaerieViewModelSubsystem>()->HandleInstanceDestruction(*this);
-		EntityManager.GetWorld()->GetSubsystemChecked<UFaerieMassReplicationSubsystem>()->Server_RemoveEntity(*this);
 		EntityManager.DestroyEntity(EntityHandle);
 	}
 	EntityHandle.Reset();
@@ -179,74 +141,176 @@ void FFaerieItemInstance::ExportFragmentData(const FMassEntityManager& EntityMan
 	}
 }
 
-void FFaerieItemInstance::AddFragment(FMassEntityManager& EntityManager, FInstancedStruct&& Fragment)
+bool FFaerieItemInstance::IsMutable(const FMassEntityManager& EntityManager, const FMassEntityHandle Item)
 {
+	if (!EntityManager.IsEntityValid(Item)) return false;
+
+	const FFaerieMassItemPointer* ItemPointer = EntityManager.GetFragmentDataPtr<FFaerieMassItemPointer>(Item);
+	if (const UFaerieItem* ItemAsset = ItemPointer->Item.ResolveObjectPtr())
+	{
+		// Always report if the ItemAsset is mutable.
+		return ItemAsset->CanMutate();
+	}
+
+	return true;
+}
+
+void FFaerieItemInstance::PostMutationEvent(FMassEntityManager& EntityManager, const ItemData::FMutationEvent& Event)
+{
+	FInstancedStruct EventStruct = FInstancedStruct::Make(Event);
+	EntityManager.Defer().PushCommand<FMassDeferredCreateCommand>(
+		[EventStruct = MoveTemp(EventStruct)](FMassEntityManager& DeferredEntityManager)
+		{
+			DeferredEntityManager.CreateEntity(MakeConstArrayView(&EventStruct, 1));
+		});
+}
+
+void FFaerieItemInstance::PostMutationEventWithChangeList(FMassEntityManager& EntityManager,
+	const ItemData::FMutationEvent& Event, const ItemData::FMutationPayloadChangeList& ChangeList)
+{
+	TStaticArray<FInstancedStruct, 3> EventStructs;
+	EventStructs[0] = FInstancedStruct::Make(Event);
+	EventStructs[1] = FInstancedStruct::Make(ChangeList);
+	EventStructs[2] = FInstancedStruct::Make(ItemData::AllFields); // Include a FieldChange payload to notify any view models that care that all fields were overwritten.
+	EntityManager.Defer().PushCommand<FMassDeferredCreateCommand>(
+		[EventStructs = MoveTemp(EventStructs)](FMassEntityManager& DeferredEntityManager)
+		{
+			DeferredEntityManager.CreateEntity(EventStructs);
+		});
+}
+
+void FFaerieItemInstance::PostMutationEventWithFieldChange(FMassEntityManager& EntityManager,
+	const ItemData::FMutationEvent& Event, const ItemData::FFieldChangePayload FieldChanges)
+{
+	TStaticArray<FInstancedStruct, 2> EventStructs;
+	EventStructs[0] = FInstancedStruct::Make(Event);
+	EventStructs[1] = FInstancedStruct::Make(FieldChanges);
+	EntityManager.Defer().PushCommand<FMassDeferredCreateCommand>(
+		[EventStructs = MoveTemp(EventStructs)](FMassEntityManager& DeferredEntityManager)
+		{
+			DeferredEntityManager.CreateEntity(EventStructs);
+		});
+}
+
+void FFaerieItemInstance::AddFragment(FMassEntityManager& EntityManager, const FMassEntityHandle Item, FInstancedStruct&& Fragment)
+{
+	check(EntityManager.IsEntityValid(Item));
+
 	// Adding a fragment is only allowed for mutable instances.
-	check(IsMutable())
+	check(IsMutable(EntityManager, Item))
 
-	if (EntityManager.IsEntityValid(EntityHandle))
-	{
-		EntityManager.AddFragmentInstanceListToEntity(EntityHandle, MakeArrayView(&Fragment, 1));
-		UpdateTimestamp(EntityManager, true);
-	}
-	else
-	{
-		InitializeMassEntityImpl(EntityManager, MakeArrayView(&Fragment, 1));
-	}
+	EntityManager.AddFragmentInstanceListToEntity(Item, MakeArrayView(&Fragment, 1));
 
-	NotifyOwnerOfChange(EntityManager, ItemData::Tags::FragmentAdd);
+	ItemData::FMutationEvent Payload;
+	Payload.ItemHandle = Item;
+	Payload.EventType = ItemData::Tags::FragmentAdd;
+	Payload.ChangeType = Fragment.GetScriptStruct();
+	PostMutationEvent(EntityManager, Payload);
 }
 
-void FFaerieItemInstance::AddFragments(FMassEntityManager& EntityManager, const TArrayView<FInstancedStruct> Fragments)
+void FFaerieItemInstance::AddFragments(FMassEntityManager& EntityManager, const FMassEntityHandle Item, const TArrayView<FInstancedStruct> Fragments)
 {
+	check(EntityManager.IsEntityValid(Item));
+
 	// Adding mass fragments are only allowed for mutable instances.
-	check(IsMutable())
+	check(IsMutable(EntityManager, Item))
 
-	if (EntityManager.IsEntityValid(EntityHandle))
+	EntityManager.AddFragmentInstanceListToEntity(Item, Fragments);
+
+	ItemData::FMutationEvent Payload;
+	Payload.ItemHandle = Item;
+	Payload.EventType = ItemData::Tags::FragmentAdd;
+	Payload.ChangeType = ItemData::FMutationPayloadChangeList::StaticStruct();
+
+	ItemData::FMutationPayloadChangeList ChangeList;
+	for (const FInstancedStruct& Fragment : Fragments)
 	{
-		EntityManager.AddFragmentInstanceListToEntity(EntityHandle, Fragments);
-		UpdateTimestamp(EntityManager, true);
-	}
-	else
-	{
-		InitializeMassEntityImpl(EntityManager, Fragments);
+		ChangeList.ChangeTypes.Add(Fragment.GetScriptStruct());
 	}
 
-	// @Todo make bundled event API
-	for (auto&& Fragment : Fragments)
-	{
-		NotifyOwnerOfChange(EntityManager, ItemData::Tags::FragmentAdd);
-	}
+	PostMutationEventWithChangeList(EntityManager, Payload, ChangeList);
 }
 
-void FFaerieItemInstance::RemoveFragment(FMassEntityManager& EntityManager,
+void FFaerieItemInstance::RemoveFragment(FMassEntityManager& EntityManager, const FMassEntityHandle Item,
 										  const TNotNull<const UScriptStruct*> FragmentType)
 {
-	if (EntityManager.IsEntityValid(EntityHandle))
+	if (EntityManager.IsEntityValid(Item))
 	{
-		EntityManager.RemoveFragmentFromEntity(EntityHandle, FragmentType);
+		EntityManager.RemoveFragmentFromEntity(Item, FragmentType);
 
-		UpdateTimestamp(EntityManager, true);
-
-		NotifyOwnerOfChange(EntityManager, ItemData::Tags::FragmentRemove);
+		ItemData::FMutationEvent Payload;
+		Payload.ItemHandle = Item;
+		Payload.EventType = ItemData::Tags::FragmentRemove;
+		Payload.ChangeType = FragmentType;
+		PostMutationEvent(EntityManager, Payload);
 	}
 }
 
-void FFaerieItemInstance::TempNestedContainerChanged(const FMassEntityManager& EntityManager) const
+void FFaerieItemInstance::RemoveFragments(FMassEntityManager& EntityManager, const FMassEntityHandle Item, const TConstArrayView<const UScriptStruct*> FragmentTypes)
 {
-	// @todo figure out how to handle the Tag from the fragment event
-	UpdateTimestamp(EntityManager, true);
-	NotifyOwnerOfChange(EntityManager, ItemData::Tags::FragmentGenericPropertyEdit);
+	if (EntityManager.IsEntityValid(Item))
+	{
+		EntityManager.RemoveFragmentListFromEntity(Item, FragmentTypes);
 
-	// @Todo Subsystem broadcasts...
+		ItemData::FMutationEvent Payload;
+		Payload.ItemHandle = Item;
+		Payload.EventType = ItemData::Tags::FragmentRemove;
+		Payload.ChangeType = ItemData::FMutationPayloadChangeList::StaticStruct();
+
+		ItemData::FMutationPayloadChangeList ChangeList;
+		for (const UScriptStruct* FragmentType : FragmentTypes)
+		{
+			ChangeList.ChangeTypes.Add(FragmentType);
+		}
+
+		PostMutationEventWithChangeList(EntityManager, Payload, ChangeList);
+	}
 }
 
-void FFaerieItemInstance::OnItemFragmentEdited(const FMassEntityManager& EntityManager, const TConstStructView<FFaerieMassFragment> FragmentView, const ItemData::FFieldChange& FieldChange) const
+void FFaerieItemInstance::UpdateFragments(FMassEntityManager& EntityManager, const FMassEntityHandle Item, TArrayView<FInstancedStruct> Fragments,
+	const bool ClearOthers)
 {
-	UpdateTimestamp(EntityManager, true);
-	NotifyOwnerOfChange(EntityManager, ItemData::Tags::FragmentGenericPropertyEdit);
+	if (EntityManager.IsEntityValid(Item))
+	{
+		if (ClearOthers)
+		{
+			TArray<const UScriptStruct*> FragmentsToRemove;
+			const FMassArchetypeHandle Archetype = EntityManager.GetArchetypeForEntity(Item);
+			EntityManager.ForEachArchetypeFragmentType(Archetype,
+				[&Fragments, &FragmentsToRemove](const UScriptStruct* FragmentType)
+				{
+					if (!FragmentType->IsChildOf<FFaerieMassFragment>())
+					{
+						return;
+					}
 
-	const UWorld* World = EntityManager.GetWorld();
-	World->GetSubsystemChecked<UFaerieViewModelSubsystem>()->HandleFieldChange(EntityManager, *this, FieldChange);
-	World->GetSubsystemChecked<UFaerieMassReplicationSubsystem>()->Server_UpdateFragment(*this, MakeConstArrayView(&FragmentView, 1));
+					for (auto&& NewFragment : Fragments)
+					{
+						if (NewFragment.GetScriptStruct() == FragmentType)
+						{
+							// New fragment for this type, leave it.
+							return;
+						}
+					}
+
+					// No new fragment for this type, remove it.
+					FragmentsToRemove.Add(FragmentType);
+				});
+
+			// Commit and emit event for removed fragments
+			RemoveFragments(EntityManager, Item, FragmentsToRemove);
+		}
+
+		// Commit and emit event for added fragments
+		AddFragments(EntityManager, Item, Fragments);
+	}
+}
+
+void FFaerieItemInstance::OnItemFragmentEdited(FMassEntityManager& EntityManager, const FMassEntityHandle Item, const TNotNull<const UScriptStruct*> FragmentType, const ItemData::FFieldChangePayload& FieldChange)
+{
+	ItemData::FMutationEvent Payload;
+	Payload.ItemHandle = Item;
+	Payload.ChangeType = FragmentType;
+	Payload.EventType = ItemData::Tags::FragmentGenericPropertyEdit;
+	PostMutationEventWithFieldChange(EntityManager, Payload, FieldChange);
 }

@@ -7,10 +7,11 @@
 #include "FaerieItemDataFwd.h"
 #include "FaerieItemDataEnums.h"
 #include "FaerieMassFragment.h"
+
 #include "MassEntityManager.h"
 #include "MassEntityView.h"
-
 #include "Mass/EntityHandle.h"
+
 #include "NativeGameplayTags.h"
 
 #include "StructUtils/StructView.h"
@@ -199,23 +200,6 @@ namespace Faerie::ItemData
 		return *reinterpret_cast<TConstStructView<T>*>(&FragmentCopy);
 	}
 }
-
-/*
- * Keeps track of the last time this item was modified. Allows, for example, sorting items by recently touched.
- */
-USTRUCT(meta = (Hidden))
-struct FFaerieItemModificationDate : public FFaerieMassFragment
-{
-	GENERATED_BODY()
-
-	FFaerieItemModificationDate() = default;
-	FFaerieItemModificationDate(const FDateTime& LastModified)
-	  : LastModified(LastModified) {}
-
-	FDateTime LastModified = FDateTime();
-
-____FAERIE_FRAGMENT_DECL(FFaerieItemModificationDate)
-};
 
 /**
  * Not replicated, only the creator of the item can see these

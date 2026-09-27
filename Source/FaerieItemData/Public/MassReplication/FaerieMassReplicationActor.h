@@ -14,8 +14,6 @@
 
 struct FFaerieMassReplicatedEntities;
 class AFaerieMassReplicationActor;
-class UFaerieViewModelSubsystem;
-class UMassEntitySubsystem;
 
 USTRUCT()
 struct FFaerieMassReplicatedEntity : public FFastArraySerializerItem
@@ -76,16 +74,13 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
-protected:
-	virtual void BeginPlay() override;
-
 public:
 	virtual void Tick(float DeltaSeconds) override;
 
 public:
-	void Server_UpdateFragment(const FFaerieItemInstance& Item, TConstArrayView<TConstStructView<FFaerieMassFragment>> FragmentViews);
-	void Server_RemoveFragment(const FFaerieItemInstance& Item, TNotNull<const UScriptStruct*> ScriptStruct);
-	void Server_RemoveEntity(const FFaerieItemInstance& Item);
+	void Server_UpdateFragments(const FMassEntityManager& EntityManager, FMassEntityHandle Item, TConstArrayView<TConstStructView<FFaerieMassFragment>> FragmentViews);
+	void Server_RemoveFragments(const FMassEntityManager& EntityManager, FMassEntityHandle Item, TConstArrayView<const UScriptStruct*> FragmentTypes);
+	void Server_RemoveEntities(const FMassEntityManager& EntityManager, TConstArrayView<FMassEntityHandle> Items);
 
 	void Client_AddEntity(FFaerieMassReplicatedEntity& Entity);
 	void Client_UpdateEntity(FFaerieMassReplicatedEntity& Entity);
@@ -96,7 +91,4 @@ public:
 protected:
 	UPROPERTY(Replicated)
 	FFaerieMassReplicatedEntities ReplicatedEntities;
-
-	UPROPERTY()
-	TObjectPtr<UFaerieViewModelSubsystem> ViewModelSubsystem;
 };

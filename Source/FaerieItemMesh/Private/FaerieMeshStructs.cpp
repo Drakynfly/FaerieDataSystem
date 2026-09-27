@@ -82,7 +82,7 @@ FFaerieItemMesh FFaerieItemMesh::MakeSkeletal(const FSkeletonAndAnimation& Mesh,
 TArray<UMaterialInterface*> FFaerieItemMesh::ToObjectArray()
 {
 	TArray<UMaterialInterface*> OutArray;
-
+	OutArray.Reserve(Materials.Num());
 	for (const FFaerieItemMaterial& ItemMaterial : Materials)
 	{
 		OutArray.Add(ItemMaterial.Material);
@@ -93,10 +93,10 @@ TArray<UMaterialInterface*> FFaerieItemMesh::ToObjectArray()
 
 bool FFaerieItemMesh::IsStatic() const
 {
-	return IsValid(StaticMesh);
+	return ::IsValid(StaticMesh);
 }
 
 bool FFaerieItemMesh::IsSkeletal() const
 {
-	return IsValid(SkeletonAndAnimation.Mesh);
+	return ::IsValid(SkeletonAndAnimation.Mesh);
 }

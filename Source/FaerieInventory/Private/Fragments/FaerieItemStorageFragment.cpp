@@ -49,7 +49,7 @@ bool FFaerieItemStorageFragment::InitializeRuntime(FMassEntityManager& EntityMan
 		}
 
 		Storage.Storage = Utils::DuplicateObjectFromDiskForReplication(Storage.Storage.Get(), OwnerObj);
-		Storage.Storage->WriteContainerData(Container::FNestedContainer::StaticStruct(),
+		Storage.Storage->WriteContainerData(EntityManager, Container::FNestedContainer::StaticStruct(),
 			[Instance](const FStructView Element)
 			{
 				Element.Get<Container::FNestedContainer>().ItemHandle = Instance.GetMassEntityHandle();
@@ -75,7 +75,7 @@ bool FFaerieChildStackFragment::InitializeRuntime(FMassEntityManager& EntityMana
 		if (InlineStack.Stack)
 		{
 			InlineStack.Stack = Utils::DuplicateObjectFromDiskForReplication(InlineStack.Stack.Get(), OwnerObj);
-			InlineStack.Stack->WriteContainerData(Container::FNestedContainer::StaticStruct(),
+			InlineStack.Stack->WriteContainerData(EntityManager, Container::FNestedContainer::StaticStruct(),
 				[Instance](const FStructView Element)
 				{
 					Element.Get<Container::FNestedContainer>().ItemHandle = Instance.GetMassEntityHandle();

@@ -129,41 +129,45 @@ void UFaerieContainerGridWrapper::GetLifetimeReplicatedProps(TArray<class FLifet
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, GridSize, SharedParams)
 }
 
-void FFaerieContainerGridData::InitializeExtension(const TNotNull<const UFaerieItemContainerBase*> Container)
+void FFaerieContainerGridData::InitializeExtension(FMassEntityManager& EntityManager,
+	const TNotNull<const UFaerieItemContainerBase*> Container)
 {
 	UFaerieItemStorage* Storage = const_cast<UFaerieItemStorage*>(CastChecked<UFaerieItemStorage>(Container));
 	GridWrapper = NewObject<UFaerieContainerGridWrapper>();
 	GridWrapper->Storage = Storage;
 	GridWrapper->Logic = GetGridLogic();
 
-	return GetGridLogic()->InitializeGrid(GetWriteContext());
+
+	return GetGridLogic()->InitializeGrid(GetWriteContext(EntityManager));
 }
 
-EFaerieExtensionResponse FFaerieContainerGridData::AllowsAddition(const TNotNull<const UFaerieItemContainerBase*> Container,
-	const Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, const FFaerieExtensionAllowsAdditionArgs Args) const
+EFaerieExtensionResponse FFaerieContainerGridData::AllowsAddition(const FMassEntityManager& EntityManager,
+	const TNotNull<const UFaerieItemContainerBase*> Container, const Utils::TArrayAdapter<FFaerieItemProxy>& Proxies,
+	const FFaerieExtensionAllowsAdditionArgs Args) const
 {
 	check(Container == GridWrapper->Storage);
-	return GetGridLogic()->AllowsAddition(GetReadContext(), Proxies, Args);
+	return GetGridLogic()->AllowsAddition(GetReadContext(EntityManager), Proxies, Args);
 }
 
-EFaerieExtensionResponse FFaerieContainerGridData::AllowsEdit(const TNotNull<const UFaerieItemContainerBase*> Container,
-	const TNotNull<const Container::IAddressView*> DataView, const FFaerieInventoryTag EditType) const
+EFaerieExtensionResponse FFaerieContainerGridData::AllowsEdit(const FMassEntityManager& EntityManager,
+	const TNotNull<const UFaerieItemContainerBase*> Container, const TNotNull<const Container::IAddressView*> DataView,
+	const FFaerieInventoryTag EditType) const
 {
 	check(Container == GridWrapper->Storage);
-	return GetGridLogic()->AllowsEdit(GetReadContext(), DataView, EditType);
+	return GetGridLogic()->AllowsEdit(GetReadContext(EntityManager), DataView, EditType);
 }
 
-FFaerieContainerGridReadContext FFaerieContainerGridData::GetReadContext() const
+FFaerieContainerGridReadContext FFaerieContainerGridData::GetReadContext(const FMassEntityManager& InManager) const
 {
 	FFaerieContainerGridReadContext Context;
-	Context.Data = GridWrapper;
+	Context.InitContext(InManager, GridWrapper);
 	return Context;
 }
 
-FFaerieContainerGridWriteContext FFaerieContainerGridData::GetWriteContext()
+FFaerieContainerGridWriteContext FFaerieContainerGridData::GetWriteContext(FMassEntityManager& InManager)
 {
 	FFaerieContainerGridWriteContext Context;
-	Context.Data = GridWrapper;
+	Context.InitContext(InManager, GridWrapper);
 	return Context;
 }
 
@@ -172,7 +176,7 @@ const UInventoryGridExtensionBase* FFaerieContainerGridData::GetGridLogic() cons
 	return GridClass.GetDefaultObject();
 }
 
-void UFaerieContainerGridDataView::SyncView()
+void UFaerieContainerGridDataView::SyncView(FMassEntityManager& EntityManager)
 {
 	// @Todo implement
 }
@@ -190,7 +194,7 @@ UFaerieContainerGridDataUpdater::UFaerieContainerGridDataUpdater()
 
 void UFaerieContainerGridDataUpdater::ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager)
 {
-	EventQuery.AddRequirement<Container::FEvent>(EMassFragmentAccess::ReadOnly, EMassFragmentPresence::All);
+	EventQuery.AddRequirement<Container::FContainerEventPayload>(EMassFragmentAccess::ReadOnly, EMassFragmentPresence::All);
 	ViewQuery.AddRequirement<Content::FGridDataViewFragment>(EMassFragmentAccess::ReadOnly, EMassFragmentPresence::All);
 }
 
@@ -199,10 +203,10 @@ void UFaerieContainerGridDataUpdater::Execute(FMassEntityManager& EntityManager,
 	// Track the containers we updated, so we can notify any active views of them.
 	TSet<UObject*> ContainersUpdated;
 
-	EventQuery.ForEachEntityChunk(Context, [this, &ContainersUpdated](const FMassExecutionContext& InContext)
+	EventQuery.ForEachEntityChunk(Context, [&ContainersUpdated](const FMassExecutionContext& InContext)
 		{
-			const TConstArrayView<Container::FEvent> Events = InContext.GetFragmentView<Container::FEvent>();
-			for (const Container::FEvent& Event : Events)
+			const TConstArrayView<Container::FContainerEventPayload> Events = InContext.GetFragmentView<Container::FContainerEventPayload>();
+			for (const Container::FContainerEventPayload& Event : Events)
 			{
 				UFaerieItemStorage* Storage = Cast<UFaerieItemStorage>(Event.Container.Get());
 				if (!IsValid(Storage))
@@ -210,10 +214,10 @@ void UFaerieContainerGridDataUpdater::Execute(FMassEntityManager& EntityManager,
 					continue;
 				}
 
-				Storage->WriteContainerData(FFaerieContainerGridData::StaticStruct(), [&InContext, &Event, Storage](const FStructView Element)
+				Storage->WriteContainerData(InContext.GetEntityManagerChecked(), FFaerieContainerGridData::StaticStruct(), [&InContext, &Event, Storage](const FStructView Element)
 				{
 					auto& GridData = Element.Get<FFaerieContainerGridData>();
-					GridData.GetGridLogic()->HandleEvent(GridData.GetWriteContext(), Event);
+					GridData.GetGridLogic()->HandleEvent(GridData.GetWriteContext(InContext.GetEntityManagerChecked()), Event);
 				}, false);
 
 				ContainersUpdated.Add(Storage);
@@ -233,7 +237,7 @@ void UFaerieContainerGridDataUpdater::Execute(FMassEntityManager& EntityManager,
 
 				if (ContainersUpdated.Contains(View->GetContainerObject()))
 				{
-					View->SyncView();
+					View->SyncView(InContext.GetEntityManagerChecked());
 				}
 			}
 		});
@@ -242,6 +246,13 @@ void UFaerieContainerGridDataUpdater::Execute(FMassEntityManager& EntityManager,
 void UInventoryGridExtensionBase::BroadcastEvent(const FFaerieAddress Address, const EFaerieGridEventType EventType)
 {
 	// @Todo broadcast event for views???
+}
+
+void FFaerieContainerGridReadContext::InitContext(const FMassEntityManager& InManager,
+	TNotNull<UFaerieContainerGridWrapper*> DataWrapper)
+{
+	Manager = &InManager;
+	Data = DataWrapper;
 }
 
 const UFaerieItemStorage* FFaerieContainerGridReadContext::GetStorage() const
@@ -312,6 +323,13 @@ FFaerieGridPlacement FFaerieContainerGridReadContext::GetStackPlacementData(cons
 bool FFaerieContainerGridReadContext::CanAddAtLocation(const TValid<const FFaerieItemProxy&> Proxy, const FIntPoint& Position) const
 {
 	return Data->Logic->CanAddAtLocation(*this, Proxy, Position);
+}
+
+void FFaerieContainerGridWriteContext::InitContext(FMassEntityManager& InManager,
+	TNotNull<UFaerieContainerGridWrapper*> DataWrapper)
+{
+	Manager = &InManager;
+	Data = DataWrapper;
 }
 
 UFaerieItemStorage* FFaerieContainerGridWriteContext::GetStorage() const

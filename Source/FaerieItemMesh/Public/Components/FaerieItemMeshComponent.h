@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "FaerieItemContainerStructs.h"
+
 #include "Components/SceneComponent.h"
 #include "FaerieItemProxy.h"
 
@@ -44,10 +46,13 @@ public:
 protected:
 	void UpdateCachedBounds();
 
-	void LoadMeshFromSource(bool Async);
+	void OnSourceProxyDataChanged(const FFaerieItemProxy& Item, FGameplayTag ChangeType);
+
+	void LoadMeshFromSource(bool Async, bool ClearExistingDataDuringAsync);
 	void AsyncLoadMeshReturn(bool Success, FFaerieItemMesh&& InMeshData);
 
 	void RebuildMesh();
+	void ClearMeshData();
 
 	UFUNCTION(/* Replication */)
 	void OnRep_SkeletalMeshLeader();
@@ -65,15 +70,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataMesh")
 	void SetItemMeshFromProxy(const FFaerieItemProxy& InProxy);
 
-	// Set the mesh to use directly. This is local only, as the ItemMesh struct does not replicate.
-	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataMesh")
-	void SetItemMesh(const FFaerieItemMesh& InMeshData);
-
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataMesh")
 	void SetSkeletalMeshLeaderPoseComponent(USkinnedMeshComponent* LeaderComponent);
-
-	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataMesh")
-	void ClearItemMesh();
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataMesh")
 	void SetPreferredTag(UPARAM(meta = (Categories = "MeshPurpose")) FGameplayTag MeshTag);
@@ -81,9 +79,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataMesh")
 	void SetPreferredMeshType(EItemMeshType MeshType);
 
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataMesh")
+	void ClearItemMesh();
+
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataMesh")
+	bool HasMeshData() const { return MeshData.IsValid(); }
+
 	// Get the bound for the current mesh data type.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataMesh")
-	FBoxSphereBounds GetBounds() const;
+	FBoxSphereBounds GetMeshBounds() const;
 
 protected:
 	Faerie::Mesh::FOnRebuildEvent OnMeshRebuiltNative;

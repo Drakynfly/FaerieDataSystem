@@ -23,15 +23,15 @@ namespace Faerie::Inventory
 		FAERIEINVENTORY_API const TSet<FFaerieInventoryTag>& EditTagsAllowedByDefault();
 		FAERIEINVENTORY_API const TSet<FFaerieInventoryTag>& RemovalTagsAllowedByDefault();
 	}
- }
+}
 
 namespace Faerie::Container
 {
-	struct FEvent;
+	struct FContainerEventPayload;
 }
 
 /*
- * Blueprint wrapper of Faerie::Container::FEvent. The data is the same, but I keep it a separate type for flexibility.
+ * Blueprint wrapper of Faerie::Container::FContainerEventPayload. The data is the same, but I keep it a separate type for flexibility.
  */
 USTRUCT(BlueprintType)
 struct FAERIEINVENTORY_API FFaerieBlueprintInventoryEvent
@@ -61,5 +61,5 @@ struct FAERIEINVENTORY_API FFaerieBlueprintInventoryEvent
 	UPROPERTY(BlueprintReadOnly, Category = "InventoryEvent")
 	TArray<FFaerieAddress> AddressesTouched;
 
-	static FFaerieBlueprintInventoryEvent FromNativeEvent(const Faerie::Container::FEvent& NativeEvent);
+	static FFaerieBlueprintInventoryEvent FromNativeEvent(const Faerie::Container::FContainerEventPayload& NativeEvent);
 };

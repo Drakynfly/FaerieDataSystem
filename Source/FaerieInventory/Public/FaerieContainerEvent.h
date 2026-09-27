@@ -2,56 +2,31 @@
 
 #pragma once
 
-#include "Fragments/FaerieItemStorageFragment.h"
+#include "FaerieItemContainerStructs.h"
+#include "FaerieItemInstance.h"
+#include "ItemContainerEvent.h"
+#include "Mass/EntityElementTypes.h"
+#include "Mass/ExternalSubsystemTraits.h"
 #include "FaerieContainerEvent.generated.h"
 
 #define FAE_API FAERIEINVENTORY_API
 
+class UFaerieItemContainerBase;
+
 namespace Faerie::Container
 {
 	USTRUCT()
-	struct FEvent : public FMassFragment
+	struct FContainerEventPayload : public FMassFragment
 	{
 		GENERATED_BODY()
 
-		static FEvent MakeBlank(const TNotNull<UFaerieItemContainerBase*> Container, const FFaerieEntryKey Entry)
-		{
-			FEvent NewEvent;
-			NewEvent.Timestamp = FDateTime::UtcNow();
-			NewEvent.Container = Container;
-			NewEvent.Type = Inventory::Tags::Addition;
-			NewEvent.EntryTouched = Entry;
-			return NewEvent;
-		}
+		FAE_API static FContainerEventPayload MakeBlank(const TNotNull<UFaerieItemContainerBase*> Container, const FFaerieEntryKey Entry);
 
-		static FEvent MakeAddition(const TNotNull<UFaerieItemContainerBase*> Container, const FFaerieItemInstance& ItemInstance,
-			const int32 InCopies, const FFaerieEntryKey Entry, const TConstArrayView<FFaerieAddress> Addresses)
-		{
-			FEvent NewEvent;
-			NewEvent.Timestamp = FDateTime::UtcNow();
-			NewEvent.Container = Container;
-			NewEvent.Instance = ItemInstance;
-			NewEvent.Copies = InCopies;
-			NewEvent.Type = Inventory::Tags::Addition;
-			NewEvent.EntryTouched = Entry;
-			NewEvent.AddressesTouched = Addresses;
-			return NewEvent;
-		}
+		FAE_API static FContainerEventPayload MakeAddition(const TNotNull<UFaerieItemContainerBase*> Container, const FFaerieItemInstance& ItemInstance,
+			const int32 InCopies, const FFaerieEntryKey Entry, const TConstArrayView<FFaerieAddress> Addresses);
 
-		static FEvent MakeRemoval(const TNotNull<UFaerieItemContainerBase*> Container, const FFaerieItemInstance& ItemInstance,
-			const int32 InCopies, const FFaerieInventoryTag Reason, const FFaerieEntryKey Entry, const TConstArrayView<FFaerieAddress> Addresses, const bool InEntryRemoved)
-		{
-			FEvent NewEvent;
-			NewEvent.Timestamp = FDateTime::UtcNow();
-			NewEvent.Container = Container;
-			NewEvent.Instance = ItemInstance;
-			NewEvent.Copies = InCopies;
-			NewEvent.Type = Reason;
-			NewEvent.EntryTouched = Entry;
-			NewEvent.AddressesTouched = Addresses;
-			NewEvent.EntryRemoved = InEntryRemoved;
-			return NewEvent;
-		}
+		FAE_API static FContainerEventPayload MakeRemoval(const TNotNull<UFaerieItemContainerBase*> Container, const FFaerieItemInstance& ItemInstance,
+			const int32 InCopies, const FFaerieInventoryTag Reason, const FFaerieEntryKey Entry, const TConstArrayView<FFaerieAddress> Addresses, const bool InEntryRemoved);
 
 		FDateTime Timestamp;
 
@@ -84,7 +59,7 @@ namespace Faerie::Container
 
 	// Event data contains an array... can we do anything about this?
 	template<>
-	struct TMassFragmentTraits<FEvent> final
+	struct TMassFragmentTraits<FContainerEventPayload> final
 	{
 		enum
 		{
@@ -92,7 +67,7 @@ namespace Faerie::Container
 		};
 	};
 
-	const FName EventCleanup = TEXT("EventCleanup");
+	const FName EventCleanup = TEXT("ContainerEventCleanup");
 }
 
 #undef FAE_API

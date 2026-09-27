@@ -68,7 +68,7 @@ void UFaerieStorageWidgetBase::NativeTick(const FGeometry& MyGeometry, const flo
 	}
 }
 
-void UFaerieStorageWidgetBase::OnContainerEventBatch(TNotNull<UFaerieItemContainerBase*> Container, const TConstArrayView<const Container::FEvent*> Events)
+void UFaerieStorageWidgetBase::OnContainerEventBatch(TNotNull<UFaerieItemContainerBase*> Container, const TConstArrayView<const Container::FContainerEventPayload*> Events)
 {
 	// If we are going to perform a full query next frame anyway, then this is pointless.
 	if (NeedsNewQuery)

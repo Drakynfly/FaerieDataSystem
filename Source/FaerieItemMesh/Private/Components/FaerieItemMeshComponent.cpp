@@ -84,7 +84,15 @@ void UFaerieItemMeshComponent::UpdateCachedBounds()
 	}
 }
 
-void UFaerieItemMeshComponent::LoadMeshFromSource(const bool Async)
+void UFaerieItemMeshComponent::OnSourceProxyDataChanged(const FFaerieItemProxy& Item, FGameplayTag ChangeType)
+{
+	// @todo we could try to filter this based on changes that would effect the mesh result, rather then repeatedly
+	// rebuilding any time any data is changed... I can see this getting annoying for rebuilding weapon/armor meshes each time
+	// durability is removed.
+	LoadMeshFromSource(true, false);
+}
+
+void UFaerieItemMeshComponent::LoadMeshFromSource(const bool Async, const bool ClearExistingDataDuringAsync)
 {
 	if (!SourceProxy.IsValid())
 	{
@@ -119,6 +127,11 @@ void UFaerieItemMeshComponent::LoadMeshFromSource(const bool Async)
 
 	if (Async)
 	{
+		if (ClearExistingDataDuringAsync)
+		{
+			ClearMeshData();
+		}
+
 		AsyncMeshLoadingHandle = MeshSubsystem->LoadMeshFromProxyAsynchronous(SourceProxy, PreferredTag,
 			Mesh::FAsyncLoadResult::CreateUObject(this, &ThisClass::AsyncLoadMeshReturn));
 	}
@@ -138,7 +151,7 @@ void UFaerieItemMeshComponent::AsyncLoadMeshReturn(const bool Success, FFaerieIt
 	}
 	else
 	{
-		ClearItemMesh();
+		ClearMeshData();
 	}
 
 	if (AsyncMeshLoadingHandle.IsValid())
@@ -312,7 +325,7 @@ void UFaerieItemMeshComponent::RebuildMesh()
 
 	if (CanCenterByBounds)
 	{
-		const FBoxSphereBounds MeshBounds = GetBounds();
+		const FBoxSphereBounds MeshBounds = GetMeshBounds();
 		MeshComponent->AddLocalOffset(-MeshBounds.Origin);
 	}
 
@@ -322,6 +335,18 @@ void UFaerieItemMeshComponent::RebuildMesh()
 
 	OnMeshRebuiltNative.Broadcast(this);
 	OnMeshRebuilt.Broadcast();
+}
+
+void UFaerieItemMeshComponent::ClearMeshData()
+{
+	ActualType = EItemMeshType::None;
+	MeshData = FFaerieItemMesh();
+
+	if (IsValid(MeshComponent))
+	{
+		MeshComponent->DestroyComponent();
+		MeshComponent = nullptr;
+	}
 }
 
 void UFaerieItemMeshComponent::OnRep_SkeletalMeshLeader()
@@ -341,25 +366,27 @@ void UFaerieItemMeshComponent::OnRep_SkeletalMeshLeader()
 
 void UFaerieItemMeshComponent::OnRep_PreferredTag()
 {
-	RebuildMesh();
-	LoadMeshFromSource(true);
+	LoadMeshFromSource(true, false);
 }
 
 void UFaerieItemMeshComponent::SetItemMeshFromProxy(const FFaerieItemProxy& InProxy)
 {
 	//if (SourceProxy != InProxy)
 	{
-		SourceProxy = InProxy;
-		LoadMeshFromSource(true);
-	}
-}
+		if (SourceProxy.IsValid())
+		{
+			SourceProxy.GetOnProxyChangeEvent().RemoveAll(this);
+		}
 
-void UFaerieItemMeshComponent::SetItemMesh(const FFaerieItemMesh& InMeshData)
-{
-	if (MeshData != InMeshData)
-	{
-		MeshData = InMeshData;
-		RebuildMesh();
+		SourceProxy = InProxy;
+
+		if (SourceProxy.IsValid())
+		{
+			SourceProxy.GetOnProxyChangeEvent().AddUObject(this, &ThisClass::OnSourceProxyDataChanged);
+		}
+
+		// Item changed, so clear existing data.
+		LoadMeshFromSource(true, true);
 	}
 }
 
@@ -379,6 +406,11 @@ void UFaerieItemMeshComponent::ClearItemMesh()
 	ActualType = EItemMeshType::None;
 	MeshData = FFaerieItemMesh();
 
+	if (SourceProxy.IsValid())
+	{
+		SourceProxy.GetOnProxyChangeEvent().RemoveAll(this);
+	}
+
 	SourceProxy = FFaerieItemProxy();
 
 	if (IsValid(MeshComponent))
@@ -394,7 +426,7 @@ void UFaerieItemMeshComponent::SetPreferredTag(const FGameplayTag MeshTag)
 	{
 		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, PreferredTag, this);
 		PreferredTag = MeshTag;
-		LoadMeshFromSource(true);
+		LoadMeshFromSource(true, false);
 	}
 }
 
@@ -407,7 +439,7 @@ void UFaerieItemMeshComponent::SetPreferredMeshType(const EItemMeshType MeshType
 	}
 }
 
-FBoxSphereBounds UFaerieItemMeshComponent::GetBounds() const
+FBoxSphereBounds UFaerieItemMeshComponent::GetMeshBounds() const
 {
 	switch (ActualType)
 	{

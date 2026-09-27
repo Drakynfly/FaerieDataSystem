@@ -6,7 +6,7 @@
 #include "FaerieContainerEventCleanup.generated.h"
 
 /**
- * Destroys events after they are handled by other observers.
+ * Destroys container events after they are handled by other observers.
  */
 UCLASS()
 class FAERIEINVENTORY_API UFaerieContainerEventCleanup : public UMassProcessor

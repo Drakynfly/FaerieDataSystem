@@ -19,7 +19,7 @@ public:
 	virtual void InitializeGrid(const FFaerieContainerGridWriteContext& Context) const override;
 	virtual EFaerieExtensionResponse AllowsAddition(const FFaerieContainerGridReadContext& Context, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args) const override;
 	virtual EFaerieExtensionResponse AllowsEdit(const FFaerieContainerGridReadContext& Context, const TNotNull<const Faerie::Container::IAddressView*> DataView, FFaerieInventoryTag EditType) const override;
-	virtual void HandleEvent(const FFaerieContainerGridWriteContext& Context, const Faerie::Container::FEvent& Event) const override;
+	virtual void HandleEvent(const FFaerieContainerGridWriteContext& Context, const Faerie::Container::FContainerEventPayload& Event) const override;
 
 	virtual void PreStackRemove_Client(const FFaerieContainerGridWriteContext& Context, const FFaerieGridKeyedStack& Stack) const override;
 	virtual void PreStackRemove_Server(const FFaerieContainerGridWriteContext& Context, const FFaerieGridKeyedStack& Stack, const FFaerieItemInstance& Item) const override;

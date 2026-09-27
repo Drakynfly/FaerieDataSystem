@@ -7,6 +7,7 @@
 
 #include "FaerieContainerIterator.h"
 #include "FaerieInventoryContentLog.h"
+#include "FaerieItem.h"
 
 #include "MassExecutionContext.h"
 
@@ -18,22 +19,20 @@
 
 using namespace Faerie;
 
-void FFaerieItemContainerCapacityData::InitializeExtension(const TNotNull<const UFaerieItemContainerBase*> Container)
+void FFaerieItemContainerCapacityData::InitializeExtension(FMassEntityManager& EntityManager, const TNotNull<const UFaerieItemContainerBase*> Container)
 {
-	auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
 	for (auto It = Container::KeyRange(Container); It; ++It)
 	{
 		UpdateCacheForEntry(EntityManager, Container, *It);
 	}
 }
 
-EFaerieExtensionResponse FFaerieItemContainerCapacityData::AllowsAddition(const TNotNull<const UFaerieItemContainerBase*> Container, const Utils::TArrayAdapter<FFaerieItemProxy>& Proxies,
+EFaerieExtensionResponse FFaerieItemContainerCapacityData::AllowsAddition(const FMassEntityManager& EntityManager, const TNotNull<const UFaerieItemContainerBase*> Container, const Utils::TArrayAdapter<FFaerieItemProxy>& Proxies,
 	FFaerieExtensionAllowsAdditionArgs Args) const
 {
 	// @todo Args.AddStackBehavior is not used at all.
 	// Because CanContain doesnt check for Efficiency, there is no differance, but its technically incorrect.
 
-	auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
 	if (Proxies.Num() == 1)
 	{
 		if (const FFaerieItemProxy Proxy0 = Proxies[0];
@@ -56,7 +55,7 @@ EFaerieExtensionResponse FFaerieItemContainerCapacityData::AllowsAddition(const 
 	return EFaerieExtensionResponse::Allowed;
 }
 
-bool FFaerieItemContainerCapacityData::HandleEvent(const FMassEntityManager& EntityManager, const Container::FEvent& Event)
+bool FFaerieItemContainerCapacityData::HandleEvent(const FMassEntityManager& EntityManager, const Container::FContainerEventPayload& Event)
 {
 	if (Event.EntryRemoved)
 	{
@@ -297,14 +296,16 @@ void FFaerieItemContainerCapacityData::AddWeightAndVolume(const FFaerieWeightAnd
 	State.CurrentVolume += Value.Volume;
 }
 
-void UFaerieItemContainerCapacityView::SyncView()
+void UFaerieItemContainerCapacityView::SyncView(FMassEntityManager& EntityManager)
 {
-	if (!ContainerExtensionPtr.Key.IsValid())
+	if (!ExtensionPtr.IsValid())
 	{
 		return;
 	}
 
-	if (auto CapacityView = ContainerExtensionPtr.Value->Find(FFaerieItemContainerCapacityData::StaticStruct(), false);
+	const FFaerieItemContainerExtensions* Extensions = ExtensionPtr->GetExtensions();
+
+	if (auto CapacityView = Extensions->Find(FFaerieItemContainerCapacityData::StaticStruct(), false);
 		CapacityView.IsValid())
 	{
 		// @todo don't broadcast both, figure out what changed, either via equality check or pass changemask as parameter.
@@ -355,8 +356,8 @@ UFaerieItemContainerCapacityUpdater::UFaerieItemContainerCapacityUpdater()
 
 void UFaerieItemContainerCapacityUpdater::ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager)
 {
-	EventQuery.AddRequirement<Container::FEvent>(EMassFragmentAccess::ReadOnly, EMassFragmentPresence::All);
-	ViewQuery.AddRequirement<Content::FCapacityViewFragment>(EMassFragmentAccess::ReadOnly, EMassFragmentPresence::All);
+	EventQuery.AddRequirement<Container::FContainerEventPayload>(EMassFragmentAccess::ReadOnly, EMassFragmentPresence::All);
+	ViewQuery.AddRequirement<Content::FContainerCapacityViewFragment>(EMassFragmentAccess::ReadOnly, EMassFragmentPresence::All);
 }
 
 void UFaerieItemContainerCapacityUpdater::Execute(FMassEntityManager& EntityManager, FMassExecutionContext& Context)
@@ -364,10 +365,10 @@ void UFaerieItemContainerCapacityUpdater::Execute(FMassEntityManager& EntityMana
 	// Track the containers we updated, so we can notify any active views of them.
 	TSet<UObject*> ContainersUpdated;
 
-	EventQuery.ForEachEntityChunk(Context, [this, &ContainersUpdated](const FMassExecutionContext& InContext)
+	EventQuery.ForEachEntityChunk(Context, [&ContainersUpdated](const FMassExecutionContext& InContext)
 		{
-			const TConstArrayView<Container::FEvent> Events = InContext.GetFragmentView<Container::FEvent>();
-			for (const Container::FEvent& Event : Events)
+			const TConstArrayView<Container::FContainerEventPayload> Events = InContext.GetFragmentView<Container::FContainerEventPayload>();
+			for (const Container::FContainerEventPayload& Event : Events)
 			{
 				UFaerieItemContainerBase* Container = Event.Container.Get();
 				if (!IsValid(Container))
@@ -376,9 +377,9 @@ void UFaerieItemContainerCapacityUpdater::Execute(FMassEntityManager& EntityMana
 				}
 
 				bool StateChanged = false;
-				Container->WriteContainerData(FFaerieItemContainerCapacityData::StaticStruct(), [&InContext, &Event, &StateChanged](const FStructView Element)
+				Container->WriteContainerData(InContext.GetEntityManagerChecked(), FFaerieItemContainerCapacityData::StaticStruct(), [&InContext, &Event, &StateChanged](const FStructView Element)
 				{
-					auto& ContentHash = Element.Get<FFaerieItemContainerCapacityData>();
+					FFaerieItemContainerCapacityData& ContentHash = Element.Get<FFaerieItemContainerCapacityData>();
 					StateChanged = ContentHash.HandleEvent(InContext.GetEntityManagerChecked(), Event);
 				}, false);
 
@@ -391,7 +392,7 @@ void UFaerieItemContainerCapacityUpdater::Execute(FMassEntityManager& EntityMana
 
 	ViewQuery.ForEachEntityChunk(Context, [&ContainersUpdated](const FMassExecutionContext& InContext)
 		{
-			const TConstArrayView<Container::FViewModelFragment> Views = InContext.GetFragmentView<Container::FViewModelFragment>(Content::FCapacityViewFragment::StaticStruct());
+			const TConstArrayView<Container::FViewModelFragment> Views = InContext.GetFragmentView<Container::FViewModelFragment>(Content::FContainerCapacityViewFragment::StaticStruct());
 			for (const Container::FViewModelFragment& ViewFragment : Views)
 			{
 				UFaerieContainerDataViewModelBase* View = Cast<UFaerieContainerDataViewModelBase>(ViewFragment.ViewObject.Get());
@@ -402,7 +403,7 @@ void UFaerieItemContainerCapacityUpdater::Execute(FMassEntityManager& EntityMana
 
 				if (ContainersUpdated.Contains(View->GetContainerObject()))
 				{
-					View->SyncView();
+					View->SyncView(InContext.GetEntityManagerChecked());
 				}
 			}
 		});

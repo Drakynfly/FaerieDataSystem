@@ -7,7 +7,6 @@
 #include "FaerieContainerFilter.h"
 #include "FaerieItem.h"
 #include "FaerieSubObjectFilter.h"
-#include "ItemContainerEvent.h"
 #include "ItemContainerExtensionBase.h"
 #include "MassCommandBuffer.h"
 
@@ -37,6 +36,18 @@ void FFaerieItemContainerExtensions::PostStackReplicatedChange(
 {
 }
 
+FFaerieItemContainerExtensions* FFaerieItemContainerExtensions::GetParentExtensions() const
+{
+	if (ChangeListener)
+	{
+		if (auto Parent = Cast<IFaerieTempInterfaceForGettingParentExtensions>(ChangeListener->ParentThatImplementsExtensions))
+		{
+			return Parent->GetExtensions();
+		}
+	}
+	return nullptr;
+}
+
 FConstStructView FFaerieItemContainerExtensions::Find(const TNotNull<const UScriptStruct*> Type, const bool RecurseParents) const
 {
 	for (const FFaerieItemContainerExtensionStorageElement& Item : Items)
@@ -49,9 +60,9 @@ FConstStructView FFaerieItemContainerExtensions::Find(const TNotNull<const UScri
 
 	if (RecurseParents)
 	{
-		if (ParentExtensions.Key.IsValid())
+		if (FFaerieItemContainerExtensions* Parent = GetParentExtensions())
 		{
-			return ParentExtensions.Value->Find(Type, true);
+			return Parent->Find(Type, true);
 		}
 	}
 
@@ -70,18 +81,18 @@ FStructView FFaerieItemContainerExtensions::Find(const TNotNull<const UScriptStr
 
 	if (RecurseParents)
 	{
-		if (ParentExtensions.Key.IsValid())
+		if (FFaerieItemContainerExtensions* Parent = GetParentExtensions())
 		{
-			return ParentExtensions.Value->Find(Type, true);
+			return Parent->Find(Type, true);
 		}
 	}
 
 	return FStructView();
 }
 
-FInstancedStruct& FFaerieItemContainerExtensions::AddOrGetRef(const TNotNull<const UScriptStruct*> Type, EWriteContainerDataFlag* OutFlag)
+FInstancedStruct& FFaerieItemContainerExtensions::AddOrGetRef(FMassEntityManager& EntityManager, const TNotNull<const UScriptStruct*> Type, EWriteContainerDataFlag* OutFlag)
 {
-	for (auto&& Element : Items)
+	for (FFaerieItemContainerExtensionStorageElement& Element : Items)
 	{
 		if (Element.ExtensionStruct.GetScriptStruct() == Type)
 		{
@@ -94,11 +105,11 @@ FInstancedStruct& FFaerieItemContainerExtensions::AddOrGetRef(const TNotNull<con
 		}
 	}
 
-	auto& NewElement = Items.AddDefaulted_GetRef();
+	FFaerieItemContainerExtensionStorageElement& NewElement = Items.AddDefaulted_GetRef();
 	NewElement.ExtensionStruct.InitializeAs(Type);
-	if (auto Extension = NewElement.ExtensionStruct.GetMutablePtr<FFaerieItemContainerExtensionBase>())
+	if (FFaerieItemContainerExtensionBase* Extension = NewElement.ExtensionStruct.GetMutablePtr<FFaerieItemContainerExtensionBase>())
 	{
-		Extension->InitializeExtension(ChangeListener);
+		Extension->InitializeExtension(EntityManager, ChangeListener);
 	}
 	MarkItemDirty(NewElement);
 	if (OutFlag)
@@ -173,9 +184,9 @@ void FFaerieItemContainerExtensions::ForEach_Recursive(
 		}
 	}
 
-	if (ParentExtensions.Key.IsValid())
+	if (FFaerieItemContainerExtensions* Parent = GetParentExtensions())
 	{
-		ParentExtensions.Value->ForEach_Recursive(Functor);
+		Parent->ForEach_Recursive(Functor);
 	}
 }
 
@@ -196,9 +207,9 @@ void FFaerieItemContainerExtensions::ForEachMutable_Recursive(
 		}
 	}
 
-	if (ParentExtensions.Key.IsValid())
+	if (FFaerieItemContainerExtensions* Parent = GetParentExtensions())
 	{
-		ParentExtensions.Value->ForEachMutable_Recursive(Functor);
+		Parent->ForEachMutable_Recursive(Functor);
 	}
 }
 
@@ -219,6 +230,10 @@ void UFaerieItemContainerBase::GetLifetimeReplicatedProps(TArray<class FLifetime
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(ThisClass, ExtensionData)
+
+	FDoRepLifetimeParams Params;
+	Params.bIsPushBased = true;
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, ParentThatImplementsExtensions, Params)
 }
 
 void UFaerieItemContainerBase::InitializeNetObject(const TNotNull<AActor*> Actor)
@@ -227,7 +242,8 @@ void UFaerieItemContainerBase::InitializeNetObject(const TNotNull<AActor*> Actor
 		TEXT("Containers must not be assets loaded from disk. (DuplicateObjectFromDiskForReplication or ClearLoadFlags can fix this)"
 			LINE_TERMINATOR
 			"	Failing Container: '%s'"), *GetFullName());
-	InitializeExtensions();
+	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(Actor->GetWorld());
+	InitializeExtensions(EntityManager);
 }
 
 void UFaerieItemContainerBase::OnItemDataChanged(const FFaerieItemInstance& Instance, const FGameplayTag EditTag)
@@ -254,7 +270,7 @@ FFaerieItemInstance UFaerieItemContainerBase::ImportItemData(FMassEntityManager&
 	return Instance;
 }
 
-void UFaerieItemContainerBase::RavelExtensionData(TAdderRef<FInstancedStruct> SaveData) const
+void UFaerieItemContainerBase::RavelExtensionData(const FMassEntityManager& EntityManager, TAdderRef<FInstancedStruct> SaveData) const
 {
 	ExtensionData.ForEach([this, &SaveData](const FConstStructView Element)
 		{
@@ -263,11 +279,11 @@ void UFaerieItemContainerBase::RavelExtensionData(TAdderRef<FInstancedStruct> Sa
 		});
 }
 
-void UFaerieItemContainerBase::UnravelExtensionData(const TConstArrayView<FInstancedStruct> SaveData)
+void UFaerieItemContainerBase::UnravelExtensionData(FMassEntityManager& EntityManager, const TConstArrayView<FInstancedStruct> SaveData)
 {
 	for (auto&& Element : SaveData)
 	{
-		FInstancedStruct& Extension = ExtensionData.AddOrGetRef(Element.GetScriptStruct());
+		FInstancedStruct& Extension = ExtensionData.AddOrGetRef(EntityManager, Element.GetScriptStruct());
 		Extension.InitializeAs(Element.GetScriptStruct(), Element.GetMemory());
 	}
 }
@@ -282,12 +298,12 @@ TUniquePtr<Container::IAddressIterator> UFaerieItemContainerBase::CreateAddressI
 TUniquePtr<Container::IAddressIterator> UFaerieItemContainerBase::CreateSingleEntryIterator(FFaerieEntryKey Key) const
 	PURE_VIRTUAL(UFaerieItemContainerBase::CreateSingleEntryIterator, return nullptr; )
 
-void UFaerieItemContainerBase::WriteContainerData(const TNotNull<const UScriptStruct*> Type, const TFunctionRef<void(FStructView, FFaerieItemContainerExtensions::EWriteContainerDataFlag)>& Functor, const bool CreateIfMissing)
+void UFaerieItemContainerBase::WriteContainerData(FMassEntityManager& EntityManager, const TNotNull<const UScriptStruct*> Type, const TFunctionRef<void(FStructView, FFaerieItemContainerExtensions::EWriteContainerDataFlag)>& Functor, const bool CreateIfMissing)
 {
 	FFaerieItemContainerExtensions::EWriteContainerDataFlag DataFlag;
 	if (CreateIfMissing)
 	{
-		auto& Element = ExtensionData.AddOrGetRef(Type, &DataFlag);
+		auto& Element = ExtensionData.AddOrGetRef(EntityManager, Type, &DataFlag);
 		Functor(Element, DataFlag);
 	}
 	else
@@ -300,12 +316,12 @@ void UFaerieItemContainerBase::WriteContainerData(const TNotNull<const UScriptSt
 	}
 }
 
-void UFaerieItemContainerBase::WriteContainerData(const TNotNull<const UScriptStruct*> Type, const TFunctionRef<void(FStructView)>& Functor, const bool CreateIfMissing)
+void UFaerieItemContainerBase::WriteContainerData(FMassEntityManager& EntityManager, const TNotNull<const UScriptStruct*> Type, const TFunctionRef<void(FStructView)>& Functor, const bool CreateIfMissing)
 {
 	FFaerieItemContainerExtensions::EWriteContainerDataFlag DataFlag;
 	if (CreateIfMissing)
 	{
-		auto& Element = ExtensionData.AddOrGetRef(Type, &DataFlag);
+		auto& Element = ExtensionData.AddOrGetRef(EntityManager, Type, &DataFlag);
 		Functor(Element);
 	}
 	else
@@ -318,7 +334,7 @@ void UFaerieItemContainerBase::WriteContainerData(const TNotNull<const UScriptSt
 	}
 }
 
-bool UFaerieItemContainerBase::HasContainerData(const TNotNull<const UScriptStruct*> Type, const bool RecurseParents) const
+bool UFaerieItemContainerBase::HasContainerData(const FMassEntityManager& EntityManager, const TNotNull<const UScriptStruct*> Type, const bool RecurseParents) const
 {
 	if (const FConstStructView Value = ExtensionData.Find(Type, RecurseParents);
 		Value.IsValid())
@@ -329,7 +345,7 @@ bool UFaerieItemContainerBase::HasContainerData(const TNotNull<const UScriptStru
 	return false;
 }
 
-FConstStructView UFaerieItemContainerBase::ReadContainerData(const TNotNull<const UScriptStruct*> Type, const bool RecurseParents) const
+FConstStructView UFaerieItemContainerBase::ReadContainerData(const FMassEntityManager& EntityManager, const TNotNull<const UScriptStruct*> Type, const bool RecurseParents) const
 {
 	if (const FConstStructView Value = ExtensionData.Find(Type, RecurseParents);
 		Value.IsValid())
@@ -340,38 +356,41 @@ FConstStructView UFaerieItemContainerBase::ReadContainerData(const TNotNull<cons
 	return FConstStructView();
 }
 
-void UFaerieItemContainerBase::SetParentExtensions(TNotNull<UObject*> Obj, FFaerieItemContainerExtensions& InExtensions)
+void UFaerieItemContainerBase::SetParentExtensions(const TNotNull<IFaerieTempInterfaceForGettingParentExtensions*> Obj)
 {
-	ExtensionData.ParentExtensions = MakeTuple(Obj, &InExtensions);
+	ParentThatImplementsExtensions = Cast<UObject>(Obj);
+	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, ParentThatImplementsExtensions, this);
 }
 
 void UFaerieItemContainerBase::ClearParentExtensions()
 {
-	ExtensionData.ParentExtensions = MakeTuple(nullptr, nullptr);
+	ParentThatImplementsExtensions = nullptr;
+	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, ParentThatImplementsExtensions, this);
 }
 
-void UFaerieItemContainerBase::InitializeExtensions()
+void UFaerieItemContainerBase::InitializeExtensions(FMassEntityManager& EntityManager)
 {
 	// Note: Not recursive, we only init *our* own extensions, not our parents.
-	ExtensionData.ForEachMutable([this](const FStructView Element)
+	ExtensionData.ForEachMutable([this, &EntityManager](const FStructView Element)
 		{
 			if (FFaerieItemContainerExtensionBase* AsExtensionBase = Element.GetPtr<FFaerieItemContainerExtensionBase>())
 			{
-				AsExtensionBase->InitializeExtension(this);
+				AsExtensionBase->InitializeExtension(EntityManager, this);
 			}
 			return Utils::Continue;
 		});
 }
 
-bool UFaerieItemContainerBase::AllowsAddition(const Utils::TArrayAdapter<FFaerieItemProxy>& Proxies,
-	const FFaerieExtensionAllowsAdditionArgs Args, const bool DefaultResult) const
+bool UFaerieItemContainerBase::AllowsAddition(const FMassEntityManager& EntityManager,
+	const Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, const FFaerieExtensionAllowsAdditionArgs Args,
+	const bool DefaultResult) const
 {
 	TOptional<bool> AllowedByStructs;
-	ExtensionData.ForEach_Recursive([this, Proxies, Args, &AllowedByStructs](const FConstStructView Element)
+	ExtensionData.ForEach_Recursive([this, Proxies, Args, &AllowedByStructs, &EntityManager](const FConstStructView Element)
 		{
 			if (const FFaerieItemContainerExtensionBase* AsExtensionBase = Element.GetPtr<FFaerieItemContainerExtensionBase>())
 			{
-				switch (AsExtensionBase->AllowsAddition(this, Proxies, Args))
+				switch (AsExtensionBase->AllowsAddition(EntityManager, this, Proxies, Args))
 				{
 				case EFaerieExtensionResponse::Disallowed:
 					// Mark disallowal, and exit loop
@@ -395,13 +414,13 @@ bool UFaerieItemContainerBase::AllowsAddition(const Utils::TArrayAdapter<FFaerie
 	return DefaultResult;
 }
 
-bool UFaerieItemContainerBase::AllowsRemoval(const TNotNull<const Container::IAddressView*> DataView,
+bool UFaerieItemContainerBase::AllowsRemoval(const FMassEntityManager& EntityManager, const TNotNull<const Container::IAddressView*> DataView,
 	const FFaerieInventoryTag Reason, const bool DefaultResult) const
 {
 	TOptional<bool> AllowedByStructs;
 
 	// Check this container for permission
-	if (auto ContainerPermissions = ReadContainerData<FFaerieItemContainerClientPermissions>(true))
+	if (auto ContainerPermissions = ReadContainerData<FFaerieItemContainerClientPermissions>(EntityManager, true))
 	{
 		if (ContainerPermissions->AllowedActions.HasTag(Reason))
 		{
@@ -410,8 +429,7 @@ bool UFaerieItemContainerBase::AllowsRemoval(const TNotNull<const Container::IAd
 	}
 
 	// Check the item instance for permission override.
-	auto EntityManager = ItemData::GetFaerieEntityManager();
-	if (const TConstStructView<FFaerieContainerMetadataFragment> Metadata = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieContainerMetadataFragment>(EntityManager, DataView->GetItemInstance().GetValue());
+	if (const TConstStructView<FFaerieContainerMetadataFragment> Metadata = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieContainerMetadataFragment>(&EntityManager, DataView->GetItemInstance().GetValue());
 		Metadata.IsValid())
 	{
 		if (Metadata->AllowedActions.HasTag(Reason))
@@ -424,11 +442,11 @@ bool UFaerieItemContainerBase::AllowsRemoval(const TNotNull<const Container::IAd
 		}
 	}
 
-	ExtensionData.ForEach_Recursive([this, DataView, Reason, &AllowedByStructs](const FConstStructView Element)
+	ExtensionData.ForEach_Recursive([this, DataView, Reason, &AllowedByStructs, &EntityManager](const FConstStructView Element)
 		{
 			if (const FFaerieItemContainerExtensionBase* AsExtensionBase = Element.GetPtr<FFaerieItemContainerExtensionBase>())
 			{
-				switch (AsExtensionBase->AllowsRemoval(this, DataView, Reason))
+				switch (AsExtensionBase->AllowsRemoval(EntityManager, this, DataView, Reason))
 				{
 				case EFaerieExtensionResponse::Disallowed:
 					// Mark disallowal, and exit loop
@@ -452,15 +470,15 @@ bool UFaerieItemContainerBase::AllowsRemoval(const TNotNull<const Container::IAd
 	return DefaultResult;
 }
 
-bool UFaerieItemContainerBase::AllowsEdit(const TNotNull<const Container::IAddressView*> DataView,
+bool UFaerieItemContainerBase::AllowsEdit(const FMassEntityManager& EntityManager, const TNotNull<const Container::IAddressView*> DataView,
 	const FFaerieInventoryTag EditTag, const bool DefaultResult) const
 {
 	TOptional<bool> AllowedByStructs;
-	ExtensionData.ForEach_Recursive([this, DataView, EditTag, &AllowedByStructs](const FConstStructView Element)
+	ExtensionData.ForEach_Recursive([this, DataView, EditTag, &AllowedByStructs, &EntityManager](const FConstStructView Element)
 		{
 			if (const FFaerieItemContainerExtensionBase* AsExtensionBase = Element.GetPtr<FFaerieItemContainerExtensionBase>())
 			{
-				switch (AsExtensionBase->AllowsEdit(this, DataView, EditTag))
+				switch (AsExtensionBase->AllowsEdit(EntityManager, this, DataView, EditTag))
 				{
 				case EFaerieExtensionResponse::Disallowed:
 					// Mark disallowal, and exit loop
@@ -484,10 +502,8 @@ bool UFaerieItemContainerBase::AllowsEdit(const TNotNull<const Container::IAddre
 	return DefaultResult;
 }
 
-void UFaerieItemContainerBase::PostEvent(const Container::FEvent& Event)
+void UFaerieItemContainerBase::PostEvent(FMassEntityManager& EntityManager, const Container::FContainerEventPayload& Event)
 {
-	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked();
-
 	FInstancedStruct EventStruct = FInstancedStruct::Make(Event);
 	EntityManager.Defer().PushCommand<FMassDeferredCreateCommand>(
 		[EventStruct = MoveTemp(EventStruct)](FMassEntityManager& DeferredEntityManager)
@@ -495,20 +511,21 @@ void UFaerieItemContainerBase::PostEvent(const Container::FEvent& Event)
 			DeferredEntityManager.CreateEntity(MakeConstArrayView(&EventStruct, 1));
 		});
 
-	if (const Container::FNestedContainer* Nesting = ReadContainerData<Container::FNestedContainer>())
+	if (const Container::FNestedContainer* Nesting = ReadContainerData<Container::FNestedContainer>(EntityManager))
 	{
-		// @todo we don't pass in the ItemAsset here, which isn't correct, but also isn't likely to matter
-		FFaerieItemInstance Instance(nullptr, Nesting->ItemHandle);
-		Instance.TempNestedContainerChanged(EntityManager);
+		// Create an event to tell our owning item that our data has changed.
+		// @todo we don't know which fragment type was changed...
+		ItemData::FMutationEvent Payload;
+		Payload.ItemHandle = Nesting->ItemHandle;
+		Payload.EventType = ItemData::Tags::FragmentGenericPropertyEdit;
+		FFaerieItemInstance::PostMutationEvent(EntityManager, Payload);
 	}
 }
 
-void UFaerieItemContainerBase::PostEventBatch(const TConstArrayView<Container::FEvent> Events)
+void UFaerieItemContainerBase::PostEventBatch(FMassEntityManager& EntityManager, const TConstArrayView<Container::FContainerEventPayload> Events)
 {
-	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked();
-
 	// @Todo can we use a BatchCreateEntity here
-	for (const Container::FEvent& Event : Events)
+	for (const Container::FContainerEventPayload& Event : Events)
 	{
 		FInstancedStruct EventStruct = FInstancedStruct::Make(Event);
 		EntityManager.Defer().PushCommand<FMassDeferredCreateCommand>(
@@ -518,10 +535,13 @@ void UFaerieItemContainerBase::PostEventBatch(const TConstArrayView<Container::F
 			});
 	}
 
-	if (const Container::FNestedContainer* Nesting = ReadContainerData<Container::FNestedContainer>())
+	if (const Container::FNestedContainer* Nesting = ReadContainerData<Container::FNestedContainer>(EntityManager))
 	{
-		// @todo we don't pass in the ItemAsset here, which isn't correct, but also isn't likely to matter
-		FFaerieItemInstance Instance(nullptr, Nesting->ItemHandle);
-		Instance.TempNestedContainerChanged(EntityManager);
+		// Create an event to tell our owning item that our data has changed.
+		// @todo we don't know which fragment type was changed...
+		ItemData::FMutationEvent Payload;
+		Payload.ItemHandle = Nesting->ItemHandle;
+		Payload.EventType = ItemData::Tags::FragmentGenericPropertyEdit;
+		FFaerieItemInstance::PostMutationEvent(EntityManager, Payload);
 	}
 }

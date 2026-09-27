@@ -6,7 +6,6 @@
 #include "FaerieItem.h"
 #include "FaerieItemContainerBase.h"
 #include "FaerieItemProxyBase.h"
-#include "ItemContainerExtensionBase.h"
 #include "TypedGameplayTags.h"
 #include "FaerieItemStackContainer.generated.h"
 
@@ -40,6 +39,10 @@ struct FFaerieStackContainerContent
 {
 	GENERATED_BODY()
 
+	// Incremented each time a new item is stored in this stack. Not changed when stack Copies is edited.
+	UPROPERTY(VisibleAnywhere, Category = "StackContainerContent")
+	FFaerieEntryKey StoredKey;
+
 	UPROPERTY(VisibleAnywhere, Category = "StackContainerContent")
 	FFaerieItemInstance Instance;
 
@@ -61,8 +64,8 @@ public:
 	//~ UObject
 
 	//~ UFaerieItemContainerBase
-	virtual FInstancedStruct MakeSaveData(Faerie::Container::FSaveParams Params) const override;
-	virtual void LoadSaveData(FConstStructView ItemData, Faerie::Container::FLoadParams Params) override;
+	virtual FInstancedStruct MakeSaveData(const FMassEntityManager& EntityManager, Faerie::Container::FSaveParams Params) const override;
+	virtual void LoadSaveData(FMassEntityManager& EntityManager, FConstStructView ItemData, Faerie::Container::FLoadParams Params) override;
 	virtual bool Contains(FFaerieAddress Address) const override;
 
 private:
@@ -76,12 +79,10 @@ private:
 	virtual Faerie::ItemData::FScopeProxy ViewAddress(FFaerieAddress Address) const override;
 	virtual FFaerieItemProxy Proxy(FFaerieEntryKey Key) const override;
 	virtual FFaerieItemProxy Proxy(FFaerieAddress Address) const override;
-	virtual bool Possess(const FFaerieUnownedItemStack& Stack) override;
-	virtual void DestroyStack(FFaerieEntryKey Key, int32 Copies) override;
-	virtual void DestroyStack(FFaerieAddress Address, int32 Copies) override;
-	virtual void DestroyStack(const FFaerieItemProxy& Proxy, int32 Copies) override;
+	virtual bool Possess(FMassEntityManager& EntityManager, const FFaerieUnownedItemStack& Stack) override;
 	virtual TOptional<FFaerieUnownedItemStack> Release(FFaerieEntryKey Key, int32 Copies, FFaerieInventoryTag Reason) override;
 	virtual TOptional<FFaerieUnownedItemStack> Release(FFaerieAddress Address, int32 Copies, FFaerieInventoryTag Reason) override;
+	virtual TOptional<FFaerieUnownedItemStack> Release(const FFaerieItemProxy& Proxy, int32 Copies, FFaerieInventoryTag Reason) override;
 	virtual bool CanPossess(const FFaerieItemProxy& Proxy) const override;
 	virtual bool CanRelease(const FFaerieItemProxy& Proxy, FFaerieInventoryTag Reason) const override;
 	virtual void GetAllAddresses(TAdderReserverRef<FFaerieAddress> Addresses) const override;
@@ -112,8 +113,8 @@ public:
 	virtual void OnItemDataChanged(const FFaerieItemInstance& Instance, FGameplayTag EditTag) override;
 	//~ IFaerieItemOwnerInterface
 
-	void MakeSaveData(FFaerieSimpleItemStackSaveData& SaveData, Faerie::Container::FSaveParams Params) const;
-	void LoadSaveData(const FFaerieSimpleItemStackSaveData& SaveData, Faerie::Container::FLoadParams Params);
+	void MakeSaveData(const FMassEntityManager& EntityManager, FFaerieSimpleItemStackSaveData& SaveData, Faerie::Container::FSaveParams Params) const;
+	void LoadSaveData(FMassEntityManager& EntityManager, const FFaerieSimpleItemStackSaveData& SaveData, Faerie::Container::FLoadParams Params);
 
 	FFaerieAddress GetAddress() const;
 
@@ -122,7 +123,7 @@ public:
 	bool IsOurKey(FFaerieEntryKey Key) const;
 	bool IsOurAddress(FFaerieAddress Address) const;
 
-	void SetStoredItem_Impl(const Faerie::TValid<FFaerieUnownedItemStack>& NewItemStack);
+	void SetStoredItem_Impl(FMassEntityManager& EntityManager, const Faerie::TValid<FFaerieUnownedItemStack>& NewItemStack);
 
 public:
 	Faerie::ItemData::FProxyChangeEvent::RegistrationType& GetOnContainerEvent() { return OnItemChangedNative; }
@@ -187,8 +188,4 @@ protected:
 	// The current item stack being stored in this container.
 	UPROPERTY(VisibleInstanceOnly, ReplicatedUsing = "OnRep_ItemStack", Category = "State")
 	FFaerieStackContainerContent ItemStack;
-
-	// Incremented each time a new item is stored in this stack. Not changed when stack Copies is edited.
-	UPROPERTY(Replicated)
-	FFaerieEntryKey StoredKey;
 };

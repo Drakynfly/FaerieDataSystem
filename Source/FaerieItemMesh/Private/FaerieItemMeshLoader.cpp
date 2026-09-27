@@ -67,7 +67,7 @@ bool UFaerieItemMeshLoader::LoadMeshFromProxySynchronous(const FFaerieItemProxy&
 		return false;
 	}
 
-	auto* EntityManager = ItemData::GetFaerieEntityManager();
+	auto* EntityManager = ItemData::GetFaerieEntityManager(InProxy.ExtractWorld());
 	auto MeshFragment = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieMeshFragment>(EntityManager, Instance.GetValue());
 	if (!MeshFragment.IsValid())
 	{
@@ -96,7 +96,7 @@ TSharedPtr<FStreamableHandle> UFaerieItemMeshLoader::LoadMeshFromProxyAsynchrono
 		return nullptr;
 	}
 
-	auto* EntityManager = ItemData::GetFaerieEntityManager();
+	FMassEntityManager* EntityManager = ItemData::GetFaerieEntityManager(InProxy.ExtractWorld());
 	auto MeshFragment = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieMeshFragment>(EntityManager, Instance.GetValue());
 	if (!MeshFragment.IsValid())
 	{

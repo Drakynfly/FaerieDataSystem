@@ -12,7 +12,7 @@
 
 using namespace Faerie;
 
-void FFaerieItemContainerCountLimit::InitializeExtension(const TNotNull<const UFaerieItemContainerBase*> Container)
+void FFaerieItemContainerCountLimit::InitializeExtension(FMassEntityManager& EntityManager, const TNotNull<const UFaerieItemContainerBase*> Container)
 {
 	EntryAmountCache.Reset();
 	CurrentTotalItemCopies = 0;
@@ -23,8 +23,9 @@ void FFaerieItemContainerCountLimit::InitializeExtension(const TNotNull<const UF
 	}
 }
 
-EFaerieExtensionResponse FFaerieItemContainerCountLimit::AllowsAddition(const TNotNull<const UFaerieItemContainerBase*> Container,
-	const Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, const FFaerieExtensionAllowsAdditionArgs Args) const
+EFaerieExtensionResponse FFaerieItemContainerCountLimit::AllowsAddition(const FMassEntityManager& EntityManager,
+	const TNotNull<const UFaerieItemContainerBase*> Container, const Utils::TArrayAdapter<FFaerieItemProxy>& Proxies,
+	const FFaerieExtensionAllowsAdditionArgs Args) const
 {
 	int32 TestCount = 0;
 
@@ -47,7 +48,7 @@ EFaerieExtensionResponse FFaerieItemContainerCountLimit::AllowsAddition(const TN
 	return EFaerieExtensionResponse::NoExplicitResponse;
 }
 
-void FFaerieItemContainerCountLimit::PostEvent(const Container::FEvent& Event)
+void FFaerieItemContainerCountLimit::PostEvent(const Container::FContainerEventPayload& Event)
 {
 	if (Event.EntryRemoved)
 	{
@@ -162,15 +163,15 @@ UFaerieItemContainerCountLimitUpdater::UFaerieItemContainerCountLimitUpdater()
 
 void UFaerieItemContainerCountLimitUpdater::ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager)
 {
-	EntityQuery.AddRequirement<Container::FEvent>(EMassFragmentAccess::ReadOnly, EMassFragmentPresence::All);
+	EntityQuery.AddRequirement<Container::FContainerEventPayload>(EMassFragmentAccess::ReadOnly, EMassFragmentPresence::All);
 }
 
 void UFaerieItemContainerCountLimitUpdater::Execute(FMassEntityManager& EntityManager, FMassExecutionContext& Context)
 {
-	EntityQuery.ForEachEntityChunk(Context, [this](FMassExecutionContext& InContext)
+	EntityQuery.ForEachEntityChunk(Context, [](FMassExecutionContext& InContext)
 	{
-		const TConstArrayView<Container::FEvent> Events = InContext.GetFragmentView<Container::FEvent>();
-		for (const Container::FEvent& Event : Events)
+		const TConstArrayView<Container::FContainerEventPayload> Events = InContext.GetFragmentView<Container::FContainerEventPayload>();
+		for (const Container::FContainerEventPayload& Event : Events)
 		{
 			UFaerieItemContainerBase* Container = Event.Container.Get();
 			if (!IsValid(Container))
@@ -178,7 +179,7 @@ void UFaerieItemContainerCountLimitUpdater::Execute(FMassEntityManager& EntityMa
 				continue;
 			}
 
-			Container->WriteContainerData(FFaerieItemContainerCountLimit::StaticStruct(),
+			Container->WriteContainerData(InContext.GetEntityManagerChecked(), FFaerieItemContainerCountLimit::StaticStruct(),
 				[&Event](const FStructView Element)
 				{
 					auto& CountLimit = Element.Get<FFaerieItemContainerCountLimit>();
@@ -188,12 +189,12 @@ void UFaerieItemContainerCountLimitUpdater::Execute(FMassEntityManager& EntityMa
 	});
 }
 
-void FFaerieItemContainerPerEntryCountLimit::InitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container)
+void FFaerieItemContainerPerEntryCountLimit::InitializeExtension(FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container)
 {
 	unimplemented();
 }
 
-EFaerieExtensionResponse FFaerieItemContainerPerEntryCountLimit::AllowsAddition(
+EFaerieExtensionResponse FFaerieItemContainerPerEntryCountLimit::AllowsAddition(const FMassEntityManager& EntityManager,
 	TNotNull<const UFaerieItemContainerBase*> Container, const Utils::TArrayAdapter<FFaerieItemProxy>& Proxies,
 	FFaerieExtensionAllowsAdditionArgs Args) const
 {

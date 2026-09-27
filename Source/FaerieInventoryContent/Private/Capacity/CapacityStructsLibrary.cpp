@@ -17,13 +17,13 @@ FFaerieItemCapacity UFaerieCapacityStructsUtilities::GetCapacity(const FFaerieIt
 		return FFaerieItemCapacity();
 	}
 
-	auto InstanceOpt = Proxy.GetItemInstance();
+	const TOptional<FFaerieItemInstance> InstanceOpt = Proxy.GetItemInstance();
 	if (!InstanceOpt.IsSet())
 	{
 		return FFaerieItemCapacity();
 	}
 
-	auto* EntityManager = Faerie::ItemData::GetFaerieEntityManager();
+	const FMassEntityManager* EntityManager = Faerie::ItemData::GetFaerieEntityManager(Proxy.ExtractWorld());
 	const Faerie::ItemData::FCapacityHelper Capacity(EntityManager, InstanceOpt.GetValue());
 	if (Capacity.HasCapacity())
 	{
@@ -40,13 +40,13 @@ int32 UFaerieCapacityStructsUtilities::GetWeightOfStack(const FFaerieItemProxy& 
 		return 0;
 	}
 
-	auto InstanceOpt = Proxy.GetItemInstance();
+	const TOptional<FFaerieItemInstance> InstanceOpt = Proxy.GetItemInstance();
 	if (!InstanceOpt.IsSet())
 	{
 		return 0;
 	}
 
-	auto* EntityManager = Faerie::ItemData::GetFaerieEntityManager();
+	const FMassEntityManager* EntityManager = Faerie::ItemData::GetFaerieEntityManager(Proxy.ExtractWorld());
 	const Faerie::ItemData::FCapacityHelper Capacity(EntityManager, InstanceOpt.GetValue());
 	if (Capacity.HasCapacity())
 	{
@@ -63,13 +63,13 @@ int64 UFaerieCapacityStructsUtilities::GetVolumeOfStack(const FFaerieItemProxy& 
 		return 0;
 	}
 
-	auto InstanceOpt = Proxy.GetItemInstance();
+	const TOptional<FFaerieItemInstance> InstanceOpt = Proxy.GetItemInstance();
 	if (!InstanceOpt.IsSet())
 	{
 		return 0;
 	}
 
-	auto* EntityManager = Faerie::ItemData::GetFaerieEntityManager();
+	const FMassEntityManager* EntityManager = Faerie::ItemData::GetFaerieEntityManager(Proxy.ExtractWorld());
 	const Faerie::ItemData::FCapacityHelper Capacity(EntityManager, InstanceOpt.GetValue());
 	if (Capacity.HasCapacity())
 	{
@@ -86,13 +86,13 @@ int64 UFaerieCapacityStructsUtilities::GetEfficientVolume(const FFaerieItemProxy
 		return 0;
 	}
 
-	auto InstanceOpt = Proxy.GetItemInstance();
+	const TOptional<FFaerieItemInstance> InstanceOpt = Proxy.GetItemInstance();
 	if (!InstanceOpt.IsSet())
 	{
 		return 0;
 	}
 
-	auto* EntityManager = Faerie::ItemData::GetFaerieEntityManager();
+	const FMassEntityManager* EntityManager = Faerie::ItemData::GetFaerieEntityManager(Proxy.ExtractWorld());
 	const Faerie::ItemData::FCapacityHelper Capacity(EntityManager, InstanceOpt.GetValue());
 	if (Capacity.HasCapacity())
 	{
@@ -109,13 +109,13 @@ FFaerieWeightAndVolume UFaerieCapacityStructsUtilities::GetWeightAndVolumeOfStac
 		return FFaerieWeightAndVolume();
 	}
 
-	auto InstanceOpt = Proxy.GetItemInstance();
+	const TOptional<FFaerieItemInstance> InstanceOpt = Proxy.GetItemInstance();
 	if (!InstanceOpt.IsSet())
 	{
 		return FFaerieWeightAndVolume();
 	}
 
-	auto* EntityManager = Faerie::ItemData::GetFaerieEntityManager();
+	const FMassEntityManager* EntityManager = Faerie::ItemData::GetFaerieEntityManager(Proxy.ExtractWorld());
 	const Faerie::ItemData::FCapacityHelper Capacity(EntityManager, InstanceOpt.GetValue());
 	if (Capacity.HasCapacity())
 	{
@@ -132,13 +132,13 @@ FFaerieWeightAndVolume UFaerieCapacityStructsUtilities::GetWeightAndVolumeOfPart
 		return FFaerieWeightAndVolume();
 	}
 
-	auto InstanceOpt = Proxy.GetItemInstance();
+	const TOptional<FFaerieItemInstance> InstanceOpt = Proxy.GetItemInstance();
 	if (!InstanceOpt.IsSet())
 	{
 		return FFaerieWeightAndVolume();
 	}
 
-	auto* EntityManager = Faerie::ItemData::GetFaerieEntityManager();
+	const FMassEntityManager* EntityManager = Faerie::ItemData::GetFaerieEntityManager(Proxy.ExtractWorld());
 	const Faerie::ItemData::FCapacityHelper Capacity(EntityManager, InstanceOpt.GetValue());
 	if (Capacity.HasCapacity())
 	{

@@ -5,7 +5,6 @@
 #include "FaerieItem.h"
 #include "FaerieItemContainerBase.h"
 #include "FaerieSubObjectFilter.h"
-#include "ItemContainerExtensionBase.h"
 #include "MassCommandBuffer.h"
 #include "MassCommands.h"
 
@@ -68,6 +67,9 @@ namespace Faerie::Container
 				// If the object has an extension parent, clear it.
 				Container->ClearParentExtensions();
 
+				check(Container->GetOuter() == Owner);
+				Container->Rename(nullptr, GetTransientPackageAsObject());
+
 				// If the object contains nested items, release ownership recursively.
 				for (auto It = Container::MutableItemRange(Container); It; ++It)
 				{
@@ -84,19 +86,20 @@ namespace Faerie::Container
 
 		void TakeOwnership_Impl_SubItem(FMassEntityManager& EntityManager, AActor* RegisteringActor, const TNotNull<UFaerieItemContainerBase*> Owner, const FFaerieItemInstance& Instance)
 		{
-			auto& ExtensionData = Owner->GetExtensionData();
-
 			TArray<TNotNull<UFaerieItemContainerBase*>> Containers;
 			SubObject::GetContainersInInstanceDirect<UFaerieItemContainerBase>(EntityManager, Instance, Containers);
 			for (TNotNull<UFaerieItemContainerBase*> Container : Containers)
 			{
+				check(Container->GetOuter() == GetTransientPackageAsObject());
+				Container->Rename(nullptr, Owner);
+
 				if (RegisteringActor)
 				{
 					RegisteringActor->AddReplicatedSubObject(Container);
 					Container->InitializeNetObject(RegisteringActor);
 				}
 
-				Container->SetParentExtensions(Owner, ExtensionData);
+				Container->SetParentExtensions(Owner);
 
 				// If the object contains nested items, take ownership recursively.
 				for (auto It = Container::MutableItemRange(Container); It; ++It)

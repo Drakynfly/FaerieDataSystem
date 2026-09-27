@@ -39,7 +39,7 @@ namespace Faerie::Generation
 				if (auto NewStack = PendingDrop.Drop->Resolve(Context);
 					NewStack.IsValid())
 				{
-					Data.Stacks.Emplace(NewStack.WithInitialization());
+					Data.Stacks.Emplace(NewStack.WithInitialization(*Context.EntityManager));
 				}
 				else
 				{
@@ -50,10 +50,10 @@ namespace Faerie::Generation
 		// Generate a single entry stack when immutable, as there is no chance of uniqueness.
 		else
 		{
-			if (auto NewStack = PendingDrop.Drop->Resolve(Context);
+			if (const ItemData::FGetInstanceResult NewStack = PendingDrop.Drop->Resolve(Context);
 				NewStack.IsValid())
 			{
-				FFaerieUnownedItemStack Value = NewStack.WithInitialization();
+				FFaerieUnownedItemStack Value = NewStack.WithInitialization(*Context.EntityManager);
 				Value.Copies *= PendingDrop.Count;
 				Data.Stacks.Emplace(Value);
 			}
@@ -367,7 +367,7 @@ void FFaerieItemGenerationAction::Generate(const Generation::FActionExecution& E
 
 	if (Execution.IsInGameWorld())
 	{
-		auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
+		FMassEntityManager& EntityManager = *Execution.EntityManager;
 
 		// Initialize all generated instances for runtime.
         for (auto&& Stack : ActionData.Stacks)

@@ -11,6 +11,7 @@
 #include "ItemContainerExtensionBase.generated.h"
 
 struct FFaerieItemProxy;
+struct FMassEntityManager;
 class UFaerieItemContainerBase;
 
 namespace Faerie::Container
@@ -88,17 +89,17 @@ struct FFaerieItemContainerExtensionBase : public FFaerieItemContainerData
 	GENERATED_BODY()
 
 	/* Called at begin play or when the extension is created during runtime. Server-only. */
-	virtual void InitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) {}
+	virtual void InitializeExtension(FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container) {}
 
 	/* Does this extension allow a stack of items, or multiple stacks, to be added to the container? */
-	virtual EFaerieExtensionResponse AllowsAddition(TNotNull<const UFaerieItemContainerBase*> Container,
+	virtual EFaerieExtensionResponse AllowsAddition(const FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container,
 		const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args) const { return EFaerieExtensionResponse::NoExplicitResponse; }
 
 	/* Does this extension allow removal of an address in the container? */
-	virtual EFaerieExtensionResponse AllowsRemoval(TNotNull<const UFaerieItemContainerBase*> Container,
+	virtual EFaerieExtensionResponse AllowsRemoval(const FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container,
 		TNotNull<const Faerie::Container::IAddressView*> DataView, FFaerieInventoryTag Reason) const { return EFaerieExtensionResponse::NoExplicitResponse; }
 
 	/* Does this extension allow this entry to be edited? */
-	virtual EFaerieExtensionResponse AllowsEdit(TNotNull<const UFaerieItemContainerBase*> Container,
+	virtual EFaerieExtensionResponse AllowsEdit(const FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container,
 		TNotNull<const Faerie::Container::IAddressView*> DataView, FFaerieInventoryTag EditTag) const { return EFaerieExtensionResponse::NoExplicitResponse; }
 };

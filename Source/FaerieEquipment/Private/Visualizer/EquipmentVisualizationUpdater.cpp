@@ -20,8 +20,13 @@ using namespace Faerie;
 UFaerieVisualizationUpdater::UFaerieVisualizationUpdater()
   : EntityQuery(*this)
 {
-	// Process only on the server.
-	ExecutionFlags = static_cast<uint8>(EProcessorExecutionFlags::Server | EProcessorExecutionFlags::Standalone);
+#if UE_SERVER
+	// Servers do not need to create visuals.
+	ExecutionFlags = static_cast<uint8>(EProcessorExecutionFlags::None);
+#else
+	// Update everywhere on non-server builds. Listen servers and clients both need visuals.
+	ExecutionFlags = static_cast<uint8>(EProcessorExecutionFlags::AllNetModes);
+#endif
 
 	ExecutionOrder.ExecuteBefore.Add(Container::EventCleanup);
 
@@ -32,22 +37,33 @@ UFaerieVisualizationUpdater::UFaerieVisualizationUpdater()
 
 void UFaerieVisualizationUpdater::ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager)
 {
-	EntityQuery.AddRequirement<Container::FEvent>(EMassFragmentAccess::ReadOnly, EMassFragmentPresence::All);
+	EntityQuery.AddRequirement<Container::FContainerEventPayload>(EMassFragmentAccess::ReadOnly, EMassFragmentPresence::All);
 }
 
 void UFaerieVisualizationUpdater::Execute(FMassEntityManager& EntityManager, FMassExecutionContext& Context)
 {
-	EntityQuery.ForEachEntityChunk(Context, [this](FMassExecutionContext& InContext)
+	EntityQuery.ForEachEntityChunk(Context, [](FMassExecutionContext& InContext)
 	{
-		const TConstArrayView<Container::FEvent> Events = InContext.GetFragmentView<Container::FEvent>();
-		for (const Container::FEvent& Event : Events)
+#if FAERIE_DEBUG
+		if (InContext.GetWorld()->GetNetMode() == ENetMode::NM_Client)
+		{
+			UE_LOGF(LogFaerieEquipment, Verbose, "UFaerieVisualizationUpdater::Execute (client)")
+		}
+		else
+		{
+			UE_LOGF(LogFaerieEquipment, Verbose, "UFaerieVisualizationUpdater::Execute (server)")
+		}
+#endif
+
+		const TConstArrayView<Container::FContainerEventPayload> Events = InContext.GetFragmentView<Container::FContainerEventPayload>();
+		for (const Container::FContainerEventPayload& Event : Events)
 		{
 			UFaerieItemContainerBase* Container = Event.Container.Get();
 			if (!IsValid(Container))
 			{
 				continue;
 			}
-			const FFaerieContainerExtensionVisualUpdater* VisualConfig = Container->ReadContainerData<FFaerieContainerExtensionVisualUpdater>(true);
+			const FFaerieContainerExtensionVisualUpdater* VisualConfig = Container->ReadContainerData<FFaerieContainerExtensionVisualUpdater>(InContext.GetEntityManagerChecked(), true);
 			if (!VisualConfig)
 			{
 				continue;
@@ -65,7 +81,7 @@ void UFaerieVisualizationUpdater::Execute(FMassEntityManager& EntityManager, FMa
 						{
 							return;
 						}
-						Visualizer->RemoveVisualImpl(FFaerieItemProxy(Slot));
+						Visualizer->RemoveVisualImpl(InContext.GetEntityManagerChecked(), FFaerieItemProxy(Slot));
 					}
 				}
 			}
@@ -79,7 +95,7 @@ void UFaerieVisualizationUpdater::Execute(FMassEntityManager& EntityManager, FMa
 						return;
 					}
 					// A previously empty stack now has been filled with an item.
-					Visualizer->CreateVisualImpl(FFaerieItemProxy(Stack));
+					Visualizer->CreateVisualImpl(InContext.GetEntityManagerChecked(), FFaerieItemProxy(Stack));
 				}
 			}
 		}

@@ -1,33 +1,24 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "EntityManagerHelpers.h"
-#include "Misc/AssertionMacros.h"
+#include "MassEntitySubsystem.h"
+
+#include "Engine/World.h"
 
 namespace Faerie::ItemData
 {
-	// Ugly global state, but the alternative is every *single* API that deals with Faerie Items needing to pass down
-	// either a MassEntityManager or a WorldContextObj that can resolve to one. The end result would be every function
-	// passing the same value anyway, so pretend this is just a hidden parameter on every function in this plugin :)
-	static FMassEntityManager* GFaerieEntityManagerPtr = nullptr;
-
-	bool HasFaerieEntityManagerBeenAssigned()
+	bool HasFaerieEntityManagerBeenAssigned(const TNotNull<const UWorld*> World)
 	{
-		return !!GFaerieEntityManagerPtr;
+		return World->HasSubsystem<UMassEntitySubsystem>();
 	}
 
-	FMassEntityManager* GetFaerieEntityManager()
+	FMassEntityManager* GetFaerieEntityManager(const TNotNull<const UWorld*> World)
 	{
-		return GFaerieEntityManagerPtr;
+		return &World->GetSubsystem<UMassEntitySubsystem>()->GetMutableEntityManager();
 	}
 
-	FMassEntityManager& GetFaerieEntityManagerChecked()
+	FMassEntityManager& GetFaerieEntityManagerChecked(const TNotNull<const UWorld*> World)
 	{
-		check(GFaerieEntityManagerPtr);
-		return *GFaerieEntityManagerPtr;
-	}
-
-	void SetFaerieEntityManager(FMassEntityManager* EntityManager)
-	{
-		GFaerieEntityManagerPtr = EntityManager;
+		return World->GetSubsystem<UMassEntitySubsystem>()->GetMutableEntityManager();
 	}
 }

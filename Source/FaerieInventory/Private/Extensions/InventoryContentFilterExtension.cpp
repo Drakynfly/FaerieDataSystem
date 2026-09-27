@@ -10,16 +10,16 @@
 
 using namespace Faerie;
 
-EFaerieExtensionResponse FFaerieItemContainerContentFilter::AllowsAddition(const TNotNull<const UFaerieItemContainerBase*> Container,
-	const Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args) const
+EFaerieExtensionResponse FFaerieItemContainerContentFilter::AllowsAddition(const FMassEntityManager& EntityManager,
+	const TNotNull<const UFaerieItemContainerBase*> Container, const Utils::TArrayAdapter<FFaerieItemProxy>& Proxies,
+	FFaerieExtensionAllowsAdditionArgs Args) const
 {
 	if (ensure(IsValid(Filter)))
 	{
-		const FMassEntityManager* EntityManager = ItemData::GetFaerieEntityManager();
 		for (int32 i = 0; i < Proxies.Num(); ++i)
 		{
 			const FFaerieItemProxy& Proxy = Proxies[i];
-			if (!Filter->TryMatch(EntityManager, Proxy))
+			if (!Filter->TryMatch(&EntityManager, Proxy))
 			{
 				return EFaerieExtensionResponse::Disallowed;
 			}

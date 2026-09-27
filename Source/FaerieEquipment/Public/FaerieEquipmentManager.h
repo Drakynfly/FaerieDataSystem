@@ -34,9 +34,6 @@ struct FFaerieEquipmentSaveData
 	// @Todo unused currently...
 	UPROPERTY()
 	FFaerieItemContainerExtensionSaveData ExtensionData;
-
-	UPROPERTY()
-	FGameplayTagContainer RemovedDefaultSlots;
 };
 
 namespace Faerie::Equipment
@@ -47,7 +44,7 @@ namespace Faerie::Equipment
 		FAERIEEQUIPMENT_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, SlotDeleted)
 	}
 
-	using FSlotEvent = TMulticastDelegate<void(TNotNull<UFaerieItemStackContainer*>, FFaerieInventoryTag)>;
+	using FSlotEvent = TMulticastDelegate<void(TValid<const FFaerieItemProxy&>, FFaerieInventoryTag)>;
 
 	static inline const auto SlotFilter = SubObject::Filter().ByClass<UFaerieItemStackContainer>();
 	static inline const auto RecursiveSlotFilter = SubObject::Filter().Recursive().ByClass<UFaerieItemStackContainer>();
@@ -62,7 +59,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FEquipmentChangedEvent, UFaerieItem
  */
 UCLASS(Blueprintable, ClassGroup = ("Faerie"), meta = (BlueprintSpawnableComponent),
 	HideCategories = (Collision, ComponentTick, Replication, ComponentReplication, Activation, Sockets, Navigation))
-class FAERIEEQUIPMENT_API UFaerieEquipmentManager : public UActorComponent
+class FAERIEEQUIPMENT_API UFaerieEquipmentManager : public UActorComponent, public IFaerieTempInterfaceForGettingParentExtensions
 {
 	GENERATED_BODY()
 
@@ -79,6 +76,10 @@ public:
 	virtual void ReadyForReplication() override;
 	//~ UActorComponent
 
+	//~ IFaerieTempInterfaceForGettingParentExtensions
+	virtual FFaerieItemContainerExtensions* GetExtensions() override { return &ExtensionData; }
+	//~ IFaerieTempInterfaceForGettingParentExtensions
+
 private:
 	void AddDefaultSlots();
 	void AddSubobjectsForReplication();
@@ -87,13 +88,17 @@ protected:
 	void OnDataChangeEvent(const FFaerieItemProxy& Proxy, FGameplayTag Tag);
 	void BroadcastSlotEvent(TNotNull<UFaerieItemStackContainer*> Slot, FFaerieInventoryTag Event);
 
+	UFaerieItemStackContainer* AddSlotImpl(FMassEntityManager& EntityManager, const FFaerieEquipmentSlotConfig& Config);
+	const UFaerieItemStackContainer* FindSlotImpl(const FMassEntityManager& EntityManager, FFaerieSlotTag SlotTag, bool bRecursive) const;
+	static const UFaerieItemStackContainer* FindSubSlotImpl(const UFaerieItemStackContainer* ParentSlot, const FMassEntityManager& EntityManager, FFaerieSlotTag SlotTag, bool bRecursive);
+
 public:
 	/**------------------------------*/
 	/*		 SAVE DATA API			 */
 	/**------------------------------*/
 
-	FFaerieEquipmentSaveData MakeSaveData(Faerie::Container::FSaveParams Params) const;
-	void LoadSaveData(const FFaerieEquipmentSaveData& SaveData, Faerie::Container::FLoadParams Params);
+	FFaerieEquipmentSaveData MakeSaveData(const FMassEntityManager& EntityManager, Faerie::Container::FSaveParams Params) const;
+	void LoadSaveData(FMassEntityManager& EntityManager, const FFaerieEquipmentSaveData& SaveData, Faerie::Container::FLoadParams Params);
 
 
 	/**------------------------------*/
@@ -103,20 +108,18 @@ public:
 	Faerie::Equipment::FSlotEvent::RegistrationType& GetOnEquipmentSlotEvent() { return OnEquipmentSlotEventNative; }
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentManager")
-	UFaerieItemStackContainer* AddSlot(const FFaerieEquipmentSlotConfig& Config);
+	void AddSlot(const FFaerieEquipmentSlotConfig& Config);
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentManager")
-	bool RemoveSlot(UFaerieItemStackContainer* Slot);
+	bool RemoveSlot(FFaerieSlotTag Slot);
 
 	// Switches the content of two slots, as long as the content of each can fit in the other.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentManager")
-	bool TrySwapSlots(UFaerieItemStackContainer* SlotA, UFaerieItemStackContainer* SlotB);
+	bool TrySwapSlots(FFaerieSlotTag SlotA, FFaerieSlotTag SlotB);
 
 protected:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentManager", meta = (DisplayName = "Get Slots"))
 	TArray<UFaerieItemStackContainer*> BP_GetSlots() const { return Slots; }
-
-	static const UFaerieItemStackContainer* FindSlotImpl(const UFaerieItemStackContainer* ParentSlot, const FMassEntityManager& EntityManager, FFaerieSlotTag SlotTag, bool bRecursive);
 
 public:
 	TConstArrayView<UFaerieItemStackContainer*> GetSlots() const { return Slots; }
@@ -128,14 +131,18 @@ public:
 	const UFaerieItemStackContainer* FindSlot(FFaerieSlotTag SlotID, bool Recursive = false) const;
 		  UFaerieItemStackContainer* FindSlot(FFaerieSlotTag SlotID, bool Recursive = false);
 
+	/**
+	 * Find a slot contained in this manager. Enable recursive to check slots contained in other slots.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentManager")
+	FFaerieItemProxy FindSlotProxy(FFaerieSlotTag SlotID, bool Recursive = false) const;
+
 
 	/**------------------------------*/
 	/*		 EXTENSIONS SYSTEM		 */
 	/**------------------------------*/
 
-	FFaerieItemContainerExtensions& GetExtensionData() { return ExtensionData; }
-
-	void WriteContainerData(TNotNull<const UScriptStruct*> Type, const TFunctionRef<void(FStructView)>& Functor);
+	void WriteContainerData(FMassEntityManager& EntityManager, TNotNull<const UScriptStruct*> Type, const TFunctionRef<void(FStructView)>& Functor);
 
 
 	/**------------------------------*/
@@ -175,7 +182,4 @@ protected:
 private:
 	UPROPERTY(Replicated)
 	TArray<TObjectPtr<UFaerieItemStackContainer>> Slots;
-
-	// Track if any default slots have been removed for serialization.
-	FGameplayTagContainer RemovedDefaultSlots;
 };

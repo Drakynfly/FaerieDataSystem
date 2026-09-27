@@ -103,7 +103,7 @@ FFaerieCraftingActionHandle UFaerieItemCraftingRunner::SubmitCraftingAction_Impl
 
 	const Generation::FActionExecution Execution(
 		this,
-		ItemData::GetFaerieEntityManager(),
+		ItemData::GetFaerieEntityManager(GetWorld()),
 		Squirrel
 	);
 	MutableAction.Run(Execution);

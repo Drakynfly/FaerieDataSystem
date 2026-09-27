@@ -2,22 +2,17 @@
 
 #pragma once
 
-#include "CoreTypes.h"
+#include "Misc/NotNull.h"
 
 struct FMassEntityManager;
+class UWorld;
 
 namespace Faerie::ItemData
 {
 	/*
 	 * Get the Mass Entity Manager used for all Faerie Item Fragment operations.
 	 */
-	FAERIEITEMDATA_API bool HasFaerieEntityManagerBeenAssigned();
-	FAERIEITEMDATA_API FMassEntityManager* GetFaerieEntityManager();
-	FAERIEITEMDATA_API FMassEntityManager& GetFaerieEntityManagerChecked();
-
-	/*
-	 * Assign the Mass Entity Manager to be used for all Faerie Item Fragment operations.
-	 * This should be called once during initialization of subsystems, before the first BeginPlay.
-	 */
-	FAERIEITEMDATA_API void SetFaerieEntityManager(FMassEntityManager* EntityManager);
+	FAERIEITEMDATA_API bool HasFaerieEntityManagerBeenAssigned(TNotNull<const UWorld*> World);
+	FAERIEITEMDATA_API FMassEntityManager* GetFaerieEntityManager(TNotNull<const UWorld*> World);
+	FAERIEITEMDATA_API FMassEntityManager& GetFaerieEntityManagerChecked(TNotNull<const UWorld*> World);
 }

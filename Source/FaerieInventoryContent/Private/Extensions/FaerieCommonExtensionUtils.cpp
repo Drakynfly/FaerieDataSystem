@@ -19,7 +19,16 @@ using namespace Faerie;
 
 int32 UFaerieCommonExtensionUtils::GetContainerStackLimit(UFaerieItemContainerBase* Container)
 {
-	if (const FConstStructView LimitData = Container->ReadContainerData(
+	const UWorld* World = Container->GetWorld();
+	if (!ItemData::HasFaerieEntityManagerBeenAssigned(World))
+	{
+		FFrame::KismetExecutionMessage(TEXT("No Entity Manager assigned to handle UFaerieCommonExtensionUtils::GetContainerStackLimit"), ELogVerbosity::Error);
+		return 0;
+	}
+
+	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(World);
+
+	if (const FConstStructView LimitData = Container->ReadContainerData(EntityManager,
 		FFaerieItemContainerCountLimit::StaticStruct(), true);
 		LimitData.IsValid())
 	{
@@ -37,16 +46,17 @@ UFaerieItemContainerCapacityView* UFaerieCommonExtensionUtils::GetOrCreateCapaci
 		return nullptr;
 	}
 
-	if (!ItemData::HasFaerieEntityManagerBeenAssigned())
+	const UWorld* World = Container->GetWorld();
+	if (!ItemData::HasFaerieEntityManagerBeenAssigned(World))
 	{
 		FFrame::KismetExecutionMessage(TEXT("No Entity Manager assigned to handle UFaerieCommonExtensionUtils::GetOrCreateCapacityView"), ELogVerbosity::Error);
 		return nullptr;
 	}
 
-	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked();
+	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(World);
 
-	UFaerieItemContainerCapacityView* View = NewObject<UFaerieItemContainerCapacityView>();
-	View->InitializeView(EntityManager, Content::FCapacityViewFragment::StaticStruct(), MakeTuple(Container, &Container->GetExtensionData()));
+	UFaerieItemContainerCapacityView* View = NewObject<UFaerieItemContainerCapacityView>(Container);
+	View->InitializeView(EntityManager, Content::FContainerCapacityViewFragment::StaticStruct(), Container);
 
 	return View;
 }
@@ -60,16 +70,17 @@ UFaerieContainerEventLogView* UFaerieCommonExtensionUtils::GetOrCreateContainerE
 		return nullptr;
 	}
 
-	if (!ItemData::HasFaerieEntityManagerBeenAssigned())
+	const UWorld* World = Container->GetWorld();
+	if (!ItemData::HasFaerieEntityManagerBeenAssigned(World))
 	{
 		FFrame::KismetExecutionMessage(TEXT("No Entity Manager assigned to handle UFaerieCommonExtensionUtils::GetOrCreateContainerEventLogView"), ELogVerbosity::Error);
 		return nullptr;
 	}
 
-	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked();
+	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(World);
 
-	UFaerieContainerEventLogView* View = NewObject<UFaerieContainerEventLogView>();
-	View->InitializeView(EntityManager, Content::FEventLogViewFragment::StaticStruct(), MakeTuple(Container, &Container->GetExtensionData()));
+	UFaerieContainerEventLogView* View = NewObject<UFaerieContainerEventLogView>(Container);
+	View->InitializeView(EntityManager, Content::FEventLogViewFragment::StaticStruct(), Container);
 
 	return View;
 }
@@ -83,16 +94,17 @@ UFaerieContainerContentHashView* UFaerieCommonExtensionUtils::GetOrCreateContain
 		return nullptr;
 	}
 
-	if (!ItemData::HasFaerieEntityManagerBeenAssigned())
+	const UWorld* World = Container->GetWorld();
+	if (!ItemData::HasFaerieEntityManagerBeenAssigned(World))
 	{
 		FFrame::KismetExecutionMessage(TEXT("No Entity Manager assigned to handle UFaerieEquipmentExtensionsLibrary::GetOrCreateContentHashView_EquipmentManager"), ELogVerbosity::Error);
 		return nullptr;
 	}
 
-	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked();
+	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(World);
 
-	UFaerieContainerContentHashView* View = NewObject<UFaerieContainerContentHashView>();
-	View->InitializeView(EntityManager, Content::FContentHashViewFragment::StaticStruct(), MakeTuple(Container, &Container->GetExtensionData()));
+	UFaerieContainerContentHashView* View = NewObject<UFaerieContainerContentHashView>(Container);
+	View->InitializeView(EntityManager, Content::FContentHashViewFragment::StaticStruct(), Container);
 
 	return View;
 }

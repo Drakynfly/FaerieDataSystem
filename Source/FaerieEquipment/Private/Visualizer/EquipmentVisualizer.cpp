@@ -1,5 +1,7 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
+#include "EntityManagerHelpers.h"
+
 #include "Visualizer/EquipmentVisualizer.h"
 
 #include "FaerieEquipmentLog.h"
@@ -15,8 +17,6 @@
 #include "Engine/World.h"
 
 #include "Fragments/FaerieActorFragment.h"
-
-#include "EntityManagerHelpers.h"
 
 #include "GameFramework/Actor.h"
 #include "GameFramework/Character.h"
@@ -210,7 +210,7 @@ TArray<USceneComponent*> UEquipmentVisualizer::GetSpawnedComponents() const
 }
 
 
-void UEquipmentVisualizer::CreateVisualImpl(TValid<const FFaerieItemProxy&> Proxy, const FFaerieItemProxy* Parent)
+void UEquipmentVisualizer::CreateVisualImpl(FMassEntityManager& EntityManager, TValid<const FFaerieItemProxy&> Proxy, const FFaerieItemProxy* Parent)
 {
 	const FFaerieVisualKey Key{Proxy};
 	if (HasVisualForKey(Key))
@@ -221,12 +221,24 @@ void UEquipmentVisualizer::CreateVisualImpl(TValid<const FFaerieItemProxy&> Prox
 
 	// Step 1: Figure out what we are attaching to.
 
-	const TOptional<FFaerieVisualSlotElement> VisualSlotDataOpt = FindVisualSlotDataFromProxy(Proxy);
+	const TOptional<FFaerieVisualSlotElement> VisualSlotDataOpt = FindVisualSlotDataFromProxy(EntityManager, Proxy);
 	if (!VisualSlotDataOpt.IsSet())
 	{
 		UE_LOGF(LogFaerieEquipment, Warning, "No visual slot data found from proxy!");
 		return;
 	}
+
+#if FAERIE_DEBUG
+	if (GetOwner()->GetLocalRole() == ROLE_Authority)
+	{
+		UE_LOGF(LogFaerieEquipment, Verbose, "Creating equipment visual for server!")
+	}
+	else
+	{
+		UE_LOGF(LogFaerieEquipment, Verbose, "Creating equipment visual for client!")
+	}
+#endif
+
 	const FFaerieVisualSlotElement& VisualSlotData = VisualSlotDataOpt.GetValue();
 	FEquipmentVisualAttachment Attachment = BuildAttachmentData(Proxy, VisualSlotData);
 
@@ -245,8 +257,6 @@ void UEquipmentVisualizer::CreateVisualImpl(TValid<const FFaerieItemProxy&> Prox
 		return;
 	}
 	const FFaerieItemInstance& Instance = InstanceOption.GetValue();
-
-	auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
 
 	// Path 1: A Visual Actor
 	{
@@ -333,7 +343,7 @@ void UEquipmentVisualizer::CreateVisualImpl(TValid<const FFaerieItemProxy&> Prox
 			}
 
 			NewVisual->SetPreferredTag(CompPreferredTag);
-			NewVisual->SetIsReplicated(true); // Enable replication, as it's off by default.
+			NewVisual->SetIsReplicated(false); // Do not replicate mesh components. Server and client should each create their own.
 			NewVisual->GetOnMeshRebuilt().AddWeakLambda(this,
 				[this, Key](const TNotNull<UFaerieItemMeshComponent*> ItemMeshComponent)
 				{
@@ -369,13 +379,13 @@ void UEquipmentVisualizer::CreateVisualImpl(TValid<const FFaerieItemProxy&> Prox
 			auto EntryKey = SubContainer->GetCurrentKey();
 			if (EntryKey.IsValid())
 			{
-				CreateVisualImpl(FFaerieItemProxy(SubContainer), &ValidGet(Proxy));
+				CreateVisualImpl(EntityManager, FFaerieItemProxy(SubContainer), &ValidGet(Proxy));
 			}
 		}
 	}
 }
 
-void UEquipmentVisualizer::RemoveVisualImpl(const TValid<const FFaerieItemProxy&> Proxy)
+void UEquipmentVisualizer::RemoveVisualImpl(FMassEntityManager& EntityManager, const TValid<const FFaerieItemProxy&> Proxy)
 {
 	const FFaerieVisualKey Key{Proxy};
 
@@ -384,7 +394,7 @@ void UEquipmentVisualizer::RemoveVisualImpl(const TValid<const FFaerieItemProxy&
 	{
 		if (Metadatum.Value.Parent == Key)
 		{
-			RemoveVisualImpl(Metadatum.Key.Proxy);
+			RemoveVisualImpl(EntityManager, Metadatum.Key.Proxy);
 			Metadatum.Value.Parent = FFaerieVisualKey();
 		}
 	}
@@ -545,7 +555,8 @@ bool UEquipmentVisualizer::DestroyVisualByKey(const FFaerieVisualKey Key, const 
 
 FEquipmentVisualAttachment UEquipmentVisualizer::FindAttachment(const FFaerieItemProxy& Proxy) const
 {
-	TOptional<FFaerieVisualSlotElement> SlotData = FindVisualSlotDataFromProxy(Proxy);
+	const FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
+	TOptional<FFaerieVisualSlotElement> SlotData = FindVisualSlotDataFromProxy(EntityManager, Proxy);
 	if (!SlotData.IsSet())
 	{
 		return FEquipmentVisualAttachment();
@@ -652,12 +663,12 @@ FEquipmentVisualAttachment UEquipmentVisualizer::BuildAttachmentData(const FFaer
 	return Attachment;
 }
 
-TOptional<FFaerieVisualSlotElement> UEquipmentVisualizer::FindVisualSlotDataFromProxy(const FFaerieItemProxy& Proxy)
+TOptional<FFaerieVisualSlotElement> UEquipmentVisualizer::FindVisualSlotDataFromProxy(const FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy)
 {
 	if (const UFaerieItemContainerBase* Container = Cast<UFaerieItemContainerBase>(Proxy.GetItemOwner()))
 	{
-		auto* Updater = Container->ReadContainerData<FFaerieContainerExtensionVisualUpdater>(true);
-		auto& SlotTag = Container->ReadContainerDataChecked<FFaerieContainerDataSlotTag>().SlotTag;
+		auto* Updater = Container->ReadContainerData<FFaerieContainerExtensionVisualUpdater>(EntityManager, true);
+		auto& SlotTag = Container->ReadContainerDataChecked<FFaerieContainerDataSlotTag>(EntityManager).SlotTag;
 		if (Updater && Updater->Config)
 		{
 			if (const FFaerieVisualSlotElement* Element = Updater->Config->GetElements().Find(SlotTag))

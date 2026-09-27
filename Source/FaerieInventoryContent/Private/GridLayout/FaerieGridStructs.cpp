@@ -1,5 +1,8 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
+#include "EntityManagerHelpers.h"
+#include "FaerieItemStorage.h"
+
 #include "GridLayout/FaerieGridStructs.h"
 #include "GridLayout/InventoryGridExtensionBase.h"
 
@@ -24,8 +27,9 @@ void FFaerieGridContent::PreStackReplicatedRemove(const FFaerieGridKeyedStack& S
 {
 	if (IsValid(ChangeListener))
 	{
+		FMassEntityManager& EntityManager = Faerie::ItemData::GetFaerieEntityManagerChecked(ChangeListener->Storage->GetWorld());
 		FFaerieContainerGridWriteContext Context;
-		Context.Data = ChangeListener;
+		Context.InitContext(EntityManager, ChangeListener);
 		ChangeListener->Logic->PreStackRemove_Client(Context, Stack);
 	}
 }
@@ -34,8 +38,9 @@ void FFaerieGridContent::PostStackReplicatedAdd(const FFaerieGridKeyedStack& Sta
 {
 	if (IsValid(ChangeListener))
 	{
+		FMassEntityManager& EntityManager = Faerie::ItemData::GetFaerieEntityManagerChecked(ChangeListener->Storage->GetWorld());
 		FFaerieContainerGridWriteContext Context;
-		Context.Data = ChangeListener;
+		Context.InitContext(EntityManager, ChangeListener);
 		ChangeListener->Logic->PostStackAdd(Context, Stack);
 	}
 }
@@ -44,8 +49,9 @@ void FFaerieGridContent::PostStackReplicatedChange(const FFaerieGridKeyedStack& 
 {
 	if (IsValid(ChangeListener))
 	{
+		FMassEntityManager& EntityManager = Faerie::ItemData::GetFaerieEntityManagerChecked(ChangeListener->Storage->GetWorld());
 		FFaerieContainerGridWriteContext Context;
-		Context.Data = ChangeListener;
+		Context.InitContext(EntityManager, ChangeListener);
 		ChangeListener->Logic->PostStackChange(Context, Stack);
 	}
 }

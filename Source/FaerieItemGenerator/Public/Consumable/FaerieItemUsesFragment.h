@@ -57,10 +57,19 @@ struct FFaerieItemUses : public FFaerieMassFragment
 	GENERATED_BODY()
 
 	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "ItemUses")
-	int32 MaxUses = 0;
+	int32 UsesRemaining = 0;
 
 	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "ItemUses")
-	int32 UsesRemaining = 0;
+	int32 MaxUses = 0;
+
+	enum class EFieldFlags : uint16
+	{
+		None = 0,
+		UsesRemaining = 1 << 0,
+		MaxUses = 1 << 1,
+
+		All = UsesRemaining | MaxUses
+	};
 
 ____FAERIE_FRAGMENT_DECL(FFaerieItemUses)
 };
@@ -83,14 +92,15 @@ namespace Faerie::ItemData
 	{
 		UE_NONCOPYABLE(FUsesHelper)
 
-		FUsesHelper(const FMassEntityManager& EntityManager UE_LIFETIMEBOUND, const FFaerieItemInstance& Instance);
+		FUsesHelper(const FMassEntityManager& EntityManager, FMassEntityHandle Item);
+		FUsesHelper(const FMassEntityManager& EntityManager, const FFaerieItemInstance& Instance);
 
 		/*
 		 * Adds uses to the item if it doesn't have it.
 		 * MaxUses will default to 1 if not provided.
 		 * InitialUses will default to MaxUses if not provided.
 		 */
-		void CreateFragment(FMassEntityManager& EntityManager, FFaerieItemInstance& Instance, const TOptional<int32>& MaxUses = NullOpt, const TOptional<int32>& InitialUses = NullOpt);
+		void CreateFragment(FMassEntityManager& EntityManager, const TOptional<int32>& MaxUses = NullOpt, const TOptional<int32>& InitialUses = NullOpt);
 
 		bool HasUsesRemaining(int32 Amount) const;
 
@@ -110,6 +120,6 @@ namespace Faerie::ItemData
 
 	private:
 		const FMassEntityManager* EntityManager;
-		const FFaerieItemInstance& Item;
+		const FFaerieItemInstance Item;
 	};
 }

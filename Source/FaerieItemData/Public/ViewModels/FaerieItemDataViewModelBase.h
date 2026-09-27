@@ -2,29 +2,44 @@
 
 #pragma once
 
+#include "FaerieItemDataViewFieldChangeInterface.h"
 #include "FaerieMassFragment.h"
 #include "FaerieItemProxy.h"
-#include "MVVMViewModelBase.h"
+#include "FaerieMassEntityViewModelBase.h"
+#include "StructUtils/StructView.h"
 
-#include "MassReplication/FaerieViewModelSubsystem.h"
-
-#include "FaerieViewModelBase.generated.h"
+#include "FaerieItemDataViewModelBase.generated.h"
 
 /**
  * Base class for View Models that inspect fragment data of a Faerie Item.
  */
 UCLASS(Abstract)
-class FAERIEITEMDATA_API UFaerieViewModelBase : public UMVVMViewModelBase
+class FAERIEITEMDATA_API UFaerieItemDataViewModelBase : public UFaerieMassEntityViewModelBase, public IFaerieItemDataViewFieldChangeInterface
 {
 	GENERATED_BODY()
 
+	friend class UFaerieViewModelFieldUpdater;
 	friend class UFaerieViewModelSubsystem;
 
 public:
-	// @Todo move to SparseClassStruct???
+	//~ IFaerieItemDataViewFieldChangeInterface
+	virtual FMassEntityHandle GetItemHandle() const final override;
+	//~ IFaerieItemDataViewFieldChangeInterface
+
+public:
 	virtual TNotNull<UScriptStruct*> GetFragmentType() const
 		PURE_VIRTUAL(UFaerieViewModelBase::GetFragmentType, return FFaerieMassFragment::StaticStruct(); )
 
+protected:
+	// Implement to generate a View Model updater bound to this class.
+	virtual UScriptStruct* GetViewModelFragmentType() const { return nullptr; }
+
+	// Called by UFaerieViewModelSubsystem
+	virtual void OnProxySet(FMassEntityManager& EntityManager) {}
+
+	void SetItemProxyDirect(FMassEntityManager& EntityManager, const FFaerieItemProxy& Item);
+
+public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ViewModel")
 	void SetItemProxy(const FFaerieItemProxy& Item);
 
@@ -34,14 +49,6 @@ public:
 	// Hand usage of a view model back to the subsystem. This is the same as calling ReturnViewModel directly on the subsystem
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ViewModelSubsystem")
 	void Return();
-
-protected:
-	void SetItemProxyDirect(const FFaerieItemProxy& Item);
-
-	// Called by UFaerieViewModelSubsystem
-	virtual void OnProxySet(const FMassEntityManager& EntityManager) {}
-	virtual void OnFieldChange(const FMassEntityManager& EntityManager, const Faerie::ItemData::FFieldChange& Data) {}
-	virtual void CheckForFieldChange(const FFaerieItemInstance& Item, const FConstStructView FragmentView) {}
 
 protected:
 	UPROPERTY()

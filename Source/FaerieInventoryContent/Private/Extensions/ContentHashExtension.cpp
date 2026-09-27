@@ -26,9 +26,9 @@ void FFaerieContainerContentHash::RecalcHash(const FMassEntityManager& EntityMan
 	}
 }
 
-void UFaerieContainerContentHashView::SyncView()
+void UFaerieContainerContentHashView::SyncView(FMassEntityManager& EntityManager)
 {
-	CheckAndBroadcast();
+	CheckAndBroadcast(EntityManager);
 }
 
 bool UFaerieContainerContentHashView::DoChecksumsMatch() const
@@ -36,9 +36,10 @@ bool UFaerieContainerContentHashView::DoChecksumsMatch() const
 	return ServerChecksum == LocalChecksum;
 }
 
-void UFaerieContainerContentHashView::CheckAndBroadcast()
+void UFaerieContainerContentHashView::CheckAndBroadcast(FMassEntityManager& EntityManager)
 {
-	if (FStructView ContentHash = ContainerExtensionPtr.Value->Find(FFaerieContainerContentHash::StaticStruct(), false);
+	FFaerieItemContainerExtensions* Extensions = ExtensionPtr->GetExtensions();
+	if (FStructView ContentHash = Extensions->Find(FFaerieContainerContentHash::StaticStruct(), false);
 		ContentHash.IsValid())
 	{
 		const bool OldMatched = DoChecksumsMatch();
@@ -65,7 +66,7 @@ UFaerieContainerContentHashUpdater::UFaerieContainerContentHashUpdater()
 
 void UFaerieContainerContentHashUpdater::ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager)
 {
-	EventQuery.AddRequirement<Container::FEvent>(EMassFragmentAccess::ReadOnly, EMassFragmentPresence::All);
+	EventQuery.AddRequirement<Container::FContainerEventPayload>(EMassFragmentAccess::ReadOnly, EMassFragmentPresence::All);
 	ViewQuery.AddRequirement<Content::FContentHashViewFragment>(EMassFragmentAccess::ReadOnly, EMassFragmentPresence::All);
 }
 
@@ -76,8 +77,8 @@ void UFaerieContainerContentHashUpdater::Execute(FMassEntityManager& EntityManag
 
 	EventQuery.ForEachEntityChunk(Context, [&ContainersUpdated](const FMassExecutionContext& InContext)
 		{
-			const TConstArrayView<Container::FEvent> Events = InContext.GetFragmentView<Container::FEvent>();
-			for (const Container::FEvent& Event : Events)
+			const TConstArrayView<Container::FContainerEventPayload> Events = InContext.GetFragmentView<Container::FContainerEventPayload>();
+			for (const Container::FContainerEventPayload& Event : Events)
 			{
 				UFaerieItemContainerBase* Container = Event.Container.Get();
 				if (!IsValid(Container))
@@ -85,7 +86,7 @@ void UFaerieContainerContentHashUpdater::Execute(FMassEntityManager& EntityManag
 					continue;
 				}
 
-				Container->WriteContainerData(FFaerieContainerContentHash::StaticStruct(), [Container, &InContext](const FStructView Element)
+				Container->WriteContainerData(InContext.GetEntityManagerChecked(), FFaerieContainerContentHash::StaticStruct(), [Container, &InContext](const FStructView Element)
 				{
 					auto& ContentHash = Element.Get<FFaerieContainerContentHash>();
 					ContentHash.RecalcHash(InContext.GetEntityManagerChecked(), Container);
@@ -108,7 +109,7 @@ void UFaerieContainerContentHashUpdater::Execute(FMassEntityManager& EntityManag
 
 			if (ContainersUpdated.Contains(View->GetContainerObject()))
 			{
-				View->SyncView();
+				View->SyncView(InContext.GetEntityManagerChecked());
 			}
 		}
 	});

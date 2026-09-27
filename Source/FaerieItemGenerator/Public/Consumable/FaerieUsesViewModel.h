@@ -2,26 +2,29 @@
 
 #pragma once
 
-#include "MassReplication/FaerieViewModelBase.h"
+#include "ViewModels/FaerieItemDataViewModelBase.h"
 #include "FaerieUsesViewModel.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class FAERIEITEMGENERATOR_API UFaerieUsesViewModel : public UFaerieViewModelBase
+class FAERIEITEMGENERATOR_API UFaerieUsesViewModel : public UFaerieItemDataViewModelBase
 {
 	GENERATED_BODY()
 
 public:
-	//~ UFaerieViewModelBase
+	//~ UFaerieItemDataViewModelBase
 	virtual TNotNull<UScriptStruct*> GetFragmentType() const override;
 
 protected:
-	virtual void OnProxySet(const FMassEntityManager& EntityManager) override;
-	virtual void OnFieldChange(const FMassEntityManager& EntityManager, const Faerie::ItemData::FFieldChange& Data) override;
-	virtual void CheckForFieldChange(const FFaerieItemInstance& Item, const FConstStructView FragmentView) override;
-	//~ UFaerieViewModelBase
+	virtual UScriptStruct* GetViewModelFragmentType() const override;
+	virtual void OnProxySet(FMassEntityManager& EntityManager) override;
+	//~ UFaerieItemDataViewModelBase
+
+	//~ IFaerieItemDataViewFieldChangeInterface
+	virtual void OnFieldChange(const FMassEntityManager& EntityManager, const Faerie::ItemData::FFieldChangePayload& Data) override;
+	//~ IFaerieItemDataViewFieldChangeInterface
 
 protected:
 	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "UsesViewModel")
@@ -33,3 +36,12 @@ protected:
 	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "UsesViewModel")
 	bool HasUses = false;
 };
+
+namespace Faerie::Generation
+{
+	USTRUCT()
+	struct FUsesViewFragment : public Faerie::Container::FViewModelFragment
+	{
+		GENERATED_BODY()
+	};
+}

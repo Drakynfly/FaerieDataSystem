@@ -6,11 +6,10 @@
 #include "FaerieItemGenerationLog.h"
 #include "FaerieItemSource.h"
 #include "FaerieUnownedItemStack.h"
+#include "ItemContainerEvent.h"
 #include "ItemInstancingContext_Crafting.h"
 #include "MassCommandBuffer.h"
 #include "MassEntityManager.h"
-
-#include "MassReplication/FaerieViewModelSubsystem.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemUsesFragment)
 
@@ -31,7 +30,7 @@ void FFaerieItemLastUseLogic_Destroy::OnLastUse_Destroy(const FFaerieItemLastUse
 	if (UFaerieItemContainerBase* Container = Cast<UFaerieItemContainerBase>(Proxy.GetItemOwner()))
 	{
 		// Destroy and cast into the aether.
-		Container->DestroyStack(Proxy, 1);
+		(void)Container->Release(Proxy, 1, Faerie::Inventory::Tags::RemovalDeletion);
 	}
 }
 
@@ -75,10 +74,10 @@ void FFaerieItemLastUseLogic_Replace::OnLastUse_Replace(const FFaerieItemLastUse
 			}
 
 			// Destroy and cast into the aether.
-			Container->DestroyStack(InProxy);
+			(void)Container->Release(InProxy, Faerie::ItemData::EntireStack, Faerie::Inventory::Tags::RemovalDeletion);
 
 			// Possess new item
-			if (!Container->Possess(Result.WithInitialization()))
+			if (!Container->Possess(InEntityManager, Result.WithInitialization(InEntityManager)))
 			{
 				UE_LOGF(LogItemGeneration, Error, "Container failed to possess new item instance for FFaerieItemLastUseLogic_Replace on '%ls'", *InProxy.GetProxyObject()->GetName())
 			}
@@ -108,28 +107,28 @@ namespace Faerie::ItemData
 
 	namespace
 	{
-		const FName FieldNames[2]
+		FFieldChangePayload GetUsesRemainingFieldData()
 		{
-			GET_MEMBER_NAME_CHECKED(FFaerieItemUses, UsesRemaining),
-			GET_MEMBER_NAME_CHECKED(FFaerieItemUses, MaxUses)
-		};
-
-		const FFieldChange& GetUsesRemainingFieldData()
-		{
-			static const FFieldChange UsesRemainingFieldData(FFaerieItemUses::StaticStruct(), MakeConstArrayView(FieldNames, 1));
-			return UsesRemainingFieldData;
+			return FFieldChangePayload().SetFlag(FFaerieItemUses::EFieldFlags::UsesRemaining);
 		}
 
-		const FFieldChange& GetMaxUsesFieldData()
+		FFieldChangePayload GetMaxUsesFieldData()
 		{
-			static const FFieldChange MaxUsesFieldData(FFaerieItemUses::StaticStruct(), MakeConstArrayView(FieldNames+1, 1));
-			return MaxUsesFieldData;
+			return FFieldChangePayload().SetFlag(FFaerieItemUses::EFieldFlags::MaxUses);
 		}
 
-		const FFieldChange& GetAllItemUsesFieldData()
+		FFieldChangePayload GetAllItemUsesFieldData()
 		{
-			static const FFieldChange AllFieldData(FFaerieItemUses::StaticStruct(), MakeConstArrayView(FieldNames, 2));
-			return AllFieldData;
+			return FFieldChangePayload().SetFlag(FFaerieItemUses::EFieldFlags::All);
+		}
+	}
+
+	FUsesHelper::FUsesHelper(const FMassEntityManager& EntityManager, FMassEntityHandle Item)
+	  : EntityManager(&EntityManager), Item(nullptr, Item)
+	{
+		if (const FFaerieItemUses* CapacityFragment = GetEntityFragment<FFaerieItemUses>(EntityManager, Item))
+		{
+			FragmentPtr = CapacityFragment;
 		}
 	}
 
@@ -149,7 +148,7 @@ namespace Faerie::ItemData
 		}
 	}
 
-	void FUsesHelper::CreateFragment(FMassEntityManager& InEntityManager, FFaerieItemInstance& Instance, const TOptional<int32>& MaxUses, const TOptional<int32>& InitialUses)
+	void FUsesHelper::CreateFragment(FMassEntityManager& InEntityManager, const TOptional<int32>& MaxUses, const TOptional<int32>& InitialUses)
 	{
 		checkfSlow(!FragmentPtr, TEXT("CreateFragment should not be called for an item that already has a uses fragment."))
 		checkfSlow(EntityManager, TEXT("An entity manager is required to initialize mass fragments"))
@@ -182,7 +181,7 @@ namespace Faerie::ItemData
 
 		FInstancedStruct Fragment;
 		Fragment.InitializeAs<FFaerieItemUses>(NewUses);
-		Instance.AddFragment(InEntityManager, MoveTemp(Fragment));
+		FFaerieItemInstance::AddFragment(InEntityManager, Item.GetMassEntityHandle(), MoveTemp(Fragment));
 		if (const FFaerieItemUses* UsesStruct = GetEntityFragment<FFaerieItemUses>(*EntityManager, Item.GetMassEntityHandle()))
 		{
 			FragmentPtr = UsesStruct;
@@ -202,9 +201,8 @@ namespace Faerie::ItemData
 		check(HasRuntimeFragment())
 
 		EntityManager->Defer().PushCommand<FMassDeferredSetCommand>(
-			[Instance = Item, Amount, ClampToMax](FMassEntityManager& InEntityManager)
+			[Entity = Item.GetMassEntityHandle(), Amount, ClampToMax](FMassEntityManager& InEntityManager)
 			{
-				const FMassEntityHandle Entity = Instance.GetMassEntityHandle();
 				if (!InEntityManager.IsEntityValid(Entity))
 				{
 					return;
@@ -225,8 +223,7 @@ namespace Faerie::ItemData
 				}
 
 				// Broadcast change and tell replication to pass this along to clients.
-				const TConstStructView<FFaerieMassFragment> FragmentView = Fragment;
-				Instance.OnItemFragmentEdited(InEntityManager, FragmentView, GetUsesRemainingFieldData());
+				FFaerieItemInstance::OnItemFragmentEdited(InEntityManager, Entity, FFaerieItemUses::StaticStruct(), GetUsesRemainingFieldData());
 			});
 	}
 
@@ -244,8 +241,8 @@ namespace Faerie::ItemData
 				if (!Proxy_TempForNow.IsValid()) return;
 
 				// Get fragment
-				FFaerieItemInstance Instance(Proxy_TempForNow.GetItemInstance().GetValue());
-				const FMassEntityHandle Entity = Instance.GetMassEntityHandle();
+				const FFaerieItemInstance Instance(Proxy_TempForNow.GetItemInstance().GetValue());
+				const FMassEntityHandle Entity = Proxy_TempForNow.GetItemInstance().GetValue().GetMassEntityHandle();
 				auto& Fragment = InEntityManager.GetFragmentDataChecked<FFaerieItemUses>(Entity);
 
 				// Assign new value
@@ -253,8 +250,7 @@ namespace Faerie::ItemData
 				Fragment.UsesRemaining = NewUses;
 
 				// Broadcast change and tell replication to pass this along to clients.
-				const TConstStructView<FFaerieMassFragment> FragmentView = Fragment;
-				Instance.OnItemFragmentEdited(InEntityManager, FragmentView, GetUsesRemainingFieldData());
+				FFaerieItemInstance::OnItemFragmentEdited(InEntityManager, Entity, FFaerieItemUses::StaticStruct(), GetUsesRemainingFieldData());
 
 				if (Fragment.UsesRemaining <= 0)
 				{
@@ -282,9 +278,8 @@ namespace Faerie::ItemData
 		}
 
 		EntityManager->Defer().PushCommand<FMassDeferredSetCommand>(
-			[Instance = Item, Amount](FMassEntityManager& InEntityManager)
+			[Entity = Item.GetMassEntityHandle(), Amount](FMassEntityManager& InEntityManager)
 			{
-				const FMassEntityHandle Entity = Instance.GetMassEntityHandle();
 				if (!InEntityManager.IsEntityValid(Entity))
 				{
 					return;
@@ -297,8 +292,7 @@ namespace Faerie::ItemData
 				Fragment.UsesRemaining = Amount;
 
 				// Broadcast change and tell replication to pass this along to clients.
-				const TConstStructView<FFaerieMassFragment> FragmentView = Fragment;
-				Instance.OnItemFragmentEdited(InEntityManager, FragmentView, GetUsesRemainingFieldData());
+				FFaerieItemInstance::OnItemFragmentEdited(InEntityManager, Entity, FFaerieItemUses::StaticStruct(), GetUsesRemainingFieldData());
 			});
 	}
 
@@ -319,9 +313,8 @@ namespace Faerie::ItemData
 		}
 
 		EntityManager->Defer().PushCommand<FMassDeferredSetCommand>(
-			[Instance = Item, NewValue = Defaults_FragmentPtr->UsesRemaining](FMassEntityManager& InEntityManager)
+			[Entity = Item.GetMassEntityHandle(), NewValue = Defaults_FragmentPtr->UsesRemaining](FMassEntityManager& InEntityManager)
 			{
-				const FMassEntityHandle Entity = Instance.GetMassEntityHandle();
 				if (!InEntityManager.IsEntityValid(Entity))
 				{
 					return;
@@ -334,8 +327,7 @@ namespace Faerie::ItemData
 				Fragment.UsesRemaining = NewValue;
 
 				// Broadcast change and tell replication to pass this along to clients.
-				const TConstStructView<FFaerieMassFragment> FragmentView = Fragment;
-				Instance.OnItemFragmentEdited(InEntityManager, FragmentView, GetUsesRemainingFieldData());
+				FFaerieItemInstance::OnItemFragmentEdited(InEntityManager, Entity, FFaerieItemUses::StaticStruct(), GetUsesRemainingFieldData());
 			});
 	}
 
@@ -354,9 +346,8 @@ namespace Faerie::ItemData
 		}
 
 		EntityManager->Defer().PushCommand<FMassDeferredSetCommand>(
-			[Instance = Item, Value, ClampRemainingIfOverMax](FMassEntityManager& InEntityManager)
+			[Entity = Item.GetMassEntityHandle(), Value, ClampRemainingIfOverMax](FMassEntityManager& InEntityManager)
 			{
-				const FMassEntityHandle Entity = Instance.GetMassEntityHandle();
 				if (!InEntityManager.IsEntityValid(Entity))
 				{
 					return;
@@ -375,14 +366,13 @@ namespace Faerie::ItemData
 				}
 
 				// Broadcast change and tell replication to pass this along to clients.
-				const TConstStructView<FFaerieMassFragment> FragmentView = Fragment;
 				if (ChangedRemaining)
 				{
-					Instance.OnItemFragmentEdited(InEntityManager, FragmentView, GetAllItemUsesFieldData());
+					FFaerieItemInstance::OnItemFragmentEdited(InEntityManager, Entity, FFaerieItemUses::StaticStruct(), GetAllItemUsesFieldData());
 				}
 				else
 				{
-					Instance.OnItemFragmentEdited(InEntityManager, FragmentView, GetMaxUsesFieldData());
+					FFaerieItemInstance::OnItemFragmentEdited(InEntityManager, Entity, FFaerieItemUses::StaticStruct(), GetMaxUsesFieldData());
 				}
 			});
 	}

@@ -45,13 +45,13 @@ class FAE_API UFaerieContainerContentHashView : public UFaerieContainerDataViewM
 
 public:
 	//~ UFaerieContainerDataViewModelBase
-	virtual void SyncView() override;
+	virtual void SyncView(FMassEntityManager& EntityManager) override;
 	//~ UFaerieContainerDataViewModelBase
 
 	UFUNCTION(BlueprintCallable, FieldNotify, Category = "Faerie|ContainerContentHashView")
 	bool DoChecksumsMatch() const;
 
-	void CheckAndBroadcast();
+	void CheckAndBroadcast(FMassEntityManager& EntityManager);
 
 protected:
 	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "ContainerContentHashView")

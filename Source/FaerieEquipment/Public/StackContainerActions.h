@@ -15,10 +15,10 @@ struct FFaerieClientAction_MoveFromStackContainer final : public FFaerieClientAc
 	GENERATED_BODY()
 
 	virtual bool IsValid(TNotNull<const UFaerieInventoryClient*> Client) const override;
-	virtual bool View(Faerie::ItemData::FScopeProxy& Proxy) const override;
-	virtual bool CanMove(Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
-	virtual bool Release(FFaerieUnownedItemStack& OutStack) const override;
-	virtual bool Possess(Faerie::TValid<const FFaerieUnownedItemStack&> InStack) const override;
+	virtual bool View(const FMassEntityManager& EntityManager, Faerie::ItemData::FScopeProxy& Proxy) const override;
+	virtual bool CanMove(const FMassEntityManager& EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
+	virtual bool Release(FMassEntityManager& EntityManager, FFaerieUnownedItemStack& OutStack) const override;
+	virtual bool Possess(FMassEntityManager& EntityManager, Faerie::TValid<const FFaerieUnownedItemStack&> InStack) const override;
 
 	UPROPERTY(BlueprintReadWrite, Category = "MoveFromStackContainer")
 	TObjectPtr<UFaerieItemStackContainer> Stack = nullptr;
@@ -30,11 +30,11 @@ struct FFaerieClientAction_MoveToStackContainer final : public FFaerieClientActi
 	GENERATED_BODY()
 
 	virtual bool IsValid(TNotNull<const UFaerieInventoryClient*> Client) const override;
-	virtual bool View(Faerie::ItemData::FScopeProxy& Proxy) const override;
-	virtual bool CanMove(Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
-	virtual bool Release(FFaerieUnownedItemStack& OutStack) const override;
-	virtual bool Possess(Faerie::TValid<const FFaerieUnownedItemStack&> InStack) const override;
-	virtual bool IsSwap() const override;
+	virtual bool View(const FMassEntityManager& EntityManager, Faerie::ItemData::FScopeProxy& Proxy) const override;
+	virtual bool CanMove(const FMassEntityManager& EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
+	virtual bool Release(FMassEntityManager& EntityManager, FFaerieUnownedItemStack& OutStack) const override;
+	virtual bool Possess(FMassEntityManager& EntityManager, Faerie::TValid<const FFaerieUnownedItemStack&> InStack) const override;
+	virtual bool IsSwap(const FMassEntityManager& EntityManager) const override;
 
 	UPROPERTY(BlueprintReadWrite, Category = "MoveToStackContainer")
 	TObjectPtr<UFaerieItemStackContainer> Stack = nullptr;

@@ -79,7 +79,7 @@ bool UFaerieItemTemplate::TryMatch(const FFaerieItemProxy& Proxy) const
 {
 	if (ensure(Filter.IsValid()))
 	{
-		return Filter->Exec(Faerie::ItemData::GetFaerieEntityManager(), Proxy);
+		return Filter->Exec(Faerie::ItemData::GetFaerieEntityManager(Proxy.ExtractWorld()), Proxy);
 	}
 	return false;
 }

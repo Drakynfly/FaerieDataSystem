@@ -5,7 +5,6 @@
 
 #include "FaerieItem.h"
 #include "FaerieItemCardLog.h"
-#include "FaerieItemDataView.h"
 #include "FaerieItemInstance.h"
 
 #include "Widgets/FaerieItemCardFragment.h"
@@ -30,7 +29,7 @@ TSoftClassPtr<UFaerieCardBase> UFaerieCardGenerator::GetCardClassFromProxy(const
 		return nullptr;
 	}
 
-	auto* EntityManager = Faerie::ItemData::GetFaerieEntityManager();
+	FMassEntityManager* EntityManager = Faerie::ItemData::GetFaerieEntityManager(Proxy.ExtractWorld());
 	auto CardFragment = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieItemCardClassFragment>(EntityManager, Instance.GetValue());
 	if (CardFragment.IsValid())
 	{

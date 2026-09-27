@@ -2,24 +2,24 @@
 
 #pragma once
 
-#include "MassEntityQuery.h"
-#include "MassObserverProcessor.h"
-#include "FaerieItemDataCreationObserver.generated.h"
+#include "MassProcessor.h"
+#include "FaerieItemOwnerNotifier.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class FAERIEITEMDATA_API UFaerieItemDataCreationObserver : public UMassObserverProcessor
+class FAERIEITEMDATA_API UFaerieItemOwnerNotifier : public UMassProcessor
 {
 	GENERATED_BODY()
 
 public:
-	UFaerieItemDataCreationObserver();
+	UFaerieItemOwnerNotifier();
 
 protected:
 	virtual void ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager) override;
 	virtual void Execute(FMassEntityManager& EntityManager, FMassExecutionContext& Context) override;
 
-	FMassEntityQuery EntityQuery;
+private:
+	FMassEntityQuery EventQuery;
 };

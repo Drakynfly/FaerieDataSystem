@@ -19,7 +19,7 @@ namespace Faerie::ItemData
 		FGetInstanceResult(FNullOpt) : Stack(NullOpt) {}
 
 		// Initialize the item and return a fully valid item instance.
-		FFaerieUnownedItemStack WithInitialization() const;
+		FFaerieUnownedItemStack WithInitialization(FMassEntityManager& EntityManager) const;
 
 		// Extract the item stack without initializing the instance.
 		UE_REWRITE FFaerieUnownedItemStack WithoutInitialization() const

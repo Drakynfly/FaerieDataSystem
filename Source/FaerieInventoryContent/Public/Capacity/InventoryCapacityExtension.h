@@ -7,7 +7,6 @@
 #include "FaerieContainerDataViewModelBase.h"
 #include "FaerieItemContainerStructs.h"
 #include "FaerieItemProxy.h"
-#include "MVVMViewModelBase.h"
 #include "MassProcessor.h"
 #include "InventoryCapacityExtension.generated.h"
 
@@ -15,10 +14,8 @@
 
 namespace Faerie::Container
 {
-    struct FEvent;
+    struct FContainerEventPayload;
 }
-
-class UFaerieItemContainerCapacityView;
 
 UENUM(BlueprintType, Flags, Meta = (Bitflags, UseEnumValuesAsMaskValuesInEditor = "true"))
 enum class EFaerieCapacityExtensionChecks : uint8
@@ -95,15 +92,15 @@ struct FFaerieItemContainerCapacityData : public FFaerieItemContainerExtensionBa
     friend class UFaerieItemContainerCapacityUpdater;
 
     //~ FFaerieItemContainerExtensionBase
-    virtual void InitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
-    virtual EFaerieExtensionResponse AllowsAddition(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args) const override;
+    virtual void InitializeExtension(FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container) override;
+    virtual EFaerieExtensionResponse AllowsAddition(const FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args) const override;
     //~ FFaerieItemContainerExtensionBase
 
     const FFaerieCapacityExtensionConfig& GetConfig() const { return Config; }
     const FFaerieCapacityExtensionState& GetState() const { return State; }
 
 private:
-    bool HandleEvent(const FMassEntityManager& EntityManager, const Faerie::Container::FEvent& Event);
+    bool HandleEvent(const FMassEntityManager& EntityManager, const Faerie::Container::FContainerEventPayload& Event);
 
     // Tests if the capacity of a stack can fit in this container.
     bool CanContain(const FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container, Faerie::TValid<const FFaerieItemProxy&> Proxy) const;
@@ -135,7 +132,7 @@ class UFaerieItemContainerCapacityView : public UFaerieContainerDataViewModelBas
 
 public:
     //~ UFaerieContainerDataViewModelBase
-    virtual void SyncView() override;
+    virtual void SyncView(FMassEntityManager& EntityManager) override;
     //~ UFaerieContainerDataViewModelBase
 
     UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainerCapacityView")
@@ -158,7 +155,7 @@ protected:
 namespace Faerie::Content
 {
     USTRUCT()
-    struct FCapacityViewFragment : public Container::FViewModelFragment
+    struct FContainerCapacityViewFragment : public Container::FViewModelFragment
     {
         GENERATED_BODY()
     };

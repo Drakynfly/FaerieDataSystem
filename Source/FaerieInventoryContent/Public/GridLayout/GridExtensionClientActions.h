@@ -16,11 +16,11 @@ struct FFaerieClientAction_MoveToGrid final : public FFaerieClientAction_MoveHan
 	GENERATED_BODY()
 
 	virtual bool IsValid(TNotNull<const UFaerieInventoryClient*> Client) const override;
-	virtual bool View(Faerie::ItemData::FScopeProxy& Proxy) const override;
-	virtual bool CanMove(Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
-	virtual bool Possess(Faerie::TValid<const FFaerieUnownedItemStack&> Stack) const override;
-	virtual bool Release(FFaerieUnownedItemStack& Stack) const override;
-	virtual bool IsSwap() const override;
+	virtual bool View(const FMassEntityManager& EntityManager, Faerie::ItemData::FScopeProxy& Proxy) const override;
+	virtual bool CanMove(const FMassEntityManager& EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
+	virtual bool Possess(FMassEntityManager& EntityManager, Faerie::TValid<const FFaerieUnownedItemStack&> Stack) const override;
+	virtual bool Release(FMassEntityManager& EntityManager, FFaerieUnownedItemStack& Stack) const override;
+	virtual bool IsSwap(const FMassEntityManager& EntityManager) const override;
 
 	UPROPERTY(BlueprintReadWrite, Category = "MoveToGrid")
 	TObjectPtr<UFaerieItemStorage> Storage = nullptr;

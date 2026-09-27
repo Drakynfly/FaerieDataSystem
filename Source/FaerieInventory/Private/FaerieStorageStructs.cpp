@@ -219,8 +219,7 @@ FFaerieAddress FFaerieStorageEntry::FStackReadAccess::ResolveAddress() const
 }
 
 FFaerieStorageEntry::FReadWriteAccess::FReadWriteAccess(FFaerieStorageContent& Source, const FFaerieStorageEntry& Entry)
-	: Entry(const_cast<FFaerieStorageEntry&>(Entry)),
-	  Source(Source)
+  : Entry(const_cast<FFaerieStorageEntry&>(Entry)), Source(Source)
 {
 #if FAERIE_DEBUG
 	if (Faerie::Debug::CVarEnableWriteLockTracking.GetValueOnGameThread())

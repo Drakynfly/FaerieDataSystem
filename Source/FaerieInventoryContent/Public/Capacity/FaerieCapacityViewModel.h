@@ -2,26 +2,29 @@
 
 #pragma once
 
-#include "MassReplication/FaerieViewModelBase.h"
+#include "ViewModels/FaerieItemDataViewModelBase.h"
 #include "FaerieCapacityViewModel.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class FAERIEINVENTORYCONTENT_API UFaerieCapacityViewModel : public UFaerieViewModelBase
+class FAERIEINVENTORYCONTENT_API UFaerieCapacityViewModel : public UFaerieItemDataViewModelBase
 {
 	GENERATED_BODY()
 
 public:
-	//~ UFaerieViewModelBase
+	//~ UFaerieItemDataViewModelBase
 	virtual TNotNull<UScriptStruct*> GetFragmentType() const override;
 
 protected:
-	virtual void OnProxySet(const FMassEntityManager& EntityManager) override;
-	virtual void OnFieldChange(const FMassEntityManager& EntityManager, const Faerie::ItemData::FFieldChange& Data) override;
-	virtual void CheckForFieldChange(const FFaerieItemInstance& Item, const FConstStructView FragmentView) override;
-	//~ UFaerieViewModelBase
+	virtual UScriptStruct* GetViewModelFragmentType() const override;
+	virtual void OnProxySet(FMassEntityManager& EntityManager) override;
+	//~ UFaerieItemDataViewModelBase
+
+	//~ IFaerieItemDataViewFieldChangeInterface
+	virtual void OnFieldChange(const FMassEntityManager& EntityManager, const Faerie::ItemData::FFieldChangePayload& Data) override;
+	//~ IFaerieItemDataViewFieldChangeInterface
 
 protected:
 	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "CapacityViewModel")
@@ -36,3 +39,13 @@ protected:
 	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "CapacityViewModel")
 	bool HasCapacity = false;
 };
+
+
+namespace Faerie::Content
+{
+	USTRUCT()
+	struct FCapacityViewFragment : public Container::FViewModelFragment
+	{
+		GENERATED_BODY()
+	};
+}

@@ -13,7 +13,7 @@
 
 namespace Faerie::Container
 {
-	struct FEvent;
+	struct FContainerEventPayload;
 }
 
 class UFaerieItemContainerBase;
@@ -32,7 +32,7 @@ class IFaerieContainerEventSubscriber
 	friend class UFaerieContainerEventSubscriptionUpdater;
 
 protected:
-	virtual void OnContainerEventBatch(TNotNull<UFaerieItemContainerBase*> Container, TConstArrayView<const Faerie::Container::FEvent*> Events) = 0;
+	virtual void OnContainerEventBatch(TNotNull<UFaerieItemContainerBase*> Container, TConstArrayView<const Faerie::Container::FContainerEventPayload*> Events) = 0;
 };
 
 namespace Faerie::Content

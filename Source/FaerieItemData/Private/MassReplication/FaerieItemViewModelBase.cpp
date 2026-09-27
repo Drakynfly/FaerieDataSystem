@@ -1,9 +1,16 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
-#include "MassReplication/FaerieViewModelBase.h"
+#include "ViewModels/FaerieItemDataViewModelBase.h"
+#include "ViewModels/FaerieViewModelSubsystem.h"
+
 #include "EntityManagerHelpers.h"
 
-void UFaerieViewModelBase::SetItemProxy(const FFaerieItemProxy& Item)
+FMassEntityHandle UFaerieItemDataViewModelBase::GetItemHandle() const
+{
+	return ItemProxy.GetItemInstanceOrInvalid().GetMassEntityHandle();
+}
+
+void UFaerieItemDataViewModelBase::SetItemProxy(const FFaerieItemProxy& Item)
 {
 	if (ItemProxy != Item)
 	{
@@ -11,11 +18,11 @@ void UFaerieViewModelBase::SetItemProxy(const FFaerieItemProxy& Item)
 		ItemProxy = Item;
 		UFaerieViewModelSubsystem* ViewModelSubsystem = GetTypedOuter<UFaerieViewModelSubsystem>();
 		ViewModelSubsystem->UpdateViewModelAssociation(this, OldProxy);
-		OnProxySet(Faerie::ItemData::GetFaerieEntityManagerChecked());
+		OnProxySet(Faerie::ItemData::GetFaerieEntityManagerChecked(Item.ExtractWorld()));
 	}
 }
 
-void UFaerieViewModelBase::Return()
+void UFaerieItemDataViewModelBase::Return()
 {
 	if (UFaerieViewModelSubsystem* ViewModelSubsystem = GetTypedOuter<UFaerieViewModelSubsystem>())
 	{
@@ -23,9 +30,9 @@ void UFaerieViewModelBase::Return()
 	}
 }
 
-void UFaerieViewModelBase::SetItemProxyDirect(const FFaerieItemProxy& Item)
+void UFaerieItemDataViewModelBase::SetItemProxyDirect(FMassEntityManager& EntityManager, const FFaerieItemProxy& Item)
 {
 	// This is called by the ViewModelSubsystem so we skip updating it, just set and call child impl.
 	ItemProxy = Item;
-	OnProxySet(Faerie::ItemData::GetFaerieEntityManagerChecked());
+	OnProxySet(EntityManager);
 }

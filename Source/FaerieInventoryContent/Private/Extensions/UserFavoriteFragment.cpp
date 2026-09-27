@@ -23,7 +23,7 @@ bool FFaerieClientAction_FavoriteItem::Server_Execute(const TNotNull<const UFaer
 		return false;
 	}
 
-	auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
+	auto& EntityManager = ItemData::GetFaerieEntityManagerChecked(Client->GetWorld());
 	if (EntityManager.IsEntityValid(InstanceOpt->GetMassEntityHandle()))
 	{
 		(void)EntityManager.AddSparseElementToEntity(InstanceOpt->GetMassEntityHandle(), FFaerieUserFavoriteFragment::StaticStruct());
@@ -49,7 +49,7 @@ bool FFaerieClientAction_UnfavoriteItem::Server_Execute(const TNotNull<const UFa
 		return false;
 	}
 
-	auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
+	auto& EntityManager = ItemData::GetFaerieEntityManagerChecked(Client->GetWorld());
 	if (EntityManager.IsEntityValid(InstanceOpt->GetMassEntityHandle()))
 	{
 		EntityManager.RemoveSparseElementFromEntity(InstanceOpt->GetMassEntityHandle(), FFaerieUserFavoriteFragment::StaticStruct());

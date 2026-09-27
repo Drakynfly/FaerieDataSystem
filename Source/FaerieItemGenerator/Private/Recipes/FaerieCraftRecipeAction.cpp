@@ -43,7 +43,7 @@ void FFaerieCraftRecipeAction::Run(const Faerie::Generation::FActionExecution& E
 		return Fail(Execution, this, INVTEXT("Item Instancing failed for Craft Item!"));
 	}
 
-	ActionData.Stacks.Add(Result.WithInitialization());
+	ActionData.Stacks.Add(Result.WithInitialization(*Execution.EntityManager));
 
 	if (RunConsumeStep)
 	{

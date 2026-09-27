@@ -6,6 +6,8 @@
 #include "FaerieEquipmentSlotDescription.h"
 #include "FaerieItemStorage.h"
 
+#include "Engine/World.h"
+
 #include "Extensions/InventoryContentFilterExtension.h"
 #include "Extensions/ItemContainerCountLimit.h"
 
@@ -53,7 +55,7 @@ void UFaerieEquipmentManager::OnComponentCreated()
 {
 	Super::OnComponentCreated();
 
-	if (!IsTemplate())
+	if (!IsTemplate() && GetWorld()->HasBegunPlay())
 	{
 		AddDefaultSlots();
 	}
@@ -74,15 +76,10 @@ void UFaerieEquipmentManager::AddDefaultSlots()
 		return;
 	}
 
+	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
 	for (auto&& Element : InstanceDefaultSlots)
 	{
-		// Skip adding this default slot if it's been marked as removed (by LoadSaveData).
-		if (RemovedDefaultSlots.HasTag(Element.SlotConfig.SlotID))
-		{
-			continue;
-		}
-
-		AddSlot(Element.SlotConfig);
+		AddSlotImpl(EntityManager, Element.SlotConfig);
 	}
 }
 
@@ -124,68 +121,12 @@ void UFaerieEquipmentManager::OnDataChangeEvent(const FFaerieItemProxy& Proxy, c
 
 void UFaerieEquipmentManager::BroadcastSlotEvent(const TNotNull<UFaerieItemStackContainer*> Slot, const FFaerieInventoryTag Event)
 {
-	OnEquipmentSlotEventNative.Broadcast(Slot, Event);
+	OnEquipmentSlotEventNative.Broadcast(FFaerieItemProxy(Slot), Event);
 	OnEquipmentChangedEvent.Broadcast(Slot, Event);
 }
 
-FFaerieEquipmentSaveData UFaerieEquipmentManager::MakeSaveData(const Container::FSaveParams Params) const
+UFaerieItemStackContainer* UFaerieEquipmentManager::AddSlotImpl(FMassEntityManager& EntityManager, const FFaerieEquipmentSlotConfig& Config)
 {
-	FFaerieEquipmentSaveData ManagerSaveData;
-
-	ManagerSaveData.PerSlotData.Reserve(Slots.Num());
-	for (auto&& Slot : Slots)
-	{
-		FFaerieSimpleItemStackSaveData& SlotData = ManagerSaveData.PerSlotData.AddDefaulted_GetRef();
-		Slot->MakeSaveData(SlotData, Params);
-	}
-	ManagerSaveData.RemovedDefaultSlots = RemovedDefaultSlots;
-
-	return ManagerSaveData;
-}
-
-void UFaerieEquipmentManager::LoadSaveData(const FFaerieEquipmentSaveData& SaveData, const Container::FLoadParams Params)
-{
-	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Slots, this);
-	Slots.Reset();
-
-	RemovedDefaultSlots = SaveData.RemovedDefaultSlots;
-	AddDefaultSlots();
-
-	for (const FFaerieSimpleItemStackSaveData& PerSlotDatum : SaveData.PerSlotData)
-	{
-		FFaerieSlotTag SlotID;
-		for (auto&& Element : PerSlotDatum.ExtensionData)
-		{
-			if (auto&& AsSlotTag = Element.GetPtr<FFaerieContainerDataSlotTag>())
-			{
-				SlotID = AsSlotTag->SlotTag;
-			}
-		}
-		if (!SlotID.IsValid()) continue;
-
-		// Find or create slot for this tag.
-		UFaerieItemStackContainer* EquipmentSlot = FindSlot(SlotID);
-		if (!IsValid(EquipmentSlot))
-		{
-			EquipmentSlot = AddSlot(FFaerieEquipmentSlotConfig());
-		}
-		check(IsValid(EquipmentSlot))
-
-		EquipmentSlot->LoadSaveData(PerSlotDatum, Params);
-	}
-
-	// @todo shouldn't we use the SaveData.ExtensionData for our extensions?
-
-	if (IsReadyForReplication())
-	{
-		AddSubobjectsForReplication();
-	}
-}
-
-UFaerieItemStackContainer* UFaerieEquipmentManager::AddSlot(const FFaerieEquipmentSlotConfig& Config)
-{
-	if (!Config.SlotID.IsValid()) return nullptr;
-
 	if (UFaerieItemStackContainer* NewSlot = NewObject<UFaerieItemStackContainer>(this);
 		ensure(IsValid(NewSlot)))
 	{
@@ -193,7 +134,7 @@ UFaerieItemStackContainer* UFaerieEquipmentManager::AddSlot(const FFaerieEquipme
 
 		if (Config.SlotID.IsValid())
 		{
-			NewSlot->WriteContainerData(FFaerieContainerDataSlotTag::StaticStruct(),
+			NewSlot->WriteContainerData(EntityManager, FFaerieContainerDataSlotTag::StaticStruct(),
 				[Config](const FStructView Data)
 				{
 					Data.Get<FFaerieContainerDataSlotTag>().SlotTag = Config.SlotID;
@@ -202,7 +143,7 @@ UFaerieItemStackContainer* UFaerieEquipmentManager::AddSlot(const FFaerieEquipme
 
 		if (IsValid(Config.SlotDescription))
 		{
-			NewSlot->WriteContainerData(FFaerieItemContainerContentFilter::StaticStruct(),
+			NewSlot->WriteContainerData(EntityManager, FFaerieItemContainerContentFilter::StaticStruct(),
 				[Config](const FStructView Data)
 				{
 					Data.Get<FFaerieItemContainerContentFilter>().Filter = Config.SlotDescription->Template;
@@ -211,7 +152,7 @@ UFaerieItemStackContainer* UFaerieEquipmentManager::AddSlot(const FFaerieEquipme
 
 		if (Config.SingleItemSlot)
 		{
-			NewSlot->WriteContainerData(FFaerieItemContainerCountLimit::StaticStruct(),
+			NewSlot->WriteContainerData(EntityManager, FFaerieItemContainerCountLimit::StaticStruct(),
 				[](const FStructView Data)
 				{
 					Data.Get<FFaerieItemContainerCountLimit>().SetMaxInstanceCount(1);
@@ -225,7 +166,7 @@ UFaerieItemStackContainer* UFaerieEquipmentManager::AddSlot(const FFaerieEquipme
 
 		NewSlot->GetOnContainerEvent().AddUObject(this, &ThisClass::OnDataChangeEvent);
 
-		NewSlot->SetParentExtensions(this, ExtensionData);
+		NewSlot->SetParentExtensions(this);
 
 		BroadcastSlotEvent(NewSlot, Equipment::Tags::SlotCreated);
 
@@ -235,67 +176,35 @@ UFaerieItemStackContainer* UFaerieEquipmentManager::AddSlot(const FFaerieEquipme
 	return nullptr;
 }
 
-bool UFaerieEquipmentManager::RemoveSlot(UFaerieItemStackContainer* Slot)
+const UFaerieItemStackContainer* UFaerieEquipmentManager::FindSlotImpl(const FMassEntityManager& EntityManager, const FFaerieSlotTag SlotTag, const bool bRecursive) const
 {
-	if (IsValid(Slot))
+	for (auto&& Slot : Slots)
 	{
-		return false;
+		if (!IsValid(Slot)) continue;
+		const FFaerieContainerDataSlotTag& DataSlotTag = Slot->ReadContainerDataChecked<FFaerieContainerDataSlotTag>(EntityManager);
+		if (DataSlotTag.SlotTag == SlotTag)
+		{
+			return Slot;
+		}
 	}
 
-	if (Slots.Remove(Slot))
+	if (bRecursive)
 	{
-		BroadcastSlotEvent(Slot, Equipment::Tags::SlotDeleted);
-
-		Slot->ClearParentExtensions();
-
-		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Slots, this)
-		Slot->DeinitializeNetObject(GetOwner());
-		GetOwner()->RemoveReplicatedSubObject(Slot);
-
-		Slot->GetOnContainerEvent().RemoveAll(this);
-
-		const FFaerieContainerDataSlotTag& SlotTag = Slot->ReadContainerDataChecked<FFaerieContainerDataSlotTag>();
-
-		// If this slot was a default slot, mark it as removed, so it doesn't get restored after a load.
-		for (auto&& Element : InstanceDefaultSlots)
+		for (auto&& Slot : Slots)
 		{
-			if (SlotTag.SlotTag == Element.SlotConfig.SlotID)
+			if (!IsValid(Slot)) continue;
+			if (auto&& ChildSlot = FindSubSlotImpl(Slot, EntityManager, SlotTag, true))
 			{
-				RemovedDefaultSlots.AddTag(SlotTag.SlotTag);
-				break;
+				return ChildSlot;
 			}
 		}
-
-		return true;
 	}
 
-	return false;
+	return nullptr;
 }
 
-bool UFaerieEquipmentManager::TrySwapSlots(UFaerieItemStackContainer* SlotA, UFaerieItemStackContainer* SlotB)
-{
-	if (!(IsValid(SlotA) && IsValid(SlotB)))
-	{
-		return false;
-	}
-
-	if (SlotB->IsFilled() && !SlotA->CouldSetInSlot(FFaerieItemProxy(SlotB))) return false;
-	if (SlotA->IsFilled() && !SlotB->CouldSetInSlot(FFaerieItemProxy(SlotA))) return false;
-
-	const FFaerieUnownedItemStack ContentA = SlotA->TakeItemFromSlot(ItemData::EntireStack,
-															 Inventory::Tags::RemovalMoving);
-	const FFaerieUnownedItemStack ContentB = SlotB->TakeItemFromSlot(ItemData::EntireStack,
-															 Inventory::Tags::RemovalMoving);
-
-	// Use Impl version to bypass redundant checks to CanSetInSlot
-	SlotB->SetStoredItem_Impl(ContentA);
-	SlotA->SetStoredItem_Impl(ContentB);
-
-	return true;
-}
-
-const UFaerieItemStackContainer* UFaerieEquipmentManager::FindSlotImpl(const UFaerieItemStackContainer* ParentSlot,
-	const FMassEntityManager& EntityManager, const FFaerieSlotTag SlotTag, const bool bRecursive)
+const UFaerieItemStackContainer* UFaerieEquipmentManager::FindSubSlotImpl(const UFaerieItemStackContainer* ParentSlot,
+																		  const FMassEntityManager& EntityManager, const FFaerieSlotTag SlotTag, const bool bRecursive)
 {
 	if (!ParentSlot->IsFilled())
 	{
@@ -314,7 +223,7 @@ const UFaerieItemStackContainer* UFaerieEquipmentManager::FindSlotImpl(const UFa
 
 	for (auto&& Child : Children)
 	{
-		const FGameplayTag ChildSlotTag = Child->ReadContainerDataChecked<FFaerieContainerDataSlotTag>().SlotTag;
+		const FGameplayTag ChildSlotTag = Child->ReadContainerDataChecked<FFaerieContainerDataSlotTag>(EntityManager).SlotTag;
 		if (ChildSlotTag == SlotTag)
 		{
 			return Child;
@@ -325,7 +234,7 @@ const UFaerieItemStackContainer* UFaerieEquipmentManager::FindSlotImpl(const UFa
 	{
 		for (auto&& Child : Children)
 		{
-			if (auto&& ChildSlot = FindSlotImpl(Child, EntityManager, SlotTag, true))
+			if (auto&& ChildSlot = FindSubSlotImpl(Child, EntityManager, SlotTag, true))
 			{
 				return ChildSlot;
 			}
@@ -335,32 +244,125 @@ const UFaerieItemStackContainer* UFaerieEquipmentManager::FindSlotImpl(const UFa
 	return nullptr;
 }
 
-const UFaerieItemStackContainer* UFaerieEquipmentManager::FindSlot(const FFaerieSlotTag SlotID, const bool Recursive) const
+FFaerieEquipmentSaveData UFaerieEquipmentManager::MakeSaveData(const FMassEntityManager& EntityManager, const Container::FSaveParams Params) const
 {
+	FFaerieEquipmentSaveData ManagerSaveData;
+
+	ManagerSaveData.PerSlotData.Reserve(Slots.Num());
 	for (auto&& Slot : Slots)
 	{
-		if (!IsValid(Slot)) continue;
-		const FFaerieContainerDataSlotTag& SlotTag = Slot->ReadContainerDataChecked<FFaerieContainerDataSlotTag>();
-		if (SlotTag.SlotTag == SlotID)
-		{
-			return Slot;
-		}
+		FFaerieSimpleItemStackSaveData& SlotData = ManagerSaveData.PerSlotData.AddDefaulted_GetRef();
+		Slot->MakeSaveData(EntityManager, SlotData, Params);
 	}
 
-	if (Recursive)
+	return ManagerSaveData;
+}
+
+void UFaerieEquipmentManager::LoadSaveData(FMassEntityManager& EntityManager, const FFaerieEquipmentSaveData& SaveData, const Container::FLoadParams Params)
+{
+	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Slots, this);
+	Slots.Reset();
+
+	for (const FFaerieSimpleItemStackSaveData& PerSlotDatum : SaveData.PerSlotData)
 	{
-		auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
-		for (auto&& Slot : Slots)
+		FFaerieSlotTag SlotID;
+		for (auto&& Element : PerSlotDatum.ExtensionData)
 		{
-			if (!IsValid(Slot)) continue;
-			if (auto&& ChildSlot = FindSlotImpl(Slot, EntityManager, SlotID, true))
+			if (auto&& AsSlotTag = Element.GetPtr<FFaerieContainerDataSlotTag>())
 			{
-				return ChildSlot;
+				SlotID = AsSlotTag->SlotTag;
 			}
 		}
+		if (!SlotID.IsValid()) continue;
+
+		// Find or create slot for this tag.
+		UFaerieItemStackContainer* EquipmentSlot = FindSlot(SlotID);
+		if (!IsValid(EquipmentSlot))
+		{
+			EquipmentSlot = AddSlotImpl(EntityManager, FFaerieEquipmentSlotConfig());
+		}
+		check(IsValid(EquipmentSlot))
+
+		EquipmentSlot->LoadSaveData(EntityManager, PerSlotDatum, Params);
 	}
 
-	return nullptr;
+	// @todo shouldn't we use the SaveData.ExtensionData for our extensions?
+
+	if (IsReadyForReplication())
+	{
+		AddSubobjectsForReplication();
+	}
+}
+
+void UFaerieEquipmentManager::AddSlot(const FFaerieEquipmentSlotConfig& Config)
+{
+	if (!Config.SlotID.IsValid()) return;
+	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
+	AddSlotImpl(EntityManager, Config);
+}
+
+bool UFaerieEquipmentManager::RemoveSlot(const FFaerieSlotTag Slot)
+{
+	UFaerieItemStackContainer* Slot_Obj = FindSlot(Slot, true);
+	if (!IsValid(Slot_Obj))
+	{
+		return false;
+	}
+
+	if (Slots.Remove(Slot_Obj))
+	{
+		BroadcastSlotEvent(Slot_Obj, Equipment::Tags::SlotDeleted);
+
+		Slot_Obj->ClearParentExtensions();
+
+		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Slots, this)
+		Slot_Obj->DeinitializeNetObject(GetOwner());
+		GetOwner()->RemoveReplicatedSubObject(Slot_Obj);
+
+		Slot_Obj->GetOnContainerEvent().RemoveAll(this);
+
+		return true;
+	}
+
+	return false;
+}
+
+bool UFaerieEquipmentManager::TrySwapSlots(const FFaerieSlotTag SlotA, const FFaerieSlotTag SlotB)
+{
+	UFaerieItemStackContainer* SlotA_Obj = FindSlot(SlotA, true);
+	UFaerieItemStackContainer* SlotB_Obj = FindSlot(SlotB, true);
+	if (!IsValid(SlotA_Obj) || !IsValid(SlotB_Obj))
+	{
+		return false;
+	}
+
+	if (SlotB_Obj->IsFilled() && !SlotA_Obj->CouldSetInSlot(FFaerieItemProxy(SlotB_Obj))) return false;
+	if (SlotA_Obj->IsFilled() && !SlotB_Obj->CouldSetInSlot(FFaerieItemProxy(SlotA_Obj))) return false;
+
+	const FFaerieUnownedItemStack ContentA = SlotA_Obj->TakeItemFromSlot(ItemData::EntireStack,
+															 Inventory::Tags::RemovalMoving);
+	const FFaerieUnownedItemStack ContentB = SlotB_Obj->TakeItemFromSlot(ItemData::EntireStack,
+															 Inventory::Tags::RemovalMoving);
+
+	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
+
+	// Use Impl version to bypass redundant checks to CanSetInSlot
+	if (ContentA.IsValid())
+	{
+		SlotB_Obj->SetStoredItem_Impl(EntityManager, ContentA);
+	}
+	if (ContentB.IsValid())
+	{
+		SlotA_Obj->SetStoredItem_Impl(EntityManager, ContentB);
+	}
+
+	return true;
+}
+
+const UFaerieItemStackContainer* UFaerieEquipmentManager::FindSlot(const FFaerieSlotTag SlotID, const bool Recursive) const
+{
+	const FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
+	return FindSlotImpl(EntityManager, SlotID, Recursive);
 }
 
 UFaerieItemStackContainer* UFaerieEquipmentManager::FindSlot(const FFaerieSlotTag SlotID, const bool Recursive)
@@ -368,22 +370,30 @@ UFaerieItemStackContainer* UFaerieEquipmentManager::FindSlot(const FFaerieSlotTa
 	return const_cast<UFaerieItemStackContainer*>(const_cast<const UFaerieEquipmentManager*>(this)->FindSlot(SlotID, Recursive));
 }
 
-void UFaerieEquipmentManager::WriteContainerData(const TNotNull<const UScriptStruct*> Type,
-	const TFunctionRef<void(FStructView)>& Functor)
+FFaerieItemProxy UFaerieEquipmentManager::FindSlotProxy(const FFaerieSlotTag SlotID, const bool Recursive) const
 {
-	Functor(ExtensionData.AddOrGetRef(Type));
+	auto& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
+	return FFaerieItemProxy(FindSlotImpl(EntityManager, SlotID, Recursive));
+}
+
+void UFaerieEquipmentManager::WriteContainerData(FMassEntityManager& EntityManager, const TNotNull<const UScriptStruct*> Type,
+												 const TFunctionRef<void(FStructView)>& Functor)
+{
+	Functor(ExtensionData.AddOrGetRef(EntityManager, Type));
 }
 
 TArray<FFaerieItemContainerPath> UFaerieEquipmentManager::GetAllContainerPaths() const
 {
 	SCOPE_CYCLE_COUNTER(STAT_Equipment_BuildPaths);
 
-	auto* EntityManager = ItemData::GetFaerieEntityManager();
-	if (!EntityManager)
+	const UWorld* World = GetWorld();
+	if (!ItemData::HasFaerieEntityManagerBeenAssigned(World))
 	{
-		// @todo FFaerieItemContainerPath::BuildChildrenPaths doesn't support searching default tokens yet
+		FFrame::KismetExecutionMessage(TEXT("No Entity Manager assigned to handle UFaerieEquipmentManager::GetAllContainerPaths"), ELogVerbosity::Error);
 		return {};
 	}
+
+	const FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(World);
 
 	TArray<FFaerieItemContainerPath> OutPaths;
 	OutPaths.Reserve(Slots.Num());
@@ -394,7 +404,7 @@ TArray<FFaerieItemContainerPath> UFaerieEquipmentManager::GetAllContainerPaths()
 			const FFaerieItemInstance Instance = Slot->GetItemInstance().GetValue();
 			if (Instance.IsMutable())
 			{
-				FFaerieItemContainerPath::BuildChildrenPaths(*EntityManager, FFaerieItemProxy(), Slot, OutPaths);
+				FFaerieItemContainerPath::BuildChildrenPaths(EntityManager, FFaerieItemProxy(), Slot, OutPaths);
 			}
 		}
 	}

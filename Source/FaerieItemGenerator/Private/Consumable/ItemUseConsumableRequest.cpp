@@ -1,5 +1,7 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
+#include "EntityManagerHelpers.h"
+
 #include "Consumable/ItemUseConsumableRequest.h"
 #include "Actions/FaerieInventoryClient.h"
 #include "FaerieItemContainerBase.h"
@@ -16,5 +18,6 @@ bool FFaerieClientAction_UseConsumable::Server_Execute(const TNotNull<const UFae
 	const FFaerieItemProxy Proxy = Handle.Container->Proxy(Handle.Address);
 	if (!Proxy.IsValid()) return false;
 
-	return Faerie::Generation::TryConsume(Proxy, ConsumableType, Client->GetOwner(), 1);
+	FMassEntityManager& EntityManager = Faerie::ItemData::GetFaerieEntityManagerChecked(Client->GetWorld());
+	return Faerie::Generation::TryConsume(EntityManager, Proxy, ConsumableType, Client->GetOwner(), 1);
 }

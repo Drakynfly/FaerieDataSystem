@@ -36,7 +36,7 @@ class UFaerieContainerEventLogView : public UFaerieContainerDataViewModelBase
 
 public:
 	//~ UFaerieContainerDataViewModelBase
-	virtual void SyncView() override;
+	virtual void SyncView(FMassEntityManager& EntityManager) override;
 	//~ UFaerieContainerDataViewModelBase
 
 	UFUNCTION(BlueprintCallable, FieldNotify, Category = "Faerie|ContainerEventLogView")
@@ -67,8 +67,8 @@ public:
 	void SetInvertEventOrder(bool Invert);
 
 protected:
-	void RecalculateEventTags();
-	void RecalculateLogView();
+	void RecalculateEventTags(FMassEntityManager& EntityManager);
+	void RecalculateLogView(FMassEntityManager& EntityManager);
 
 protected:
 	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "ContainerEventLogView")

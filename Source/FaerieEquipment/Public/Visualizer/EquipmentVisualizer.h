@@ -136,8 +136,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentVisualizer")
 	TArray<USceneComponent*> GetSpawnedComponents() const;
 
-	void CreateVisualImpl(Faerie::TValid<const FFaerieItemProxy&> Proxy, const FFaerieItemProxy* Parent = nullptr);
-	void RemoveVisualImpl(Faerie::TValid<const FFaerieItemProxy&> Proxy);
+	void CreateVisualImpl(FMassEntityManager& EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy, const FFaerieItemProxy* Parent = nullptr);
+	void RemoveVisualImpl(FMassEntityManager& EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy);
 
 	template <
 		typename TActor
@@ -173,7 +173,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentVisualizer")
 	FEquipmentVisualAttachment FindAttachment(const FFaerieItemProxy& Proxy) const;
 
-	static TOptional<FFaerieVisualSlotElement> FindVisualSlotDataFromProxy(const FFaerieItemProxy& Proxy);
+	static TOptional<FFaerieVisualSlotElement> FindVisualSlotDataFromProxy(const FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy);
 
 	FEquipmentVisualAttachment BuildAttachmentData(const FFaerieItemProxy& Proxy, const FFaerieVisualSlotElement& SlotData) const;
 

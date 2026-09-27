@@ -37,8 +37,8 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Faerie|ItemData")
 	static FFaerieUnownedItemStack GetTemplateInstance(const UFaerieItemAsset* Asset);
 
-	UFUNCTION(BlueprintPure, Category = "Faerie|ItemData", meta = (AdvancedDisplay = 1))
-	static FFaerieUnownedItemStack NewItemInstance(UPARAM(ref) TArray<FInstancedStruct>& Fragments);
+	UFUNCTION(BlueprintPure, Category = "Faerie|ItemData", meta = (AdvancedDisplay = 1, WorldContext = "WorldContextObj", DefaultToSelf = "WorldContextObj"))
+	static FFaerieUnownedItemStack NewItemInstance(const UObject* WorldContextObj, UPARAM(ref) TArray<FInstancedStruct>& Fragments);
 
 	UFUNCTION(BlueprintPure, Category = "Faerie|ItemData")
 	static bool HasItemFragment(const FFaerieItemProxy& Proxy, /*TSubScriptStructOf<FFaerieMassFragment>*/ UScriptStruct* FragmentType);

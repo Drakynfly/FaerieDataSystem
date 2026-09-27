@@ -39,9 +39,16 @@ FFaerieHash UFaerieEquipmentLibrary::HashEquipment(const UFaerieEquipmentManager
 		return FFaerieHash();
 	}
 
-	auto* EntityManager = Faerie::ItemData::GetFaerieEntityManager();
+	const UWorld* World = Manager->GetWorld();
+	if (!Faerie::ItemData::HasFaerieEntityManagerBeenAssigned(World))
+	{
+		FFrame::KismetExecutionMessage(TEXT("No Entity Manager assigned to handle UFaerieEquipmentLibrary::HashEquipment"), ELogVerbosity::Error);
+		return FFaerieHash();
+	}
 
-	return Faerie::Hash::HashEquipment(Manager, EntityManager, Config.Slots,
+	const FMassEntityManager& EntityManager = Faerie::ItemData::GetFaerieEntityManagerChecked(World);
+
+	return Faerie::Hash::HashEquipment(Manager, &EntityManager, Config.Slots,
 		[&Config](const FMassEntityManager*, const Faerie::TValid<const FFaerieItemProxy&> Item)
 		{
 			return Config.HashFunction.Execute(Item);
@@ -62,9 +69,9 @@ bool UFaerieEquipmentLibrary::ExecuteHashInstructions(const UFaerieEquipmentMana
 		return false;
 	}
 
-	auto* EntityManager = Faerie::ItemData::GetFaerieEntityManager();
+	const FMassEntityManager& EntityManager = Faerie::ItemData::GetFaerieEntityManagerChecked(Manager->GetWorld());
 
-	return Faerie::Hash::ExecuteHashInstructions(Manager, EntityManager, Asset);
+	return Faerie::Hash::ExecuteHashInstructions(Manager, &EntityManager, Asset);
 }
 
 FBlueprintEquipmentHash UFaerieEquipmentLibrary::GetEquipmentHash_ByName()
@@ -74,6 +81,6 @@ FBlueprintEquipmentHash UFaerieEquipmentLibrary::GetEquipmentHash_ByName()
 
 int32 UFaerieEquipmentLibrary::ExecHashItemByName(const FFaerieItemProxy& Instance)
 {
-	auto* EntityManager = Faerie::ItemData::GetFaerieEntityManager();
-	return Faerie::Hash::HashItemByName(EntityManager, Instance);
+	const FMassEntityManager& EntityManager = Faerie::ItemData::GetFaerieEntityManagerChecked(Instance.ExtractWorld());
+	return Faerie::Hash::HashItemByName(&EntityManager, Instance);
 }

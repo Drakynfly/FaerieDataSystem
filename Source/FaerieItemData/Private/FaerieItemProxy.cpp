@@ -1,6 +1,7 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieItemProxy.h"
+#include "FaerieItemDataLog.h"
 #include "FaerieItemDataView.h"
 #include "FaerieItemOwnerInterface.h"
 
@@ -60,6 +61,27 @@ UObject* FFaerieItemProxy::GetItemOwner() const
 	return nullptr;
 }
 
+const UWorld* FFaerieItemProxy::ExtractWorld() const
+{
+	if (ProxyObject)
+	{
+		if (const UWorld* WorldFromProxy = ProxyObject->GetWorld())
+		{
+			return WorldFromProxy;
+		}
+	}
+	if (InterfacePtr)
+	{
+		if (const UWorld* WorldFromOwner = Cast<UObject>(InterfacePtr->GetItemOwner())->GetWorld())
+		{
+			return WorldFromOwner;
+		}
+	}
+
+	UE_LOGF(LogFaerieItemData, Error, "Unable to determine world from item proxy. We are likely a non-persistent proxy, which should not be used to fetch worlds from!")
+	return nullptr;
+}
+
 Faerie::ItemData::FProxyChangeEvent::RegistrationType& FFaerieItemProxy::GetOnProxyChangeEvent() const
 {
 	if (const IFaerieItemDataProxy* ProxyObj = Cast<IFaerieItemDataProxy>(ProxyObject))
@@ -71,4 +93,11 @@ Faerie::ItemData::FProxyChangeEvent::RegistrationType& FFaerieItemProxy::GetOnPr
 	checkNoEntry();
 	static Faerie::ItemData::FProxyChangeEvent Blank;
 	return Blank;
+}
+
+bool FFaerieItemProxy::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bSuccess)
+{
+	checkf(false, TEXT("Do not replicate FFaerieItemProxy, use FFaerieItemNetworkHandle instead!"))
+	bSuccess = false;
+	return bSuccess;
 }

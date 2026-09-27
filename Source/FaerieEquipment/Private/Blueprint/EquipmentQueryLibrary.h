@@ -40,25 +40,25 @@ class UFaerieEquipmentLibrary : public UBlueprintFunctionLibrary
 
 public:
 	/** Returns true if the values are equal (A == B) */
-	UFUNCTION(BlueprintPure, Category = "GameplayTags", meta = (DisplayName = "Equal (FaerieSlotTag)", CompactNodeTitle = "==", BlueprintThreadSafe))
+	UFUNCTION(BlueprintPure, Category = "Faerie|EquipmentLibrary", meta = (DisplayName = "Equal (FaerieSlotTag)", CompactNodeTitle = "==", BlueprintThreadSafe))
 	static bool EqualEqual_FaerieSlotTag(const FFaerieSlotTag A, const FFaerieSlotTag B) { return A == B; }
 
 	/** Returns true if the values are not equal (A != B) */
-	UFUNCTION(BlueprintPure, Category = "GameplayTags", meta = (DisplayName = "Not Equal (FaerieSlotTag)", CompactNodeTitle = "!=", BlueprintThreadSafe))
-	static bool NotEqual_FaerieSlotTag(const FFaerieSlotTag A, const FFaerieSlotTag B)  { return A != B; }
+	UFUNCTION(BlueprintPure, Category = "Faerie|EquipmentLibrary", meta = (DisplayName = "Not Equal (FaerieSlotTag)", CompactNodeTitle = "!=", BlueprintThreadSafe))
+	static bool NotEqual_FaerieSlotTag(const FFaerieSlotTag A, const FFaerieSlotTag B) { return A != B; }
 
-	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentQuery")
+	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentLibrary")
 	static bool RunEquipmentQuery(UFaerieEquipmentManager* Manager, const FFaerieEquipmentSetQuery& SetQuery, UFaerieItemStackContainer*& PassingSlot);
 
 	// Generate a hash from a set of slots. Typically used for checksum'ing.
-	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentHashing")
+	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentLibrary")
 	static FFaerieHash HashEquipment(const UFaerieEquipmentManager* Manager, const FFaerieEquipmentHashConfig& Config);
 
 	// Generate a hash from a set of slots, using a predefined asset.
-	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentHashing")
+	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentLibrary")
 	static bool ExecuteHashInstructions(const UFaerieEquipmentManager* Manager, const UFaerieEquipmentHashAsset* Asset);
 
-	UFUNCTION(BlueprintPure, Category = "Faerie|EquipmentHashing")
+	UFUNCTION(BlueprintPure, Category = "Faerie|EquipmentLibrary")
 	static FBlueprintEquipmentHash GetEquipmentHash_ByName();
 
 protected:

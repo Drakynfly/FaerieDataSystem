@@ -6,6 +6,7 @@
 #include "FaerieItemOwnerInterface.h"
 #include "FaerieItemProxy.h"
 #include "FaerieItemTemplate.h"
+#include "ItemContainerEvent.h"
 
 #include "Consumable/FaerieItemUsesFragment.h"
 
@@ -159,7 +160,7 @@ namespace Faerie::Generation
 			{
 				if (UFaerieItemContainerBase* Owner = Cast<UFaerieItemContainerBase>(SlotPayment.GetItemOwner()))
 				{
-					Owner->DestroyStack(SlotPayment, Slot.Amount);
+					(void)Owner->Release(SlotPayment, Slot.Amount, Inventory::Tags::RemovalDeletion);
 				}
 			}
 

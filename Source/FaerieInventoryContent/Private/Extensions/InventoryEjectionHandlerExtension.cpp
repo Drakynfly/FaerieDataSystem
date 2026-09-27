@@ -28,7 +28,7 @@ void FFaerieItemContainerEjectionConfig::HandleNextInQueue(const Content::FEject
 {
 	TSoftClassPtr<AFaerieItemOwningActorBase> ClassToSpawn;
 
-	const FMassEntityManager* EntityManager = ItemData::GetFaerieEntityManager();
+	const FMassEntityManager* EntityManager = ItemData::GetFaerieEntityManager(Ejection.Owner->GetWorld());
 	auto ActorClassFragment = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieActorFragment>(EntityManager, Ejection.Stack.Instance);
 	if (ActorClassFragment.IsValid())
 	{
@@ -103,15 +103,15 @@ UFaerieContainerEjectionHandler::UFaerieContainerEjectionHandler()
 
 void UFaerieContainerEjectionHandler::ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager)
 {
-	EntityQuery.AddRequirement<Container::FEvent>(EMassFragmentAccess::ReadOnly, EMassFragmentPresence::All);
+	EntityQuery.AddRequirement<Container::FContainerEventPayload>(EMassFragmentAccess::ReadOnly, EMassFragmentPresence::All);
 }
 
 void UFaerieContainerEjectionHandler::Execute(FMassEntityManager& EntityManager, FMassExecutionContext& Context)
 {
-	EntityQuery.ForEachEntityChunk(Context, [this](const FMassExecutionContext& InContext)
+	EntityQuery.ForEachEntityChunk(Context, [](const FMassExecutionContext& InContext)
 	{
-		const TConstArrayView<Container::FEvent> Events = InContext.GetFragmentView<Container::FEvent>();
-		for (const Container::FEvent& Event : Events)
+		const TConstArrayView<Container::FContainerEventPayload> Events = InContext.GetFragmentView<Container::FContainerEventPayload>();
+		for (const Container::FContainerEventPayload& Event : Events)
 		{
 			// This observer only listens to Ejection removals
 			// @todo this could be rolled into event somehow... could the type tag be check in the requirements
@@ -138,7 +138,7 @@ void UFaerieContainerEjectionHandler::Execute(FMassEntityManager& EntityManager,
 				continue;
 			}
 
-			const FFaerieItemContainerEjectionConfig* Config = Container->ReadContainerData<FFaerieItemContainerEjectionConfig>(true);
+			const FFaerieItemContainerEjectionConfig* Config = Container->ReadContainerData<FFaerieItemContainerEjectionConfig>(InContext.GetEntityManagerChecked(), true);
 			if (!Config)
 			{
 				continue;

@@ -7,7 +7,7 @@
 
 bool UFaerieItemComparator::K2_Exec(const FFaerieItemProxy& A, const FFaerieItemProxy& B) const
 {
-	auto* EntityManager = Faerie::ItemData::GetFaerieEntityManager();
+	const FMassEntityManager* EntityManager = Faerie::ItemData::GetFaerieEntityManager(A.ExtractWorld());
 
 	if (A.IsValid() && B.IsValid())
 	{

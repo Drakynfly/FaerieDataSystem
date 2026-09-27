@@ -16,11 +16,11 @@ struct FAE_API FFaerieItemContainerCountLimit final : public FFaerieItemContaine
 	GENERATED_BODY()
 
 	//~ FFaerieItemContainerExtensionBase
-	virtual void InitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
-	virtual EFaerieExtensionResponse AllowsAddition(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args) const override;
+	virtual void InitializeExtension(FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container) override;
+	virtual EFaerieExtensionResponse AllowsAddition(const FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args) const override;
 	//~ FFaerieItemContainerExtensionBase
 
-	void PostEvent(const Faerie::Container::FEvent& Event);
+	void PostEvent(const Faerie::Container::FContainerEventPayload& Event);
 
 	UE_REWRITE int32 GetMaxInstanceCount() const { return MaxInstanceCount; }
 	UE_REWRITE int32 GetMaxEntryCount() const { return MaxEntryCount; }
@@ -84,8 +84,8 @@ struct FAE_API FFaerieItemContainerPerEntryCountLimit final : public FFaerieItem
 	GENERATED_BODY()
 
 	//~ FFaerieItemContainerExtensionBase
-	virtual void InitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
-	virtual EFaerieExtensionResponse AllowsAddition(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args) const override;
+	virtual void InitializeExtension(FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container) override;
+	virtual EFaerieExtensionResponse AllowsAddition(const FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args) const override;
 	//~ FFaerieItemContainerExtensionBase
 
 	void SetPerEntryMaxInstanceCount(int32 Count);

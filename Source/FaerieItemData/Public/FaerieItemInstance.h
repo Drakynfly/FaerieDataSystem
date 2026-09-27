@@ -4,6 +4,7 @@
 
 #include "FaerieItemDataEnums.h"
 #include "FaerieItemDataFwd.h"
+#include "FaerieItemEvent.h"
 #include "GameplayTagContainer.h"
 
 #include "Mass/EntityHandle.h"
@@ -14,7 +15,8 @@
 
 namespace Faerie::ItemData
 {
-	struct FFieldChange;
+	struct FFieldChangePayload;
+	struct FMutationEvent;
 }
 
 struct FMassEntityManager;
@@ -64,8 +66,6 @@ protected:
 
 private:
 	void InitializeMassEntityImpl(FMassEntityManager& EntityManager, TArrayView<FInstancedStruct> Fragments);
-	void UpdateTimestamp(const FMassEntityManager& EntityManager, bool CreateIfMissing) const;
-	void NotifyOwnerOfChange(const FMassEntityManager& EntityManager, FGameplayTag Tag) const;
 
 public:
 	UE_REWRITE bool HasItemAsset() const { return !!Item; }
@@ -98,19 +98,27 @@ public:
 	 */
 	void ExportFragmentData(const FMassEntityManager& EntityManager, TArray<FInstancedStruct>& OutStructs, Faerie::ItemData::EMassFragmentExportOptions Options) const;
 
+	static bool IsMutable(const FMassEntityManager& EntityManager, FMassEntityHandle Item);
+
+	static void PostMutationEvent(FMassEntityManager& EntityManager, const Faerie::ItemData::FMutationEvent& Event);
+	static void PostMutationEventWithChangeList(FMassEntityManager& EntityManager, const Faerie::ItemData::FMutationEvent& Event, const Faerie::ItemData::FMutationPayloadChangeList& ChangeList);
+	static void PostMutationEventWithFieldChange(FMassEntityManager& EntityManager, const Faerie::ItemData::FMutationEvent& Event, Faerie::ItemData::FFieldChangePayload FieldChanges);
+
 
 	/**~~-									-~~**/
 	/**~~-		MUTABLE INSTANCE API		-~~**/
 	/**~~-									-~~**/
 
 	// @todo do we need to make Deferred command versions of these?
-	void AddFragment(FMassEntityManager& EntityManager, FInstancedStruct&& Fragment);
-	void AddFragments(FMassEntityManager& EntityManager, TArrayView<FInstancedStruct> Fragments);
+	static void AddFragment(FMassEntityManager& EntityManager, FMassEntityHandle Item, FInstancedStruct&& Fragment);
+	static void AddFragments(FMassEntityManager& EntityManager, FMassEntityHandle Item, TArrayView<FInstancedStruct> Fragments);
 
-	void RemoveFragment(FMassEntityManager& EntityManager, TNotNull<const UScriptStruct*> FragmentType);
+	static void RemoveFragment(FMassEntityManager& EntityManager, FMassEntityHandle Item, TNotNull<const UScriptStruct*> FragmentType);
+	static void RemoveFragments(FMassEntityManager& EntityManager, FMassEntityHandle Item, TConstArrayView<const UScriptStruct*> FragmentTypes);
 
-	void TempNestedContainerChanged(const FMassEntityManager& EntityManager) const;
-	void OnItemFragmentEdited(const FMassEntityManager& EntityManager, TConstStructView<FFaerieMassFragment> FragmentView, const Faerie::ItemData::FFieldChange& FieldChange) const;
+	static void UpdateFragments(FMassEntityManager& EntityManager, FMassEntityHandle Item, TArrayView<FInstancedStruct> Fragments, bool ClearOthers);
+
+	static void OnItemFragmentEdited(FMassEntityManager& EntityManager, FMassEntityHandle Item, TNotNull<const UScriptStruct*> FragmentType, const Faerie::ItemData::FFieldChangePayload& FieldChange);
 
 	/* Generic operations */
 

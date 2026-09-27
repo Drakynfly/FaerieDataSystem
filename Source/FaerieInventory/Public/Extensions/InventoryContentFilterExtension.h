@@ -16,7 +16,7 @@ struct FAERIEINVENTORY_API FFaerieItemContainerContentFilter : public FFaerieIte
 	GENERATED_BODY()
 
 	//~ FFaerieItemContainerExtensionBase
-	virtual EFaerieExtensionResponse AllowsAddition(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args) const override;
+	virtual EFaerieExtensionResponse AllowsAddition(const FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args) const override;
 	//~ FFaerieItemContainerExtensionBase
 
 	UPROPERTY(EditAnywhere, Category = "ItemContainerContentFilter")

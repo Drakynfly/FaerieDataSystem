@@ -90,9 +90,9 @@ struct FFaerieContainerGridReadContext
 {
 	GENERATED_BODY()
 
-	friend struct FFaerieContainerGridData;
-	friend struct FFaerieGridContent;
+	void InitContext(const FMassEntityManager& InManager, TNotNull<UFaerieContainerGridWrapper*> DataWrapper);
 
+	const FMassEntityManager& GetManagerChecked() const { return *Manager; }
 	const UFaerieItemStorage* GetStorage() const;
 	const FFaerieGridContent& GetGrid() const;
 	const Faerie::Extensions::FCellGrid& GetOccupiedCells() const;
@@ -119,6 +119,8 @@ struct FFaerieContainerGridReadContext
 protected:
 	UPROPERTY()
 	TObjectPtr<UFaerieContainerGridWrapper> Data;
+
+	const FMassEntityManager* Manager = nullptr;
 };
 
 USTRUCT(NotBlueprintType)
@@ -126,8 +128,9 @@ struct FFaerieContainerGridWriteContext final : public FFaerieContainerGridReadC
 {
 	GENERATED_BODY()
 
-	friend struct FFaerieContainerGridData;
+	void InitContext(FMassEntityManager& InManager, TNotNull<UFaerieContainerGridWrapper*> DataWrapper);
 
+	FMassEntityManager& GetManagerChecked() const { return *const_cast<FMassEntityManager*>(Manager); }
 	UFaerieItemStorage* GetStorage() const;
 
 	void SetGridSize(const FIntPoint& NewGridSize) const;
@@ -144,13 +147,13 @@ struct FFaerieContainerGridData : public FFaerieItemContainerExtensionBase
 	GENERATED_BODY()
 
 	//~ FFaerieItemContainerExtensionBase
-	virtual void InitializeExtension(TNotNull<const UFaerieItemContainerBase*> Container) override;
-	virtual EFaerieExtensionResponse AllowsAddition(TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args) const override;
-	virtual EFaerieExtensionResponse AllowsEdit(TNotNull<const UFaerieItemContainerBase*> Container, const TNotNull<const Faerie::Container::IAddressView*> DataView, FFaerieInventoryTag EditType) const override;
+	virtual void InitializeExtension(FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container) override;
+	virtual EFaerieExtensionResponse AllowsAddition(const FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args) const override;
+	virtual EFaerieExtensionResponse AllowsEdit(const FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container, const TNotNull<const Faerie::Container::IAddressView*> DataView, FFaerieInventoryTag EditType) const override;
 	//~ FFaerieItemContainerExtensionBase
 
-	FFaerieContainerGridReadContext GetReadContext() const;
-	FFaerieContainerGridWriteContext GetWriteContext();
+	FFaerieContainerGridReadContext GetReadContext(const FMassEntityManager& InManager) const;
+	FFaerieContainerGridWriteContext GetWriteContext(FMassEntityManager& InManager);
 
 	const UInventoryGridExtensionBase* GetGridLogic() const;
 
@@ -171,7 +174,7 @@ class UFaerieContainerGridDataView : public UFaerieContainerDataViewModelBase
 
 public:
 	//~ UFaerieContainerDataViewModelBase
-	virtual void SyncView() override;
+	virtual void SyncView(FMassEntityManager& EntityManager) override;
 	//~ UFaerieContainerDataViewModelBase
 };
 
@@ -203,7 +206,7 @@ private:
 
 namespace Faerie::Container
 {
-	struct FEvent;
+	struct FContainerEventPayload;
 }
 
 /**
@@ -225,7 +228,7 @@ public:
 
 	virtual EFaerieExtensionResponse AllowsAddition(const FFaerieContainerGridReadContext& Context, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args) const PURE_VIRTUAL(UInventoryGridExtensionBase::AllowsAddition, return EFaerieExtensionResponse::NoExplicitResponse; )
 	virtual EFaerieExtensionResponse AllowsEdit(const FFaerieContainerGridReadContext& Context, const TNotNull<const Faerie::Container::IAddressView*> DataView, FFaerieInventoryTag EditType) const PURE_VIRTUAL(UInventoryGridExtensionBase::AllowsEdit, return EFaerieExtensionResponse::NoExplicitResponse; )
-	virtual void HandleEvent(const FFaerieContainerGridWriteContext& Context, const Faerie::Container::FEvent& Event) const PURE_VIRTUAL(UInventoryGridExtensionBase::HandleEvent, ; )
+	virtual void HandleEvent(const FFaerieContainerGridWriteContext& Context, const Faerie::Container::FContainerEventPayload& Event) const PURE_VIRTUAL(UInventoryGridExtensionBase::HandleEvent, ; )
 
 	// Publicly accessible actions. Only call on server.
 	virtual TOptional<FFaerieAddress> GetKeyAt(const FFaerieContainerGridReadContext& Context, const FIntPoint& Position) const PURE_VIRTUAL(UInventoryGridExtensionBase::GetKeyAt, return NullOpt; )

@@ -163,19 +163,19 @@ FFaerieAddress UFaerieContainerQuery::QueryFirstAddress(const UFaerieItemContain
 
 	if (!IsFilterBound()) return {};
 
-	auto* EntityManager = ItemData::GetFaerieEntityManager();
+	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(Container->GetWorld());
 
 	if (InvertFilter)
 	{
 		return Container::FAddressFilter()
 			   .Invert()
 			   .By(Container::FCallbackFilter{FilterFunction})
-			   .First(EntityManager, Container);
+			   .First(&EntityManager, Container);
 	}
 
 	return Container::FAddressFilter()
-		   .By((Container::FCallbackFilter{FilterFunction}))
-		   .First(EntityManager, Container);
+		   .By(Container::FCallbackFilter{FilterFunction})
+		   .First(&EntityManager, Container);
 }
 
 void UFaerieContainerQuery::QueryAllAddresses(const UFaerieItemContainerBase* Container, TArray<FFaerieAddress>& OutAddresses) const
@@ -192,20 +192,20 @@ void UFaerieContainerQuery::QueryAllAddresses(const UFaerieItemContainerBase* Co
 
 	if (IsFilterBound())
 	{
-		auto* EntityManager = ItemData::GetFaerieEntityManager();
+		FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(Container->GetWorld());
 
 		if (InvertFilter)
 		{
 			Container::FAddressFilter()
 				.Invert()
 				.By(Container::FCallbackFilter{FilterFunction})
-				.Emit(EntityManager, Container, OutAddresses);
+				.Emit(&EntityManager, Container, OutAddresses);
 		}
 		else
 		{
 			Container::FAddressFilter()
 				.By(Container::FCallbackFilter{FilterFunction})
-				.Emit(EntityManager, Container, OutAddresses);
+				.Emit(&EntityManager, Container, OutAddresses);
 		}
 	}
 	else
@@ -247,13 +247,13 @@ bool UFaerieContainerQuery::IsAddressFiltered(const UFaerieItemContainerBase* Co
 
 		if (Proxy.IsValid())
 		{
-			auto* EntityManager = ItemData::GetFaerieEntityManager();
+			const FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(Container->GetWorld());
 
 			if (InvertFilter)
 			{
-				return !FilterFunction.Execute(EntityManager, Proxy);
+				return !FilterFunction.Execute(&EntityManager, Proxy);
 			}
-			return FilterFunction.Execute(EntityManager, Proxy);
+			return FilterFunction.Execute(&EntityManager, Proxy);
 		}
 	}
 
@@ -270,7 +270,7 @@ bool UFaerieContainerQuery::CompareAddresses_Impl(const TNotNull<const UFaerieIt
 
 	if (ProxyA.IsValid() && ProxyB.IsValid())
 	{
-		auto* EntityManager = ItemData::GetFaerieEntityManager();
+		auto* EntityManager = ItemData::GetFaerieEntityManager(Container->GetWorld());
 
 		if (InvertSort)
 		{

@@ -1,5 +1,6 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
+#include "EntityManagerHelpers.h"
 #include "FaerieContainerEvent.h"
 
 #include "Extensions/InventoryLoggerExtension.h"
@@ -12,27 +13,27 @@
 
 using namespace Faerie;
 
-void UFaerieContainerEventLogView::SyncView()
+void UFaerieContainerEventLogView::SyncView(FMassEntityManager& EntityManager)
 {
-	RecalculateEventTags();
-	RecalculateLogView();
+	RecalculateEventTags(EntityManager);
+	RecalculateLogView(EntityManager);
 	BroadcastFieldValueChanged(FFieldNotificationClassDescriptor::GetNumEvents);
 }
 
 bool UFaerieContainerEventLogView::AreEventsLogged() const
 {
-	if (ContainerExtensionPtr.Key.IsValid())
+	if (ExtensionPtr.IsValid())
 	{
-		return ContainerExtensionPtr.Value->Find(FFaerieContainerEventLog::StaticStruct(), false).IsValid();
+		return ExtensionPtr->GetExtensions()->Find(FFaerieContainerEventLog::StaticStruct(), false).IsValid();
 	}
 	return false;
 }
 
 int32 UFaerieContainerEventLogView::GetNumEvents() const
 {
-	if (ContainerExtensionPtr.Key.IsValid())
+	if (ExtensionPtr.IsValid())
 	{
-		if (const FStructView View = ContainerExtensionPtr.Value->Find(FFaerieContainerEventLog::StaticStruct(), false);
+		if (const FStructView View = ExtensionPtr->GetExtensions()->Find(FFaerieContainerEventLog::StaticStruct(), false);
 			View.IsValid())
 		{
 			return View.Get<FFaerieContainerEventLog>().EventLog.Num();
@@ -43,9 +44,9 @@ int32 UFaerieContainerEventLogView::GetNumEvents() const
 
 FFaerieBlueprintInventoryEvent UFaerieContainerEventLogView::GetEvent(int32 Index, const bool FromEnd) const
 {
-	if (ContainerExtensionPtr.Key.IsValid())
+	if (ExtensionPtr.IsValid())
 	{
-		const FStructView View = ContainerExtensionPtr.Value->Find(FFaerieContainerEventLog::StaticStruct(), false);
+		const FStructView View = ExtensionPtr->GetExtensions()->Find(FFaerieContainerEventLog::StaticStruct(), false);
 		if (!View.IsValid()) return FFaerieBlueprintInventoryEvent();
 
 		auto&& Log = View.Get<FFaerieContainerEventLog>().EventLog;
@@ -79,7 +80,7 @@ void UFaerieContainerEventLogView::SetPageIndex(const int32 Index)
 	{
 		PageIndex = Index;
 		BroadcastFieldValueChanged(FFieldNotificationClassDescriptor::PageIndex);
-		RecalculateLogView();
+		RecalculateLogView(ItemData::GetFaerieEntityManagerChecked(GetWorld()));
 	}
 }
 
@@ -89,7 +90,7 @@ void UFaerieContainerEventLogView::SetCountPerPage(const int32 Count)
 	{
 		CountPerPage = Count;
 		BroadcastFieldValueChanged(FFieldNotificationClassDescriptor::CountPerPage);
-		RecalculateLogView();
+		RecalculateLogView(ItemData::GetFaerieEntityManagerChecked(GetWorld()));
 	}
 }
 
@@ -99,7 +100,7 @@ void UFaerieContainerEventLogView::SetFilterTags(const FGameplayTagContainer Tag
 	{
 		FilterTags = Tags;
 		BroadcastFieldValueChanged(FFieldNotificationClassDescriptor::FilterTags);
-		RecalculateLogView();
+		RecalculateLogView(ItemData::GetFaerieEntityManagerChecked(GetWorld()));
 	}
 }
 
@@ -109,20 +110,20 @@ void UFaerieContainerEventLogView::SetInvertEventOrder(const bool Invert)
 	{
 		InvertEventOrder = Invert;
 		BroadcastFieldValueChanged(FFieldNotificationClassDescriptor::InvertEventOrder);
-		RecalculateLogView();
+		RecalculateLogView(ItemData::GetFaerieEntityManagerChecked(GetWorld()));
 	}
 }
 
-void UFaerieContainerEventLogView::RecalculateEventTags()
+void UFaerieContainerEventLogView::RecalculateEventTags(FMassEntityManager& EntityManager)
 {
-	if (!ContainerExtensionPtr.Key.IsValid())
+	if (!ExtensionPtr.IsValid())
 	{
 		return;
 	}
 
 	FGameplayTagContainer NewEventTags;
 
-	const FStructView View = ContainerExtensionPtr.Value->Find(FFaerieContainerEventLog::StaticStruct(), false);
+	const FStructView View = ExtensionPtr->GetExtensions()->Find(FFaerieContainerEventLog::StaticStruct(), false);
 	if (!View.IsValid())
 	{
 		BroadcastFieldValueChanged(FFieldNotificationClassDescriptor::AreEventsLogged);
@@ -139,9 +140,9 @@ void UFaerieContainerEventLogView::RecalculateEventTags()
 	UE_MVVM_SET_PROPERTY_VALUE(EventTags, NewEventTags);
 }
 
-void UFaerieContainerEventLogView::RecalculateLogView()
+void UFaerieContainerEventLogView::RecalculateLogView(FMassEntityManager& EntityManager)
 {
-	if (!ContainerExtensionPtr.Key.IsValid())
+	if (!ExtensionPtr.IsValid())
 	{
 		return;
 	}
@@ -149,7 +150,7 @@ void UFaerieContainerEventLogView::RecalculateLogView()
 	PageView.Empty(CountPerPage);
 	NumFilteredEvents = 0;
 
-	const FStructView View = ContainerExtensionPtr.Value->Find(FFaerieContainerEventLog::StaticStruct(), false);
+	const FStructView View = ExtensionPtr->GetExtensions()->Find(FFaerieContainerEventLog::StaticStruct(), false);
 	if (!View.IsValid()) return;
 
 	auto&& Log = View.Get<FFaerieContainerEventLog>().EventLog;
@@ -228,7 +229,7 @@ UFaerieContainerEventLogUpdater::UFaerieContainerEventLogUpdater()
 
 void UFaerieContainerEventLogUpdater::ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager)
 {
-	EventQuery.AddRequirement<Container::FEvent>(EMassFragmentAccess::ReadOnly, EMassFragmentPresence::All);
+	EventQuery.AddRequirement<Container::FContainerEventPayload>(EMassFragmentAccess::ReadOnly, EMassFragmentPresence::All);
 	ViewQuery.AddRequirement<Content::FEventLogViewFragment>(EMassFragmentAccess::ReadOnly, EMassFragmentPresence::All);
 }
 
@@ -239,8 +240,8 @@ void UFaerieContainerEventLogUpdater::Execute(FMassEntityManager& EntityManager,
 
 	EventQuery.ForEachEntityChunk(Context, [&ContainersUpdated](const FMassExecutionContext& InContext)
 	{
-		const TConstArrayView<Container::FEvent> Events = InContext.GetFragmentView<Container::FEvent>();
-		for (const Container::FEvent& Event : Events)
+		const TConstArrayView<Container::FContainerEventPayload> Events = InContext.GetFragmentView<Container::FContainerEventPayload>();
+		for (const Container::FContainerEventPayload& Event : Events)
 		{
 			UFaerieItemContainerBase* Container = Event.Container.Get();
 			if (!IsValid(Container))
@@ -248,7 +249,7 @@ void UFaerieContainerEventLogUpdater::Execute(FMassEntityManager& EntityManager,
 				continue;
 			}
 
-			Container->WriteContainerData(FFaerieContainerEventLog::StaticStruct(), [&Event](const FStructView Element)
+			Container->WriteContainerData(InContext.GetEntityManagerChecked(), FFaerieContainerEventLog::StaticStruct(), [&Event](const FStructView Element)
 			{
 				auto& Log = Element.Get<FFaerieContainerEventLog>();
 
@@ -279,7 +280,7 @@ void UFaerieContainerEventLogUpdater::Execute(FMassEntityManager& EntityManager,
 
 			if (ContainersUpdated.Contains(View->GetContainerObject()))
 			{
-				View->SyncView();
+				View->SyncView(InContext.GetEntityManagerChecked());
 			}
 		}
 	});

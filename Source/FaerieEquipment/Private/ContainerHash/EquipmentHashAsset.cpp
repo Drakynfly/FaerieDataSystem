@@ -20,7 +20,8 @@ void UFaerieEquipmentHashAsset::PreSave(FObjectPreSaveContext SaveContext)
 #if WITH_EDITOR
 	CheckHash = 0;
 
-	auto* EntityManager = Faerie::ItemData::GetFaerieEntityManager();
+	// @TODO we cannot implement this until we can dump items into the editor's mass subsystem
+	FMassEntityManager* EntityManager = nullptr;
 
 	for (auto&& Config : Configs)
 	{

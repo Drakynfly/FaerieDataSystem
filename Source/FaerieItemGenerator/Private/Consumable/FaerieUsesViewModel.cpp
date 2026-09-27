@@ -13,13 +13,21 @@ TNotNull<UScriptStruct*> UFaerieUsesViewModel::GetFragmentType() const
 	return FFaerieItemUses::StaticStruct();
 }
 
-void UFaerieUsesViewModel::OnProxySet(const FMassEntityManager& EntityManager)
+UScriptStruct* UFaerieUsesViewModel::GetViewModelFragmentType() const
+{
+	return Generation::FUsesViewFragment::StaticStruct();
+}
+
+void UFaerieUsesViewModel::OnProxySet(FMassEntityManager& EntityManager)
 {
 	int32 NewUsesRemaining = 0;
 	int32 NewMaxUses = 0;
 
 	if (ItemProxy.IsValid())
 	{
+		check(!IsInitialized())
+		CreateViewModelEntity(EntityManager, GetViewModelFragmentType());
+
 		const TConstStructView<FFaerieItemUses> Value =
 			ItemData::GetEntityFragmentOrDefault<FFaerieItemUses>(
 				&EntityManager,
@@ -35,6 +43,7 @@ void UFaerieUsesViewModel::OnProxySet(const FMassEntityManager& EntityManager)
 	}
 	else
 	{
+		DestroyViewModelEntity(EntityManager);
 		UE_MVVM_SET_PROPERTY_VALUE(HasUses, false);
 	}
 
@@ -42,31 +51,19 @@ void UFaerieUsesViewModel::OnProxySet(const FMassEntityManager& EntityManager)
 	UE_MVVM_SET_PROPERTY_VALUE(MaxUses, NewMaxUses);
 }
 
-void UFaerieUsesViewModel::OnFieldChange(const FMassEntityManager& EntityManager, const ItemData::FFieldChange& Data)
+void UFaerieUsesViewModel::OnFieldChange(const FMassEntityManager& EntityManager, const ItemData::FFieldChangePayload& Data)
 {
 	const TConstStructView<FFaerieItemUses> Value =
 		ItemData::GetEntityFragmentOrDefault<FFaerieItemUses>(
 			&EntityManager,
 			ItemProxy.GetItemInstanceOrInvalid());
 
-	for (auto&& Field : Data.Fields)
+	if (Data.HasFlag(FFaerieItemUses::EFieldFlags::UsesRemaining))
 	{
-		if (Field == GET_MEMBER_NAME_CHECKED(FFaerieItemUses, UsesRemaining))
-		{
-			UE_MVVM_SET_PROPERTY_VALUE(UsesRemaining, Value->UsesRemaining);
-		}
-		else if (Field == GET_MEMBER_NAME_CHECKED(FFaerieItemUses, MaxUses))
-		{
-			UE_MVVM_SET_PROPERTY_VALUE(MaxUses, Value->MaxUses);
-		}
+		UE_MVVM_SET_PROPERTY_VALUE(UsesRemaining, Value->UsesRemaining);
 	}
-}
-
-void UFaerieUsesViewModel::CheckForFieldChange(const FFaerieItemInstance& Item,
-	const FConstStructView FragmentView)
-{
-	const FFaerieItemUses& MassCapacity = FragmentView.Get<const FFaerieItemUses>();
-
-	UE_MVVM_SET_PROPERTY_VALUE(UsesRemaining, MassCapacity.UsesRemaining);
-	UE_MVVM_SET_PROPERTY_VALUE(MaxUses, MassCapacity.MaxUses);
+	if (Data.HasFlag(FFaerieItemUses::EFieldFlags::MaxUses))
+	{
+		UE_MVVM_SET_PROPERTY_VALUE(MaxUses, Value->MaxUses);
+	}
 }

@@ -22,7 +22,7 @@
 
 namespace Faerie::Container
 {
-	struct FEvent;
+	struct FContainerEventPayload;
 	class IEntryIterator;
 	class IAddressIterator;
 	class IAddressView;
@@ -38,6 +38,7 @@ namespace Faerie::Container
 	{
 		GENERATED_BODY()
 
+		// Handle of the item that owns the container
 		FMassEntityHandle ItemHandle;
 	};
 }
@@ -59,7 +60,7 @@ struct FAERIEINVENTORY_API FFaerieItemContainerExtensions : public FFaerieFastAr
 {
 	GENERATED_BODY()
 
-	friend UFaerieItemContainerBase;
+	friend class UFaerieItemContainerBase;
 
 private:
 	UPROPERTY(EditAnywhere, Category = "ItemContainerExtensions")
@@ -72,12 +73,11 @@ private:
 	// ReSharper disable once CppUE4ProbableMemoryIssuesWithUObject
 	TObjectPtr<UFaerieItemContainerBase> ChangeListener;
 
-	// Dual pointer to UObject and it's Extension data that we can use to access parent extension data.
-	TPair<FWeakObjectPtr, FFaerieItemContainerExtensions*> ParentExtensions;
-
 	void PreStackReplicatedRemove(const FFaerieItemContainerExtensionStorageElement& Element) const;
 	void PostStackReplicatedAdd(const FFaerieItemContainerExtensionStorageElement& Element) const;
 	void PostStackReplicatedChange(const FFaerieItemContainerExtensionStorageElement& Element) const;
+
+	FFaerieItemContainerExtensions* GetParentExtensions() const;
 
 public:
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
@@ -93,7 +93,7 @@ public:
 		None,
 		Created
 	};
-	FInstancedStruct& AddOrGetRef(TNotNull<const UScriptStruct*> Type, EWriteContainerDataFlag* OutFlag = nullptr);
+	FInstancedStruct& AddOrGetRef(FMassEntityManager& EntityManager, TNotNull<const UScriptStruct*> Type, EWriteContainerDataFlag* OutFlag = nullptr);
 
 	void Remove(int32 Index);
 	void Reset();
@@ -105,15 +105,30 @@ public:
 	void ForEachMutable_Recursive(const TFunctionRef<Faerie::Utils::EIteratorFunctorReturn(FStructView)>& Functor);
 };
 
+UINTERFACE()
+class UFaerieTempInterfaceForGettingParentExtensions : public UInterface
+{
+	GENERATED_BODY()
+};
+
+class IFaerieTempInterfaceForGettingParentExtensions
+{
+	GENERATED_BODY()
+
+public:
+	virtual FFaerieItemContainerExtensions* GetExtensions() = 0;
+};
+
 /**
  * The base class for objects that store and replicate FaerieItems.
  */
 UCLASS(Abstract, Blueprintable, EditInlineNew, DefaultToInstanced)
-class FAERIEINVENTORY_API UFaerieItemContainerBase : public UNetSupportedObject, public IFaerieItemOwnerInterface
+class FAERIEINVENTORY_API UFaerieItemContainerBase : public UNetSupportedObject, public IFaerieItemOwnerInterface, public IFaerieTempInterfaceForGettingParentExtensions
 {
 	GENERATED_BODY()
 
 	friend Faerie::Container::Private::FIteratorAccess;
+	friend FFaerieItemContainerExtensions;
 
 public:
 	UFaerieItemContainerBase();
@@ -132,6 +147,10 @@ public:
 	virtual void OnItemDataChanged(const FFaerieItemInstance& Instance, FGameplayTag EditTag) override;
 	//~ IFaerieItemOwnerInterface
 
+	//~ IFaerieTempInterfaceForGettingParentExtensions
+	virtual FFaerieItemContainerExtensions* GetExtensions() override { return &ExtensionData; }
+	//~ IFaerieTempInterfaceForGettingParentExtensions
+
 
 	/**------------------------------*/
 	/*		 SAVE DATA API			 */
@@ -140,12 +159,12 @@ public:
 	[[nodiscard]] FFaerieItemExportData ExportItemData(const FMassEntityManager& EntityManager, const FFaerieItemInstance& Item) const;
 	[[nodiscard]] FFaerieItemInstance ImportItemData(FMassEntityManager& EntityManager, const UFaerieItem* Item, const FFaerieItemExportData& ExportData);
 
-	virtual FInstancedStruct MakeSaveData(Faerie::Container::FSaveParams Params) const PURE_VIRTUAL(UFaerieItemContainerBase::MakeSaveData, return {}; )
-	virtual void LoadSaveData(FConstStructView ItemData, Faerie::Container::FLoadParams Params) PURE_VIRTUAL(UFaerieItemContainerBase::SaveData, )
+	virtual FInstancedStruct MakeSaveData(const FMassEntityManager& EntityManager, Faerie::Container::FSaveParams Params) const PURE_VIRTUAL(UFaerieItemContainerBase::MakeSaveData, return {}; )
+	virtual void LoadSaveData(FMassEntityManager& EntityManager, FConstStructView ItemData, Faerie::Container::FLoadParams Params) PURE_VIRTUAL(UFaerieItemContainerBase::SaveData, )
 
 protected:
-	void RavelExtensionData(TAdderRef<FInstancedStruct> SaveData) const;
-	void UnravelExtensionData(TConstArrayView<FInstancedStruct> SaveData);
+	void RavelExtensionData(const FMassEntityManager& EntityManager, TAdderRef<FInstancedStruct> SaveData) const;
+	void UnravelExtensionData(FMassEntityManager& EntityManager, TConstArrayView<FInstancedStruct> SaveData);
 
 
 	/**------------------------------*/
@@ -170,20 +189,13 @@ public:
 	// Call this function to grant ownership of a FFaerieItemInstance stack. Returns true if ownership was accepted.
 	// It is implied, and is the responsibility of the implementing class, to either accept ownership of the whole stack,
 	// or none. Partial possession is not allowed.
-	[[nodiscard]] virtual bool Possess(const FFaerieUnownedItemStack& Stack) PURE_VIRTUAL(UFaerieItemContainerBase::Possess, return false; )
-
-	// Destroy a number of items associated with an entry key.
-	virtual void DestroyStack(FFaerieEntryKey Key, int32 Copies = Faerie::ItemData::EntireStack) PURE_VIRTUAL(UFaerieItemContainerBase::DestroyStack, ; )
-
-	// Destroy a number of items associated with an address.
-	virtual void DestroyStack(FFaerieAddress Address, int32 Copies = Faerie::ItemData::EntireStack) PURE_VIRTUAL(UFaerieItemContainerBase::DestroyStack, ; )
-
-	// Destroy a number of items associated with a proxy.
-	virtual void DestroyStack(const FFaerieItemProxy& Proxy, int32 Copies = Faerie::ItemData::EntireStack) PURE_VIRTUAL(UFaerieItemContainerBase::DestroyStack, ; )
+	[[nodiscard]] virtual bool Possess(FMassEntityManager& EntityManager, const FFaerieUnownedItemStack& Stack) PURE_VIRTUAL(UFaerieItemContainerBase::Possess, return false; )
 
 	[[nodiscard]] virtual TOptional<FFaerieUnownedItemStack> Release(FFaerieEntryKey Key, int32 Copies, FFaerieInventoryTag Reason) PURE_VIRTUAL(UFaerieItemContainerBase::Release, return NullOpt; )
 
 	[[nodiscard]] virtual TOptional<FFaerieUnownedItemStack> Release(FFaerieAddress Address, int32 Copies, FFaerieInventoryTag Reason) PURE_VIRTUAL(UFaerieItemContainerBase::Release, return NullOpt; )
+
+	[[nodiscard]] virtual TOptional<FFaerieUnownedItemStack> Release(const FFaerieItemProxy& Proxy, int32 Copies, FFaerieInventoryTag Reason) PURE_VIRTUAL(UFaerieItemContainerBase::Release, return NullOpt; )
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainer")
 	virtual bool CanPossess(const FFaerieItemProxy& Proxy) const PURE_VIRTUAL(UFaerieItemContainerBase::CanPossess, return false; )
@@ -211,45 +223,44 @@ public:
 	// @todo temp raw accessor
 	UE_REWRITE FFaerieItemContainerExtensions& GetExtensionData() { return ExtensionData; }
 
-	void WriteContainerData(TNotNull<const UScriptStruct*> Type, const TFunctionRef<void(FStructView, FFaerieItemContainerExtensions::EWriteContainerDataFlag)>& Functor, bool CreateIfMissing = true);
-	void WriteContainerData(TNotNull<const UScriptStruct*> Type, const TFunctionRef<void(FStructView)>& Functor, bool CreateIfMissing = true);
+	void WriteContainerData(FMassEntityManager& EntityManager, TNotNull<const UScriptStruct*> Type, const TFunctionRef<void(FStructView, FFaerieItemContainerExtensions::EWriteContainerDataFlag)>& Functor, bool CreateIfMissing = true);
+	void WriteContainerData(FMassEntityManager& EntityManager, TNotNull<const UScriptStruct*> Type, const TFunctionRef<void(FStructView)>& Functor, bool CreateIfMissing = true);
 
-	bool HasContainerData(TNotNull<const UScriptStruct*> Type, bool RecurseParents = false) const;
-
-	template <typename T>
-	bool HasContainerData(bool RecurseParents = false) const
-	{
-		return HasContainerData(T::StaticStruct(), RecurseParents);
-	}
-
-	FConstStructView ReadContainerData(TNotNull<const UScriptStruct*> Type, bool RecurseParents = false) const;
+	bool HasContainerData(const FMassEntityManager& EntityManager, TNotNull<const UScriptStruct*> Type, bool RecurseParents = false) const;
 
 	template <typename T>
-	const T* ReadContainerData(bool RecurseParents = false) const
+	bool HasContainerData(const FMassEntityManager& EntityManager, bool RecurseParents = false) const
 	{
-		return ReadContainerData(T::StaticStruct(), RecurseParents).template GetPtr<T>();
+		return HasContainerData(EntityManager, T::StaticStruct(), RecurseParents);
+	}
+
+	FConstStructView ReadContainerData(const FMassEntityManager& EntityManager, TNotNull<const UScriptStruct*> Type, bool RecurseParents = false) const;
+
+	template <typename T>
+	const T* ReadContainerData(const FMassEntityManager& EntityManager, bool RecurseParents = false) const
+	{
+		return ReadContainerData(EntityManager, T::StaticStruct(), RecurseParents).template GetPtr<T>();
 	}
 
 	template <typename T>
-	const T& ReadContainerDataChecked(bool RecurseParents = false) const
+	const T& ReadContainerDataChecked(const FMassEntityManager& EntityManager, bool RecurseParents = false) const
 	{
-		return ReadContainerData(T::StaticStruct(), RecurseParents).template Get<T>();
+		return ReadContainerData(EntityManager, T::StaticStruct(), RecurseParents).template Get<T>();
 	}
 
-	void SetParentExtensions(TNotNull<UObject*> Obj, FFaerieItemContainerExtensions& InExtensions);
+	void SetParentExtensions(TNotNull<IFaerieTempInterfaceForGettingParentExtensions*> Obj);
 	void ClearParentExtensions();
 
-	void InitializeExtensions();
+	void InitializeExtensions(FMassEntityManager& EntityManager);
 
-	[[nodiscard]] bool AllowsAddition(const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, const FFaerieExtensionAllowsAdditionArgs Args, const bool DefaultResult) const;
+	[[nodiscard]] bool AllowsAddition(const FMassEntityManager& EntityManager, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, const FFaerieExtensionAllowsAdditionArgs Args, const bool DefaultResult) const;
 
-	[[nodiscard]] bool AllowsRemoval(const TNotNull<const Faerie::Container::IAddressView*> DataView, const FFaerieInventoryTag Reason, const bool DefaultResult) const;
+	[[nodiscard]] bool AllowsRemoval(const FMassEntityManager& EntityManager, const TNotNull<const Faerie::Container::IAddressView*> DataView, const FFaerieInventoryTag Reason, const bool DefaultResult) const;
 
-	[[nodiscard]] bool AllowsEdit(const TNotNull<const Faerie::Container::IAddressView*> DataView, const FFaerieInventoryTag EditTag, const bool DefaultResult) const;
+	[[nodiscard]] bool AllowsEdit(const FMassEntityManager& EntityManager, const TNotNull<const Faerie::Container::IAddressView*> DataView, const FFaerieInventoryTag EditTag, const bool DefaultResult) const;
 
-	void PostEvent(const Faerie::Container::FEvent& Event);
-
-	void PostEventBatch(TConstArrayView<Faerie::Container::FEvent> Events);
+	void PostEvent(FMassEntityManager& EntityManager, const Faerie::Container::FContainerEventPayload& Event);
+	void PostEventBatch(FMassEntityManager& EntityManager, TConstArrayView<Faerie::Container::FContainerEventPayload> Events);
 
 
 	/**------------------------------*/
@@ -260,6 +271,10 @@ protected:
 	// Storage for extension data that configures this container's behavior and responds to events.
 	UPROPERTY(EditAnywhere, Replicated, Category = "ItemContainer")
 	FFaerieItemContainerExtensions ExtensionData;
+
+	// Temporary solution for replicating extension parent.
+	UPROPERTY(Replicated)
+	TObjectPtr<UObject> ParentThatImplementsExtensions;
 
 	Faerie::Inventory::TKeyGen<FFaerieEntryKey> KeyGen;
 };

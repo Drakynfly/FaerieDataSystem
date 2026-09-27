@@ -37,9 +37,15 @@ void UFaerieGenerationLibrary::GetCraftingSlots_Message(UObject* Object, FFaerie
     }
 }
 
-bool UFaerieGenerationLibrary::TestCraftingSlots(const TScriptInterface<IFaerieItemSlotInterface> Interface,
+bool UFaerieGenerationLibrary::TestCraftingSlots(UObject* WorldContextObj, const TScriptInterface<IFaerieItemSlotInterface> Interface,
     const FFaerieCraftingFilledSlots& FilledSlots)
 {
+    if (!ItemData::HasFaerieEntityManagerBeenAssigned(WorldContextObj->GetWorld()))
+    {
+        FFrame::KismetExecutionMessage(TEXT("Cannot consume slots without valid Entity Manager in UFaerieGenerationLibrary::TestCraftingSlots"), ELogVerbosity::Error);
+        return false;
+    }
+
     if (!Interface.GetInterface())
     {
         FFrame::KismetExecutionMessage(TEXT("Invalid Interface passed to UFaerieGenerationLibrary::TestCraftingSlots"), ELogVerbosity::Error);
@@ -50,17 +56,17 @@ bool UFaerieGenerationLibrary::TestCraftingSlots(const TScriptInterface<IFaerieI
     {
         if (const FFaerieItemCraftingSlots* SlotsPtr = InterfacePtr->GetCraftingSlots())
         {
-            auto* EntityManager = ItemData::GetFaerieEntityManager();
+            auto* EntityManager = ItemData::GetFaerieEntityManager(WorldContextObj->GetWorld());
             return Generation::ValidateFilledSlots<false>(EntityManager, FilledSlots, *SlotsPtr);
         }
     }
     return false;
 }
 
-bool UFaerieGenerationLibrary::ConsumeSlotCosts(const FFaerieCraftingFilledSlots& FilledSlots,
+bool UFaerieGenerationLibrary::ConsumeSlotCosts(UObject* WorldContextObj, const FFaerieCraftingFilledSlots& FilledSlots,
     const TScriptInterface<IFaerieItemSlotInterface>& CraftingSlots)
 {
-    if (!ItemData::HasFaerieEntityManagerBeenAssigned())
+    if (!ItemData::HasFaerieEntityManagerBeenAssigned(WorldContextObj->GetWorld()))
     {
         FFrame::KismetExecutionMessage(TEXT("Cannot consume slots without valid Entity Manager in UFaerieGenerationLibrary::ConsumeSlotCosts"), ELogVerbosity::Error);
         return false;
@@ -76,7 +82,7 @@ bool UFaerieGenerationLibrary::ConsumeSlotCosts(const FFaerieCraftingFilledSlots
     {
         if (const FFaerieItemCraftingSlots* SlotsPtr = InterfacePtr->GetCraftingSlots())
         {
-            auto& EntityManager = ItemData::GetFaerieEntityManagerChecked();
+            FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(WorldContextObj->GetWorld());
             return Generation::ConsumeSlotCosts(EntityManager, FilledSlots, *SlotsPtr);
         }
     }
@@ -145,7 +151,14 @@ bool UFaerieGenerationLibrary::CanConsume(const FFaerieItemProxy& Proxy, UScript
         return false;
     }
 
-    return Generation::CanConsume(Proxy, ConsumableType, Consumer, Cost);
+    const UWorld* World = Proxy.ExtractWorld();
+    if (!ItemData::HasFaerieEntityManagerBeenAssigned(World))
+    {
+        FFrame::KismetExecutionMessage(TEXT("No Entity Manager assigned to handle UFaerieGenerationLibrary::CanConsume"), ELogVerbosity::Error);
+        return false;
+    }
+
+    return Generation::CanConsume(ItemData::GetFaerieEntityManagerChecked(World), Proxy, ConsumableType, Consumer, Cost);
 }
 
 bool UFaerieGenerationLibrary::TryConsume(const FFaerieItemProxy& Proxy, UScriptStruct* ConsumableType,
@@ -169,5 +182,12 @@ bool UFaerieGenerationLibrary::TryConsume(const FFaerieItemProxy& Proxy, UScript
         return false;
     }
 
-    return Generation::TryConsume(Proxy, ConsumableType, Consumer, Cost);
+    const UWorld* World = Proxy.ExtractWorld();
+    if (!ItemData::HasFaerieEntityManagerBeenAssigned(World))
+    {
+        FFrame::KismetExecutionMessage(TEXT("No Entity Manager assigned to handle UFaerieGenerationLibrary::TryConsume"), ELogVerbosity::Error);
+        return false;
+    }
+
+    return Generation::TryConsume(ItemData::GetFaerieEntityManagerChecked(World), Proxy, ConsumableType, Consumer, Cost);
 }

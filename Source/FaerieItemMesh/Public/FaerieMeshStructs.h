@@ -146,31 +146,33 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FaerieItemMesh")
 	TArray<FFaerieItemMaterial> Materials;
 
+	UE_REWRITE bool IsValid() const { return IsStatic() || IsSkeletal(); }
+
 	bool IsStatic() const;
 	bool IsSkeletal() const;
 
-	const UStaticMesh* GetStatic() const
+	UE_REWRITE const UStaticMesh* GetStatic() const
 	{
 		return StaticMesh;
 	}
 
 	// Non-const version while UE doesn't treat these const-safely.
-	UStaticMesh* GetStatic_Unsafe() const
+	UE_REWRITE UStaticMesh* GetStatic_Unsafe() const
 	{
 		return ConstCast(StaticMesh);
 	}
 
-	FSkeletonAndAnimation GetSkeletal() const
+	UE_REWRITE FSkeletonAndAnimation GetSkeletal() const
 	{
 		return SkeletonAndAnimation;
 	}
 
-	void SetStatic(const UStaticMesh* Mesh)
+	UE_REWRITE void SetStatic(const UStaticMesh* Mesh)
 	{
 		StaticMesh = Mesh;
 	}
 
-	void SetSkeletal(const FSkeletonAndAnimation& Mesh)
+	UE_REWRITE void SetSkeletal(const FSkeletonAndAnimation& Mesh)
 	{
 		SkeletonAndAnimation = Mesh;
 	}

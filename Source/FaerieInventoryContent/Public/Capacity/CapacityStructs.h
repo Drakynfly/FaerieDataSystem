@@ -101,6 +101,16 @@ struct FAERIEINVENTORYCONTENT_API FFaerieItemCapacity : public FFaerieMassFragme
     	return static_cast<double>(Weight) / GetEfficientVolume();
     }
 
+	enum class EFieldFlags : uint16
+    {
+    	None = 0,
+		Weight = 1 << 0,
+		Bounds = 1 << 1,
+		Efficiency = 1 << 2,
+
+		All = Weight | Bounds | Efficiency
+	};
+
 ____FAERIE_FRAGMENT_DECL(FFaerieItemCapacity)
 };
 

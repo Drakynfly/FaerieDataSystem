@@ -48,7 +48,7 @@ namespace Faerie::Inventory::Tags
 	}
 }
 
-FFaerieBlueprintInventoryEvent FFaerieBlueprintInventoryEvent::FromNativeEvent(const Faerie::Container::FEvent& NativeEvent)
+FFaerieBlueprintInventoryEvent FFaerieBlueprintInventoryEvent::FromNativeEvent(const Faerie::Container::FContainerEventPayload& NativeEvent)
 {
 	return FFaerieBlueprintInventoryEvent{
 		.Container = NativeEvent.Container,

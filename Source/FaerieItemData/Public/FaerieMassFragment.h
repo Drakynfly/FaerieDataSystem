@@ -220,7 +220,7 @@ namespace Faerie::ItemData
 	struct TAutoRegisterFragmentTraits final : FDelayedAutoRegisterHelper
 	{
 		TAutoRegisterFragmentTraits()
-			: FDelayedAutoRegisterHelper(EDelayedRegisterRunPhase::EndOfEngineInit, []()
+		  : FDelayedAutoRegisterHelper(EDelayedRegisterRunPhase::EndOfEngineInit, []()
 			{
 				IAutoRegisterFragmentTraits::StaticRegisterTraits(TFragment::StaticStruct(), MakeTypeInterface<TFragment>());
 			}, true) {}

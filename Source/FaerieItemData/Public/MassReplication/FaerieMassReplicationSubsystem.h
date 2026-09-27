@@ -2,46 +2,35 @@
 
 #pragma once
 
-#include "FaerieMassReplicationActor.h"
-#include "MassEntityTemplate.h"
+#include "MassSubsystemBase.h"
 
-#include "Subsystems/WorldSubsystem.h"
+#include "StructUtils/StructView.h"
+
 #include "FaerieMassReplicationSubsystem.generated.h"
 
-struct FStreamableHandle;
-class UMassEntityConfigAsset;
+struct FFaerieMassFragment;
 class AFaerieMassReplicationActor;
 
 /**
  *
  */
 UCLASS()
-class FAERIEITEMDATA_API UFaerieMassReplicationSubsystem : public UWorldSubsystem
+class FAERIEITEMDATA_API UFaerieMassReplicationSubsystem : public UMassSubsystemBase
 {
 	GENERATED_BODY()
 
-public:
+protected:
+	//~ UWorldSubsystem
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
-	virtual void PostInitialize() override;
 	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
-	virtual void Deinitialize() override;
+	//~ UWorldSubsystem
 
-	void ForceItemDataTemplateRegistration();
-
-	void Server_UpdateFragment(const FFaerieItemInstance& Item, TConstArrayView<TConstStructView<FFaerieMassFragment>> FragmentViews);
-	void Server_RemoveFragment(const FFaerieItemInstance& Item, TNotNull<const UScriptStruct*> ScriptStruct);
-	void Server_RemoveEntity(const FFaerieItemInstance& Item);
-
-	const FMassEntityTemplate& GetItemDataTemplate();
+public:
+	void Server_UpdateFragments(const FMassEntityManager& EntityManager, FMassEntityHandle Item, TConstArrayView<TConstStructView<FFaerieMassFragment>> FragmentViews);
+	void Server_RemoveFragments(const FMassEntityManager& EntityManager, FMassEntityHandle Item, TConstArrayView<const UScriptStruct*> ScriptStruct);
+	void Server_RemoveEntities(const FMassEntityManager& EntityManager, TConstArrayView<FMassEntityHandle> Items);
 
 protected:
-	void OnItemDataMassConfigLoaded();
-
 	UPROPERTY()
 	TObjectPtr<AFaerieMassReplicationActor> ReplicationActor;
-
-	UPROPERTY()
-	TObjectPtr<UMassEntityConfigAsset> ItemDataMassConfig;
-
-	TSharedPtr<FStreamableHandle> ItemDataMassConfigStreamHandle;
 };

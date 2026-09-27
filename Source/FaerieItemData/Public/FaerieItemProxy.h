@@ -105,9 +105,14 @@ public:
 	// Get the owning object for the item this proxy represents.
 	UObject* GetItemOwner() const;
 
+	// Determine the UWorld this item resides in.
+	const UWorld* ExtractWorld() const;
+
 	// Utility to access the change event, which requires non-const access to the delegate, and proxies are always
 	// treated as const, so a quick little ugly workaround is needed.
 	Faerie::ItemData::FProxyChangeEvent::RegistrationType& GetOnProxyChangeEvent() const;
+
+	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bSuccess);
 
 	[[nodiscard]] UE_REWRITE bool UEOpEquals(const FFaerieItemProxy& Other) const
 	{
@@ -118,6 +123,15 @@ public:
 	{
 		return GetTypeHash(Proxy.InterfacePtr);
 	}
+};
+
+template <>
+struct TStructOpsTypeTraits<FFaerieItemProxy> : public TStructOpsTypeTraitsBase2<FFaerieItemProxy>
+{
+	enum
+	{
+		WithNetSerializer = true,
+	};
 };
 
 namespace Faerie::ItemData

@@ -60,7 +60,7 @@ EFaerieExtensionResponse UInventorySimpleGridExtension::AllowsEdit(const FFaerie
 	return EFaerieExtensionResponse::NoExplicitResponse;
 }
 
-void UInventorySimpleGridExtension::HandleEvent(const FFaerieContainerGridWriteContext& Context, const Container::FEvent& Event) const
+void UInventorySimpleGridExtension::HandleEvent(const FFaerieContainerGridWriteContext& Context, const Container::FContainerEventPayload& Event) const
 {
 	if (Event.IsAdditionEvent())
 	{

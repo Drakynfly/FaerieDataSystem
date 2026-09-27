@@ -5,6 +5,7 @@
 #include "FaerieInventoryLog.h"
 #include "Actions/FaerieClientActionBase.h"
 #include "GameFramework/Actor.h"
+#include "EntityManagerHelpers.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieInventoryClient)
 
@@ -16,7 +17,8 @@ UFaerieInventoryClient::UFaerieInventoryClient()
 
 bool UFaerieInventoryClient::CanAccessContainer(const TNotNull<const UFaerieItemContainerBase*> Container, const TNotNull<const UScriptStruct*> RequestType) const
 {
-	const FFaerieItemContainerClientPermissions* Permissions = Container->ReadContainerData<FFaerieItemContainerClientPermissions>(true);
+	FMassEntityManager& EntityManager = Faerie::ItemData::GetFaerieEntityManagerChecked(GetWorld());
+	const FFaerieItemContainerClientPermissions* Permissions = Container->ReadContainerData<FFaerieItemContainerClientPermissions>(EntityManager, true);
 
 	// @todo implement
 
@@ -185,24 +187,26 @@ void UFaerieInventoryClient::Server_RequestMoveAction(const FFaerieClientAction_
 		return;
 	}
 
+	FMassEntityManager& EntityManager = Faerie::ItemData::GetFaerieEntityManagerChecked(GetWorld());
+
 	Faerie::ItemData::FScopeProxy FromView(nullptr);
-	if (!MoveFrom.View(FromView))
+	if (!MoveFrom.View(EntityManager, FromView))
 	{
 		return;
 	}
 
-	if (!MoveTo.CanMove(FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, &FromView)))
+	if (!MoveTo.CanMove(EntityManager, FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, &FromView)))
 	{
 		return;
 	}
 
-	const bool IsSwap = MoveTo.IsSwap();
+	const bool IsSwap = MoveTo.IsSwap(EntityManager);
 
 	if (IsSwap)
 	{
 		Faerie::ItemData::FScopeProxy ToView(nullptr);
-		MoveTo.View(ToView);
-		if (!MoveFrom.CanMove(FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, &ToView)))
+		MoveTo.View(EntityManager, ToView);
+		if (!MoveFrom.CanMove(EntityManager, FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, &ToView)))
 		{
 			return;
 		}
@@ -211,7 +215,7 @@ void UFaerieInventoryClient::Server_RequestMoveAction(const FFaerieClientAction_
 	// Finished validations, initiate move:
 
 	FFaerieUnownedItemStack FromStack;
-	if (!MoveFrom.Release(FromStack))
+	if (!MoveFrom.Release(EntityManager, FromStack))
 	{
 		UE_LOGF(LogFaerieInventory, Error, "Releasing for move failed! Validation should catch this!")
 		return;
@@ -220,25 +224,25 @@ void UFaerieInventoryClient::Server_RequestMoveAction(const FFaerieClientAction_
 	if (IsSwap)
 	{
 		FFaerieUnownedItemStack ToStack;
-		if (!MoveTo.Release(ToStack))
+		if (!MoveTo.Release(EntityManager, ToStack))
 		{
 			// Abort! Releasing for swap failed!
 			UE_LOGF(LogFaerieInventory, Error, "Releasing for swap failed! Validation should catch this!")
 
 			// Returning stack we removed.
-			if (!MoveFrom.Possess(FromStack))
+			if (!MoveFrom.Possess(EntityManager, FromStack))
 			{
 				UE_LOGF(LogFaerieInventory, Error, "Re-possess failed! Unable to recover from failed swap!")
 			}
 			return;
 		}
-		if (!MoveFrom.Possess(ToStack))
+		if (!MoveFrom.Possess(EntityManager, ToStack))
 		{
 			UE_LOGF(LogFaerieInventory, Error, "Swap failed! Issue with possession!")
 		}
 	}
 
-	if (!MoveTo.Possess(FromStack))
+	if (!MoveTo.Possess(EntityManager, FromStack))
 	{
 		UE_LOGF(LogFaerieInventory, Error, "Move failed! Issue with possession!")
 	}

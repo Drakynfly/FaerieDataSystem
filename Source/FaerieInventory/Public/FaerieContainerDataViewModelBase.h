@@ -2,52 +2,16 @@
 
 #pragma once
 
-#include "MVVMViewModelBase.h"
+#include "FaerieItemContainerBase.h"
 
-#include "Fragments/ContainerMetadataFragment.h"
+#include "UObject/WeakInterfacePtr.h"
+
+#include "ViewModels/FaerieMassEntityViewModelBase.h"
 
 #include "FaerieContainerDataViewModelBase.generated.h"
 
 #define FAE_API FAERIEINVENTORY_API
 
-class UFaerieMassEntityViewModelBase;
-struct FMassEntityManager;
-
-namespace Faerie::Container
-{
-	// Fragment to track view in an entity. Make a child of this to mark queries for a specific view type.
-	USTRUCT()
-	struct FViewModelFragment : public FMassFragment
-	{
-		GENERATED_BODY()
-
-		// The active view object for this fragment.
-		TWeakObjectPtr<UFaerieMassEntityViewModelBase> ViewObject;
-	};
-}
-
-
-/**
- * Base class for View Model objects that have a Mass Entity bound to them.
- */
-UCLASS(Abstract)
-class FAE_API UFaerieMassEntityViewModelBase : public UMVVMViewModelBase
-{
-	GENERATED_BODY()
-
-public:
-	virtual void BeginDestroy() override;
-
-protected:
-	void InitEntity(FMassEntityManager& EntityManager, const TNotNull<UScriptStruct*> FragmentType);
-
-public:
-	UFUNCTION(BlueprintCallable, Category = "Faerie|MassEntityViewModel")
-	FMassEntityHandle GetEntityHandle() const { return EntityHandle; }
-
-private:
-	FMassEntityHandle EntityHandle;
-};
 
 /**
  * Base class for View Model objects that reflect Faerie Container data.
@@ -59,15 +23,15 @@ class FAE_API UFaerieContainerDataViewModelBase : public UFaerieMassEntityViewMo
 
 public:
 	// Call to set up this view. The entity will be created, and then SyncView will be called.
-	void InitializeView(FMassEntityManager& EntityManager, const TNotNull<UScriptStruct*> FragmentType, const TPair<FWeakObjectPtr, struct FFaerieItemContainerExtensions*>& ExtensionPtrTemp);
+	void InitializeView(FMassEntityManager& EntityManager, const TNotNull<UScriptStruct*> FragmentType, TNotNull<IFaerieTempInterfaceForGettingParentExtensions*> ExtensionPtrTemp);
 
-	virtual void SyncView() {}
+	virtual void SyncView(FMassEntityManager& EntityManager) {}
 
-	UObject* GetContainerObject() const { return ContainerExtensionPtr.Key.Get(); }
+	UObject* GetContainerObject() const { return ExtensionPtr.GetObject(); }
 
 protected:
-	// The container that we view the log for.
-	TPair<FWeakObjectPtr, struct FFaerieItemContainerExtensions*> ContainerExtensionPtr;
+	// The extension data that we view. Currently stored via interface until refactor of equipment manager.
+	TWeakInterfacePtr<IFaerieTempInterfaceForGettingParentExtensions> ExtensionPtr;
 };
 
 #undef FAE_API

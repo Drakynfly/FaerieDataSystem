@@ -36,7 +36,7 @@ public:
 	virtual void InitializeGrid(const FFaerieContainerGridWriteContext& Context) const override;
 	virtual EFaerieExtensionResponse AllowsAddition(const FFaerieContainerGridReadContext& Context, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args) const override;
 	virtual EFaerieExtensionResponse AllowsEdit(const FFaerieContainerGridReadContext& Context, const TNotNull<const Faerie::Container::IAddressView*> DataView, FFaerieInventoryTag EditType) const override;
-	virtual void HandleEvent(const FFaerieContainerGridWriteContext& Context, const Faerie::Container::FEvent& Event) const override;
+	virtual void HandleEvent(const FFaerieContainerGridWriteContext& Context, const Faerie::Container::FContainerEventPayload& Event) const override;
 
 	virtual void PreStackRemove_Client(const FFaerieContainerGridWriteContext& Context, const FFaerieGridKeyedStack& Stack) const override;
 	virtual void PreStackRemove_Server(const FFaerieContainerGridWriteContext& Context, const FFaerieGridKeyedStack& Stack, const FFaerieItemInstance& Item) const override;
@@ -59,8 +59,8 @@ private:
 	void RebuildOccupiedCells(const FFaerieContainerGridWriteContext& Context) const;
 
 	// Gets a shape from a shape fragment on the item, or returns a single cell at 0,0 for items with no fragment.
-	FFaerieGridShapeConstView GetItemShape_Impl(const FFaerieItemInstance& Item) const;
-	FFaerieGridShapeConstView GetItemShape_Impl(TNotNull<const UFaerieItemStorage*> Storage, FFaerieAddress Address) const;
+	FFaerieGridShapeConstView GetItemShape_Impl(const FMassEntityManager& EntityManager, const FFaerieItemInstance& Item) const;
+	FFaerieGridShapeConstView GetItemShape_Impl(const FFaerieContainerGridReadContext& Context, FFaerieAddress Address) const;
 
 public:
 	bool CanAddItemToGrid(const FFaerieContainerGridReadContext& Context, const FFaerieGridShapeConstView& Shape) const;

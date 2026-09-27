@@ -209,7 +209,7 @@ EFaerieExtensionResponse UInventorySpatialGridExtension::AllowsAddition(const FF
 
 	if (Proxies.Num() == 1)
 	{
-		if (!CanAddItemToGrid(Context, GetItemShape_Impl(Proxies[0].GetItemInstance().GetValue())))
+		if (!CanAddItemToGrid(Context, GetItemShape_Impl(Context.GetManagerChecked(), Proxies[0].GetItemInstance().GetValue())))
 		{
 			return EFaerieExtensionResponse::Disallowed;
 		}
@@ -219,7 +219,7 @@ EFaerieExtensionResponse UInventorySpatialGridExtension::AllowsAddition(const FF
 	for (int32 i = 0; i < Proxies.Num(); ++i)
 	{
 		const FFaerieItemProxy& Proxy = Proxies[i];
-		Shapes.Add(GetItemShape_Impl(Proxy.GetItemInstanceOrInvalid()));
+		Shapes.Add(GetItemShape_Impl(Context.GetManagerChecked(), Proxy.GetItemInstanceOrInvalid()));
 	}
 
 	if (!CanAddItemsToGrid(Context, Shapes))
@@ -237,7 +237,7 @@ EFaerieExtensionResponse UInventorySpatialGridExtension::AllowsEdit(const FFaeri
 {
 	if (EditType == Inventory::Tags::Split)
 	{
-		if (!CanAddItemToGrid(Context, GetItemShape_Impl(DataView->GetItemInstance().GetValue())))
+		if (!CanAddItemToGrid(Context, GetItemShape_Impl(Context.GetManagerChecked(), DataView->GetItemInstance().GetValue())))
 		{
 			return EFaerieExtensionResponse::Disallowed;
 		}
@@ -246,7 +246,7 @@ EFaerieExtensionResponse UInventorySpatialGridExtension::AllowsEdit(const FFaeri
 	return EFaerieExtensionResponse::NoExplicitResponse;
 }
 
-void UInventorySpatialGridExtension::HandleEvent(const FFaerieContainerGridWriteContext& Context, const Container::FEvent& Event) const
+void UInventorySpatialGridExtension::HandleEvent(const FFaerieContainerGridWriteContext& Context, const Container::FContainerEventPayload& Event) const
 {
 	if (Event.IsAdditionEvent())
 	{
@@ -321,7 +321,7 @@ void UInventorySpatialGridExtension::PreStackRemove_Client(const FFaerieContaine
 void UInventorySpatialGridExtension::PreStackRemove_Server(const FFaerieContainerGridWriteContext& Context, const FFaerieGridKeyedStack& Stack, const FFaerieItemInstance& Item) const
 {
 	// This is to account for removals through proxies that don't directly interface with the grid
-	const FFaerieGridShape Translated = Extensions::ApplyPlacement(GetItemShape_Impl(Item), Stack.Value);
+	const FFaerieGridShape Translated = Extensions::ApplyPlacement(GetItemShape_Impl(Context.GetManagerChecked(), Item), Stack.Value);
 	Extensions::UnmarkShapeCells(Context.Unwrap().OccupiedCells, Translated);
 
 	BroadcastEvent(Stack.Key, EFaerieGridEventType::ItemRemoved);
@@ -347,7 +347,7 @@ TOptional<FFaerieAddress> UInventorySpatialGridExtension::GetKeyAt(const FFaerie
 		// Easy check first
 		if (Element.Value.Origin == Position) return Element.Key;
 
-		FFaerieGridShape Shape = GetItemShape_Impl(Context.GetStorage(), Element.Key).Copy();
+		FFaerieGridShape Shape = GetItemShape_Impl(Context, Element.Key).Copy();
 		Extensions::ApplyPlacementInline(Shape, Element.Value);
 		if (Shape.Contains(Position))
 		{
@@ -360,7 +360,7 @@ TOptional<FFaerieAddress> UInventorySpatialGridExtension::GetKeyAt(const FFaerie
 
 bool UInventorySpatialGridExtension::CanAddAtLocation(const FFaerieContainerGridReadContext& Context, const TValid<const FFaerieItemProxy&> Proxy, const FIntPoint IntPoint) const
 {
-	const FFaerieGridShapeConstView Shape = GetItemShape_Impl(ValidGet(Proxy).GetItemInstanceOrInvalid());
+	const FFaerieGridShapeConstView Shape = GetItemShape_Impl(Context.GetManagerChecked(), ValidGet(Proxy).GetItemInstanceOrInvalid());
 	return CanAddAtLocation(Context, Shape, IntPoint);
 }
 
@@ -377,7 +377,7 @@ bool UInventorySpatialGridExtension::AddItemToGrid(const FFaerieContainerGridWri
 		return true;
 	}
 
-	FFaerieGridShape Shape = GetItemShape_Impl(Instance).Copy();
+	FFaerieGridShape Shape = GetItemShape_Impl(Context.GetManagerChecked(), Instance).Copy();
 
 	const FFaerieGridPlacement DesiredItemPlacement = Extensions::FindFirstEmptyLocation(Context.GetOccupiedCells(), Shape);
 
@@ -396,7 +396,7 @@ bool UInventorySpatialGridExtension::AddItemToGrid(const FFaerieContainerGridWri
 
 bool UInventorySpatialGridExtension::MoveItem(const FFaerieContainerGridWriteContext& Context, const FFaerieAddress Address, const FIntPoint& TargetPoint) const
 {
-	const FFaerieGridShapeConstView ItemShape = GetItemShape_Impl(Context.GetStorage(), Address);
+	const FFaerieGridShapeConstView ItemShape = GetItemShape_Impl(Context, Address);
 
 	// Create placement at target point with current rotation
 	const FFaerieGridPlacement NewPlacement(TargetPoint, Context.GetStackPlacementData(Address).Rotation);
@@ -456,7 +456,7 @@ bool UInventorySpatialGridExtension::MoveItem(const FFaerieContainerGridWriteCon
 
 bool UInventorySpatialGridExtension::RotateItem(const FFaerieContainerGridWriteContext& Context, const FFaerieAddress Address, const EFaerieSpatialItemRotation RotationToAdd) const
 {
-	const FFaerieGridShapeConstView ItemShape = GetItemShape_Impl(Context.GetStorage(), Address);
+	const FFaerieGridShapeConstView ItemShape = GetItemShape_Impl(Context, Address);
 
 	const FFaerieGridContent::FScopedStackHandle Handle = Context.Unwrap().GridContent.GetHandle(Address);
 
@@ -527,17 +527,16 @@ void UInventorySpatialGridExtension::RebuildOccupiedCells(const FFaerieContainer
 		if (auto DataView = Context.GetStorage()->ViewAddress(SpatialEntry.Key);
 			DataView.IsValid())
 		{
-			const FFaerieGridShapeConstView Shape = GetItemShape_Impl(DataView.Instance);
+			const FFaerieGridShapeConstView Shape = GetItemShape_Impl(Context.GetManagerChecked(), DataView.Instance);
 			const FFaerieGridShape Translated = Extensions::ApplyPlacement(Shape, SpatialEntry.Value);
 			Extensions::MarkShapeCells(Context.Unwrap().OccupiedCells, Translated);
 		}
 	}
 }
 
-FFaerieGridShapeConstView UInventorySpatialGridExtension::GetItemShape_Impl(const FFaerieItemInstance& Item) const
+FFaerieGridShapeConstView UInventorySpatialGridExtension::GetItemShape_Impl(const FMassEntityManager& EntityManager, const FFaerieItemInstance& Item) const
 {
-	auto* EntityManager = ItemData::GetFaerieEntityManager();
-	auto ShapeFragment = ItemData::GetEntityFragmentOrDefault<FFaerieShapeFragment>(EntityManager, Item);
+	auto ShapeFragment = ItemData::GetEntityFragmentOrDefault<FFaerieShapeFragment>(&EntityManager, Item);
 	if (ShapeFragment.IsValid())
 	{
 		return ShapeFragment->Shape;
@@ -545,12 +544,12 @@ FFaerieGridShapeConstView UInventorySpatialGridExtension::GetItemShape_Impl(cons
 	return FFaerieGridShape::Square1;
 }
 
-FFaerieGridShapeConstView UInventorySpatialGridExtension::GetItemShape_Impl(const TNotNull<const UFaerieItemStorage*> Storage, const FFaerieAddress Address) const
+FFaerieGridShapeConstView UInventorySpatialGridExtension::GetItemShape_Impl(const FFaerieContainerGridReadContext& Context, const FFaerieAddress Address) const
 {
-	if (const TOptional<FFaerieItemInstance> Instance = Storage->ViewInstance(Address);
+	if (const TOptional<FFaerieItemInstance> Instance = Context.GetStorage()->ViewInstance(Address);
 		Instance.IsSet())
 	{
-		return GetItemShape_Impl(Instance.GetValue());
+		return GetItemShape_Impl(Context.GetManagerChecked(), Instance.GetValue());
 	}
 
 	return FFaerieGridShapeConstView();
@@ -585,7 +584,13 @@ bool UInventorySpatialGridExtension::CanAddItemsToGrid(const FFaerieContainerGri
 
 FFaerieGridShape UInventorySpatialGridExtension::GetItemShape(const UFaerieItemStorage* Storage, const FFaerieAddress Address) const
 {
-	return GetItemShape_Impl(Storage, Address).Copy();
+	if (const TOptional<FFaerieItemInstance> Instance = Storage->ViewInstance(Address);
+		Instance.IsSet())
+	{
+		FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(Storage->GetWorld());
+		return GetItemShape_Impl(EntityManager, Instance.GetValue()).Copy();
+	}
+	return FFaerieGridShape();
 }
 
 FFaerieGridShape UInventorySpatialGridExtension::GetItemShapeOnGrid(const FFaerieContainerGridReadContext& Context, const FFaerieAddress Address) const
@@ -594,7 +599,7 @@ FFaerieGridShape UInventorySpatialGridExtension::GetItemShapeOnGrid(const FFaeri
 		Instance.IsSet())
 	{
 		const FFaerieGridPlacement Placement = Context.GetStackPlacementData(Address);
-		FFaerieGridShape Shape = GetItemShape_Impl(Instance.GetValue()).Copy();
+		FFaerieGridShape Shape = GetItemShape_Impl(Context.GetManagerChecked(), Instance.GetValue()).Copy();
 		Extensions::ApplyPlacementInline(Shape, Placement);
 		return Shape;
 	}
@@ -605,7 +610,7 @@ FFaerieGridShape UInventorySpatialGridExtension::GetItemShapeOnGrid(const FFaeri
 FIntPoint UInventorySpatialGridExtension::GetStackBounds(const FFaerieContainerGridReadContext& Context, const FFaerieAddress Address) const
 {
 	const FFaerieGridPlacement Placement = Context.GetStackPlacementData(Address);
-	return GetItemShape(Context.GetStorage(), Address).Rotate(Placement.Rotation).Normalize().GetSize();
+	return GetItemShape_Impl(Context, Address).Copy().Rotate(Placement.Rotation).Normalize().GetSize();
 }
 
 bool UInventorySpatialGridExtension::CanAddAtLocation(const FFaerieContainerGridReadContext& Context, const FFaerieGridShape& Shape, const FIntPoint Position) const
@@ -623,7 +628,7 @@ Extensions::FExclusionSet UInventorySpatialGridExtension::MakeExclusionSet(const
 	// Build list of excluded indices
 	Extensions::FExclusionSet ExcludedPositions;
 	ExcludedPositions.Reserve(4); // 4 is an average expected size of shapes. No better way to guess shape num.
-	FFaerieGridShape OtherShape = GetItemShape(Context.GetStorage(), ExcludedAddress);
+	FFaerieGridShape OtherShape = GetItemShape_Impl(Context, ExcludedAddress).Copy();
 	Extensions::ApplyPlacementInline(OtherShape, Context.GetStackPlacementData(ExcludedAddress), true);
 	for (const auto& Point : OtherShape.Points)
 	{
@@ -637,10 +642,10 @@ Extensions::FExclusionSet UInventorySpatialGridExtension::MakeExclusionSet(const
 	// Build list of excluded indices
 	Extensions::FExclusionSet ExcludedPositions;
 	ExcludedPositions.Reserve(ExcludedAddresses.Num() * 4); // 4 is an average expected size of shapes. No better way to guess shape num.
-	for (const FFaerieAddress& Key : ExcludedAddresses)
+	for (const FFaerieAddress& Address : ExcludedAddresses)
 	{
-		FFaerieGridShape OtherShape = GetItemShape(Context.GetStorage(), Key);
-		Extensions::ApplyPlacementInline(OtherShape, Context.GetStackPlacementData(Key));
+		FFaerieGridShape OtherShape = GetItemShape_Impl(Context, Address).Copy();
+		Extensions::ApplyPlacementInline(OtherShape, Context.GetStackPlacementData(Address));
 		for (const auto& Point : OtherShape.Points)
 		{
 			ExcludedPositions.Add(Point);
@@ -679,7 +684,7 @@ FFaerieAddress UInventorySpatialGridExtension::FindOverlappingItem(const FFaerie
 			if (ExcludeAddress == Other.Key) { return false; }
 
 			// Create a rotated and translated version of the other item's shape
-			FFaerieGridShape OtherItemShape = GetItemShape(Context.GetStorage(), Other.Key);
+			FFaerieGridShape OtherItemShape = GetItemShape_Impl(Context, Other.Key).Copy();
 			Extensions::ApplyPlacementInline(OtherItemShape, Other.Value);
 			return TranslatedShape.Overlaps(OtherItemShape);
 		}))
@@ -693,8 +698,8 @@ bool UInventorySpatialGridExtension::TrySwapItems(const FFaerieContainerGridWrit
 	const FFaerieAddress AddressA, FFaerieGridPlacement& PlacementA,
 	const FFaerieAddress AddressB, FFaerieGridPlacement& PlacementB) const
 {
-	const FFaerieGridShapeConstView ItemShapeA = GetItemShape_Impl(Context.GetStorage(), AddressA);
-	const FFaerieGridShapeConstView ItemShapeB = GetItemShape_Impl(Context.GetStorage(), AddressB);
+	const FFaerieGridShapeConstView ItemShapeA = GetItemShape_Impl(Context, AddressA);
+	const FFaerieGridShapeConstView ItemShapeB = GetItemShape_Impl(Context, AddressB);
 
 	// Get new placements for both items
 	FFaerieGridPlacement PlacementANew = PlacementA;
@@ -739,7 +744,7 @@ bool UInventorySpatialGridExtension::MoveSingleItem(const FFaerieContainerGridWr
 	FFaerieGridPlacement PlacementCopy = Placement;
 	PlacementCopy.Origin = NewPosition;
 
-	FFaerieGridShape ItemShape = GetItemShape(Context.GetStorage(), Address);
+	FFaerieGridShape ItemShape = GetItemShape_Impl(Context, Address).Copy();
 	const FFaerieGridShape NewShape = Extensions::ApplyPlacement(ItemShape, PlacementCopy);
 
 	const Extensions::FExclusionSet ExclusionSet = MakeExclusionSet(Context, Address);
