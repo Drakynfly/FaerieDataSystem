@@ -29,7 +29,7 @@ struct FAERIEITEMMESH_API FSkeletonAndAnimation
 			&& AnimationAsset == Other.AnimationAsset;
 	}
 
-	friend [[nodiscard]] UE_REWRITE uint32 GetTypeHash(const FSkeletonAndAnimation& Thing)
+	[[nodiscard]] UE_REWRITE friend uint32 GetTypeHash(const FSkeletonAndAnimation& Thing)
 	{
 		return FCrc::MemCrc32(&Thing, sizeof(FSkeletonAndAnimation));
 	}
@@ -61,7 +61,7 @@ struct FAERIEITEMMESH_API FSoftSkeletonAndAnimation
 			&& AnimationAsset == Other.AnimationAsset;
 	}
 
-	friend [[nodiscard]] UE_REWRITE uint32 GetTypeHash(const FSoftSkeletonAndAnimation& Thing)
+	[[nodiscard]] UE_REWRITE friend uint32 GetTypeHash(const FSoftSkeletonAndAnimation& Thing)
 	{
 		return FCrc::MemCrc32(&Thing, sizeof(FSoftSkeletonAndAnimation));
 	}

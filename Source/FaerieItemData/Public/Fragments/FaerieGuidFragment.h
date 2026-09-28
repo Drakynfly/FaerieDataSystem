@@ -22,7 +22,7 @@ struct FFaerieGuidFragment : public FFaerieMassFragment
 
 	bool InitializeRuntime(TNotNull<UObject*> Outer, const FFaerieItemInstance& Instance);
 
-	friend [[nodiscard]] UE_REWRITE uint32 GetTypeHash(const FFaerieGuidFragment& Value)
+	[[nodiscard]] UE_REWRITE friend uint32 GetTypeHash(const FFaerieGuidFragment& Value)
 	{
 		return GetTypeHash(Value.Guid);
 	}

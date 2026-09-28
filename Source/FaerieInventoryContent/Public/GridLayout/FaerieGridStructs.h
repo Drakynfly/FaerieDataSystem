@@ -60,6 +60,9 @@ struct FFaerieGridKeyedStack : public FFastArraySerializerItem
 	UPROPERTY(VisibleInstanceOnly, Category = "GridKeyedStack")
 	FFaerieGridPlacement Value;
 
+	// Boilerplate for FaerieFastArraySerializerHack
+	UE_REWRITE FFaerieAddress GetKey() const { return Key; }
+
 	void PreReplicatedRemove(const FFaerieGridContent& InArraySerializer);
 	void PostReplicatedAdd(const FFaerieGridContent& InArraySerializer);
 	void PostReplicatedChange(const FFaerieGridContent& InArraySerializer);
@@ -76,7 +79,7 @@ struct FFaerieGridContent : public FFaerieFastArraySerializer
 	GENERATED_BODY()
 
 	friend FFaerieGridKeyedStack;
-	friend TBinarySearchOptimizedArray;
+	friend TBinarySearchOptimizedArray<FFaerieGridContent, FFaerieGridKeyedStack>;
 	friend UFaerieContainerGridWrapper;
 
 private:

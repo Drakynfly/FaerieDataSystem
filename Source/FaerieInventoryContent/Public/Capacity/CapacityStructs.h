@@ -92,7 +92,7 @@ struct FAERIEINVENTORYCONTENT_API FFaerieItemCapacity : public FFaerieMassFragme
 
 	double GetEfficientVolume() const
     {
-    	return GetVolume() * Efficiency;
+    	return static_cast<double>(GetVolume()) * static_cast<double>(Efficiency);
     }
 
 	// Get the approximate weight for one square centimeter of this capacity.

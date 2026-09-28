@@ -32,8 +32,8 @@ public:
 	UE_REWRITE virtual Faerie::ItemData::FProxyChangeEvent::RegistrationType& GetOnProxyChangeEvent() override { return OnProxyEvent; }
 	//~ IFaerieItemDataProxy
 
-	FAERIEINVENTORY_API UE_REWRITE int32 GetItemVersion() const { return LocalItemVersion; }
-	FAERIEINVENTORY_API UE_REWRITE FFaerieEntryKey GetKey() const { return Key; }
+	UE_REWRITE FAERIEINVENTORY_API int32 GetItemVersion() const { return LocalItemVersion; }
+	UE_REWRITE FAERIEINVENTORY_API FFaerieEntryKey GetKey() const { return Key; }
 
 protected:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EntryProxy")

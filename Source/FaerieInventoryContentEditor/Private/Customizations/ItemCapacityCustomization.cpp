@@ -144,7 +144,7 @@ void FItemCapacityCustomization::UpdateInfo()
 
         const int32 CubicSpace = Bounds->X * Bounds->Y * Bounds->Z;
         const int32 WeightPerCentimeter = WeightValue / CubicSpace;
-        const float SuccessiveWeightPerCentimeter = WeightPerCentimeter * EfficiencyValue;
+        const float SuccessiveWeightPerCentimeter = static_cast<float>(WeightPerCentimeter) * EfficiencyValue;
 
         const FString InfoString = FString::Printf(TEXT("Weight/cm3: %i (%.2f)"), WeightPerCentimeter, SuccessiveWeightPerCentimeter);
 

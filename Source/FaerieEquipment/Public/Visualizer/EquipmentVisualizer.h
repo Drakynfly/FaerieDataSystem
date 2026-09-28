@@ -31,7 +31,7 @@ struct FFaerieVisualKey
 
 	[[nodiscard]] UE_REWRITE bool UEOpEquals(const FFaerieVisualKey& Other) const { return Proxy == Other.Proxy; }
 
-	friend [[nodiscard]] UE_REWRITE uint32 GetTypeHash(const FFaerieVisualKey& VisualKey)
+	[[nodiscard]] UE_REWRITE friend uint32 GetTypeHash(const FFaerieVisualKey& VisualKey)
 	{
 		return GetTypeHash(VisualKey.Proxy);
 	}

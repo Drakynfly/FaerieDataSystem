@@ -45,7 +45,7 @@ struct FAERIEINVENTORY_API FFaerieAddress
 		return Address < Other.Address;
 	}
 
-	friend [[nodiscard]] UE_REWRITE uint32 GetTypeHash(const FFaerieAddress& Value)
+	[[nodiscard]] UE_REWRITE friend uint32 GetTypeHash(const FFaerieAddress& Value)
 	{
 		return GetTypeHash(Value.Address);
 	}

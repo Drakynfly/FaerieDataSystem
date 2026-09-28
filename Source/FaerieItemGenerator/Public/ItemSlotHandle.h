@@ -35,7 +35,7 @@ public:
 		return InternalHandle == Other.InternalHandle;
 	}
 
-	friend [[nodiscard]] UE_REWRITE uint32 GetTypeHash(const FFaerieItemSlotHandle& Key)
+	[[nodiscard]] UE_REWRITE friend uint32 GetTypeHash(const FFaerieItemSlotHandle& Key)
 	{
 		return GetTypeHash(Key.InternalHandle);
 	}

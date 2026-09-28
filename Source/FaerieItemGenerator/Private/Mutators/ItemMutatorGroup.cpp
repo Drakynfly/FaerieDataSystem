@@ -68,7 +68,6 @@ bool FFaerieItemMutatorGroup::Apply(FFaerieItemInstance& Item, const FFaerieItem
 			}
 			return false;
 		}
-		break;
 	case EFaerieItemMutatorGroupPolicy::ApplyAny:
 		{
 			for (auto&& Child : Children)
@@ -78,7 +77,6 @@ bool FFaerieItemMutatorGroup::Apply(FFaerieItemInstance& Item, const FFaerieItem
 			}
 			return true;
 		}
-		break;
 	}
 
 	return false;

@@ -33,6 +33,9 @@ struct FFaerieKeyedStack
 	UPROPERTY(VisibleAnywhere, Category = "KeyedStack")
 	int32 Stack = 0;
 
+	// Boilerplate for FaerieFastArraySerializerHack
+	UE_REWRITE FFaerieStackKey GetKey() const { return Key; }
+
 	[[nodiscard]] UE_REWRITE bool UEOpEquals(const FFaerieKeyedStack& Other) const
 	{
 		return Key == Other.Key && Stack == Other.Stack;
@@ -51,8 +54,7 @@ struct FFaerieStorageEntry : public FFastArraySerializerItem
 	GENERATED_BODY()
 
 	friend FFaerieStorageContent;
-	friend TBinarySearchOptimizedArray;
-	friend Faerie::Hacks::TFaerieFastArraySerializeHelper;
+	friend TBinarySearchOptimizedArray<FFaerieStorageContent, FFaerieStorageEntry>;
 
 	FFaerieStorageEntry() = default;
 	FFaerieStorageEntry(FFaerieEntryKey EntryKey, FFaerieItemInstance& Item, int32 StackLimit, int32 Amount, TArray<FFaerieAddress>& OutNewAddresses);
@@ -275,7 +277,7 @@ struct FFaerieStorageContent : public FFaerieFastArraySerializer
 
 	friend FFaerieStorageEntry;
 	friend FFaerieStorageEntry::FStorageContentAccess;
-	friend TBinarySearchOptimizedArray;
+	friend TBinarySearchOptimizedArray<FFaerieStorageContent, FFaerieStorageEntry>;
 	friend UFaerieItemStorage;
 
 private:

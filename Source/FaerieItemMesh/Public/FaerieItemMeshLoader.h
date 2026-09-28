@@ -73,7 +73,7 @@ namespace Faerie::Mesh
 				   Purpose == Other.Purpose;
 		}
 
-		friend [[nodiscard]] UE_REWRITE uint32 GetTypeHash(const FCachedMeshKey& Key)
+		[[nodiscard]] UE_REWRITE friend uint32 GetTypeHash(const FCachedMeshKey& Key)
 		{
 			return HashCombineFast(GetTypeHash(Key.WeakProxy), GetTypeHash(Key.Purpose));
 		}

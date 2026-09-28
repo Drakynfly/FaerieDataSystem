@@ -148,7 +148,7 @@ namespace Faerie::Hacks
 					OldIndexToReplicationIDMap.Add(i, Items[i].ReplicationID);
 				}
 				
-				Algo::SortBy(Items, &Type::Key);
+				Algo::SortBy(Items, &Type::GetKey);
 
 				// Build a Map For Replication id to new index
 				TMap<int32, int32> NewIndexMap;

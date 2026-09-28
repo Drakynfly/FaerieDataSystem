@@ -134,7 +134,7 @@ namespace Faerie::Container
 			}
 			else
 			{
-				return *reinterpret_cast<ResolveType*>(nullptr);
+				return ResolveType();
 			}
 		}
 

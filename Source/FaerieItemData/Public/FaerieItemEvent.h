@@ -36,15 +36,6 @@ namespace Faerie::ItemData
 		UE::Mass::FElementBitSet ChangeTypes;
 	};
 
-	template<>
-	struct TMassFragmentTraits<FMutationPayloadChangeList> final
-	{
-		enum
-		{
-			AuthorAcceptsItsNotTriviallyCopyable = true
-		};
-	};
-
 	USTRUCT()
 	struct FFieldChangePayload : public FMassFragment
 	{
@@ -90,5 +81,14 @@ namespace Faerie::ItemData
 	// Event
 	const FName EventCleanup = TEXT("ItemDataEventCleanup");
 }
+
+template<>
+struct TMassFragmentTraits<Faerie::ItemData::FMutationPayloadChangeList> final
+{
+	enum
+	{
+		AuthorAcceptsItsNotTriviallyCopyable = true
+	};
+};
 
 #undef FAE_API

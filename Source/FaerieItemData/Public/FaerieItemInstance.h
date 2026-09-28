@@ -124,7 +124,7 @@ public:
 
 	[[nodiscard]] bool UEOpEquals(const FFaerieItemInstance& Other) const;
 
-	friend [[nodiscard]] UE_REWRITE uint32 GetTypeHash(const FFaerieItemInstance& Value)
+	[[nodiscard]] UE_REWRITE friend uint32 GetTypeHash(const FFaerieItemInstance& Value)
 	{
 		return HashCombineFast(GetTypeHash(Value.GetItemPtr()), GetTypeHash(Value.GetMassEntityHandle()));
 	}

@@ -448,12 +448,12 @@ FFaerieGridShape FFaerieGridShape::RotateAngle(const float AngleDegrees) const
 		const FIntPoint Translated = Point - Center;
 
 		// Rotate
-		const float RotatedX = Translated.X * CosTheta - Translated.Y * SinTheta;
-		const float RotatedY = Translated.X * SinTheta + Translated.Y * CosTheta;
+		const float RotatedX = static_cast<float>(Translated.X) * CosTheta - static_cast<float>(Translated.Y) * SinTheta;
+		const float RotatedY = static_cast<float>(Translated.X) * SinTheta + static_cast<float>(Translated.Y) * CosTheta;
 
 		// Translate back and round
-		Point.X = FMath::RoundToInt(RotatedX + Center.X);
-		Point.Y = FMath::RoundToInt(RotatedY + Center.Y);
+		Point.X = FMath::RoundToInt(RotatedX + static_cast<float>(Center.X));
+		Point.Y = FMath::RoundToInt(RotatedY + static_cast<float>(Center.Y));
 	}
 
 	return NewShape;

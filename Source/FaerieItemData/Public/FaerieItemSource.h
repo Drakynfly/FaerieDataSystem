@@ -80,7 +80,7 @@ struct FAERIEITEMDATA_API FFaerieItemSourceObject
 		return Object == Other.Object;
 	}
 
-	friend [[nodiscard]] UE_REWRITE uint32 GetTypeHash(const FFaerieItemSourceObject& Value)
+	[[nodiscard]] UE_REWRITE friend uint32 GetTypeHash(const FFaerieItemSourceObject& Value)
 	{
 		return GetTypeHash(Value.Object);
 	}

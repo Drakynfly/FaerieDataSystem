@@ -119,7 +119,7 @@ public:
 		return InterfacePtr == Other.InterfacePtr;
 	}
 
-	friend [[nodiscard]] UE_REWRITE uint32 GetTypeHash(const FFaerieItemProxy& Proxy)
+	[[nodiscard]] UE_REWRITE friend uint32 GetTypeHash(const FFaerieItemProxy& Proxy)
 	{
 		return GetTypeHash(Proxy.InterfacePtr);
 	}

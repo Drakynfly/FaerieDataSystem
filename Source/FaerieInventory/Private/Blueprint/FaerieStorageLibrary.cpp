@@ -86,7 +86,7 @@ UFaerieItemContainerBase* UFaerieStorageLibrary::GetOwningContainer(const FFaeri
 }
 
 bool UFaerieStorageLibrary::FindSubobject(const FFaerieItemProxy& Proxy, const TSubclassOf<UFaerieItemContainerBase> Class,
-										  UFaerieItemContainerBase*& FoundContainers, const bool Recursive)
+										  UFaerieItemContainerBase*& FoundContainer, const bool Recursive)
 {
 	if (!Proxy.IsValid())
 	{
@@ -118,9 +118,10 @@ bool UFaerieStorageLibrary::FindSubobject(const FFaerieItemProxy& Proxy, const T
 			SubObject::GetTemplateContainersInInstanceDirect(Instance, Containers, Class);
 		}
 
-		for (const TNotNull<const UFaerieItemContainerBase*> SubObject : Containers)
+		// Return first
+		if (!Containers.IsEmpty())
 		{
-			FoundContainers = const_cast<UFaerieItemContainerBase*>(NotNullGet(SubObject));
+			FoundContainer = const_cast<UFaerieItemContainerBase*>(NotNullGet(Containers[0]));
 			return true;
 		}
 	}
@@ -138,9 +139,10 @@ bool UFaerieStorageLibrary::FindSubobject(const FFaerieItemProxy& Proxy, const T
 			SubObject::GetContainersInInstanceDirect(EntityManager, Instance, Containers, Class);
 		}
 
-		for (const TNotNull<UFaerieItemContainerBase*> SubObject : Containers)
+		// Return first
+		if (!Containers.IsEmpty())
 		{
-			FoundContainers = SubObject;
+			FoundContainer = Containers[0];
 			return true;
 		}
 	}

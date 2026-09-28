@@ -207,7 +207,7 @@ int32 FFaerieGeneratorAmount_Curve::Resolve(USquirrel* Squirrel) const
 
 	// The following math rounds the RawCurveFloat either up or down based on the remainder. A low remainder is a high
 	// chance to round down, while a high remainder is likely to round up.
-	int32 const Whole = static_cast<int32>(FMath::Floor(RawCurveFloat));
+	float const Whole = FMath::Floor(RawCurveFloat);
 	float const Remainder = RawCurveFloat - Whole;
-	return Whole + (Remainder >= Squirrel->NextReal());
+	return static_cast<int32>(Whole + (Remainder >= Squirrel->NextReal()));
 }

@@ -40,7 +40,7 @@ public:
 
 	UE_REWRITE FFaerieAddress GetAddress() const { return Address; }
 
-	FAERIEINVENTORY_API UE_REWRITE int32 GetItemVersion() const { return LocalItemVersion; }
+	UE_REWRITE FAERIEINVENTORY_API int32 GetItemVersion() const { return LocalItemVersion; }
 	FAERIEINVENTORY_API FFaerieEntryKey GetKey() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|StackProxy")

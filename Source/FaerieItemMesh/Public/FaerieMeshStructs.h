@@ -30,7 +30,7 @@ struct FAERIEITEMMESH_API FFaerieItemSoftMaterial
 		return Material == Other.Material;
 	}
 
-	friend [[nodiscard]] UE_REWRITE uint32 GetTypeHash(const FFaerieItemSoftMaterial& FaerieItemSoftMaterial)
+	[[nodiscard]] UE_REWRITE friend uint32 GetTypeHash(const FFaerieItemSoftMaterial& FaerieItemSoftMaterial)
 	{
 		return GetTypeHash(FaerieItemSoftMaterial.Material);
 	}
@@ -52,7 +52,7 @@ struct FAERIEITEMMESH_API FFaerieItemMaterial
 		return Material == Other.Material;
 	}
 
-	friend [[nodiscard]] UE_REWRITE uint32 GetTypeHash(const FFaerieItemMaterial& FaerieItemMaterial)
+	[[nodiscard]] UE_REWRITE friend uint32 GetTypeHash(const FFaerieItemMaterial& FaerieItemMaterial)
 	{
 		return GetTypeHash(FaerieItemMaterial.Material);
 	}

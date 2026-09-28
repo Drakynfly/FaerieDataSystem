@@ -16,11 +16,11 @@
 
 #define LOCTEXT_NAMESPACE "PropertyEditor"
 
-namespace Faerie::Editor
-{
 UE_DEFINE_PRIVATE_MEMBER_PTR(TSharedPtr<IPropertyHandle>, GPropertyHandlePtr, FPropertyEditor, PropertyHandle);
 UE_DEFINE_PRIVATE_MEMBER_PTR(TSharedRef<FPropertyNode>, GPropertyNodePtr, FPropertyEditor, PropertyNode);
 
+namespace Faerie::Editor
+{
 TSharedRef<IPropertyHandle> GetPropertyHandle_PATCH(const TSharedPtr<FPropertyEditor >& PropertyEditor)
 {
 	return (PropertyEditor.Get()->*GPropertyHandlePtr).ToSharedRef();

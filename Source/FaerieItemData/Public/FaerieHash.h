@@ -23,5 +23,5 @@ struct FAERIEITEMDATA_API FFaerieHash
 		return Hash == Other.Hash;
 	}
 
-	friend [[nodiscard]] UE_REWRITE uint32 GetTypeHash(const FFaerieHash& Value) { return GetTypeHash(Value.Hash); }
+	[[nodiscard]] UE_REWRITE friend uint32 GetTypeHash(const FFaerieHash& Value) { return GetTypeHash(Value.Hash); }
 };

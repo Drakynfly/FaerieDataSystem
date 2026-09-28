@@ -57,17 +57,17 @@ namespace Faerie::Container
 		FAE_API bool IsReplicationEvent() const;
 	};
 
-	// Event data contains an array... can we do anything about this?
-	template<>
-	struct TMassFragmentTraits<FContainerEventPayload> final
-	{
-		enum
-		{
-			AuthorAcceptsItsNotTriviallyCopyable = true
-		};
-	};
-
 	const FName EventCleanup = TEXT("ContainerEventCleanup");
 }
+
+// Event data contains an array... can we do anything about this?
+template<>
+struct TMassFragmentTraits<Faerie::Container::FContainerEventPayload> final
+{
+	enum
+	{
+		AuthorAcceptsItsNotTriviallyCopyable = true
+	};
+};
 
 #undef FAE_API

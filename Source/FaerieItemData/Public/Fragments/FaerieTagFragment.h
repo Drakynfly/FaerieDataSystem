@@ -18,7 +18,7 @@ struct FFaerieTagFragment : public FFaerieMassFragment
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "TagFragment")
 	FGameplayTagContainer Tags;
 
-	friend [[nodiscard]] UE_REWRITE uint32 GetTypeHash(const FFaerieTagFragment& Value)
+	[[nodiscard]] UE_REWRITE friend uint32 GetTypeHash(const FFaerieTagFragment& Value)
 	{
 		return GetTypeHash(Value.Tags.GetGameplayTagArray());
 	}
