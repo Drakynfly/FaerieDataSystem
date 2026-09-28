@@ -1,8 +1,7 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
-#include "FaerieContainerEvent.h"
-
 #include "Extensions/ItemContainerCountLimit.h"
+#include "FaerieContainerEvent.h"
 
 #include "FaerieContainerIterator.h"
 #include "FaerieInventoryContentLog.h"

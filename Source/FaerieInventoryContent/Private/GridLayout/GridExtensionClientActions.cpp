@@ -1,12 +1,11 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
-#include "EntityManagerHelpers.h"
-
 #include "GridLayout/GridExtensionClientActions.h"
 #include "GridLayout/InventoryGridExtensionBase.h"
 #include "FaerieItemStorage.h"
 #include "Actions/FaerieInventoryClient.h"
 #include "FaerieContainerEvent.h"
+#include "EntityManagerHelpers.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(GridExtensionClientActions)
 

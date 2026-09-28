@@ -9,6 +9,11 @@
 
 #define FAE_API FAERIEINVENTORYCONTENT_API
 
+namespace Faerie::Container
+{
+	struct FContainerEventPayload;
+}
+
 // Limit the total number of items that can be stored in the container
 USTRUCT()
 struct FAE_API FFaerieItemContainerCountLimit final : public FFaerieItemContainerExtensionBase

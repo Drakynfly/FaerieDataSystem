@@ -1,7 +1,5 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "PropertyNode.h"
-
 #include "Customizations/SPropertyEditorStruct_COPY.h"
 #include "Misc/FeedbackContext.h"
 #include "Modules/ModuleManager.h"
@@ -9,6 +7,7 @@
 #include "DragAndDrop/AssetDragDropOp.h"
 #include "StructViewerModule.h"
 #include "StructViewerFilter.h"
+#include "PropertyNode.h"
 
 #include "Presentation/PropertyEditor/PropertyEditor.h"
 #include "Misc/DefinePrivateMemberPtr.h"

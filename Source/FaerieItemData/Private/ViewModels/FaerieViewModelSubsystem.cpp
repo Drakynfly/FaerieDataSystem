@@ -1,12 +1,10 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
-#include "EntityManagerHelpers.h"
-
 #include "ViewModels/FaerieViewModelSubsystem.h"
 #include "ViewModels/FaerieItemDataViewModelBase.h"
 
+#include "EntityManagerHelpers.h"
 #include "FaerieItemDataLog.h"
-
 #include "FaerieItemOwnerInterface.h"
 #include "FaerieItemProxy.h"
 #include "MassEntitySubsystem.h"

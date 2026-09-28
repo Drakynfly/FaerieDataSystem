@@ -1,12 +1,11 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
-#include "EntityManagerHelpers.h"
-#include "FaerieContainerEvent.h"
-
 #include "Extensions/InventoryLoggerExtension.h"
 #include "FaerieItemContainerBase.h"
 #include "MassExecutionContext.h"
 
+#include "EntityManagerHelpers.h"
+#include "FaerieContainerEvent.h"
 #include "Net/UnrealNetwork.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventoryLoggerExtension)

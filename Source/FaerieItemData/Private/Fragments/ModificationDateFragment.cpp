@@ -1,10 +1,10 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
+#include "Fragments/ModificationDateFragment.h"
+
 #include "FaerieItem.h"
 #include "FaerieItemEvent.h"
 #include "MassExecutionContext.h"
-
-#include "Fragments/ModificationDateFragment.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ModificationDateFragment)
 

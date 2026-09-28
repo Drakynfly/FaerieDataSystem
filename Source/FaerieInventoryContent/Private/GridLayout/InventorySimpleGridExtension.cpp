@@ -1,13 +1,12 @@
 // Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
-#include "FaerieContainerEvent.h"
-
 #include "GridLayout/InventorySimpleGridExtension.h"
 
 #include "FaerieItemContainerBase.h"
 #include "FaerieItemStorage.h"
 #include "FaerieItemStorageIterators.h"
 #include "ItemContainerEvent.h"
+#include "FaerieContainerEvent.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventorySimpleGridExtension)
 

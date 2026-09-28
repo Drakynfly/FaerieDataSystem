@@ -1,10 +1,10 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
-#include "EntityManagerHelpers.h"
-#include "FaerieItemStorage.h"
-
 #include "GridLayout/FaerieGridStructs.h"
 #include "GridLayout/InventoryGridExtensionBase.h"
+
+#include "EntityManagerHelpers.h"
+#include "FaerieItemStorage.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieGridStructs)
 

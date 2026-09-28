@@ -1,12 +1,11 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
-#include "FaerieContainerEvent.h"
-
 #include "GridLayout/InventoryGridExtensionBase.h"
 #include "FaerieItemContainerBase.h"
 #include "FaerieItemStorage.h"
 #include "FaerieItemStorageIterators.h"
 #include "MassExecutionContext.h"
+#include "FaerieContainerEvent.h"
 
 #include "Net/UnrealNetwork.h"
 

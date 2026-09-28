@@ -1,12 +1,11 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
-#include "EntityManagerHelpers.h"
-
 #include "Consumable/ItemUseConsumableRequest.h"
-#include "Actions/FaerieInventoryClient.h"
-#include "FaerieItemContainerBase.h"
-
 #include "Consumable/FaerieConsumableFragment.h"
+
+#include "Actions/FaerieInventoryClient.h"
+#include "EntityManagerHelpers.h"
+#include "FaerieItemContainerBase.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ItemUseConsumableRequest)
 

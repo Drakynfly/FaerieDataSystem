@@ -1,7 +1,5 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
-#include "FaerieContainerEvent.h"
-
 #include "Visualizer/EquipmentVisualizationUpdater.h"
 #include "Visualizer/EquipmentVisualizer.h"
 
@@ -9,6 +7,7 @@
 #include "FaerieItemContainerBase.h"
 #include "FaerieItemStackContainer.h"
 #include "MassExecutionContext.h"
+#include "FaerieContainerEvent.h"
 
 #include "Components/MeshComponent.h"
 #include "Components/SkeletalMeshComponent.h"

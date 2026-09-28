@@ -1,12 +1,12 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
-#include "EntityManagerHelpers.h"
-
 #include "Visualizer/EquipmentVisualizer.h"
+#include "Visualizer/EquipmentVisualizationUpdater.h"
 
 #include "FaerieEquipmentLog.h"
 #include "FaerieEquipmentManager.h"
 #include "FaerieItemStackContainer.h"
+#include "EntityManagerHelpers.h"
 
 #include "Actors/FaerieProxyActorBase.h"
 
@@ -20,8 +20,6 @@
 
 #include "GameFramework/Actor.h"
 #include "GameFramework/Character.h"
-
-#include "Visualizer/EquipmentVisualizationUpdater.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(EquipmentVisualizer)
 
