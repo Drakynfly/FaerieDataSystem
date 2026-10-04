@@ -128,6 +128,8 @@ bool UFaerieInventoryClient::PromptStackChoice(const FFaerieClientStackPromptArg
 		StackPromptHandler.Execute(Args);
 		return true;
 	}
+
+	UE_LOGF(LogFaerieInventory, Error, "Cannot open user prompt! Assign a handler for prompts with UFaerieInventoryClient::SetStackChoicePromptHandler.")
 	return false;
 }
 

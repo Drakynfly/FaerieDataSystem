@@ -38,10 +38,6 @@ public:
 	virtual const IFaerieItemOwnerInterface* GetItemOwner() const override PURE_VIRTUAL(AFaerieItemVisualBase::GetItemOwner, return nullptr; )
 	//~ Faerie::ItemData::IViewBase
 
-	//~ IFaerieItemDataProxy
-	virtual Faerie::ItemData::FProxyChangeEvent::RegistrationType& GetOnProxyChangeEvent() override;
-	//~ IFaerieItemDataProxy
-
 	Faerie::Mesh::FOnVisualActorDisplayFinished::RegistrationType& GetOnDisplayFinished() { return OnDisplayFinished; }
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Faerie|ItemRepresentationActor")

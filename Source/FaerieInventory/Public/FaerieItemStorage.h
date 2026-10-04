@@ -20,13 +20,6 @@ namespace Faerie::Container
 	class FStorageDataAccess;
 }
 
-namespace Faerie::Inventory
-{
-	FAERIEINVENTORY_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, ProxyCreated)
-	FAERIEINVENTORY_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, ProxyUpdated)
-	FAERIEINVENTORY_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, ProxyRemoved)
-}
-
 /**
  *
  */

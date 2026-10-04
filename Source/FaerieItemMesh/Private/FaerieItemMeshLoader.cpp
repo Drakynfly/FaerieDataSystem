@@ -3,7 +3,6 @@
 #include "FaerieItemMeshLoader.h"
 #include "FaerieItem.h"
 
-#include "EntityManagerHelpers.h"
 #include "FaerieItemMeshLog.h"
 #include "FaerieItemProxy.h"
 
@@ -50,25 +49,18 @@ namespace Faerie::Mesh
 	}
 }
 
-bool UFaerieItemMeshLoader::LoadMeshFromProxySynchronous(const FFaerieItemProxy& InProxy, const FGameplayTag Purpose,
+bool UFaerieItemMeshLoader::LoadMeshFromProxySynchronous(const FMassEntityManager& EntityManager, const FFaerieItemProxy& InProxy, const FGameplayTag Purpose,
 														 FFaerieItemMesh& Mesh)
 {
-	if (!InProxy.IsValid())
-	{
-		UE_LOGF(LogFaerieItemMesh, Error, "%hs: Invalid proxy!", __FUNCTION__)
-		return false;
-	}
-
 	const TOptional<FFaerieItemInstance> Instance = InProxy.GetItemInstance();
 	if (!Instance.IsSet())
 	{
-		UE_LOGF(LogFaerieItemMesh, Error, "%hs: Invalid instance!", __FUNCTION__)
+		UE_LOGF(LogFaerieItemMesh, Error, "%hs: Invalid proxy/instance!", __FUNCTION__)
 
 		return false;
 	}
 
-	auto* EntityManager = ItemData::GetFaerieEntityManager(InProxy.ExtractWorld());
-	auto MeshFragment = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieMeshFragment>(EntityManager, Instance.GetValue());
+	auto MeshFragment = ItemData::GetEntityFragmentOrDefault<FFaerieMeshFragment>(&EntityManager, Instance.GetValue());
 	if (!MeshFragment.IsValid())
 	{
 		UE_LOGF(LogFaerieItemMesh, Error, "%hs: Invalid fragment!", __FUNCTION__)
@@ -78,26 +70,18 @@ bool UFaerieItemMeshLoader::LoadMeshFromProxySynchronous(const FFaerieItemProxy&
 	return Mesh::LoadMeshFromFragmentSynchronous(MeshFragment->Container, Purpose, Mesh);
 }
 
-TSharedPtr<FStreamableHandle> UFaerieItemMeshLoader::LoadMeshFromProxyAsynchronous(const FFaerieItemProxy& InProxy,
+TSharedPtr<FStreamableHandle> UFaerieItemMeshLoader::LoadMeshFromProxyAsynchronous(const FMassEntityManager& EntityManager, const FFaerieItemProxy& InProxy,
 	const FGameplayTag Purpose, Mesh::FAsyncLoadResult Callback)
 {
-	if (!InProxy.IsValid())
-	{
-		UE_LOGF(LogFaerieItemMesh, Error, "%hs: Invalid proxy!", __FUNCTION__)
-		(void)Callback.ExecuteIfBound(false, {});
-		return nullptr;
-	}
-
 	const TOptional<FFaerieItemInstance> Instance = InProxy.GetItemInstance();
 	if (!Instance.IsSet())
 	{
-		UE_LOGF(LogFaerieItemMesh, Error, "%hs: Invalid instance!", __FUNCTION__)
+		UE_LOGF(LogFaerieItemMesh, Error, "%hs: Invalid proxy/instance!", __FUNCTION__)
 		(void)Callback.ExecuteIfBound(false, {});
 		return nullptr;
 	}
 
-	FMassEntityManager* EntityManager = ItemData::GetFaerieEntityManager(InProxy.ExtractWorld());
-	auto MeshFragment = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieMeshFragment>(EntityManager, Instance.GetValue());
+	auto MeshFragment = ItemData::GetEntityFragmentOrDefault<FFaerieMeshFragment>(&EntityManager, Instance.GetValue());
 	if (!MeshFragment.IsValid())
 	{
 		UE_LOGF(LogFaerieItemMesh, Error, "%hs: Invalid fragment!", __FUNCTION__)
@@ -189,8 +173,29 @@ TSharedPtr<FStreamableHandle> UFaerieItemMeshLoader::LoadMeshFromProxyAsynchrono
 	return nullptr;
 }
 
+#if WITH_EDITOR
+bool UFaerieItemMeshLoader::LoadMeshFromAssetSynchronous(const TNotNull<const UFaerieItem*> InItem, const FGameplayTag Purpose,
+	FFaerieItemMesh& Mesh)
+{
+	if (!IsValid(InItem))
+	{
+		UE_LOGF(LogFaerieItemMesh, Error, "%hs: Invalid proxy!", __FUNCTION__)
+		return false;
+	}
+
+	auto MeshFragment = ItemData::GetDefaultFragment<FFaerieMeshFragment>(InItem);
+	if (!MeshFragment.IsValid())
+	{
+		UE_LOGF(LogFaerieItemMesh, Error, "%hs: Invalid fragment!", __FUNCTION__)
+		return false;
+	}
+
+	return Mesh::LoadMeshFromFragmentSynchronous(MeshFragment->Container, Purpose, Mesh);
+}
+#endif
+
 void UFaerieItemMeshLoader::OnAsyncStaticMeshLoaded(const TConstStructView<FFaerieStaticMeshData> MeshData,
-	Mesh::FAsyncLoadRequest Request)
+													Mesh::FAsyncLoadRequest Request)
 {
 	FFaerieItemMesh Mesh = FFaerieItemMesh::MakeStatic(MeshData.Get());
 	HandleAsyncLoadResult(MoveTemp(Mesh), MoveTemp(Request));
@@ -208,7 +213,7 @@ void UFaerieItemMeshLoader::HandleAsyncLoadResult(FFaerieItemMesh&& Mesh, Mesh::
 	(void)Request.Callback.ExecuteIfBound(true, MoveTemp(Mesh));
 }
 
-bool UFaerieItemMeshLoader_Cached::LoadMeshFromProxySynchronous(const FFaerieItemProxy& InProxy, const FGameplayTag Purpose,
+bool UFaerieItemMeshLoader_Cached::LoadMeshFromProxySynchronous(const FMassEntityManager& EntityManager, const FFaerieItemProxy& InProxy, const FGameplayTag Purpose,
 	FFaerieItemMesh& Mesh)
 {
 	const Mesh::FCachedMeshKey Key = {
@@ -223,7 +228,7 @@ bool UFaerieItemMeshLoader_Cached::LoadMeshFromProxySynchronous(const FFaerieIte
 		return true;
 	}
 
-	const bool SuperResult = Super::LoadMeshFromProxySynchronous(InProxy, Purpose, Mesh);
+	const bool SuperResult = Super::LoadMeshFromProxySynchronous(EntityManager, InProxy, Purpose, Mesh);
 
 	// If the mesh load succeeded, cache the result.
 	if (SuperResult)

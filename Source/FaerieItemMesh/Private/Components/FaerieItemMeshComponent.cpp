@@ -94,7 +94,7 @@ void UFaerieItemMeshComponent::OnSourceProxyDataChanged(const FFaerieItemProxy& 
 
 void UFaerieItemMeshComponent::LoadMeshFromSource(const bool Async, const bool ClearExistingDataDuringAsync)
 {
-	if (!SourceProxy.IsValid())
+	if (!SourceProxy.HasValidInstance())
 	{
 		return;
 	}
@@ -111,16 +111,8 @@ void UFaerieItemMeshComponent::LoadMeshFromSource(const bool Async, const bool C
 #if WITH_EDITOR
 		// @todo: this is a hack to allow the editor to load meshes when world subsystems aren't available...
 		auto Loader = GetMutableDefault<UFaerieItemMeshLoader>();
-		if (Async)
-		{
-			AsyncMeshLoadingHandle = Loader->LoadMeshFromProxyAsynchronous(SourceProxy, PreferredTag,
-				Mesh::FAsyncLoadResult::CreateUObject(this, &ThisClass::AsyncLoadMeshReturn));
-		}
-		else
-		{
-			Loader->LoadMeshFromProxySynchronous(SourceProxy, PreferredTag, MeshData);
-			RebuildMesh();
-		}
+		Loader->LoadMeshFromAssetSynchronous(SourceProxy.GetItemInstance()->GetItemPtr(), PreferredTag, MeshData);
+		RebuildMesh();
 #endif
 		return;
 	}
@@ -373,22 +365,41 @@ void UFaerieItemMeshComponent::SetItemMeshFromProxy(const FFaerieItemProxy& InPr
 {
 	//if (SourceProxy != InProxy)
 	{
-		if (SourceProxy.IsValid())
+		if (SourceProxy.HasValidInstance())
 		{
-			SourceProxy.GetOnProxyChangeEvent().RemoveAll(this);
+			// @todo unsubscribe from data change events
 		}
 
 		SourceProxy = InProxy;
 
-		if (SourceProxy.IsValid())
+		if (SourceProxy.HasValidInstance())
 		{
-			SourceProxy.GetOnProxyChangeEvent().AddUObject(this, &ThisClass::OnSourceProxyDataChanged);
+			// @todo subscribe to data change events
 		}
 
 		// Item changed, so clear existing data.
 		LoadMeshFromSource(true, true);
 	}
 }
+
+#if WITH_EDITOR
+void UFaerieItemMeshComponent::SetItemMeshFromAsset(const TNotNull<const UFaerieItem*> ItemAsset)
+{
+	UFaerieMeshSubsystem* MeshSubsystem = GetWorld()->GetSubsystem<UFaerieMeshSubsystem>();
+	if (IsValid(MeshSubsystem))
+	{
+		MeshSubsystem->LoadMeshFromAssetSynchronous(ItemAsset, PreferredTag, MeshData);
+		RebuildMesh();
+		return;
+	}
+
+
+	// @todo: this is a hack to allow the editor to load meshes when world subsystems aren't available...
+	auto Loader = GetMutableDefault<UFaerieItemMeshLoader>();
+	Loader->LoadMeshFromAssetSynchronous(ItemAsset, PreferredTag, MeshData);
+	RebuildMesh();
+}
+#endif
 
 void UFaerieItemMeshComponent::SetSkeletalMeshLeaderPoseComponent(USkinnedMeshComponent* LeaderComponent)
 {
@@ -406,9 +417,9 @@ void UFaerieItemMeshComponent::ClearItemMesh()
 	ActualType = EItemMeshType::None;
 	MeshData = FFaerieItemMesh();
 
-	if (SourceProxy.IsValid())
+	if (SourceProxy.HasValidInstance())
 	{
-		SourceProxy.GetOnProxyChangeEvent().RemoveAll(this);
+		// @todo unsubscribe from data change events
 	}
 
 	SourceProxy = FFaerieItemProxy();

@@ -133,7 +133,7 @@ bool UFaerieGenerationLibrary::FindSlot(const TScriptInterface<IFaerieItemSlotIn
 bool UFaerieGenerationLibrary::CanConsume(const FFaerieItemProxy& Proxy, UScriptStruct* ConsumableType,
     const AActor* Consumer, const int32 Cost)
 {
-    if (!Proxy.IsValid())
+    if (!Proxy.HasValidInstance())
     {
         FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieGenerationLibrary::CanConsume"), ELogVerbosity::Error);
         return false;
@@ -164,7 +164,7 @@ bool UFaerieGenerationLibrary::CanConsume(const FFaerieItemProxy& Proxy, UScript
 bool UFaerieGenerationLibrary::TryConsume(const FFaerieItemProxy& Proxy, UScriptStruct* ConsumableType,
     AActor* Consumer, const int32 Cost)
 {
-    if (!Proxy.IsValid())
+    if (!Proxy.HasValidInstance())
     {
         FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieGenerationLibrary::TryConsume"), ELogVerbosity::Error);
         return false;

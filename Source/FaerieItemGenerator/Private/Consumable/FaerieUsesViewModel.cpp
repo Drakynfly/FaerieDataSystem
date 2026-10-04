@@ -23,15 +23,13 @@ void UFaerieUsesViewModel::OnProxySet(FMassEntityManager& EntityManager)
 	int32 NewUsesRemaining = 0;
 	int32 NewMaxUses = 0;
 
-	if (ItemProxy.IsValid())
+	if (const TOptional<FFaerieItemInstance> ItemInstanceOpt = ItemProxy.GetItemInstance();
+		ItemInstanceOpt.IsSet())
 	{
-		check(!IsInitialized())
-		CreateViewModelEntity(EntityManager, GetViewModelFragmentType());
-
 		const TConstStructView<FFaerieItemUses> Value =
 			ItemData::GetEntityFragmentOrDefault<FFaerieItemUses>(
 				&EntityManager,
-				ItemProxy.GetItemInstanceOrInvalid());
+				ItemInstanceOpt.GetValue());
 
 		UE_MVVM_SET_PROPERTY_VALUE(HasUses, Value.IsValid());
 
@@ -43,7 +41,6 @@ void UFaerieUsesViewModel::OnProxySet(FMassEntityManager& EntityManager)
 	}
 	else
 	{
-		DestroyViewModelEntity(EntityManager);
 		UE_MVVM_SET_PROPERTY_VALUE(HasUses, false);
 	}
 

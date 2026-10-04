@@ -37,7 +37,6 @@ public:
 	virtual TOptional<FFaerieItemInstance> GetItemInstance() const override;
 	virtual int32 GetCopies() const override { return 1; }
 	virtual IFaerieItemOwnerInterface* GetItemOwner() const override;
-	virtual Faerie::ItemData::FProxyChangeEvent::RegistrationType& GetOnProxyChangeEvent() override;
 	//~ End IFaerieItemDataProxy
 
 	UThumbnailInfo* GetThumbnailInfo() const;

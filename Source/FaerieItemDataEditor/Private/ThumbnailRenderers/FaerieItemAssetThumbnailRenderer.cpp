@@ -73,14 +73,6 @@ IFaerieItemOwnerInterface* UFaerieItemAssetThumbnailRenderer::GetItemOwner() con
 	return nullptr;
 }
 
-Faerie::ItemData::FProxyChangeEvent::RegistrationType& UFaerieItemAssetThumbnailRenderer::GetOnProxyChangeEvent()
-{
-	// Not implemented for now. Nothing should be able to call this anyway.
-	checkNoEntry();
-	static Faerie::ItemData::FProxyChangeEvent Blank;
-	return Blank;
-}
-
 UThumbnailInfo* UFaerieItemAssetThumbnailRenderer::GetThumbnailInfo() const
 {
 	if (IsValid(ItemAsset))

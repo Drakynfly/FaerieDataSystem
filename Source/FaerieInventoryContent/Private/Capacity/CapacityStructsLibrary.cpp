@@ -11,15 +11,10 @@
 
 FFaerieItemCapacity UFaerieCapacityStructsUtilities::GetCapacity(const FFaerieItemProxy& Proxy)
 {
-	if (!Proxy.IsValid())
-	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieCapacityStructsUtilities::GetCapacity"), ELogVerbosity::Error);
-		return FFaerieItemCapacity();
-	}
-
 	const TOptional<FFaerieItemInstance> InstanceOpt = Proxy.GetItemInstance();
 	if (!InstanceOpt.IsSet())
 	{
+		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieCapacityStructsUtilities::GetCapacity"), ELogVerbosity::Error);
 		return FFaerieItemCapacity();
 	}
 
@@ -34,15 +29,10 @@ FFaerieItemCapacity UFaerieCapacityStructsUtilities::GetCapacity(const FFaerieIt
 
 int32 UFaerieCapacityStructsUtilities::GetWeightOfStack(const FFaerieItemProxy& Proxy, const int32 Stack)
 {
-	if (!Proxy.IsValid())
-	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieCapacityStructsUtilities::GetWeightOfStack"), ELogVerbosity::Error);
-		return 0;
-	}
-
 	const TOptional<FFaerieItemInstance> InstanceOpt = Proxy.GetItemInstance();
 	if (!InstanceOpt.IsSet())
 	{
+		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieCapacityStructsUtilities::GetWeightOfStack"), ELogVerbosity::Error);
 		return 0;
 	}
 
@@ -57,15 +47,10 @@ int32 UFaerieCapacityStructsUtilities::GetWeightOfStack(const FFaerieItemProxy& 
 
 int64 UFaerieCapacityStructsUtilities::GetVolumeOfStack(const FFaerieItemProxy& Proxy, const int32 Stack)
 {
-	if (!Proxy.IsValid())
-	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieCapacityStructsUtilities::GetVolumeOfStack"), ELogVerbosity::Error);
-		return 0;
-	}
-
 	const TOptional<FFaerieItemInstance> InstanceOpt = Proxy.GetItemInstance();
 	if (!InstanceOpt.IsSet())
 	{
+		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieCapacityStructsUtilities::GetVolumeOfStack"), ELogVerbosity::Error);
 		return 0;
 	}
 
@@ -80,15 +65,10 @@ int64 UFaerieCapacityStructsUtilities::GetVolumeOfStack(const FFaerieItemProxy& 
 
 int64 UFaerieCapacityStructsUtilities::GetEfficientVolume(const FFaerieItemProxy& Proxy, const int32 Stack)
 {
-	if (!Proxy.IsValid())
-	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieCapacityStructsUtilities::GetEfficientVolume"), ELogVerbosity::Error);
-		return 0;
-	}
-
 	const TOptional<FFaerieItemInstance> InstanceOpt = Proxy.GetItemInstance();
 	if (!InstanceOpt.IsSet())
 	{
+		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieCapacityStructsUtilities::GetEfficientVolume"), ELogVerbosity::Error);
 		return 0;
 	}
 
@@ -103,15 +83,10 @@ int64 UFaerieCapacityStructsUtilities::GetEfficientVolume(const FFaerieItemProxy
 
 FFaerieWeightAndVolume UFaerieCapacityStructsUtilities::GetWeightAndVolumeOfStack(const FFaerieItemProxy& Proxy, const int32 Stack)
 {
-	if (!Proxy.IsValid())
-	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieCapacityStructsUtilities::GetWeightAndVolumeOfStack"), ELogVerbosity::Error);
-		return FFaerieWeightAndVolume();
-	}
-
 	const TOptional<FFaerieItemInstance> InstanceOpt = Proxy.GetItemInstance();
 	if (!InstanceOpt.IsSet())
 	{
+		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieCapacityStructsUtilities::GetWeightAndVolumeOfStack"), ELogVerbosity::Error);
 		return FFaerieWeightAndVolume();
 	}
 
@@ -126,15 +101,10 @@ FFaerieWeightAndVolume UFaerieCapacityStructsUtilities::GetWeightAndVolumeOfStac
 
 FFaerieWeightAndVolume UFaerieCapacityStructsUtilities::GetWeightAndVolumeOfPartialStack(const FFaerieItemProxy& Proxy, const int32 Stack)
 {
-	if (!Proxy.IsValid())
-	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieCapacityStructsUtilities::GetWeightAndVolumeOfPartialStack"), ELogVerbosity::Error);
-		return FFaerieWeightAndVolume();
-	}
-
 	const TOptional<FFaerieItemInstance> InstanceOpt = Proxy.GetItemInstance();
 	if (!InstanceOpt.IsSet())
 	{
+		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieCapacityStructsUtilities::GetWeightAndVolumeOfPartialStack"), ELogVerbosity::Error);
 		return FFaerieWeightAndVolume();
 	}
 

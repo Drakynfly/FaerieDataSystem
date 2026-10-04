@@ -2,7 +2,6 @@
 
 #include "Capacity/InventoryCapacityExtension.h"
 
-#include "EntityManagerHelpers.h"
 #include "FaerieContainerEvent.h"
 
 #include "FaerieContainerIterator.h"
@@ -130,14 +129,14 @@ bool FFaerieItemContainerCapacityData::CanContain_Multi(const FMassEntityManager
 	Capacities.Reserve(Proxies.Num());
 	for (int32 i = 0; i < Proxies.Num(); ++i)
 	{
-		const FFaerieItemProxy Proxy = Proxies[i];
-		if (!Proxy.IsValid())
+		const TOptional<FFaerieItemInstance> ItemInstanceOpt = Proxies[i].GetItemInstance();
+		if (!ItemInstanceOpt.IsSet())
 		{
 			return false;
 		}
 
 		TUniquePtr<ItemData::FCapacityHelper>& HelperPtr = Capacities.Add_GetRef(
-			MakeUnique<ItemData::FCapacityHelper>(&EntityManager, Proxy.GetItemInstance().GetValue()));
+			MakeUnique<ItemData::FCapacityHelper>(&EntityManager, ItemInstanceOpt.GetValue()));
 		if (!HelperPtr->HasCapacity())
 		{
 			// If the fragment is invalid, return false if we require one.

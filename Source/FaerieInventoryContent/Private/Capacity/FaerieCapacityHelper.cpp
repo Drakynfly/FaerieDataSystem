@@ -154,7 +154,7 @@ namespace Faerie::ItemData
 		if (MassCapacityDefault)
 		{
 			const int64 Volume = MassCapacityDefault->GetVolume();
-			return Volume + static_cast<int64>(static_cast<double>(Volume * (Stack - 1)) * static_cast<double>(MassCapacity->Efficiency));
+			return Volume + static_cast<int64>(static_cast<double>(Volume * (Stack - 1)) * static_cast<double>(MassCapacityDefault->Efficiency));
 		}
 		checkf(false, TEXT("GetVolumeOfStack should not be called for an item that does not have capacity"));
 		return 0;

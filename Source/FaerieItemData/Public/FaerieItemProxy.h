@@ -12,6 +12,7 @@
 
 namespace Faerie::ItemData
 {
+	// #todo remove or move this type
 	using FProxyChangeEvent = TMulticastDelegate<void(const FFaerieItemProxy&, FGameplayTag)>;
 }
 
@@ -34,10 +35,6 @@ class FAERIEITEMDATA_API IFaerieItemDataProxy
 #endif
 {
 	GENERATED_BODY()
-
-public:
-	// Get the multicast delegate for listening to changes to the item data of this proxy.
-	virtual Faerie::ItemData::FProxyChangeEvent::RegistrationType& GetOnProxyChangeEvent() = 0;
 };
 
 // This struct contains a pointer to a proxy of a FaerieItem somewhere. This struct should never be
@@ -74,6 +71,7 @@ private:
 
 public:
 	// Only tests if this proxy has a valid interface pointer. It does not check if the data it points to is valid.
+	// Used by Faerie::TValid
 	bool IsValid() const;
 
 	// Test if this proxy is valid and points to a valid item stack.
@@ -107,10 +105,6 @@ public:
 
 	// Determine the UWorld this item resides in.
 	const UWorld* ExtractWorld() const;
-
-	// Utility to access the change event, which requires non-const access to the delegate, and proxies are always
-	// treated as const, so a quick little ugly workaround is needed.
-	Faerie::ItemData::FProxyChangeEvent::RegistrationType& GetOnProxyChangeEvent() const;
 
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bSuccess);
 

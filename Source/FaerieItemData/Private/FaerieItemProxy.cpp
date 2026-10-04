@@ -9,7 +9,7 @@
 
 bool FFaerieItemProxy::IsValid() const
 {
-	return !!InterfacePtr;
+	return HasValidInstance();
 }
 
 bool FFaerieItemProxy::HasValidInstance() const
@@ -72,27 +72,17 @@ const UWorld* FFaerieItemProxy::ExtractWorld() const
 	}
 	if (InterfacePtr)
 	{
-		if (const UWorld* WorldFromOwner = Cast<UObject>(InterfacePtr->GetItemOwner())->GetWorld())
+		if (const IFaerieItemOwnerInterface* Owner = InterfacePtr->GetItemOwner())
 		{
-			return WorldFromOwner;
+			if (const UWorld* WorldFromOwner = Cast<UObject>(Owner)->GetWorld())
+			{
+				return WorldFromOwner;
+			}
 		}
 	}
 
 	UE_LOGF(LogFaerieItemData, Error, "Unable to determine world from item proxy. We are likely a non-persistent proxy, which should not be used to fetch worlds from!")
 	return nullptr;
-}
-
-Faerie::ItemData::FProxyChangeEvent::RegistrationType& FFaerieItemProxy::GetOnProxyChangeEvent() const
-{
-	if (const IFaerieItemDataProxy* ProxyObj = Cast<IFaerieItemDataProxy>(ProxyObject))
-	{
-		return const_cast<IFaerieItemDataProxy*>(ProxyObj)->GetOnProxyChangeEvent();
-	}
-
-	// GetOnProxyChangeEvent should *never* be called on invalid Proxies!
-	checkNoEntry();
-	static Faerie::ItemData::FProxyChangeEvent Blank;
-	return Blank;
 }
 
 bool FFaerieItemProxy::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bSuccess)

@@ -72,13 +72,6 @@ namespace Faerie::Container
 	static const FText AdditionFailure_FailedCanAddStack = LOCTEXT("AdditionFailure_FailedCanAddStack", "Refused by CanAddStack");
 }
 
-namespace Faerie::Inventory
-{
-	UE_DEFINE_GAMEPLAY_TAG_TYPED(FFaerieInventoryTag, ProxyCreated, "Fae.Inventory.ProxyCreated")
-	UE_DEFINE_GAMEPLAY_TAG_TYPED(FFaerieInventoryTag, ProxyUpdated, "Fae.Inventory.ProxyUpdated")
-	UE_DEFINE_GAMEPLAY_TAG_TYPED(FFaerieInventoryTag, ProxyRemoved, "Fae.Inventory.ProxyRemoved")
-}
-
 void UFaerieItemStorage::PostInitProperties()
 {
 	Super::PostInitProperties();
@@ -307,21 +300,6 @@ TUniquePtr<Container::IAddressIterator> UFaerieItemStorage::CreateSingleEntryIte
 void UFaerieItemStorage::OnItemDataChanged(const FFaerieItemInstance& Instance, const FGameplayTag EditTag)
 {
 	Super::OnItemDataChanged(Instance, EditTag);
-
-	if (const FFaerieStorageEntry* Entry = FindEntry(Instance))
-	{
-		// Mutable entries should not generate Entry Proxies, see GetEntryProxyImpl
-		check(LocalEntryProxies.Contains(Entry->GetKey()))
-
-		// There should only be a single address for a mutable item, so only try to update one.
-		const FFaerieAddress Address = Entry->FirstAddress();
-
-		if (const TWeakObjectPtr<UFaerieItemStackProxy>* Proxy = LocalStackProxies.Find(Address);
-			Proxy && Proxy->IsValid())
-		{
-			Proxy->Get()->NotifyItemDataChanged(EditTag);
-		}
-	}
 }
 
 
@@ -1198,11 +1176,6 @@ FFaerieAddress UFaerieItemStorage::GetFirstAddress() const
 
 bool UFaerieItemStorage::CanAddStack(const FFaerieItemProxy& Proxy, const EFaerieStorageAddStackBehavior AddStackBehavior) const
 {
-	if (!Proxy.IsValid())
-	{
-		return false;
-	}
-
 	const TOptional<FFaerieItemInstance> Instance = Proxy.GetItemInstance();
 	if (!Instance.IsSet())
 	{
@@ -1236,11 +1209,6 @@ bool UFaerieItemStorage::CanAddStacks(const TArray<FFaerieItemProxy>& Proxies, c
 	const FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
 	for (const FFaerieItemProxy& Proxy : Proxies)
 	{
-		if (!Proxy.IsValid())
-		{
-			return false;
-		}
-
 		const TOptional<FFaerieItemInstance> Instance = Proxy.GetItemInstance();
 		if (!Instance.IsSet())
 		{
@@ -1271,11 +1239,6 @@ bool UFaerieItemStorage::CanAddStacks(const Utils::TArrayAdapter<FFaerieItemProx
 	for (int32 i = 0; i < Stacks.Num(); ++i)
 	{
 		const FFaerieItemProxy Proxy = Stacks[i];
-
-		if (!Proxy.IsValid())
-		{
-			return false;
-		}
 
 		const TOptional<FFaerieItemInstance> Instance = Proxy.GetItemInstance();
 		if (!Instance.IsSet())

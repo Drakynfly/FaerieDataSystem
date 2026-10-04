@@ -131,9 +131,10 @@ namespace Faerie::Editor
 			ItemMeshComponent->ClearItemMesh();
 		}
 
-		if (!ItemProxy.IsValid()) return;
+		const TOptional<FFaerieItemInstance> ItemInstanceOpt = ItemProxy.GetItemInstance();
+		if (!ItemInstanceOpt.IsSet()) return;
 
-		const UFaerieItem* FaerieItem = ItemProxy.GetItemInstance().GetValue().GetItemPtr();
+		const UFaerieItem* FaerieItem = ItemInstanceOpt.GetValue().GetItemPtr();
 		if (!IsValid(FaerieItem)) return;
 
 		auto ProxyClassFragment = Faerie::ItemData::GetDefaultFragment<FFaerieProxyActorFragment>(FaerieItem);
@@ -166,7 +167,7 @@ namespace Faerie::Editor
 			}
 
 			// Path 2: Spawn Component
-			ItemMeshComponent->SetItemMeshFromProxy(ItemProxy);
+			ItemMeshComponent->SetItemMeshFromAsset(FaerieItem);
 		}
 	}
 

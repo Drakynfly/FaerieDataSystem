@@ -18,14 +18,14 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemAsset)
 
+using namespace Faerie;
+
 #if WITH_EDITORONLY_DATA
 
 namespace Faerie::ItemAssetPrivate
 {
 	static const FName NAME_IsEditorTemplate("IsEditorTemplate");
 }
-
-using namespace Faerie;
 
 #define LOCTEXT_NAMESPACE "FaerieItemAssetMetadata"
 

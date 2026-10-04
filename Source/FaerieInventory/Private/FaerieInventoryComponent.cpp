@@ -1,9 +1,9 @@
 // Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieInventoryComponent.h"
+#include "AssetLoadFlagFixer.h"
 #include "FaerieInventoryLog.h"
 #include "FaerieItemStorage.h"
-#include "ItemContainerExtensionBase.h"
 #include "GameFramework/Actor.h"
 #include "Net/UnrealNetwork.h"
 
@@ -46,6 +46,8 @@ void UFaerieInventoryComponent::ReadyForReplication()
 	{
 		check(IsValid(ItemStorage));
 
+		ItemStorage = Faerie::Utils::DuplicateObjectFromDiskForReplication(ItemStorage.Get(), this);
+		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, ItemStorage, this);
 		AddReplicatedSubObject(ItemStorage);
 		ItemStorage->InitializeNetObject(Owner);
 	}

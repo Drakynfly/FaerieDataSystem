@@ -13,7 +13,7 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieCardGenerator)
 
-TSoftClassPtr<UFaerieCardBase> UFaerieCardGenerator::GetCardClassFromProxy(const FFaerieItemProxy& Proxy, const FFaerieItemCardType& Type) const
+TSoftClassPtr<UFaerieCardBase> UFaerieCardGenerator::GetCardClassFromProxy(const FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy, const FFaerieItemCardType& Type) const
 {
 	auto&& Instance = Proxy.GetItemInstance();
 	if (!Instance.IsSet())
@@ -29,8 +29,7 @@ TSoftClassPtr<UFaerieCardBase> UFaerieCardGenerator::GetCardClassFromProxy(const
 		return nullptr;
 	}
 
-	FMassEntityManager* EntityManager = Faerie::ItemData::GetFaerieEntityManager(Proxy.ExtractWorld());
-	auto CardFragment = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieItemCardClassFragment>(EntityManager, Instance.GetValue());
+	auto CardFragment = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieItemCardClassFragment>(&EntityManager, Instance.GetValue());
 	if (CardFragment.IsValid())
 	{
 		auto&& Class = CardFragment->GetCardClass(Type);
@@ -57,7 +56,7 @@ TSoftClassPtr<UFaerieCardBase> UFaerieCardGenerator::GetCardClassFromProxy(const
 
 UFaerieCardBase* UFaerieCardGenerator::Generate(const Faerie::Card::FSyncGeneration& Params)
 {
-	if (!Params.Proxy.IsValid() ||
+	if (!Params.Proxy.HasValidInstance() ||
 		!IsValid(Params.Player) ||
 		!Params.Tag.IsValid())
 	{
@@ -66,7 +65,8 @@ UFaerieCardBase* UFaerieCardGenerator::Generate(const Faerie::Card::FSyncGenerat
 	}
 
 	// Note: Known LoadSync code path; accepted use.
-	if (const TSoftClassPtr<UFaerieCardBase> CardClass = GetCardClassFromProxy(Params.Proxy, Params.Tag);
+	const FMassEntityManager& EntityManager = Faerie::ItemData::GetFaerieEntityManagerChecked(Params.Player->GetWorld());
+	if (const TSoftClassPtr<UFaerieCardBase> CardClass = GetCardClassFromProxy(EntityManager, Params.Proxy, Params.Tag);
 		IsValid(CardClass.LoadSynchronous()))
 	{
 		UFaerieCardBase* CardWidget = CreateWidget<UFaerieCardBase>(Params.Player, CardClass.Get());
@@ -83,7 +83,7 @@ UFaerieCardBase* UFaerieCardGenerator::Generate(const Faerie::Card::FSyncGenerat
 
 void UFaerieCardGenerator::GenerateAsync(const Faerie::Card::FAsyncGeneration& Params)
 {
-	if (!Params.Proxy.IsValid() ||
+	if (!Params.Proxy.HasValidInstance() ||
 		!Params.Player.IsValid() ||
 		!Params.Tag.IsValid())
 	{
@@ -92,7 +92,8 @@ void UFaerieCardGenerator::GenerateAsync(const Faerie::Card::FAsyncGeneration& P
 		return;
 	}
 
-	if (const TSoftClassPtr<UFaerieCardBase> CardClass = GetCardClassFromProxy(Params.Proxy, Params.Tag);
+	const FMassEntityManager& EntityManager = Faerie::ItemData::GetFaerieEntityManagerChecked(Params.Player->GetWorld());
+	if (const TSoftClassPtr<UFaerieCardBase> CardClass = GetCardClassFromProxy(EntityManager, Params.Proxy, Params.Tag);
 		!CardClass.IsNull())
 	{
 		UAssetManager::GetStreamableManager().RequestAsyncLoad(CardClass.ToSoftObjectPath(),

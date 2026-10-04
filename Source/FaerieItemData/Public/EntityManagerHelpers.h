@@ -12,7 +12,7 @@ namespace Faerie::ItemData
 	/*
 	 * Get the Mass Entity Manager used for all Faerie Item Fragment operations.
 	 */
-	FAERIEITEMDATA_API bool HasFaerieEntityManagerBeenAssigned(TNotNull<const UWorld*> World);
-	FAERIEITEMDATA_API FMassEntityManager* GetFaerieEntityManager(TNotNull<const UWorld*> World);
+	FAERIEITEMDATA_API bool HasFaerieEntityManagerBeenAssigned(const UWorld* World);
+	FAERIEITEMDATA_API FMassEntityManager* GetFaerieEntityManager(const UWorld* World);
 	FAERIEITEMDATA_API FMassEntityManager& GetFaerieEntityManagerChecked(TNotNull<const UWorld*> World);
 }

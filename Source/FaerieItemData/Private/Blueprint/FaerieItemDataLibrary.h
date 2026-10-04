@@ -65,20 +65,17 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Faerie|Hash")
 	static int64 BreakFaerieHash(const FFaerieHash Hash) { return Hash.Hash; }
 
-	UFUNCTION(BlueprintPure, Category = "Faerie|ItemData", meta = (DisplayName = "Get Item Copies"))
-	static int32 GetViewCopies(const FFaerieItemProxy& Proxy);
-
 	UFUNCTION(BlueprintPure, Category = "Faerie|ItemData", meta = (DisplayName = "Equal (Faerie Item Proxy)", CompactNodeTitle = "==", Keywords = "== equal compare", ScriptOperator = "=="))
 	static bool EqualEqual_ItemProxy(const FFaerieItemProxy& A, const FFaerieItemProxy& B);
 
 	UFUNCTION(BlueprintPure, Category = "Faerie|ItemData", meta = (DisplayName = "Not Equal (Faerie Address)", CompactNodeTitle = "!=", Keywords = "!= not equal compare", ScriptOperator = "!="))
 	static bool NotEqual_ItemProxy(const FFaerieItemProxy& A, const FFaerieItemProxy& B);
 
-	// Attempt to cast a weak proxy struct (interface pointer) into a typed proxy object pointer.
+	// Attempt to cast a proxy struct's object into a type.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemData", meta = (DeterminesOutputType = "Class", DynamicOutputParam = "ProxyObject", ExpandBoolAsExecs = "ReturnValue"))
 	static bool CastProxy(const FFaerieItemProxy& Proxy, UPARAM(meta = (MustImplement = "/Script/FaerieItemData.FaerieItemDataProxy")) UClass* Class, UObject*& ProxyObject);
 
-	// Make a weak proxy struct from a typed proxy object.
+	// Make a proxy struct from a proxy object.
 	UFUNCTION(BlueprintPure, Category = "Faerie|ItemData")
 	static FFaerieItemProxy ToProxyStruct(const TScriptInterface<IFaerieItemDataProxy>& ProxyObject);
 
@@ -92,12 +89,6 @@ public:
 	// Get the number of copies this proxy may access.
 	UFUNCTION(BlueprintPure, Category = "Faerie|ItemData", meta = (DisplayName = "Get Item Copies"))
 	static int32 GetProxyCopies(const FFaerieItemProxy& Proxy);
-
-	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemData")
-	static void BindToItemDataChanged(const FFaerieItemProxy& Proxy, const FFaerieItemProxyChangedEvent& Event);
-
-	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemData")
-	static void UnbindAllFromItemDataChanged(const FFaerieItemProxy& Proxy, const UObject* Object);
 
 	/**
 	 * Test if an item is mutable

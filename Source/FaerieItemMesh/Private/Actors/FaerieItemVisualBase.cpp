@@ -38,13 +38,6 @@ void AFaerieItemVisualBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 TOptional<FFaerieItemInstance> AFaerieItemVisualBase::GetItemInstance() const
 	PURE_VIRTUAL(AFaerieItemVisualBase::GetItemInstance, return NullOpt; )
 
-Faerie::ItemData::FProxyChangeEvent::RegistrationType& AFaerieItemVisualBase::GetOnProxyChangeEvent()
-{
-	checkNoEntry();
-	static Faerie::ItemData::FProxyChangeEvent Blank;
-	return Blank;
-}
-
 void AFaerieItemVisualBase::ClearDataDisplay_Implementation()
 {
 }

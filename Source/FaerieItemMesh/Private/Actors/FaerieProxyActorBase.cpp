@@ -24,23 +24,7 @@ int32 AFaerieProxyActorBase::GetCopies() const
 
 const IFaerieItemOwnerInterface* AFaerieProxyActorBase::GetItemOwner() const
 {
-	if (!DataSource.IsValid())
-	{
-		return nullptr;
-	}
 	return Cast<IFaerieItemOwnerInterface>(DataSource.GetItemOwner());
-}
-
-Faerie::ItemData::FProxyChangeEvent::RegistrationType& AFaerieProxyActorBase::GetOnProxyChangeEvent()
-{
-	if (!DataSource.IsValid())
-	{
-		checkNoEntry();
-		static Faerie::ItemData::FProxyChangeEvent Blank;
-		return Blank;
-	}
-
-	return DataSource.GetOnProxyChangeEvent();
 }
 
 void AFaerieProxyActorBase::SetSourceProxy(const FFaerieItemProxy& Source)

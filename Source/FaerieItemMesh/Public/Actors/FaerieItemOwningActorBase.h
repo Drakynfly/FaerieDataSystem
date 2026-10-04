@@ -46,10 +46,6 @@ public:
 	virtual IFaerieItemOwnerInterface* GetItemOwner() const override;
 	//~ Faerie::ItemData::IViewBase
 
-	//~ IFaerieItemDataProxy
-	UE_REWRITE virtual Faerie::ItemData::FProxyChangeEvent::RegistrationType& GetOnProxyChangeEvent() override { return OnItemChangedNative; }
-	//~ IFaerieItemDataProxy
-
 public:
 	UFaerieItemStackContainer* GetContainer() const { return ItemStack; }
 
@@ -88,7 +84,4 @@ public:
 	UPROPERTY(EditInstanceOnly, Category = "Stack Editor")
 	bool RegenerateDisplayOnConstruction = true;
 #endif
-
-private:
-	Faerie::ItemData::FProxyChangeEvent OnItemChangedNative;
 };

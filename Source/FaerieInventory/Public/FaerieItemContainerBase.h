@@ -273,7 +273,7 @@ protected:
 	FFaerieItemContainerExtensions ExtensionData;
 
 	// Temporary solution for replicating extension parent.
-	UPROPERTY(Replicated)
+	UPROPERTY(Replicated, Transient)
 	TObjectPtr<UObject> ParentThatImplementsExtensions;
 
 	Faerie::Inventory::TKeyGen<FFaerieEntryKey> KeyGen;

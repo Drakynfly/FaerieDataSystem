@@ -7,7 +7,6 @@
 #include "EntityManagerHelpers.h"
 #include "FaerieContainerEvent.h"
 
-#include "FaerieItemContainerBase.h"
 #include "FaerieItemStorage.h"
 #include "FaerieItemStorageIterators.h"
 #include "ItemContainerEvent.h"

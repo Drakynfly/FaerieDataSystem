@@ -19,11 +19,6 @@ IFaerieItemOwnerInterface* UFaerieWidgetPreview::GetItemOwner() const
 	return nullptr;
 }
 
-Faerie::ItemData::FProxyChangeEvent::RegistrationType& UFaerieWidgetPreview::GetOnProxyChangeEvent()
-{
-	return OnChangeEvent;
-}
-
 void UFaerieWidgetPreview::InitFaerieWidgetPreview(UFaerieItemAsset* InAsset)
 {
 	Asset = InAsset;

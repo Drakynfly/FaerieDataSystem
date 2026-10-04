@@ -100,10 +100,6 @@ public:
 	virtual IFaerieItemOwnerInterface* GetItemOwner() const override final;
 	//~ Faerie::ItemData::IViewBase
 
-	//~ IFaerieItemDataProxy
-	UE_REWRITE virtual Faerie::ItemData::FProxyChangeEvent::RegistrationType& GetOnProxyChangeEvent() override final { return OnItemChangedNative; }
-	//~ IFaerieItemDataProxy
-
 	//~ IFaerieContainerProxy
 	virtual FFaerieAddress Proxy_GetAddress() const override;
 	virtual FFaerieItemNetworkHandle Proxy_GetNetworkHandle() const override;

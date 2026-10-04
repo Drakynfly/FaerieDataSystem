@@ -44,7 +44,7 @@ namespace Faerie::Equipment
 		FAERIEEQUIPMENT_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, SlotDeleted)
 	}
 
-	using FSlotEvent = TMulticastDelegate<void(TValid<const FFaerieItemProxy&>, FFaerieInventoryTag)>;
+	using FSlotEvent = TMulticastDelegate<void(const FFaerieItemProxy&, FFaerieInventoryTag)>;
 
 	static inline const auto SlotFilter = SubObject::Filter().ByClass<UFaerieItemStackContainer>();
 	static inline const auto RecursiveSlotFilter = SubObject::Filter().Recursive().ByClass<UFaerieItemStackContainer>();
@@ -121,15 +121,17 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentManager", meta = (DisplayName = "Get Slots"))
 	TArray<UFaerieItemStackContainer*> BP_GetSlots() const { return Slots; }
 
-public:
-	TConstArrayView<UFaerieItemStackContainer*> GetSlots() const { return Slots; }
-
 	/**
 	 * Find a slot contained in this manager. Enable recursive to check slots contained in other slots.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentManager")
 	const UFaerieItemStackContainer* FindSlot(FFaerieSlotTag SlotID, bool Recursive = false) const;
-		  UFaerieItemStackContainer* FindSlot(FFaerieSlotTag SlotID, bool Recursive = false);
+
+public:
+	TConstArrayView<UFaerieItemStackContainer*> GetSlots() const { return Slots; }
+
+	const UFaerieItemStackContainer* FindSlot(const FMassEntityManager& EntityManager, FFaerieSlotTag SlotID, bool Recursive = false) const;
+	UFaerieItemStackContainer* FindSlot(const FMassEntityManager& EntityManager, FFaerieSlotTag SlotID, bool Recursive = false);
 
 	/**
 	 * Find a slot contained in this manager. Enable recursive to check slots contained in other slots.

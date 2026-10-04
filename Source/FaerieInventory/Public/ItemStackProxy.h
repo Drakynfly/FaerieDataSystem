@@ -3,6 +3,7 @@
 #pragma once
 
 #include "FaerieItemProxyBase.h"
+#include "ViewModels/FaerieProxyViewModel.h"
 #include "ItemStackProxy.generated.h"
 
 class UFaerieItemStorage;
@@ -12,26 +13,18 @@ class UFaerieItemStorage;
  * Proxies can be created predictively. When this is the case, ItemVersion will equal -1.
  */
 UCLASS(meta = (DontUseGenericSpawnObject = "true"), BlueprintType, Within = FaerieItemStorage)
-class UFaerieItemStackProxy final : public UObject, public IFaerieContainerProxy
+class UFaerieItemStackProxy final : public UFaerieProxyViewModelBase, public IFaerieContainerProxy
 {
 	GENERATED_BODY()
 
 	friend UFaerieItemStorage;
 
 public:
-	//~ UObject
-	virtual UWorld* GetWorld() const override;
-	//~ UObject
-
 	//~ Faerie::ItemData::IViewBase
 	virtual TOptional<FFaerieItemInstance> GetItemInstance() const override;
 	virtual int32 GetCopies() const override;
 	virtual IFaerieItemOwnerInterface* GetItemOwner() const override;
 	//~ Faerie::ItemData::IViewBase
-
-	//~ IFaerieItemDataProxy
-	UE_REWRITE virtual Faerie::ItemData::FProxyChangeEvent::RegistrationType& GetOnProxyChangeEvent() override { return OnProxyEvent; }
-	//~ IFaerieItemDataProxy
 
 	//~ IFaerieContainerProxy
 	UE_REWRITE virtual FFaerieAddress Proxy_GetAddress() const override { return Address; }
@@ -54,7 +47,6 @@ protected:
 	void NotifyDelayedCreation();
 	void NotifyUpdate();
 	void NotifyRemoval();
-	void NotifyItemDataChanged(FGameplayTag EditTag);
 
 	bool VerifyStatus() const;
 
@@ -69,7 +61,4 @@ protected:
 	// how many times a machine has received a new version.
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "StackProxy")
 	int32 LocalItemVersion = -1;
-
-private:
-	Faerie::ItemData::FProxyChangeEvent OnProxyEvent;
 };

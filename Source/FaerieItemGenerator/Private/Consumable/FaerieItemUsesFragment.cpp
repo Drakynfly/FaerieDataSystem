@@ -238,11 +238,12 @@ namespace Faerie::ItemData
 		EntityManager->Defer().PushCommand<FMassDeferredSetCommand>(
 			[Proxy_TempForNow, Amount](FMassEntityManager& InEntityManager)
 			{
-				if (!Proxy_TempForNow.IsValid()) return;
+				const TOptional<FFaerieItemInstance> ItemInstanceOpt = Proxy_TempForNow.GetItemInstance();
+				if (!ItemInstanceOpt.IsSet()) return;
 
 				// Get fragment
-				const FFaerieItemInstance Instance(Proxy_TempForNow.GetItemInstance().GetValue());
-				const FMassEntityHandle Entity = Proxy_TempForNow.GetItemInstance().GetValue().GetMassEntityHandle();
+				const FFaerieItemInstance Instance = ItemInstanceOpt.GetValue();
+				const FMassEntityHandle Entity = Instance.GetMassEntityHandle();
 				auto& Fragment = InEntityManager.GetFragmentDataChecked<FFaerieItemUses>(Entity);
 
 				// Assign new value

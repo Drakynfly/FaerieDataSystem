@@ -5,35 +5,19 @@
 namespace Faerie::Extensions
 {
 	FBitMatrix::FBitMatrix(const int32 Dim)
-	  : Dim(Dim)
-	{
-		// Calculate how many uint32s we need to store all bits
-		const int32 NumInts = (Dim * Dim + 31) / 32;
-		Data.SetNum(NumInts, EAllowShrinking::No);
-	}
+	  : Dim(Dim), Bits(false, Dim * Dim)
+	{}
 
 	void FBitMatrix::Set(const int32 X, const int32 Y, const bool Value)
 	{
 		const int32 Index = Y * Dim + X;
-		const int32 IntIndex = Index / 32;
-		const int32 BitIndex = Index % 32;
-
-		if (Value)
-		{
-			Data[IntIndex] |= (1u << BitIndex);
-		}
-		else
-		{
-			Data[IntIndex] &= ~(1u << BitIndex);
-		}
+		Bits[Index] = Value;
 	}
 
 	bool FBitMatrix::Get(const int32 X, const int32 Y) const
 	{
 		const int32 Index = Y * Dim + X;
-		const int32 IntIndex = Index / 32;
-		const int32 BitIndex = Index % 32;
-		return (Data[IntIndex] & (1u << BitIndex)) != 0;
+		return Bits[Index];
 	}
 
 	void FBitMatrix::Transpose()

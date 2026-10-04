@@ -276,7 +276,7 @@ void UFaerieEquipmentManager::LoadSaveData(FMassEntityManager& EntityManager, co
 		if (!SlotID.IsValid()) continue;
 
 		// Find or create slot for this tag.
-		UFaerieItemStackContainer* EquipmentSlot = FindSlot(SlotID);
+		UFaerieItemStackContainer* EquipmentSlot = FindSlot(EntityManager, SlotID);
 		if (!IsValid(EquipmentSlot))
 		{
 			EquipmentSlot = AddSlotImpl(EntityManager, FFaerieEquipmentSlotConfig());
@@ -303,7 +303,8 @@ void UFaerieEquipmentManager::AddSlot(const FFaerieEquipmentSlotConfig& Config)
 
 bool UFaerieEquipmentManager::RemoveSlot(const FFaerieSlotTag Slot)
 {
-	UFaerieItemStackContainer* Slot_Obj = FindSlot(Slot, true);
+	const FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
+	UFaerieItemStackContainer* Slot_Obj = FindSlot(EntityManager, Slot, true);
 	if (!IsValid(Slot_Obj))
 	{
 		return false;
@@ -329,8 +330,9 @@ bool UFaerieEquipmentManager::RemoveSlot(const FFaerieSlotTag Slot)
 
 bool UFaerieEquipmentManager::TrySwapSlots(const FFaerieSlotTag SlotA, const FFaerieSlotTag SlotB)
 {
-	UFaerieItemStackContainer* SlotA_Obj = FindSlot(SlotA, true);
-	UFaerieItemStackContainer* SlotB_Obj = FindSlot(SlotB, true);
+	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
+	UFaerieItemStackContainer* SlotA_Obj = FindSlot(EntityManager, SlotA, true);
+	UFaerieItemStackContainer* SlotB_Obj = FindSlot(EntityManager, SlotB, true);
 	if (!IsValid(SlotA_Obj) || !IsValid(SlotB_Obj))
 	{
 		return false;
@@ -343,8 +345,6 @@ bool UFaerieEquipmentManager::TrySwapSlots(const FFaerieSlotTag SlotA, const FFa
 															 Inventory::Tags::RemovalMoving);
 	const FFaerieUnownedItemStack ContentB = SlotB_Obj->TakeItemFromSlot(ItemData::EntireStack,
 															 Inventory::Tags::RemovalMoving);
-
-	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
 
 	// Use Impl version to bypass redundant checks to CanSetInSlot
 	if (ContentA.IsValid())
@@ -365,9 +365,14 @@ const UFaerieItemStackContainer* UFaerieEquipmentManager::FindSlot(const FFaerie
 	return FindSlotImpl(EntityManager, SlotID, Recursive);
 }
 
-UFaerieItemStackContainer* UFaerieEquipmentManager::FindSlot(const FFaerieSlotTag SlotID, const bool Recursive)
+const UFaerieItemStackContainer* UFaerieEquipmentManager::FindSlot(const FMassEntityManager& EntityManager, const FFaerieSlotTag SlotID, const bool Recursive) const
 {
-	return const_cast<UFaerieItemStackContainer*>(const_cast<const UFaerieEquipmentManager*>(this)->FindSlot(SlotID, Recursive));
+	return FindSlotImpl(EntityManager, SlotID, Recursive);
+}
+
+UFaerieItemStackContainer* UFaerieEquipmentManager::FindSlot(const FMassEntityManager& EntityManager, const FFaerieSlotTag SlotID, const bool Recursive)
+{
+	return const_cast<UFaerieItemStackContainer*>(FindSlotImpl(EntityManager, SlotID, Recursive));
 }
 
 FFaerieItemProxy UFaerieEquipmentManager::FindSlotProxy(const FFaerieSlotTag SlotID, const bool Recursive) const

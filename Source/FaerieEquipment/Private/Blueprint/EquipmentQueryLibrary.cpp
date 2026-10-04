@@ -48,7 +48,7 @@ FFaerieHash UFaerieEquipmentLibrary::HashEquipment(const UFaerieEquipmentManager
 
 	const FMassEntityManager& EntityManager = Faerie::ItemData::GetFaerieEntityManagerChecked(World);
 
-	return Faerie::Hash::HashEquipment(Manager, &EntityManager, Config.Slots,
+	return Faerie::Hash::HashEquipment(Manager, EntityManager, Config.Slots,
 		[&Config](const FMassEntityManager*, const Faerie::TValid<const FFaerieItemProxy&> Item)
 		{
 			return Config.HashFunction.Execute(Item);
@@ -71,7 +71,7 @@ bool UFaerieEquipmentLibrary::ExecuteHashInstructions(const UFaerieEquipmentMana
 
 	const FMassEntityManager& EntityManager = Faerie::ItemData::GetFaerieEntityManagerChecked(Manager->GetWorld());
 
-	return Faerie::Hash::ExecuteHashInstructions(Manager, &EntityManager, Asset);
+	return Faerie::Hash::ExecuteHashInstructions(Manager, EntityManager, Asset);
 }
 
 FBlueprintEquipmentHash UFaerieEquipmentLibrary::GetEquipmentHash_ByName()

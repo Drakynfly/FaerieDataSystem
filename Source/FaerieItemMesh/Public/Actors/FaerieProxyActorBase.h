@@ -23,10 +23,6 @@ public:
 	virtual const IFaerieItemOwnerInterface* GetItemOwner() const override;
 	//~ Faerie::ItemData::IViewBase
 
-	//~ IFaerieItemDataProxy
-	virtual Faerie::ItemData::FProxyChangeEvent::RegistrationType& GetOnProxyChangeEvent() override;
-	//~ IFaerieItemDataProxy
-
 	const FFaerieItemProxy& GetSourceProxy() const { return DataSource; }
 
 public:

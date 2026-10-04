@@ -32,6 +32,7 @@ namespace Faerie::Extensions
 
 		void MarkCell(const FIntPoint& Point);
 		void UnmarkCell(const FIntPoint& Point);
+		void SetCell(const FIntPoint& Point, bool Value);
 
 		bool IsEmpty() const;
 		bool IsFull() const;

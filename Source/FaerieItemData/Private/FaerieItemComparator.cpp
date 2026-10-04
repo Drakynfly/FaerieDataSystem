@@ -9,7 +9,7 @@ bool UFaerieItemComparator::K2_Exec(const FFaerieItemProxy& A, const FFaerieItem
 {
 	const FMassEntityManager* EntityManager = Faerie::ItemData::GetFaerieEntityManager(A.ExtractWorld());
 
-	if (A.IsValid() && B.IsValid())
+	if (A.HasValidInstance() && B.HasValidInstance())
 	{
 		return Exec(EntityManager, A, B);
 	}

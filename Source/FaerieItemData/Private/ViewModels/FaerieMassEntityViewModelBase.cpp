@@ -2,6 +2,7 @@
 
 #include "ViewModels/FaerieMassEntityViewModelBase.h"
 #include "EntityManagerHelpers.h"
+#include "MassCommandBuffer.h"
 #include "MassEntityManager.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieMassEntityViewModelBase)
@@ -16,7 +17,8 @@ void UFaerieMassEntityViewModelBase::BeginDestroy()
 		if (World && ItemData::HasFaerieEntityManagerBeenAssigned(World))
 		{
 			FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(World);
-			EntityManager.DestroyEntity(EntityHandle);
+			EntityManager.Defer().DestroyEntity(EntityHandle);
+			EntityHandle.Reset();
 		}
 	}
 
@@ -25,10 +27,19 @@ void UFaerieMassEntityViewModelBase::BeginDestroy()
 
 void UFaerieMassEntityViewModelBase::CreateViewModelEntity(FMassEntityManager& EntityManager, const TNotNull<UScriptStruct*> FragmentType)
 {
+	check(!IsInitialized());
+
 	FInstancedStruct EntityStruct;
 	EntityStruct.InitializeAs(FragmentType);
 	EntityStruct.GetMutable<Container::FViewModelFragment>().ViewObject = this;
-	EntityHandle = EntityManager.CreateEntity(MakeConstArrayView(&EntityStruct, 1));
+	EntityManager.Defer().PushCommand<FMassDeferredCreateCommand>(
+		[EventStruct = MoveTemp(EntityStruct)](FMassEntityManager& DeferredEntityManager)
+		{
+			if (UFaerieMassEntityViewModelBase* ThisPtr = Cast<UFaerieMassEntityViewModelBase>(EventStruct.Get<Container::FViewModelFragment>().ViewObject.Get()))
+			{
+				ThisPtr->EntityHandle = DeferredEntityManager.CreateEntity(MakeConstArrayView(&EventStruct, 1));
+			}
+		});
 }
 
 void UFaerieMassEntityViewModelBase::DestroyViewModelEntity(FMassEntityManager& EntityManager)

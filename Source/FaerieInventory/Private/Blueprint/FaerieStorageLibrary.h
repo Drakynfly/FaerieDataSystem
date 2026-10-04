@@ -88,7 +88,7 @@ public:
 	static UFaerieItemContainerBase* GetOwningContainer(const FFaerieItemProxy& Proxy);
 
 	// Gets the first subobject of the given class
-	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Faerie|Subobject", meta = (DeterminesOutputType = "Class", DynamicOutputParam = "FoundContainers", ExpandBoolAsExecs = "ReturnValue"))
+	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Faerie|Subobject", meta = (DeterminesOutputType = "Class", DynamicOutputParam = "FoundContainer", ExpandBoolAsExecs = "ReturnValue"))
 	static bool FindSubobject(const FFaerieItemProxy& Proxy, TSubclassOf<UFaerieItemContainerBase> Class, UFaerieItemContainerBase*& FoundContainer, const bool Recursive);
 
 	// Gets all subobjects of the given class

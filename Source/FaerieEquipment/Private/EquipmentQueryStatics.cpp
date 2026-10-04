@@ -1,6 +1,7 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "EquipmentQueryStatics.h"
+#include "EntityManagerHelpers.h"
 #include "EquipmentQueryTypes.h"
 
 #include "FaerieEquipmentManager.h"
@@ -9,9 +10,10 @@ namespace Faerie::Equipment
 {
 	bool RunEquipmentQuery(const TNotNull<UFaerieEquipmentManager*> Manager, const FFaerieEquipmentSetQuery& SetQuery, UFaerieItemStackContainer*& PassingSlot)
 	{
+		const FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(Manager->GetWorld());
 		for (auto&& QueryTag : SetQuery.TagSet.Tags)
 		{
-			if (auto&& Slot = Manager->FindSlot(QueryTag, true))
+			if (auto&& Slot = Manager->FindSlot(EntityManager, QueryTag, true))
 			{
 				if (Slot->IsFilled())
 				{

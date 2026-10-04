@@ -23,16 +23,9 @@ public:
 	virtual IFaerieItemOwnerInterface* GetItemOwner() const override;
 	//~ Faerie::ItemData::IViewBase
 
-	//~ IFaerieItemDataProxy
-	virtual Faerie::ItemData::FProxyChangeEvent::RegistrationType& GetOnProxyChangeEvent() override;
-	//~ IFaerieItemDataProxy
-
 	void InitFaerieWidgetPreview(UFaerieItemAsset* InAsset);
 
 protected:
 	UPROPERTY()
 	TWeakObjectPtr<UFaerieItemAsset> Asset;
-
-	// Unused change event for Proxy API. Could use in the future to push updates to the PreviewWidget without rebuilding???
-	Faerie::ItemData::FProxyChangeEvent OnChangeEvent;
 };

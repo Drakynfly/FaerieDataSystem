@@ -243,18 +243,17 @@ bool UFaerieContainerQuery::IsAddressFiltered(const UFaerieItemContainerBase* Co
 	if (FilterFunction.IsBound())
 	{
 		const ItemData::FScopeProxy StackView = Container->ViewAddress(Address);
+		if (!StackView.IsValid()) return false;
+
 		const FFaerieItemProxy Proxy(FFaerieItemProxy::ESingleFrame, &StackView);
 
-		if (Proxy.IsValid())
-		{
-			const FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(Container->GetWorld());
+		const FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(Container->GetWorld());
 
-			if (InvertFilter)
-			{
-				return !FilterFunction.Execute(&EntityManager, Proxy);
-			}
-			return FilterFunction.Execute(&EntityManager, Proxy);
+		if (InvertFilter)
+		{
+			return !FilterFunction.Execute(&EntityManager, Proxy);
 		}
+		return FilterFunction.Execute(&EntityManager, Proxy);
 	}
 
 	return false;
@@ -265,19 +264,17 @@ bool UFaerieContainerQuery::CompareAddresses_Impl(const TNotNull<const UFaerieIt
 {
 	const ItemData::FScopeProxy StackViewA = Container->ViewAddress(AddressA);
 	const ItemData::FScopeProxy StackViewB = Container->ViewAddress(AddressB);
+	if (!StackViewA.IsValid() || StackViewB.IsValid()) return false;
+
 	const FFaerieItemProxy ProxyA(FFaerieItemProxy::ESingleFrame, &StackViewA);
 	const FFaerieItemProxy ProxyB(FFaerieItemProxy::ESingleFrame, &StackViewB);
 
-	if (ProxyA.IsValid() && ProxyB.IsValid())
+	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(Container->GetWorld());
+
+	if (InvertSort)
 	{
-		auto* EntityManager = ItemData::GetFaerieEntityManager(Container->GetWorld());
-
-		if (InvertSort)
-		{
-			return !SortFunction.Execute(EntityManager, ProxyA, ProxyB);
-		}
-
-		return SortFunction.Execute(EntityManager, ProxyA, ProxyB);
+		return !SortFunction.Execute(&EntityManager, ProxyA, ProxyB);
 	}
-	return false;
+
+	return SortFunction.Execute(&EntityManager, ProxyA, ProxyB);
 }

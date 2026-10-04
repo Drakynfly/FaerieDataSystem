@@ -43,8 +43,7 @@ bool FFaerieItemStorageFragment::InitializeRuntime(FMassEntityManager& EntityMan
 		UObject* OwnerObj = Container::GetItemOwner(EntityManager, Instance);
 		if (!OwnerObj)
 		{
-			// @todo handle these
-			UE_LOGF(LogFaerieInventory, Warning, "Unable to retrieve owner from instance. This instance must be reparented when possessed!")
+			//UE_LOGF(LogFaerieInventory, Verbose, "Unable to retrieve owner from instance. This instance must be reparented when possessed!")
 			OwnerObj = GetTransientPackageAsObject();
 		}
 
@@ -65,8 +64,7 @@ bool FFaerieChildStackFragment::InitializeRuntime(FMassEntityManager& EntityMana
 	UObject* OwnerObj = Container::GetItemOwner(EntityManager, Instance);
 	if (!OwnerObj)
 	{
-		// @todo handle these
-		UE_LOGF(LogFaerieInventory, Warning, "Unable to retrieve owner from instance. This instance must be reparented when possessed!")
+		//UE_LOGF(LogFaerieInventory, Verbose, "Unable to retrieve owner from instance. This instance must be reparented when possessed!")
 		OwnerObj = GetTransientPackageAsObject();
 	}
 

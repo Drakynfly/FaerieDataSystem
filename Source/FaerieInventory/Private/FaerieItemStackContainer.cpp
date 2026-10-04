@@ -398,7 +398,7 @@ ItemData::FScopeProxy UFaerieItemStackContainer::GetView() const
 
 bool UFaerieItemStackContainer::CouldSetInSlot(const FFaerieItemProxy& Proxy) const
 {
-	if (!Proxy.IsValid()) return false;
+	if (!Proxy.HasValidInstance()) return false;
 
 	static constexpr FFaerieExtensionAllowsAdditionArgs Args = {
 		.CheckType = EFaerieContainerAddStackCheckType::CouldEverAdd,
@@ -411,7 +411,7 @@ bool UFaerieItemStackContainer::CouldSetInSlot(const FFaerieItemProxy& Proxy) co
 
 bool UFaerieItemStackContainer::CanSetInSlot(const FFaerieItemProxy& Proxy) const
 {
-	if (!Proxy.IsValid()) return false;
+	if (!Proxy.HasValidInstance()) return false;
 
 	if (IsFilled())
 	{

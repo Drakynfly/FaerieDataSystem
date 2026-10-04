@@ -3,6 +3,7 @@
 #pragma once
 
 #include "FaerieItemProxyBase.h"
+#include "ViewModels/FaerieProxyViewModel.h"
 #include "ItemEntryProxy.generated.h"
 
 class UFaerieItemStorage;
@@ -11,26 +12,18 @@ class UFaerieItemStorage;
  * Class for a proxy to an entry in a UFaerieItemStorage.
  */
 UCLASS(meta = (DontUseGenericSpawnObject = "true"), BlueprintType, Within = FaerieItemStorage)
-class UFaerieItemEntryProxy final : public UObject, public IFaerieItemDataProxy
+class UFaerieItemEntryProxy final : public UFaerieProxyViewModelBase, public IFaerieItemDataProxy
 {
 	GENERATED_BODY()
 
 	friend UFaerieItemStorage;
 
 public:
-	//~ UObject
-	virtual UWorld* GetWorld() const override;
-	//~ UObject
-
 	//~ Faerie::ItemData::IViewBase
 	virtual TOptional<FFaerieItemInstance> GetItemInstance() const override;
 	virtual int32 GetCopies() const override;
 	virtual IFaerieItemOwnerInterface* GetItemOwner() const override;
 	//~ Faerie::ItemData::IViewBase
-
-	//~ IFaerieItemDataProxy
-	UE_REWRITE virtual Faerie::ItemData::FProxyChangeEvent::RegistrationType& GetOnProxyChangeEvent() override { return OnProxyEvent; }
-	//~ IFaerieItemDataProxy
 
 	UE_REWRITE FAERIEINVENTORY_API int32 GetItemVersion() const { return LocalItemVersion; }
 	UE_REWRITE FAERIEINVENTORY_API FFaerieEntryKey GetKey() const { return Key; }
@@ -43,9 +36,6 @@ protected:
 	void NotifyDelayedCreation();
 	void NotifyUpdate();
 	void NotifyRemoval();
-
-	// EntryProxies do not generate ItemDataChanged events as they are not created for mutable instances.
-	//void NotifyItemDataChanged(FGameplayTag EditTag);
 
 	bool VerifyStatus() const;
 
@@ -60,7 +50,4 @@ protected:
 	// how many times a machine has received a new version.
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "EntryProxy")
 	int32 LocalItemVersion = -1;
-
-private:
-	Faerie::ItemData::FProxyChangeEvent OnProxyEvent;
 };

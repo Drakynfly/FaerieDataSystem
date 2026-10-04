@@ -48,7 +48,7 @@ class FAERIEITEMCARD_API UFaerieCardGenerator : public UObject
 	friend class UFaerieCardSubsystem;
 
 public:
-	TSoftClassPtr<UFaerieCardBase> GetCardClassFromProxy(const FFaerieItemProxy& Proxy, const FFaerieItemCardType& Type) const;
+	TSoftClassPtr<UFaerieCardBase> GetCardClassFromProxy(const FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy, const FFaerieItemCardType& Type) const;
 
 	UFaerieCardBase* Generate(const Faerie::Card::FSyncGeneration& Params);
 	void GenerateAsync(const Faerie::Card::FAsyncGeneration& Params);

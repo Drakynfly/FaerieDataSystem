@@ -13,6 +13,8 @@ namespace Faerie::ItemData
 }
 
 struct FFaerieItemInstance;
+struct FFaerieItemProxy;
+class UFaerieItem;
 class UFaerieItemMeshLoader;
 
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FFaerieItemMeshAsyncLoadResult, bool, Success, const FFaerieItemMesh&, Mesh);
@@ -42,6 +44,10 @@ public:
 	void LoadMeshFromProxyAsynchronous(const FFaerieItemProxy& Proxy,
 		UPARAM(meta = (Categories = "MeshPurpose")) FGameplayTag Purpose, const FFaerieItemMeshAsyncLoadResult& Callback);
 	[[nodiscard]] TSharedPtr<FStreamableHandle> LoadMeshFromProxyAsynchronous(const FFaerieItemProxy& Proxy, FGameplayTag Purpose, const TDelegate<void(bool, FFaerieItemMesh&&)>& Callback);
+
+#if WITH_EDITOR
+	bool LoadMeshFromAssetSynchronous(TNotNull<const UFaerieItem*> ItemAsset, FGameplayTag Purpose, FFaerieItemMesh& Mesh);
+#endif
 
 protected:
 	UPROPERTY()

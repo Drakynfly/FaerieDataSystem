@@ -37,6 +37,14 @@ int32 UFaerieCommonExtensionUtils::GetContainerStackLimit(UFaerieItemContainerBa
 	return ItemData::UnlimitedStack;
 }
 
+FInstancedStruct UFaerieCommonExtensionUtils::GetContainerExtensionDefault(UFaerieItemContainerBase* Container,
+	UScriptStruct* Type)
+{
+	const FFaerieItemContainerExtensions& Data = Container->GetExtensionData();
+	const FConstStructView Value = Data.Find(Type, false);
+	return FInstancedStruct(Value);
+}
+
 UFaerieItemContainerCapacityView* UFaerieCommonExtensionUtils::GetOrCreateCapacityView(
 	UFaerieItemContainerBase* Container)
 {

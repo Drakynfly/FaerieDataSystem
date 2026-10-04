@@ -23,6 +23,6 @@ namespace Faerie::Extensions
 	private:
 		int32 Dim;
 
-		TArray<uint32> Data;
+		TBitArray<> Bits;
 	};
 }

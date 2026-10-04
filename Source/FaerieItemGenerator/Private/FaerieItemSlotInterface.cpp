@@ -32,7 +32,7 @@ namespace Faerie::Generation
 		// Validation
 		for (auto&& Element : FilledSlots.Slots)
 		{
-			if (!Element.Value.IsValid())
+			if (!Element.Value.HasValidInstance())
 			{
 				UE_LOGF(LogItemGeneration, Error, "ValidateFilledSlots: A filled slot '%ls' is invalid!)", *Element.Key.ToString())
 				return false;

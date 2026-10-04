@@ -6,7 +6,6 @@
 #include "FaerieMassFragment.h"
 #include "FaerieItemProxy.h"
 #include "FaerieMassEntityViewModelBase.h"
-#include "StructUtils/StructView.h"
 
 #include "FaerieItemDataViewModelBase.generated.h"
 

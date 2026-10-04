@@ -5,19 +5,9 @@
 #include "FaerieItemStorage.h"
 #include "FaerieInventoryLog.h"
 
-#include "Engine/World.h"
-
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ItemStackProxy)
 
 using namespace Faerie;
-
-UWorld* UFaerieItemStackProxy::GetWorld() const
-{
-	// If GetWorld is called on a StackProxy, it must be able to find it from its parent UFaerieItemStorage.
-	UWorld* WorldFromSuperChain = GetTypedOuter<UWorld>();
-	check(WorldFromSuperChain);
-	return WorldFromSuperChain;
-}
 
 TOptional<FFaerieItemInstance> UFaerieItemStackProxy::GetItemInstance() const
 {
@@ -78,24 +68,18 @@ void UFaerieItemStackProxy::NotifyDelayedCreation()
 		LocalItemVersion = -1;
 	}
 
-	OnProxyEvent.Broadcast(FFaerieItemProxy(this), Inventory::ProxyCreated);
+	CheckItemCount(GetCopies());
 }
 
 void UFaerieItemStackProxy::NotifyUpdate()
 {
 	LocalItemVersion++;
-	OnProxyEvent.Broadcast(FFaerieItemProxy(this), Inventory::ProxyUpdated);
+	CheckItemCount(GetCopies());
 }
 
 void UFaerieItemStackProxy::NotifyRemoval()
 {
 	LocalItemVersion = -1;
-	OnProxyEvent.Broadcast(FFaerieItemProxy(this), Inventory::ProxyRemoved);
-}
-
-void UFaerieItemStackProxy::NotifyItemDataChanged(const FGameplayTag EditTag)
-{
-	OnProxyEvent.Broadcast(FFaerieItemProxy(this), EditTag);
 }
 
 bool UFaerieItemStackProxy::VerifyStatus() const

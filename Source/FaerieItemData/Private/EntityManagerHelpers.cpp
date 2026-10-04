@@ -7,14 +7,21 @@
 
 namespace Faerie::ItemData
 {
-	bool HasFaerieEntityManagerBeenAssigned(const TNotNull<const UWorld*> World)
+	bool HasFaerieEntityManagerBeenAssigned(const UWorld* World)
 	{
-		return World->HasSubsystem<UMassEntitySubsystem>();
+		return IsValid(World) && World->HasSubsystem<UMassEntitySubsystem>();
 	}
 
-	FMassEntityManager* GetFaerieEntityManager(const TNotNull<const UWorld*> World)
+	FMassEntityManager* GetFaerieEntityManager(const UWorld* World)
 	{
-		return &World->GetSubsystem<UMassEntitySubsystem>()->GetMutableEntityManager();
+		if (World)
+		{
+			if (UMassEntitySubsystem* Subsystem = World->GetSubsystem<UMassEntitySubsystem>())
+			{
+				return &Subsystem->GetMutableEntityManager();
+			}
+		}
+		return nullptr;
 	}
 
 	FMassEntityManager& GetFaerieEntityManagerChecked(const TNotNull<const UWorld*> World)

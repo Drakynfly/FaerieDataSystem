@@ -71,6 +71,17 @@ namespace Faerie::Extensions
 		CellBits[Index] = false;
 	}
 
+	void FCellGrid::SetCell(const FIntPoint& Point, const bool Value)
+	{
+		const int32 Index = Ravel(Point);
+		if (!CellBits.IsValidIndex(Index))
+		{
+			// If cell doesn't exist, expand to fit.
+			CellBits.SetNum(Index, false);
+		}
+		CellBits[Index] = Value;
+	}
+
 	bool FCellGrid::IsEmpty() const
 	{
 		return !CellBits.Contains(true);

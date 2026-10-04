@@ -1,6 +1,8 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieMeshSubsystem.h"
+#include "EntityManagerHelpers.h"
+#include "FaerieItem.h"
 #include "FaerieItemMeshLoader.h"
 #include "FaerieItemMeshLog.h"
 #include "FaerieItemProxy.h"
@@ -29,7 +31,7 @@ bool UFaerieMeshSubsystem::LoadMeshFromProxySynchronous(const FFaerieItemProxy& 
 	// The result without this line, is that a mesh value put into Mesh in one call will persist for successive calls.
 	Mesh = FFaerieItemMesh();
 
-	if (!Proxy.IsValid())
+	if (!Proxy.HasValidInstance())
 	{
 		UE_LOGF(LogFaerieItemMesh, Warning, "Invalid Proxy passed to UFaerieMeshSubsystem::LoadMeshFromProxySynchronous!")
 		return false;
@@ -40,13 +42,14 @@ bool UFaerieMeshSubsystem::LoadMeshFromProxySynchronous(const FFaerieItemProxy& 
 		Purpose = GetDefault<UFaerieMeshSettings>()->FallbackPurpose;
 	}
 
-	return Loader->LoadMeshFromProxySynchronous(Proxy, Purpose, Mesh);
+	FMassEntityManager& EntityManager = Faerie::ItemData::GetFaerieEntityManagerChecked(GetWorld());
+	return Loader->LoadMeshFromProxySynchronous(EntityManager, Proxy, Purpose, Mesh);
 }
 
 void UFaerieMeshSubsystem::LoadMeshFromProxyAsynchronous(const FFaerieItemProxy& Proxy, FGameplayTag Purpose,
 														 const FFaerieItemMeshAsyncLoadResult& Callback)
 {
-	if (!Proxy.IsValid())
+	if (!Proxy.HasValidInstance())
 	{
 		UE_LOGF(LogFaerieItemMesh, Warning, "Invalid Proxy passed to UFaerieMeshSubsystem::LoadMeshFromProxyAsynchronous!")
 		Callback.Execute(false, FFaerieItemMesh());
@@ -58,7 +61,8 @@ void UFaerieMeshSubsystem::LoadMeshFromProxyAsynchronous(const FFaerieItemProxy&
 		Purpose = GetDefault<UFaerieMeshSettings>()->FallbackPurpose;
 	}
 
-	(void)Loader->LoadMeshFromProxyAsynchronous(Proxy, Purpose,
+	FMassEntityManager& EntityManager = Faerie::ItemData::GetFaerieEntityManagerChecked(GetWorld());
+	(void)Loader->LoadMeshFromProxyAsynchronous(EntityManager, Proxy, Purpose,
 		Faerie::Mesh::FAsyncLoadResult::CreateLambda(
 			[Callback](const bool Success, FFaerieItemMesh&& Mesh)
 			{
@@ -74,5 +78,28 @@ TSharedPtr<FStreamableHandle> UFaerieMeshSubsystem::LoadMeshFromProxyAsynchronou
 		Purpose = GetDefault<UFaerieMeshSettings>()->FallbackPurpose;
 	}
 
-	return Loader->LoadMeshFromProxyAsynchronous(Proxy, Purpose, Callback);
+	FMassEntityManager& EntityManager = Faerie::ItemData::GetFaerieEntityManagerChecked(GetWorld());
+	return Loader->LoadMeshFromProxyAsynchronous(EntityManager, Proxy, Purpose, Callback);
 }
+
+#if WITH_EDITOR
+bool UFaerieMeshSubsystem::LoadMeshFromAssetSynchronous(const TNotNull<const UFaerieItem*> ItemAsset, FGameplayTag Purpose,
+	FFaerieItemMesh& Mesh)
+{
+	Mesh = FFaerieItemMesh();
+
+	if (!IsValid(ItemAsset))
+	{
+		UE_LOGF(LogFaerieItemMesh, Warning, "Invalid Proxy passed to UFaerieMeshSubsystem::LoadMeshFromAssetSynchronous!")
+		return false;
+	}
+
+	if (!Purpose.IsValid())
+	{
+		Purpose = GetDefault<UFaerieMeshSettings>()->FallbackPurpose;
+	}
+
+	return Loader->LoadMeshFromAssetSynchronous(ItemAsset, Purpose, Mesh);
+}
+#endif
+

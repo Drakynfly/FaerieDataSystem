@@ -75,7 +75,7 @@ UFaerieItemDataViewModelBase* UFaerieViewModelSubsystem::GetOrCreateViewModel(co
 	const TNotNull<UScriptStruct*> Struct = ViewClass->GetDefaultObject<UFaerieItemDataViewModelBase>()->GetFragmentType();
 	FFaerieViewModelStorage& Storage = PerTypeViewStorage.FindOrAdd(Struct);
 
-	if (Proxy.IsValid())
+	if (Proxy.HasValidInstance())
 	{
 		// Re-use existing view if there is already one set to this item.
         if (auto&& ExistingView = Storage.InUseViews.Find(Proxy.GetProxyObject());
@@ -108,9 +108,10 @@ UFaerieItemDataViewModelBase* UFaerieViewModelSubsystem::GetOrCreateViewModel(co
 	ViewModelToUse->SetItemProxyDirect(EntityManager, Proxy);
 	ViewModelToUse->ViewModelUsageCount++;
 
-	if (Proxy.IsValid())
+	if (Proxy.HasValidInstance())
 	{
 		// If we have a proxy we can associate it with an item here, if not it will fix itself by calling UpdateViewModelAssociation
+		ViewModelToUse->CreateViewModelEntity(EntityManager, ViewModelToUse->GetViewModelFragmentType());
 		Storage.InUseViews.Add(Proxy.GetProxyObject(), ViewModelToUse);
 	}
 
@@ -149,6 +150,7 @@ void UFaerieViewModelSubsystem::ReturnViewModel(UFaerieItemDataViewModelBase* Vi
 
 		FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
 		ViewModel->SetItemProxyDirect(EntityManager, FFaerieItemProxy());
+		ViewModel->DestroyViewModelEntity(EntityManager);
 		Storage.UnusedViews.Add(ViewModel);
 	}
 }
@@ -157,13 +159,17 @@ void UFaerieViewModelSubsystem::UpdateViewModelAssociation(const TNotNull<UFaeri
 {
 	if (FFaerieViewModelStorage* Storage = PerTypeViewStorage.Find(ViewModel->GetFragmentType()))
 	{
-		if (OldProxy.IsValid())
+		const FFaerieItemProxy& NewProxy = ViewModel->GetItemProxy();
+
+		const bool WasOldProxyValid = OldProxy.HasValidInstance();
+		const bool IsNewProxyValid = NewProxy.HasValidInstance();
+
+		if (WasOldProxyValid)
 		{
 			Storage->InUseViews.Remove(OldProxy.GetProxyObject());
 		}
 
-		if (const FFaerieItemProxy& NewProxy = ViewModel->GetItemProxy();
-			NewProxy.IsValid())
+		if (IsNewProxyValid)
 		{
 			Storage->InUseViews.Add(NewProxy.GetProxyObject(), ViewModel);
 		}

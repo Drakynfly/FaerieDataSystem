@@ -24,11 +24,8 @@ void UFaerieCapacityViewModel::OnProxySet(FMassEntityManager& EntityManager)
 	FIntVector NewBounds = FIntVector::ZeroValue;
 	float NewEfficiency = 0.f;
 
-	if (ItemProxy.IsValid())
+	if (ItemProxy.HasValidInstance())
 	{
-		check(!IsInitialized())
-		CreateViewModelEntity(EntityManager, GetViewModelFragmentType());
-
 		const ItemData::FCapacityHelper Helper(&EntityManager, ItemProxy.GetItemInstanceOrInvalid());
 
 		UE_MVVM_SET_PROPERTY_VALUE(HasCapacity, Helper.HasCapacity());
@@ -43,7 +40,6 @@ void UFaerieCapacityViewModel::OnProxySet(FMassEntityManager& EntityManager)
 	}
 	else
 	{
-		DestroyViewModelEntity(EntityManager);
 		UE_MVVM_SET_PROPERTY_VALUE(HasCapacity, false);
 	}
 

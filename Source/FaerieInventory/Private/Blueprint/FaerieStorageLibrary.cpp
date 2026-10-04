@@ -25,17 +25,23 @@ FString UFaerieStorageLibrary::ToString_Address(const FFaerieAddress Address)
 
 int32 UFaerieStorageLibrary::GetItemStackLimit(const FFaerieItemProxy& Proxy)
 {
-	if (Proxy.IsValid())
+	const TOptional<FFaerieItemInstance> InstanceOpt = Proxy.GetItemInstance();
+	if (!InstanceOpt.IsSet())
 	{
-		return Container::GetItemStackLimit(ItemData::GetFaerieEntityManager(Proxy.ExtractWorld()), Proxy.GetItemInstanceOrInvalid());
+		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieStorageLibrary::GetItemStackLimit"), ELogVerbosity::Error);
+		return 0;
 	}
-	return 0;
+
+	return Container::GetItemStackLimit(ItemData::GetFaerieEntityManager(Proxy.ExtractWorld()), InstanceOpt.GetValue());
 }
 
 bool UFaerieStorageLibrary::GetNetworkHandleFromProxy(const FFaerieItemProxy& Proxy,
 	FFaerieItemNetworkHandle& OutHandle)
 {
-	OutHandle = FFaerieItemNetworkHandle::FromProxy(Proxy);
+	if (Proxy.HasValidInstance())
+	{
+		OutHandle = FFaerieItemNetworkHandle::FromProxy(Proxy);
+	}
 	return OutHandle.IsValid();
 }
 
@@ -88,15 +94,10 @@ UFaerieItemContainerBase* UFaerieStorageLibrary::GetOwningContainer(const FFaeri
 bool UFaerieStorageLibrary::FindSubobject(const FFaerieItemProxy& Proxy, const TSubclassOf<UFaerieItemContainerBase> Class,
 										  UFaerieItemContainerBase*& FoundContainer, const bool Recursive)
 {
-	if (!Proxy.IsValid())
-	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieStorageLibrary::FindSubobject"), ELogVerbosity::Error);
-		return false;
-	}
-
 	const TOptional<FFaerieItemInstance> InstanceOpt = Proxy.GetItemInstance();
 	if (!InstanceOpt.IsSet())
 	{
+		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieStorageLibrary::FindSubobject"), ELogVerbosity::Error);
 		return false;
 	}
 
@@ -153,15 +154,10 @@ bool UFaerieStorageLibrary::FindSubobject(const FFaerieItemProxy& Proxy, const T
 void UFaerieStorageLibrary::FindSubObjectsByClass(const FFaerieItemProxy& Proxy, const TSubclassOf<UFaerieItemContainerBase> Class,
 	TArray<UFaerieItemContainerBase*>& FoundContainers, const bool Recursive)
 {
-	if (!Proxy.IsValid())
-	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieStorageLibrary::FindSubObjectsByClass"), ELogVerbosity::Error);
-		return;
-	}
-
 	const TOptional<FFaerieItemInstance> InstanceOpt = Proxy.GetItemInstance();
 	if (!InstanceOpt.IsSet())
 	{
+		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieStorageLibrary::FindSubObjectsByClass"), ELogVerbosity::Error);
 		return;
 	}
 
@@ -199,15 +195,10 @@ void UFaerieStorageLibrary::FindSubObjectsByClass(const FFaerieItemProxy& Proxy,
 
 void UFaerieStorageLibrary::GetAllContainersInItem(const FFaerieItemProxy& Proxy, TArray<UFaerieItemContainerBase*>& FoundContainers, const bool Recursive)
 {
-	if (!Proxy.IsValid())
-	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieStorageLibrary::GetAllContainersInItem"), ELogVerbosity::Error);
-		return;
-	}
-
-	auto InstanceOpt = Proxy.GetItemInstance();
+	TOptional<FFaerieItemInstance> InstanceOpt = Proxy.GetItemInstance();
 	if (!InstanceOpt.IsSet())
 	{
+		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieStorageLibrary::GetAllContainersInItem"), ELogVerbosity::Error);
 		return;
 	}
 
@@ -247,19 +238,16 @@ void UFaerieStorageLibrary::GetAllContainersInItem(const FFaerieItemProxy& Proxy
 
 void UFaerieStorageLibrary::GetItemChildren(const FFaerieItemProxy& Proxy, TArray<FFaerieItemProxy>& FoundChildren, const bool Recursive)
 {
-	if (!Proxy.IsValid())
+	const TOptional<FFaerieItemInstance> InstanceOpt = Proxy.GetItemInstance();
+	if (!InstanceOpt.IsSet())
 	{
 		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieStorageLibrary::GetItemChildren"), ELogVerbosity::Error);
 		return;
 	}
 
-	const TOptional<FFaerieItemInstance> InstanceOpt = Proxy.GetItemInstance();
-	if (!InstanceOpt.IsSet())
-	{
-		return;
-	}
-
 	const FFaerieItemInstance Instance = InstanceOpt.GetValue();
+
+	// Only mutable instances have children, so we can early-out it it's not.
 	if (!Instance.IsMutable()) return;
 
 	const UWorld* World = Proxy.ExtractWorld();

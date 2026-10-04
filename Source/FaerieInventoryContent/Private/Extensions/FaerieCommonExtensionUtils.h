@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "Capacity/InventoryCapacityExtension.h"
+
 #include "GridLayout/FaerieGridStructs.h"
 
 #include "Kismet/BlueprintFunctionLibrary.h"
@@ -29,6 +31,10 @@ public:
 	// Gets the number of items that be held in a container. Returns -1 if there is no limit.
 	UFUNCTION(BlueprintPure, Category = "Faerie|CommonExtensionUtils")
 	static int32 GetContainerStackLimit(UFaerieItemContainerBase* Container);
+
+	// @todo temporary way to access default extension values. after these are moved to mass we need a new impl.
+	UFUNCTION(BlueprintCallable, Category = "Faerie|CommonExtensionUtils")
+	static FInstancedStruct GetContainerExtensionDefault(UFaerieItemContainerBase* Container, UScriptStruct* Type);
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|CommonExtensionUtils")
 	static UFaerieItemContainerCapacityView* GetOrCreateCapacityView(UFaerieItemContainerBase* Container);

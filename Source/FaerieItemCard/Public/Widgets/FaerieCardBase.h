@@ -19,7 +19,6 @@ class FAERIEITEMCARD_API UFaerieCardBase : public UUserWidget
 protected:
 	//~ UUserWidget
 	virtual void NativeConstruct() override;
-	virtual void NativeDestruct() override;
 	//~ UUserWidget
 
 public:
@@ -34,8 +33,6 @@ public:
 	virtual void Refresh();
 
 protected:
-	void OnItemDataChanged(const FFaerieItemProxy& FaerieItemProxy, FGameplayTag GameplayTag);
-
 	UFUNCTION(BlueprintImplementableEvent, Category = "Faerie|ItemCard", meta = (DisplayName = "Refresh"))
 	void BP_Refresh();
 
@@ -46,9 +43,5 @@ protected:
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "CardWidget")
 	bool RefreshOnConstruct = true;
 
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "CardWidget")
-	bool RefreshOnDataChange = true;
-
 	FOnCardRefreshed OnCardRefreshed;
-	FDelegateHandle OnDataChangedHandle;
 };

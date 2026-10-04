@@ -34,10 +34,16 @@ class FAERIEITEMMESH_API UFaerieItemMeshLoader : public UObject
 public:
 	// Immediately retrieves the mesh for an item.
 	// WARNING: This can cause a hitch if the mesh is not cached, and it requires a lengthy load or assembly.
-	virtual bool LoadMeshFromProxySynchronous(const FFaerieItemProxy& InProxy, FGameplayTag Purpose, FFaerieItemMesh& Mesh);
+	virtual bool LoadMeshFromProxySynchronous(const FMassEntityManager& EntityManager, const FFaerieItemProxy& InProxy, FGameplayTag Purpose, FFaerieItemMesh& Mesh);
 
 	// Asynchronously load the mesh and materials for an item.
-	[[nodiscard]] TSharedPtr<FStreamableHandle> LoadMeshFromProxyAsynchronous(const FFaerieItemProxy& InProxy, FGameplayTag Purpose, Faerie::Mesh::FAsyncLoadResult Callback);
+	[[nodiscard]] TSharedPtr<FStreamableHandle> LoadMeshFromProxyAsynchronous(const FMassEntityManager& EntityManager, const FFaerieItemProxy& InProxy, FGameplayTag Purpose, Faerie::Mesh::FAsyncLoadResult Callback);
+
+#if WITH_EDITOR
+	// Temporary way to load a mesh from an item asset in the editor.
+	// WARNING: This can cause a hitch if the mesh is not cached, and it requires a lengthy load or assembly.
+	virtual bool LoadMeshFromAssetSynchronous(TNotNull<const UFaerieItem*> InItem, FGameplayTag Purpose, FFaerieItemMesh& Mesh);
+#endif
 
 protected:
 	void OnAsyncStaticMeshLoaded(TConstStructView<FFaerieStaticMeshData> MeshData, Faerie::Mesh::FAsyncLoadRequest Request);
@@ -90,7 +96,7 @@ class FAERIEITEMMESH_API UFaerieItemMeshLoader_Cached : public UFaerieItemMeshLo
 
 public:
 	//~ UFaerieItemMeshLoader
-	virtual bool LoadMeshFromProxySynchronous(const FFaerieItemProxy& InProxy, FGameplayTag Purpose, FFaerieItemMesh& Mesh) override;
+	virtual bool LoadMeshFromProxySynchronous(const FMassEntityManager& EntityManager, const FFaerieItemProxy& InProxy, FGameplayTag Purpose, FFaerieItemMesh& Mesh) override;
 
 protected:
 	virtual void HandleAsyncLoadResult(FFaerieItemMesh&& Mesh, Faerie::Mesh::FAsyncLoadRequest&& Request) override;
