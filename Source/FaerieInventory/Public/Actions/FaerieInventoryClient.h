@@ -78,7 +78,7 @@ public:
 	UFaerieInventoryClient();
 
 	// Overrides for allowing a client to run a request on the server.
-	virtual bool CanAccessContainer(TNotNull<const UFaerieItemContainerBase*> Container, TNotNull<const UScriptStruct*> RequestType) const;
+	virtual bool CanAccessContainer(const FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container, TNotNull<const UScriptStruct*> RequestType) const;
 
 	/**
 	 * Sends a request to the server to perform an inventory related edit.

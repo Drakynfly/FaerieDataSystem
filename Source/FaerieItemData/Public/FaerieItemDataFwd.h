@@ -3,7 +3,6 @@
 #pragma once
 
 class IFaerieItemDataProxy;
-class IFaerieItemOwnerInterface;
 class IFaerieItemSource;
 class UFaerieItem;
 struct FFaerieItemInstance;

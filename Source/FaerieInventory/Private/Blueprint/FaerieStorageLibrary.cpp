@@ -104,19 +104,21 @@ bool UFaerieStorageLibrary::FindSubobject(const FFaerieItemProxy& Proxy, const T
 	const FFaerieItemInstance Instance = InstanceOpt.GetValue();
 	if (!Instance.IsMutable()) return false;
 
-	const UWorld* World = Proxy.ExtractWorld();
-
 #if WITH_EDITOR
-	if (!ItemData::HasFaerieEntityManagerBeenAssigned(World))
+	const UWorld* TestWorld = Proxy.TestExtractWorld();
+	if (!ItemData::HasFaerieEntityManagerBeenAssigned(TestWorld))
 	{
 		TArray<TNotNull<const UFaerieItemContainerBase*>> Containers;
-		if (Recursive)
+		if (const UFaerieItem* ItemAsset = Instance.GetItemPtr())
 		{
-			SubObject::GetTemplateContainersInInstanceRecursive(Instance, Containers, Class);
-		}
-		else
-		{
-			SubObject::GetTemplateContainersInInstanceDirect(Instance, Containers, Class);
+			if (Recursive)
+			{
+				SubObject::GetTemplateContainersInInstanceRecursive(ItemAsset, Containers, Class);
+			}
+			else
+			{
+				SubObject::GetTemplateContainersInInstanceDirect(ItemAsset, Containers, Class);
+			}
 		}
 
 		// Return first
@@ -129,15 +131,16 @@ bool UFaerieStorageLibrary::FindSubobject(const FFaerieItemProxy& Proxy, const T
 	else
 #endif
 	{
+		const UWorld* World = Proxy.ExtractWorld();
 		FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(World);
 		TArray<TNotNull<UFaerieItemContainerBase*>> Containers;
 		if (Recursive)
 		{
-			SubObject::GetContainersInInstanceRecursive(EntityManager, Instance, Containers, Class);
+			SubObject::GetContainersInInstanceRecursive(EntityManager, Instance.GetMassEntityHandle(), Containers, Class);
 		}
 		else
 		{
-			SubObject::GetContainersInInstanceDirect(EntityManager, Instance, Containers, Class);
+			SubObject::GetContainersInInstanceDirect(EntityManager, Instance.GetMassEntityHandle(), Containers, Class);
 		}
 
 		// Return first
@@ -164,31 +167,34 @@ void UFaerieStorageLibrary::FindSubObjectsByClass(const FFaerieItemProxy& Proxy,
 	const FFaerieItemInstance Instance = InstanceOpt.GetValue();
 	if (!Instance.IsMutable()) return;
 
-	const UWorld* World = Proxy.ExtractWorld();
-
 #if WITH_EDITOR
-	if (!ItemData::HasFaerieEntityManagerBeenAssigned(World))
+	const UWorld* TestWorld = Proxy.TestExtractWorld();
+	if (!ItemData::HasFaerieEntityManagerBeenAssigned(TestWorld))
 	{
-		if (Recursive)
+		if (const UFaerieItem* ItemAsset = Instance.GetItemPtr())
 		{
-			SubObject::GetTemplateContainersInInstanceRecursive(Instance, *reinterpret_cast<TArray<TNotNull<const UFaerieItemContainerBase*>>*>(&FoundContainers), Class);
-		}
-		else
-		{
-			SubObject::GetTemplateContainersInInstanceDirect(Instance, *reinterpret_cast<TArray<TNotNull<const UFaerieItemContainerBase*>>*>(&FoundContainers), Class);
+			if (Recursive)
+			{
+				SubObject::GetTemplateContainersInInstanceRecursive(ItemAsset, *reinterpret_cast<TArray<TNotNull<const UFaerieItemContainerBase*>>*>(&FoundContainers), Class);
+			}
+			else
+			{
+				SubObject::GetTemplateContainersInInstanceDirect(ItemAsset, *reinterpret_cast<TArray<TNotNull<const UFaerieItemContainerBase*>>*>(&FoundContainers), Class);
+			}
 		}
 	}
 	else
 #endif
 	{
+		const UWorld* World = Proxy.ExtractWorld();
 		FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(World);
 		if (Recursive)
 		{
-			SubObject::GetContainersInInstanceRecursive(EntityManager, Instance, FoundContainers, Class);
+			SubObject::GetContainersInInstanceRecursive(EntityManager, Instance.GetMassEntityHandle(), FoundContainers, Class);
 		}
 		else
 		{
-			SubObject::GetContainersInInstanceDirect(EntityManager, Instance, FoundContainers, Class);
+			SubObject::GetContainersInInstanceDirect(EntityManager, Instance.GetMassEntityHandle(), FoundContainers, Class);
 		}
 	}
 }
@@ -205,33 +211,36 @@ void UFaerieStorageLibrary::GetAllContainersInItem(const FFaerieItemProxy& Proxy
 	const FFaerieItemInstance Instance = InstanceOpt.GetValue();
 	if (!Instance.IsMutable()) return;
 
-	const UWorld* World = Proxy.ExtractWorld();
-
 #if WITH_EDITOR
-	if (!ItemData::HasFaerieEntityManagerBeenAssigned(World))
+	const UWorld* TestWorld = Proxy.TestExtractWorld();
+	if (!ItemData::HasFaerieEntityManagerBeenAssigned(TestWorld))
 	{
-		// Blueprint should normally not get access to read-only containers... but only the editor can run this code anyway so its *fine*
-		TArray<const UFaerieItemContainerBase*>& ConstContainerArray = reinterpret_cast<TArray<const UFaerieItemContainerBase*>&>(FoundContainers);
-		if (Recursive)
+		if (const UFaerieItem* ItemAsset = Instance.GetItemPtr())
 		{
-			SubObject::GetTemplateContainersInInstanceRecursive(Instance, ConstContainerArray);
-		}
-		else
-		{
-			SubObject::GetTemplateContainersInInstanceDirect(Instance, ConstContainerArray);
+			// Blueprint should normally not get access to read-only containers... but only the editor can run this code anyway so its *fine*
+			TArray<const UFaerieItemContainerBase*>& ConstContainerArray = reinterpret_cast<TArray<const UFaerieItemContainerBase*>&>(FoundContainers);
+			if (Recursive)
+			{
+				SubObject::GetTemplateContainersInInstanceRecursive(ItemAsset, ConstContainerArray);
+			}
+			else
+			{
+				SubObject::GetTemplateContainersInInstanceDirect(ItemAsset, ConstContainerArray);
+			}
 		}
 	}
 	else
 #endif
 	{
+		const UWorld* World = Proxy.ExtractWorld();
 		FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(World);
 		if (Recursive)
 		{
-			SubObject::GetContainersInInstanceRecursive<UFaerieItemContainerBase>(EntityManager, Instance, FoundContainers);
+			SubObject::GetContainersInInstanceRecursive<UFaerieItemContainerBase>(EntityManager, Instance.GetMassEntityHandle(), FoundContainers);
 		}
 		else
 		{
-			SubObject::GetContainersInInstanceDirect<UFaerieItemContainerBase>(EntityManager, Instance, FoundContainers);
+			SubObject::GetContainersInInstanceDirect<UFaerieItemContainerBase>(EntityManager, Instance.GetMassEntityHandle(), FoundContainers);
 		}
 	}
 }
@@ -261,11 +270,11 @@ void UFaerieStorageLibrary::GetItemChildren(const FFaerieItemProxy& Proxy, TArra
 	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(World);
 	if (Recursive)
 	{
-		SubObject::GetChildrenInItemRecursive(EntityManager, Instance, FoundChildren);
+		SubObject::GetChildrenInItemRecursive(EntityManager, Instance.GetMassEntityHandle(), FoundChildren);
 	}
 	else
 	{
-		SubObject::GetChildrenInItem(EntityManager, Instance, FoundChildren);
+		SubObject::GetChildrenInItem(EntityManager, Instance.GetMassEntityHandle(), FoundChildren);
 	}
 }
 

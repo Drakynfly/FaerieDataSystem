@@ -22,7 +22,7 @@ struct FAE_API FFaerieItemContainerCountLimit final : public FFaerieItemContaine
 
 	//~ FFaerieItemContainerExtensionBase
 	virtual void InitializeExtension(FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container) override;
-	virtual EFaerieExtensionResponse AllowsAddition(const FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args) const override;
+	virtual EFaerieExtensionResponse AllowsAddition(const FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args, bool RecursingCall) const override;
 	//~ FFaerieItemContainerExtensionBase
 
 	void PostEvent(const Faerie::Container::FContainerEventPayload& Event);
@@ -90,7 +90,7 @@ struct FAE_API FFaerieItemContainerPerEntryCountLimit final : public FFaerieItem
 
 	//~ FFaerieItemContainerExtensionBase
 	virtual void InitializeExtension(FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container) override;
-	virtual EFaerieExtensionResponse AllowsAddition(const FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args) const override;
+	virtual EFaerieExtensionResponse AllowsAddition(const FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args, bool RecursingCall) const override;
 	//~ FFaerieItemContainerExtensionBase
 
 	void SetPerEntryMaxInstanceCount(int32 Count);

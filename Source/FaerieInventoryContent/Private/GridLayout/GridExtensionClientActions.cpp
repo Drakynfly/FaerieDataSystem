@@ -5,17 +5,16 @@
 #include "FaerieItemStorage.h"
 #include "Actions/FaerieInventoryClient.h"
 #include "FaerieContainerEvent.h"
-#include "EntityManagerHelpers.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(GridExtensionClientActions)
 
 using namespace Faerie;
 
-bool FFaerieClientAction_MoveToGrid::IsValid(const TNotNull<const UFaerieInventoryClient*> Client) const
+bool FFaerieClientAction_MoveToGrid::IsValid(const TNotNull<const UFaerieInventoryClient*> Client, const FMassEntityManager& EntityManager) const
 {
 	return Position != FIntPoint::NoneValue &&
 		::IsValid(Storage) &&
-		Client->CanAccessContainer(Storage, StaticStruct());
+		Client->CanAccessContainer(EntityManager, Storage, StaticStruct());
 }
 
 bool FFaerieClientAction_MoveToGrid::View(const FMassEntityManager& EntityManager, ItemData::FScopeProxy& Proxy) const
@@ -47,7 +46,7 @@ bool FFaerieClientAction_MoveToGrid::Possess(FMassEntityManager& EntityManager, 
 {
 	// Must be a new stack, since we intend to manually place it in the grid.
 	TValueOrError<Container::FContainerEventPayload, FText> Result{MakeError(FText::GetEmpty())};
-	Storage->AddItemStack(Stack, EFaerieStorageAddStackBehavior::OnlyNewStacks, Result);
+	Storage->AddItemStack(EntityManager, Stack, EFaerieStorageAddStackBehavior::OnlyNewStacks, Result);
 	if (!Result.HasValue())
 	{
 		return false;
@@ -75,7 +74,7 @@ bool FFaerieClientAction_MoveToGrid::Release(FMassEntityManager& EntityManager, 
 			const TOptional<FFaerieAddress> Address = Context.FindAddress(Position);
 			if (Address.IsSet())
 			{
-				Out = Context.GetStorage()->TakeStack(Address.GetValue(), Stack, Inventory::Tags::RemovalMoving, ItemData::EntireStack);
+				Out = Context.GetStorage()->TakeStack(EntityManager, Address.GetValue(), Stack, Inventory::Tags::RemovalMoving, ItemData::EntireStack);
 			}
 		}, false);
 	return Out;
@@ -91,12 +90,11 @@ bool FFaerieClientAction_MoveToGrid::IsSwap(const FMassEntityManager& EntityMana
 	return false;
 }
 
-bool FFaerieClientAction_MoveItemOnGrid::Server_Execute(const TNotNull<const UFaerieInventoryClient*> Client) const
+bool FFaerieClientAction_MoveItemOnGrid::Server_Execute(const TNotNull<const UFaerieInventoryClient*> Client, FMassEntityManager& EntityManager) const
 {
 	if (!IsValid(Storage)) return false;
-	if (!Client->CanAccessContainer(Storage, StaticStruct())) return false;
+	if (!Client->CanAccessContainer(EntityManager, Storage, StaticStruct())) return false;
 
-	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(Client->GetWorld());
 	Storage->WriteContainerData(EntityManager, FFaerieContainerGridData::StaticStruct(),
 		[this, &EntityManager](const FStructView Element)
 		{
@@ -107,15 +105,14 @@ bool FFaerieClientAction_MoveItemOnGrid::Server_Execute(const TNotNull<const UFa
 	return false;
 }
 
-bool FFaerieClientAction_RotateGridEntry::Server_Execute(const TNotNull<const UFaerieInventoryClient*> Client) const
+bool FFaerieClientAction_RotateGridEntry::Server_Execute(const TNotNull<const UFaerieInventoryClient*> Client, FMassEntityManager& EntityManager) const
 {
 	if (!IsValid(Storage)) return false;
-	if (!Client->CanAccessContainer(Storage, StaticStruct())) return false;
+	if (!Client->CanAccessContainer(EntityManager, Storage, StaticStruct())) return false;
 
 	// Don't bother with this.
 	if (RotateBy == EFaerieSpatialItemRotation::None) return true;
 
-	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(Client->GetWorld());
 	Storage->WriteContainerData(EntityManager, FFaerieContainerGridData::StaticStruct(),
 		[this, &EntityManager](const FStructView Element)
 		{

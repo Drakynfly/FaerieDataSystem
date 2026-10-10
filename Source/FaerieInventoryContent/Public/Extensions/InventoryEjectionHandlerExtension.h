@@ -76,7 +76,7 @@ struct FFaerieClientAction_EjectEntry final : public FFaerieClientActionBase
 {
 	GENERATED_BODY()
 
-	virtual bool Server_Execute(TNotNull<const UFaerieInventoryClient*> Client) const override;
+	virtual bool Server_Execute(TNotNull<const UFaerieInventoryClient*> Client, FMassEntityManager& EntityManager) const override;
 
 	UPROPERTY(BlueprintReadWrite, Category = "EjectViaRelease")
 	FFaerieItemNetworkHandle Handle;

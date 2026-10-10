@@ -26,7 +26,7 @@ namespace Faerie::ItemData
 	{
 		None,
 
-		// Exported will only export FFaerieMassFragment derived structs
+		// Will only export Faerie fragment type derived structs
 		OnlyFaerieMassFragments
 	};
 	ENUM_CLASS_FLAGS(EMassFragmentExportOptions)

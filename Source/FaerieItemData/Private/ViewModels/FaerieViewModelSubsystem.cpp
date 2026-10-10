@@ -5,7 +5,6 @@
 
 #include "EntityManagerHelpers.h"
 #include "FaerieItemDataLog.h"
-#include "FaerieItemOwnerInterface.h"
 #include "FaerieItemProxy.h"
 #include "MassEntitySubsystem.h"
 #include "MassExecutor.h"

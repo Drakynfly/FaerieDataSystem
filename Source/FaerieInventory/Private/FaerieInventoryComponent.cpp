@@ -2,6 +2,7 @@
 
 #include "FaerieInventoryComponent.h"
 #include "AssetLoadFlagFixer.h"
+#include "EntityManagerHelpers.h"
 #include "FaerieInventoryLog.h"
 #include "FaerieItemStorage.h"
 #include "GameFramework/Actor.h"
@@ -46,9 +47,12 @@ void UFaerieInventoryComponent::ReadyForReplication()
 	{
 		check(IsValid(ItemStorage));
 
-		ItemStorage = Faerie::Utils::DuplicateObjectFromDiskForReplication(ItemStorage.Get(), this);
+		if (Faerie::Utils::HasLoadFlag(ItemStorage))
+		{
+			ItemStorage = Faerie::Utils::DuplicateObjectFromDiskForReplication(ItemStorage.Get(), this);
+		}
 		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, ItemStorage, this);
 		AddReplicatedSubObject(ItemStorage);
-		ItemStorage->InitializeNetObject(Owner);
+		ItemStorage->InitializeContainer(Faerie::ItemData::GetFaerieEntityManagerChecked(GetWorld()));
 	}
 }

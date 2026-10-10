@@ -16,8 +16,6 @@
 
 #include "StructUtils/StructView.h"
 
-#include "Templates/SubScriptStructOf.h"
-
 #include "UObject/ObjectKey.h"
 
 #include "FaerieItem.generated.h"
@@ -201,33 +199,28 @@ namespace Faerie::ItemData
 	}
 }
 
-/**
- * Not replicated, only the creator of the item can see these
+/*
+ * Const Shared fragment to keep a reference to a faerie item object.
  */
 USTRUCT()
-struct FFaerieMassItemPointer : public FMassFragment
+struct FFaerieMassItemObject : public FFaerieMassConstSharedFragment
 {
 	GENERATED_BODY()
 
-	FFaerieMassItemPointer() = default;
-	FFaerieMassItemPointer(const UFaerieItem* Item)
-	  : Item(Item) {}
+	FFaerieMassItemObject() = default;
+	FFaerieMassItemObject(const UFaerieItem* Item) : ItemAsset(Item) {}
 
-	TObjectKey<const UFaerieItem> Item;
+	UPROPERTY()
+	TObjectPtr<const UFaerieItem> ItemAsset;
+
+____FAERIE_FRAGMENT_DECL(FFaerieMassItemObject)
 };
 
-/**
- * Not replicated, only the creator of the item can see these
- */
+// Item Asset used for "default" values.
 USTRUCT()
-struct FAERIEITEMDATA_API FFaerieMassItemOwner : public FMassConstSharedFragment
+struct FFaerieItemDataDefaults : public FFaerieMassItemObject
 {
 	GENERATED_BODY()
-
-	FFaerieMassItemOwner() = default;
-	FFaerieMassItemOwner(const UObject* Owner)
-	  : Owner(Owner) {}
-
-	IFaerieItemOwnerInterface* GetInterface() const;
-	FWeakObjectPtr Owner;
+	using FFaerieMassItemObject::FFaerieMassItemObject;
+____FAERIE_FRAGMENT_DECL(FFaerieItemDataDefaults)
 };

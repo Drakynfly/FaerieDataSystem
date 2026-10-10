@@ -59,7 +59,6 @@ ____FAERIE_CONTAINER_DATA_DECL(FFaerieContainerExtensionVisualUpdater)
 };
 
 class UEquipmentVisualizer;
-class UFaerieItemStackContainer;
 
 UCLASS()
 class UFaerieVisualizationUpdater : public UMassProcessor
@@ -73,7 +72,9 @@ protected:
 	virtual void ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager) override;
 	virtual void Execute(FMassEntityManager& EntityManager, FMassExecutionContext& Context) override;
 
-	static UEquipmentVisualizer* GetVisualizer(TNotNull<const UFaerieItemStackContainer*> Stack);
+	static UEquipmentVisualizer* GetVisualizer(const FFaerieItemProxy& Proxy);
+
+	static void ProcessEvents(FMassExecutionContext& Context);
 
 private:
 	FMassEntityQuery EntityQuery;

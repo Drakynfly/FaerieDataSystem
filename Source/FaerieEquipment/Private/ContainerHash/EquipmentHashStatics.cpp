@@ -27,9 +27,9 @@ namespace Faerie::Hash
 	{
 		uint32 FinalHash = 0;
 
-		for (auto&& Config : Asset->Configs)
+		for (const FFaerieEquipmentHashAssetConfig& Config : Asset->Configs)
 		{
-			bool BreakAfterFirstFilled = Config.MatchType == EGameplayContainerMatchType::Any;
+			const bool BreakAfterFirstFilled = Config.MatchType == EGameplayContainerMatchType::Any;
 
 			for (const FGameplayTag Tag : Config.Slots)
 			{

@@ -48,7 +48,7 @@ public:
 	static bool NotEqual_FaerieSlotTag(const FFaerieSlotTag A, const FFaerieSlotTag B) { return A != B; }
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentLibrary")
-	static bool RunEquipmentQuery(UFaerieEquipmentManager* Manager, const FFaerieEquipmentSetQuery& SetQuery, UFaerieItemStackContainer*& PassingSlot);
+	static bool RunEquipmentQuery(UFaerieEquipmentManager* Manager, const FFaerieEquipmentSetQuery& SetQuery, FFaerieItemProxy& PassingSlot);
 
 	// Generate a hash from a set of slots. Typically used for checksum'ing.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentLibrary")

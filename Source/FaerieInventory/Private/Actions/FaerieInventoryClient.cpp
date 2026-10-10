@@ -15,9 +15,8 @@ UFaerieInventoryClient::UFaerieInventoryClient()
 	SetIsReplicatedByDefault(true);
 }
 
-bool UFaerieInventoryClient::CanAccessContainer(const TNotNull<const UFaerieItemContainerBase*> Container, const TNotNull<const UScriptStruct*> RequestType) const
+bool UFaerieInventoryClient::CanAccessContainer(const FMassEntityManager& EntityManager, const TNotNull<const UFaerieItemContainerBase*> Container, const TNotNull<const UScriptStruct*> RequestType) const
 {
-	FMassEntityManager& EntityManager = Faerie::ItemData::GetFaerieEntityManagerChecked(GetWorld());
 	const FFaerieItemContainerClientPermissions* Permissions = Container->ReadContainerData<FFaerieItemContainerClientPermissions>(EntityManager, true);
 
 	// @todo implement
@@ -153,24 +152,26 @@ void UFaerieInventoryClient::SetStackChoicePromptHandler(const FFaerieClientStac
 
 void UFaerieInventoryClient::Server_RequestExecuteAction(const FFaerieClientActionBase& Args)
 {
-	(void)Args.Server_Execute(this);
+	FMassEntityManager& EntityManager = Faerie::ItemData::GetFaerieEntityManagerChecked(GetWorld());
+	(void)Args.Server_Execute(this, EntityManager);
 }
 
 void UFaerieInventoryClient::Server_RequestExecuteAction_Batch(const TArray<const FFaerieClientActionBase*>& Args,
 	const EFaerieClientRequestBatchType Type)
 {
+	FMassEntityManager& EntityManager = Faerie::ItemData::GetFaerieEntityManagerChecked(GetWorld());
 	switch (Type)
 	{
 	case EFaerieClientRequestBatchType::Individuals:
 		for (auto&& Element : Args)
 		{
-			(void)Element->Server_Execute(this);
+			(void)Element->Server_Execute(this, EntityManager);
 		}
 		break;
 	case EFaerieClientRequestBatchType::Sequence:
 		for (auto&& Element : Args)
 		{
-			if (!Element->Server_Execute(this))
+			if (!Element->Server_Execute(this, EntityManager))
 			{
 				// Sequence failed, exit.
 				return;
@@ -183,13 +184,13 @@ void UFaerieInventoryClient::Server_RequestExecuteAction_Batch(const TArray<cons
 void UFaerieInventoryClient::Server_RequestMoveAction(const FFaerieClientAction_MoveHandlerBase& MoveFrom,
 													  const FFaerieClientAction_MoveHandlerBase& MoveTo)
 {
-	if (!MoveFrom.IsValid(this) ||
-		!MoveTo.IsValid(this))
+	FMassEntityManager& EntityManager = Faerie::ItemData::GetFaerieEntityManagerChecked(GetWorld());
+
+	if (!MoveFrom.IsValid(this, EntityManager) ||
+		!MoveTo.IsValid(this, EntityManager))
 	{
 		return;
 	}
-
-	FMassEntityManager& EntityManager = Faerie::ItemData::GetFaerieEntityManagerChecked(GetWorld());
 
 	Faerie::ItemData::FScopeProxy FromView(nullptr);
 	if (!MoveFrom.View(EntityManager, FromView))

@@ -14,7 +14,7 @@ struct FFaerieClientAction_MoveFromStorage final : public FFaerieClientAction_Mo
 {
 	GENERATED_BODY()
 
-	virtual bool IsValid(TNotNull<const UFaerieInventoryClient*> Client) const override;
+	virtual bool IsValid(TNotNull<const UFaerieInventoryClient*> Client, const FMassEntityManager& EntityManager) const override;
 	virtual bool View(const FMassEntityManager& EntityManager, Faerie::ItemData::FScopeProxy& Proxy) const override;
 	virtual bool CanMove(const FMassEntityManager& EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
 	virtual bool Release(FMassEntityManager& EntityManager, FFaerieUnownedItemStack& Stack) const override;
@@ -35,7 +35,7 @@ struct FFaerieClientAction_MoveToStorage final : public FFaerieClientAction_Move
 {
 	GENERATED_BODY()
 
-	virtual bool IsValid(TNotNull<const UFaerieInventoryClient*> Client) const override;
+	virtual bool IsValid(TNotNull<const UFaerieInventoryClient*> Client, const FMassEntityManager& EntityManager) const override;
 	virtual bool CanMove(const FMassEntityManager& EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
 	virtual bool Possess(FMassEntityManager& EntityManager, Faerie::TValid<const FFaerieUnownedItemStack&> Stack) const override;
 
@@ -55,7 +55,7 @@ struct FFaerieClientAction_DeleteEntry final : public FFaerieClientActionBase
 {
 	GENERATED_BODY()
 
-	virtual bool Server_Execute(TNotNull<const UFaerieInventoryClient*> Client) const override;
+	virtual bool Server_Execute(TNotNull<const UFaerieInventoryClient*> Client, FMassEntityManager& EntityManager) const override;
 
 	UPROPERTY(BlueprintReadWrite, Category = "DeleteEntry")
 	TObjectPtr<UFaerieItemStorage> Storage = nullptr;
@@ -72,7 +72,7 @@ struct FFaerieClientAction_RequestMoveEntry final : public FFaerieClientActionBa
 {
 	GENERATED_BODY()
 
-	virtual bool Server_Execute(TNotNull<const UFaerieInventoryClient*> Client) const override;
+	virtual bool Server_Execute(TNotNull<const UFaerieInventoryClient*> Client, FMassEntityManager& EntityManager) const override;
 
 	UPROPERTY(BlueprintReadWrite, Category = "MoveEntry")
 	TObjectPtr<UFaerieItemStorage> Storage = nullptr;
@@ -92,7 +92,7 @@ struct FFaerieClientAction_MergeStacks final : public FFaerieClientActionBase
 {
 	GENERATED_BODY()
 
-	virtual bool Server_Execute(TNotNull<const UFaerieInventoryClient*> Client) const override;
+	virtual bool Server_Execute(TNotNull<const UFaerieInventoryClient*> Client, FMassEntityManager& EntityManager) const override;
 
 	UPROPERTY(BlueprintReadWrite, Category = "MergeStacks")
 	TObjectPtr<UFaerieItemStorage> Storage = nullptr;
@@ -116,7 +116,7 @@ struct FFaerieClientAction_SplitStack final : public FFaerieClientActionBase
 {
 	GENERATED_BODY()
 
-	virtual bool Server_Execute(TNotNull<const UFaerieInventoryClient*> Client) const override;
+	virtual bool Server_Execute(TNotNull<const UFaerieInventoryClient*> Client, FMassEntityManager& EntityManager) const override;
 
 	UPROPERTY(BlueprintReadWrite, Category = "SplitStack")
 	TObjectPtr<UFaerieItemStorage> Storage = nullptr;

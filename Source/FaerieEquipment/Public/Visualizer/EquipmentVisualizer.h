@@ -105,7 +105,10 @@ public:
 
 	Faerie::Equipment::FVisualSpawned::RegistrationType& GetOnAnyVisualSpawned() { return OnAnyVisualSpawnedNative; }
 	Faerie::Equipment::FVisualDestroyed::RegistrationType& GetOnAnyVisualDestroyed() { return OnAnyVisualDestroyedNative; }
+
 	FGameplayTag GetPreferredTag() const { return PreferredTag; }
+
+	FFaerieVisualSlotElement GetDefaultVisualSlotElement() const;
 
 	// For attachments that want to follow the leader pose, get their leader component.
 	USkinnedMeshComponent* GetLeaderComponent() const;
@@ -136,8 +139,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentVisualizer")
 	TArray<USceneComponent*> GetSpawnedComponents() const;
 
-	void CreateVisualImpl(FMassEntityManager& EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy, const FFaerieItemProxy* Parent = nullptr);
-	void RemoveVisualImpl(FMassEntityManager& EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy);
+	void RefreshVisual(FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy);
+
+	void CreateVisualImpl(FMassEntityManager& EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy, TOptional<const FFaerieItemProxy*> Parent = NullOpt);
+	void RemoveVisualImpl(FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy);
 
 	template <
 		typename TActor
@@ -175,7 +180,8 @@ public:
 
 	static TOptional<FFaerieVisualSlotElement> FindVisualSlotDataFromProxy(const FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy);
 
-	FEquipmentVisualAttachment BuildAttachmentData(const FFaerieItemProxy& Proxy, const FFaerieVisualSlotElement& SlotData) const;
+	USceneComponent* GetComponentToAttachTo(const FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy, const FName& ComponentTag, bool& WantsToWaitForParent) const;
+	static FEquipmentVisualAttachment BuildAttachmentData(USceneComponent* AttachTo, const FFaerieVisualSlotElement& SlotData);
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentVisualizer")
 	void ResetAttachment(FFaerieVisualKey Key);
@@ -193,6 +199,13 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Faerie|EquipmentVisualizer")
 	static FFaerieVisualKey MakeVisualKey(const FFaerieItemProxy& Proxy);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Faerie|EquipmentVisualizer")
+	void DumpDebugLog() const;
+
+	// Debug function to test if attachments get out of sync.
+	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentVisualizer")
+	void RefreshAllAttachments();
 
 protected:
 	UFUNCTION(/* Dynamic Callback */)

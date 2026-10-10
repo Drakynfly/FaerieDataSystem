@@ -5,10 +5,10 @@
 #include "Misc/NotNull.h"
 
 struct FFaerieEquipmentSetQuery;
+struct FFaerieItemProxy;
 class UFaerieEquipmentManager;
-class UFaerieItemStackContainer;
 
 namespace Faerie::Equipment
 {
-	bool RunEquipmentQuery(TNotNull<UFaerieEquipmentManager*> Manager, const FFaerieEquipmentSetQuery& SetQuery, UFaerieItemStackContainer*& PassingSlot);
+	bool RunEquipmentQuery(TNotNull<UFaerieEquipmentManager*> Manager, const FFaerieEquipmentSetQuery& SetQuery, FFaerieItemProxy& PassingSlot);
 }

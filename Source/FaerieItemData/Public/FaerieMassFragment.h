@@ -10,32 +10,21 @@
 #include "UObject/ObjectMacros.h"
 #include "FaerieMassFragment.generated.h"
 
+
+#define FAE_API FAERIEITEMDATA_API
+
 /*
- * Base type for Mass Structs that compose Item Entities.
+ * Faerie Mass Types have Serialize overridden to export the type as searchable.
+ * Normally you are supposed to do this inside PostSerialize, but we don't have access to our own ScriptStruct from
+ * that function. Other base structs can implement a virtual GetScriptStruct getter function, but fragments are not
+ * allowed to be virtual, so we cannot use that option.
+ * However, Serialize has an alternate version detected by CStructSerializableWithDefaults that passes in our
+ * UStruct reflection type.
  */
-USTRUCT()
-// ReSharper disable once CppUEMissingStructMember
-// Disabling ReSharper error, because it doesn't detect the Serialize overload with extra args.
-struct FAERIEITEMDATA_API FFaerieMassFragment : public FMassFragment
-{
-	GENERATED_BODY()
 
-	// Overridden to export our type as searchable. Normally you are supposed to do this inside PostSerialize, but we
-	// don't have access to our own ScriptStruct from that function. Other base structs can implement a virtual
-	// GetScriptStruct getter function, but fragments are not allowed to be virtual, so we cannot use that option.
-	// However, Serialize has an alternate version detected by CStructSerializableWithDefaults that passes in our
-	// UStruct reflection type.
+// ReSharper disable CppUEMissingStructMember
+#define FAERIE_MASS_FRAGMENT_BODY()\
 	bool Serialize(FArchive& Ar, const UStruct* DefaultsStruct, const void* Defaults);
-};
-
-template<>
-struct TStructOpsTypeTraits<FFaerieMassFragment> : public TStructOpsTypeTraitsBase2<FFaerieMassFragment>
-{
-	enum
-	{
-		WithSerializer = true,
-	};
-};
 
 // Macro to implement a faerie fragment type. Place in header at end of struct declaration.
 #define ____FAERIE_FRAGMENT_DECL(Type)\
@@ -44,28 +33,79 @@ struct TStructOpsTypeTraits<FFaerieMassFragment> : public TStructOpsTypeTraitsBa
 	WithSerializer = true,\
 	FAERIE_IMPL_TStructOpsTypeTraits_END(Type)
 
+/*
+ * Base type for Mass Structs that compose Item Entities.
+ */
 USTRUCT()
-struct FFaerieMassTag : public FMassTag
+// Disabling ReSharper error, because it doesn't detect the Serialize overload with extra args.
+struct FAE_API FFaerieMassFragment : public FMassFragment
 {
 	GENERATED_BODY()
+	FAERIE_MASS_FRAGMENT_BODY()
+____FAERIE_FRAGMENT_DECL(FFaerieMassFragment)
 };
 
 USTRUCT()
 struct FFaerieMassSparseFragment : public FMassSparseFragment
 {
 	GENERATED_BODY()
+	FAERIE_MASS_FRAGMENT_BODY()
+____FAERIE_FRAGMENT_DECL(FFaerieMassSparseFragment)
+};
+
+USTRUCT()
+struct FFaerieMassTag : public FMassTag
+{
+	GENERATED_BODY()
+	FAERIE_MASS_FRAGMENT_BODY()
+____FAERIE_FRAGMENT_DECL(FFaerieMassTag)
 };
 
 USTRUCT()
 struct FFaerieMassSparseTag : public FMassSparseTag
 {
 	GENERATED_BODY()
+	FAERIE_MASS_FRAGMENT_BODY()
+____FAERIE_FRAGMENT_DECL(FFaerieMassSparseTag)
+};
+
+USTRUCT()
+struct FFaerieMassSharedFragment : public FMassSharedFragment
+{
+	GENERATED_BODY()
+	FAERIE_MASS_FRAGMENT_BODY()
+____FAERIE_FRAGMENT_DECL(FFaerieMassSharedFragment)
+};
+
+USTRUCT()
+struct FFaerieMassConstSharedFragment : public FMassConstSharedFragment
+{
+	GENERATED_BODY()
+	FAERIE_MASS_FRAGMENT_BODY()
+____FAERIE_FRAGMENT_DECL(FFaerieMassConstSharedFragment)
+};
+
+// Base type for exported save data for an item fragment. This is not usually needed as most fragment types can be used
+// as is, as long as their members are UProperties. If a Fragment does need a custom export format, then subclass this,
+// override GetFragmentType to return the mass type's StaticStruct, and implement SaveDataConverter on the fragment type.
+// See FFaerieItemStorageFragment for an example of this.
+USTRUCT()
+struct FFaerieItemFragmentSaveData
+{
+	GENERATED_BODY()
+
+	virtual ~FFaerieItemFragmentSaveData() = default;
+	virtual const UScriptStruct* GetFragmentType() const PURE_VIRTUAL(FFaerieItemFragmentSaveData::GetFragmentType, return nullptr; )
 };
 
 struct FMassEntityManager;
 
 namespace Faerie::ItemData
 {
+	// @todo make concepts for these
+	FAE_API bool IsFaerieMassType(TNotNull<const UScriptStruct*> Type);
+	template <typename T> bool IsFaerieMassType() { return IsFaerieMassType(TBaseStructure<T>::Get()); }
+	
 	// Default enum values
 	template <class TFaerieMassFragment>
 	struct TMassFragmentTypeTraitsBase
@@ -85,9 +125,16 @@ namespace Faerie::ItemData
 
 	// Concept to look for InitializeRuntime function on fragments types.
 	template<typename T>
-	concept CHasInitializeRuntime = requires(T& Value, FMassEntityManager& EntityManager, const FFaerieItemInstance& Instance)
+	concept CHasInitializeRuntime = requires(T& Value, FMassEntityManager& EntityManager, FMassEntityHandle Item)
 	{
-		{ Value.InitializeRuntime(EntityManager, Instance) } -> UE::CSameAs<bool>;
+		{ Value.InitializeRuntime(EntityManager, Item) } -> UE::CSameAs<bool>;
+	};
+
+	// Concept to look for SaveDataConverter function on fragments types.
+	template<typename T>
+	concept CHasSaveDataConverter = requires(T& Value, FMassEntityManager& EntityManager, FInstancedStruct& SaveData)
+	{
+		{ Value.SaveDataConverter(EntityManager, SaveData) } -> UE::CSameAs<bool>;
 	};
 
 #if WITH_EDITOR
@@ -102,11 +149,24 @@ namespace Faerie::ItemData
 	namespace Private
 	{
 		template <CFragmentImpl TFragment>
-		bool ExInitializeRuntime(TNotNull<void*> Value, FMassEntityManager& EntityManager, const FFaerieItemInstance& Instance)
+		bool ExInitializeRuntime(TNotNull<void*> Value, FMassEntityManager& EntityManager, FMassEntityHandle Item)
 		{
 			if constexpr (CHasInitializeRuntime<TFragment>)
 			{
-				return static_cast<TFragment*>(NotNullGet(Value))->InitializeRuntime(EntityManager, Instance);
+				return static_cast<TFragment*>(NotNullGet(Value))->InitializeRuntime(EntityManager, Item);
+			}
+			else
+			{
+				return false;
+			}
+		}
+
+		template <CFragmentImpl TFragment>
+		bool ExSaveDataConverter(TNotNull<void*> Value, FMassEntityManager& EntityManager, FInstancedStruct& SaveData)
+		{
+			if constexpr (CHasSaveDataConverter<TFragment>)
+			{
+				return static_cast<TFragment*>(NotNullGet(Value))->SaveDataConverter(EntityManager, SaveData);
 			}
 			else
 			{
@@ -144,7 +204,8 @@ namespace Faerie::ItemData
 		// This requires template magic I don't feel like
 		struct ITraitOps
 		{
-			bool (*InitializeRuntimePtr)(TNotNull<void*>, FMassEntityManager&, const FFaerieItemInstance&) = nullptr;
+			bool (*InitializeRuntimePtr)(TNotNull<void*>, FMassEntityManager&, FMassEntityHandle) = nullptr;
+			bool (*SaveDataConverterPtr)(TNotNull<void*>, FMassEntityManager&, FInstancedStruct&) = nullptr;
 #if WITH_EDITOR
 			EDataValidationResult (*IsDataValidPtr)(const TNotNull<const void*>, class FDataValidationContext& Context) = nullptr;
 #endif
@@ -156,6 +217,7 @@ namespace Faerie::ItemData
 			TTraitOps()
 			{
 				InitializeRuntimePtr = &Private::ExInitializeRuntime<TFragment>;
+				SaveDataConverterPtr = &Private::ExSaveDataConverter<TFragment>;
 #if WITH_EDITOR
 				IsDataValidPtr = &Private::ExIsDataValid<TFragment>;
 #endif
@@ -165,16 +227,26 @@ namespace Faerie::ItemData
 		bool PrimaryIdentifier; // @TODO implement filter by this
 		bool RequiresMutable;
 		bool HasInitializeRuntime;
+		bool HasSaveDataConverter;
 #if WITH_EDITOR
 		bool HasIsDataValid;
 #endif
 		const ITraitOps* Ops;
 
-		bool InitializeRuntime(TNotNull<void*> Value, FMassEntityManager& EntityManager, const FFaerieItemInstance& Instance) const
+		bool InitializeRuntime(TNotNull<void*> Value, FMassEntityManager& EntityManager, FMassEntityHandle Item) const
 		{
 			if (HasInitializeRuntime)
 			{
-				return Ops->InitializeRuntimePtr(Value, EntityManager, Instance);
+				return Ops->InitializeRuntimePtr(Value, EntityManager, Item);
+			}
+			return false;
+		}
+
+		bool SaveDataConverter(TNotNull<void*> Value, FMassEntityManager& EntityManager, FInstancedStruct& SaveData) const
+		{
+			if (HasSaveDataConverter)
+			{
+				return Ops->SaveDataConverterPtr(Value, EntityManager, SaveData);
 			}
 			return false;
 		}
@@ -201,6 +273,7 @@ namespace Faerie::ItemData
 			.PrimaryIdentifier = TraitsType::PrimaryIdentifier,
 			.RequiresMutable = TraitsType::RequiresMutable,
 			.HasInitializeRuntime = CHasInitializeRuntime<TFragment>,
+			.HasSaveDataConverter = CHasSaveDataConverter<TFragment>,
 #if WITH_EDITOR
 			.HasIsDataValid = CHasIsDataValid<TFragment>,
 #endif
@@ -212,8 +285,8 @@ namespace Faerie::ItemData
 
 	struct IAutoRegisterFragmentTraits
 	{
-		FAERIEITEMDATA_API static void StaticRegisterTraits(TNotNull<const UScriptStruct*> Type, const FMassFragmentTypeInterface& Interface);
-		FAERIEITEMDATA_API static void StaticDeregisterTraits(TNotNull<const UScriptStruct*> Type);
+		FAE_API static void StaticRegisterTraits(TNotNull<const UScriptStruct*> Type, const FMassFragmentTypeInterface& Interface);
+		FAE_API static void StaticDeregisterTraits(TNotNull<const UScriptStruct*> Type);
 	};
 
 	template <CFragmentImpl TFragment>
@@ -231,7 +304,7 @@ namespace Faerie::ItemData
 		}
 	};
 
-	FAERIEITEMDATA_API const FMassFragmentTypeInterface* GetFragmentTraitsInterface(TNotNull<const UScriptStruct*> Type);
+	FAE_API const FMassFragmentTypeInterface* GetFragmentTraitsInterface(TNotNull<const UScriptStruct*> Type);
 
 #define FAERIE_REGISTER_TRAITS(MassFragmentType) \
 	namespace\
@@ -293,3 +366,5 @@ namespace Faerie::ItemData
 		const TFragment* Defaults_FragmentPtr = nullptr;
 	};
 }
+
+#undef FAE_API

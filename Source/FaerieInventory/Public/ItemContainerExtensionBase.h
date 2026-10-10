@@ -46,6 +46,32 @@ struct FFaerieExtensionAllowsAdditionArgs
 	EFaerieStorageAddStackBehavior AddStackBehavior = EFaerieStorageAddStackBehavior::AddToAnyStack;
 };
 
+namespace Faerie::Container
+{
+#if WITH_EDITOR
+	class FAERIEINVENTORY_API FScopedExpectedResponse
+	{
+	public:
+		FScopedExpectedResponse(const EFaerieExtensionResponse ScopeResponse)
+		{
+			LastValue = Response;
+			Response = ScopeResponse;
+		}
+
+		~FScopedExpectedResponse()
+		{
+			Response = LastValue;
+		}
+
+		static TOptional<EFaerieExtensionResponse> Get() { return Response; }
+
+	private:
+		static TOptional<EFaerieExtensionResponse> Response;
+		TOptional<EFaerieExtensionResponse> LastValue;
+	};
+#endif
+}
+
 /*
  * Base class for UFaerieItemContainerBase modular data types.
  * Used to store additional container state, or configure content restrictions.
@@ -92,8 +118,7 @@ struct FFaerieItemContainerExtensionBase : public FFaerieItemContainerData
 	virtual void InitializeExtension(FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container) {}
 
 	/* Does this extension allow a stack of items, or multiple stacks, to be added to the container? */
-	virtual EFaerieExtensionResponse AllowsAddition(const FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container,
-		const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args) const { return EFaerieExtensionResponse::NoExplicitResponse; }
+	virtual EFaerieExtensionResponse AllowsAddition(const FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args, bool RecursingCall) const { return EFaerieExtensionResponse::NoExplicitResponse; }
 
 	/* Does this extension allow removal of an address in the container? */
 	virtual EFaerieExtensionResponse AllowsRemoval(const FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container,

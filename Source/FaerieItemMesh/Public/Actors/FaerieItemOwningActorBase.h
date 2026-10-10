@@ -2,8 +2,10 @@
 
 #pragma once
 
-#include "FaerieItemOwnerInterface.h"
 #include "FaerieItemVisualBase.h"
+
+#include "Extensions/ContainerEventSubscription.h"
+
 #include "FaerieItemOwningActorBase.generated.h"
 
 struct FFaerieInventoryTag;
@@ -14,9 +16,11 @@ class UFaerieItemStackContainer;
  * Base class for Actors that can own a stack of items, e.g., pick-ups on the ground.
  */
 UCLASS(Abstract)
-class FAERIEITEMMESH_API AFaerieItemOwningActorBase : public AFaerieItemVisualBase
+class FAERIEITEMMESH_API AFaerieItemOwningActorBase : public AFaerieItemVisualBase, public IFaerieContainerEventSubscriber
 {
 	GENERATED_BODY()
+
+	friend class UActorFactoryFaerieItem;
 
 public:
 	AFaerieItemOwningActorBase();
@@ -37,18 +41,28 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	//~ AActor
 
 public:
 	//~ Faerie::ItemData::IViewBase
+	virtual FMassEntityHandle GetEntityHandle() const override;
 	virtual TOptional<FFaerieItemInstance> GetItemInstance() const override;
 	virtual int32 GetCopies() const override;
-	virtual IFaerieItemOwnerInterface* GetItemOwner() const override;
+	virtual const UObject* GetItemOwner() const override;
 	//~ Faerie::ItemData::IViewBase
+
+protected:
+	//~ IFaerieContainerEventSubscriber
+	virtual void OnContainerEventBatch(TNotNull<UFaerieItemContainerBase*> Container, TConstArrayView<const Faerie::Container::FContainerEventPayload*> Events) override;
+	//~ IFaerieContainerEventSubscriber
 
 public:
 	UFaerieItemStackContainer* GetContainer() const { return ItemStack; }
 
+	void SetOwnedStack(FMassEntityManager& EntityManager, const FFaerieUnownedItemStack& Stack);
+
+protected:
 	UFUNCTION(BlueprintCallable, Category = "ItemOwningActor")
 	void SetOwnedStack(const FFaerieUnownedItemStack& Stack);
 
@@ -59,9 +73,6 @@ public:
 	UFUNCTION(Category = "Stack Editor", meta = (CallInEditor = "true"))
 	void RegenerateStack();
 #endif
-
-protected:
-	virtual void OnItemDataChanged(const FFaerieItemProxy& Proxy, FGameplayTag Tag);
 
 protected:
 	// The item stack replication wrapper object.

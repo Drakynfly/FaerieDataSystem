@@ -93,7 +93,7 @@ struct FFaerieItemContainerCapacityData : public FFaerieItemContainerExtensionBa
 
     //~ FFaerieItemContainerExtensionBase
     virtual void InitializeExtension(FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container) override;
-    virtual EFaerieExtensionResponse AllowsAddition(const FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args) const override;
+    virtual EFaerieExtensionResponse AllowsAddition(const FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args, bool RecursingCall) const override;
     //~ FFaerieItemContainerExtensionBase
 
     const FFaerieCapacityExtensionConfig& GetConfig() const { return Config; }

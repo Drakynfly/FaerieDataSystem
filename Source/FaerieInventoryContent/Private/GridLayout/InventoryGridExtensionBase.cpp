@@ -153,7 +153,7 @@ void FFaerieContainerGridData::InitializeExtension(FMassEntityManager& EntityMan
 
 EFaerieExtensionResponse FFaerieContainerGridData::AllowsAddition(const FMassEntityManager& EntityManager,
 	const TNotNull<const UFaerieItemContainerBase*> Container, const Utils::TArrayAdapter<FFaerieItemProxy>& Proxies,
-	const FFaerieExtensionAllowsAdditionArgs Args) const
+	const FFaerieExtensionAllowsAdditionArgs Args, bool RecursingCall) const
 {
 	check(Container == GridWrapper->Storage);
 	return GetGridLogic()->AllowsAddition(GetReadContext(EntityManager), Proxies, Args);

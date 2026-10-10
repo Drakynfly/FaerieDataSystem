@@ -20,9 +20,10 @@ class UFaerieItemEntryProxy final : public UFaerieProxyViewModelBase, public IFa
 
 public:
 	//~ Faerie::ItemData::IViewBase
+	virtual FMassEntityHandle GetEntityHandle() const override;
 	virtual TOptional<FFaerieItemInstance> GetItemInstance() const override;
 	virtual int32 GetCopies() const override;
-	virtual IFaerieItemOwnerInterface* GetItemOwner() const override;
+	virtual UObject* GetItemOwner() const override;
 	//~ Faerie::ItemData::IViewBase
 
 	UE_REWRITE FAERIEINVENTORY_API int32 GetItemVersion() const { return LocalItemVersion; }

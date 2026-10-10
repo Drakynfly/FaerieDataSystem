@@ -24,7 +24,7 @@ void FFaerieItemContainerCountLimit::InitializeExtension(FMassEntityManager& Ent
 
 EFaerieExtensionResponse FFaerieItemContainerCountLimit::AllowsAddition(const FMassEntityManager& EntityManager,
 	const TNotNull<const UFaerieItemContainerBase*> Container, const Utils::TArrayAdapter<FFaerieItemProxy>& Proxies,
-	const FFaerieExtensionAllowsAdditionArgs Args) const
+	const FFaerieExtensionAllowsAdditionArgs Args, bool RecursingCall) const
 {
 	int32 TestCount = 0;
 
@@ -193,9 +193,7 @@ void FFaerieItemContainerPerEntryCountLimit::InitializeExtension(FMassEntityMana
 	unimplemented();
 }
 
-EFaerieExtensionResponse FFaerieItemContainerPerEntryCountLimit::AllowsAddition(const FMassEntityManager& EntityManager,
-	TNotNull<const UFaerieItemContainerBase*> Container, const Utils::TArrayAdapter<FFaerieItemProxy>& Proxies,
-	FFaerieExtensionAllowsAdditionArgs Args) const
+EFaerieExtensionResponse FFaerieItemContainerPerEntryCountLimit::AllowsAddition(const FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container, const Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args, bool RecursingCall) const
 {
 	unimplemented();
 	return EFaerieExtensionResponse::NoExplicitResponse;

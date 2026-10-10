@@ -41,6 +41,11 @@ namespace Faerie::Container
 		return Content.GetKeyAt(EntryIndex);
 	}
 
+	FMassEntityHandle FIterator_AllEntries::GetEntityHandle() const
+	{
+		return Content.GetElementAt(EntryIndex).GetEntityHandle();
+	}
+
 	const FFaerieItemInstance& FIterator_AllEntries::GetInstance() const
 	{
 		return Content.GetElementAt(EntryIndex).GetInstance();
@@ -91,6 +96,11 @@ namespace Faerie::Container
 	FFaerieAddress FIterator_AllAddresses::GetAddress() const
 	{
 		return UFaerieItemStorage::MakeAddress(Content.GetKeyAt(EntryIndex), StackPtr->Key);
+	}
+
+	FMassEntityHandle FIterator_AllAddresses::GetEntityHandle() const
+	{
+		return Content.GetElementAt(EntryIndex).GetEntityHandle();
 	}
 
 	const FFaerieItemInstance& FIterator_AllAddresses::GetInstance() const
@@ -153,6 +163,11 @@ namespace Faerie::Container
 		return UFaerieItemStorage::MakeAddress(Entry.GetKey(), StackPtr->Key);
 	}
 
+	FMassEntityHandle FIterator_SingleEntry::GetEntityHandle() const
+	{
+		return Entry.GetEntityHandle();
+	}
+
 	const FFaerieItemInstance& FIterator_SingleEntry::GetInstance() const
 	{
 		return Entry.GetInstance();
@@ -176,17 +191,17 @@ namespace Faerie::Container
 		}
 	}
 
-	const IFaerieItemOwnerInterface* FIterator_AllEntries_WithInterface::GetItemOwner() const
+	const UObject* FIterator_AllEntries_WithInterface::GetItemOwner() const
 	{
 		return Storage;
 	}
 
-	const IFaerieItemOwnerInterface* FIterator_AllAddresses_WithInterface::GetItemOwner() const
+	const UObject* FIterator_AllAddresses_WithInterface::GetItemOwner() const
 	{
 		return Storage;
 	}
 
-	const IFaerieItemOwnerInterface* FIterator_SingleEntry_WithInterface::GetItemOwner() const
+	const UObject* FIterator_SingleEntry_WithInterface::GetItemOwner() const
 	{
 		return Storage;
 	}

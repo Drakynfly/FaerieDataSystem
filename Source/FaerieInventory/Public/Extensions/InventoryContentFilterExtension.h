@@ -16,11 +16,15 @@ struct FAERIEINVENTORY_API FFaerieItemContainerContentFilter : public FFaerieIte
 	GENERATED_BODY()
 
 	//~ FFaerieItemContainerExtensionBase
-	virtual EFaerieExtensionResponse AllowsAddition(const FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args) const override;
+	virtual EFaerieExtensionResponse AllowsAddition(const FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args, bool RecursingCall) const override;
 	//~ FFaerieItemContainerExtensionBase
 
 	UPROPERTY(EditAnywhere, Category = "ItemContainerContentFilter")
 	TObjectPtr<class UFaerieItemTemplate> Filter;
+
+	// Should this filter also restrict nested containers.
+	UPROPERTY(EditAnywhere, Category = "ItemContainerContentFilter")
+	bool ApplyToChildren = false;
 
 ____FAERIE_CONTAINER_DATA_DECL(FFaerieItemContainerContentFilter)
 };

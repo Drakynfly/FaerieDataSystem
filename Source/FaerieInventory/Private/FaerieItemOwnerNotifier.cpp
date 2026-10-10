@@ -2,9 +2,11 @@
 
 #include "FaerieItemOwnerNotifier.h"
 #include "FaerieItem.h"
+#include "FaerieItemContainerBase.h"
 #include "FaerieItemEvent.h"
-#include "FaerieItemOwnerInterface.h"
 #include "MassExecutionContext.h"
+
+#include "Fragments/FaerieItemOwningContainer.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemOwnerNotifier)
 
@@ -36,12 +38,17 @@ void UFaerieItemOwnerNotifier::Execute(FMassEntityManager& EntityManager, FMassE
 
 		for (const ItemData::FMutationEvent& Event : Events)
 		{
-			if (const FFaerieMassItemOwner* OwnerFragment = InContext.GetEntityManagerChecked().GetConstSharedFragmentDataPtr<FFaerieMassItemOwner>(Event.ItemHandle))
+			if (!InContext.GetEntityManagerChecked().IsEntityValid(Event.ItemHandle))
 			{
-				if (IFaerieItemOwnerInterface* Interface = OwnerFragment->GetInterface())
+				// Item no longer exists, skip.
+				continue;
+			}
+
+			if (const FFaerieMassItemOwningContainer* OwnerFragment = InContext.GetEntityManagerChecked().GetConstSharedFragmentDataPtr<FFaerieMassItemOwningContainer>(Event.ItemHandle))
+			{
+				if (IsValid(OwnerFragment->Owner))
 				{
-					FFaerieItemInstance Instance(nullptr, Event.ItemHandle);
-					Interface->OnItemDataChanged(Instance, Event.EventType);
+					OwnerFragment->Owner->OnItemDataChanged(Event.ItemHandle, Event.EventType);
 				}
 			}
 		}

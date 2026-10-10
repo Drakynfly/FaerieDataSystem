@@ -41,77 +41,32 @@ void UFaerieVisualizationUpdater::ConfigureQueries(const TSharedRef<FMassEntityM
 
 void UFaerieVisualizationUpdater::Execute(FMassEntityManager& EntityManager, FMassExecutionContext& Context)
 {
-	EntityQuery.ForEachEntityChunk(Context, [](FMassExecutionContext& InContext)
-	{
-#if FAERIE_DEBUG
-		if (InContext.GetWorld()->GetNetMode() == ENetMode::NM_Client)
-		{
-			UE_LOGF(LogFaerieEquipment, Verbose, "UFaerieVisualizationUpdater::Execute (client)")
-		}
-		else
-		{
-			UE_LOGF(LogFaerieEquipment, Verbose, "UFaerieVisualizationUpdater::Execute (server)")
-		}
-#endif
-
-		const TConstArrayView<Container::FContainerEventPayload> Events = InContext.GetFragmentView<Container::FContainerEventPayload>();
-		for (const Container::FContainerEventPayload& Event : Events)
-		{
-			UFaerieItemContainerBase* Container = Event.Container.Get();
-			if (!IsValid(Container))
-			{
-				continue;
-			}
-			const FFaerieContainerExtensionVisualUpdater* VisualConfig = Container->ReadContainerData<FFaerieContainerExtensionVisualUpdater>(InContext.GetEntityManagerChecked(), true);
-			if (!VisualConfig)
-			{
-				continue;
-			}
-
-			if (Event.IsRemovalEvent())
-			{
-				if (auto Slot = Cast<UFaerieItemStackContainer>(Container))
-				{
-					// If the whole stack is being removed, remove the visual for it
-					if (!Slot->IsFilled())
-					{
-						auto&& Visualizer = GetVisualizer(Slot);
-						if (!IsValid(Visualizer))
-						{
-							return;
-						}
-						Visualizer->RemoveVisualImpl(InContext.GetEntityManagerChecked(), FFaerieItemProxy(Slot));
-					}
-				}
-			}
-			else if (Event.IsAdditionEvent())
-			{
-				if (auto&& Stack = Cast<UFaerieItemStackContainer>(Container))
-				{
-					auto&& Visualizer = GetVisualizer(Stack);
-					if (!IsValid(Visualizer))
-					{
-						return;
-					}
-					// A previously empty stack now has been filled with an item.
-					Visualizer->CreateVisualImpl(InContext.GetEntityManagerChecked(), FFaerieItemProxy(Stack));
-				}
-			}
-		}
-	});
+	EntityQuery.ForEachEntityChunk(Context, ProcessEvents);
 }
 
-
-UEquipmentVisualizer* UFaerieVisualizationUpdater::GetVisualizer(const TNotNull<const UFaerieItemStackContainer*> Stack)
+UEquipmentVisualizer* UFaerieVisualizationUpdater::GetVisualizer(const FFaerieItemProxy& Proxy)
 {
-	AActor* OwningActor = Stack->GetTypedOuter<AActor>();
+	const UObject* OwningObject = Proxy.GetProxyObject();
+	if (!IsValid(OwningObject))
+	{
+		// If there isn't a UObject stored in the proxy, fallback to the Item's owner.
+		OwningObject = Proxy.GetItemOwner();
+
+		if (!IsValid(OwningObject))
+		{
+			UE_LOGF(LogFaerieEquipment, Warning, "GetVisualizer failed: No UObject associated with Proxy!")
+			return nullptr;
+		}
+	}
+
+	const AActor* OwningActor = OwningObject->GetTypedOuter<AActor>();
 	if (!IsValid(OwningActor))
 	{
-		UE_LOGF(LogFaerieEquipment, Warning, "GetVisualizer failed: Stack (%ls) not owned by actor!", *Stack->GetName())
+		UE_LOGF(LogFaerieEquipment, Warning, "GetVisualizer failed: Proxy not owned by actor!")
 		return nullptr;
 	}
 
-	auto&& Visualizer = OwningActor->GetComponentByClass<UEquipmentVisualizer>();
+	UEquipmentVisualizer* Visualizer = OwningActor->GetComponentByClass<UEquipmentVisualizer>();
 	if (!IsValid(Visualizer))
 	{
 		UE_LOGF(LogFaerieEquipment, Warning, "GetVisualizer failed: Actor (%ls) does not have a visualizer component!", *OwningActor->GetName())
@@ -119,4 +74,41 @@ UEquipmentVisualizer* UFaerieVisualizationUpdater::GetVisualizer(const TNotNull<
 	}
 
 	return Visualizer;
+}
+
+void UFaerieVisualizationUpdater::ProcessEvents(FMassExecutionContext& Context)
+{
+#if FAERIE_DEBUG
+	if (Context.GetWorld()->GetNetMode() == ENetMode::NM_Client)
+	{
+		UE_LOGF(LogFaerieEquipment, Verbose, "UFaerieVisualizationUpdater::ProcessEvents (client)")
+	}
+	else
+	{
+		UE_LOGF(LogFaerieEquipment, Verbose, "UFaerieVisualizationUpdater::ProcessEvents (server)")
+	}
+#endif
+
+	const TConstArrayView<Container::FContainerEventPayload> Events = Context.GetFragmentView<Container::FContainerEventPayload>();
+	for (const Container::FContainerEventPayload& Event : Events)
+	{
+		UFaerieItemContainerBase* Container = Event.Container.Get();
+		if (!IsValid(Container))
+		{
+			continue;
+		}
+
+		UFaerieItemStackContainer* Stack = Cast<UFaerieItemStackContainer>(Container);
+		if (!IsValid(Stack))
+		{
+			continue;
+		}
+
+		const FFaerieItemProxy StackProxy(Stack);
+		UEquipmentVisualizer* Visualizer = GetVisualizer(StackProxy);
+		if (IsValid(Visualizer))
+		{
+			Visualizer->RefreshVisual(Context.GetEntityManagerChecked(), StackProxy);
+		}
+	}
 }

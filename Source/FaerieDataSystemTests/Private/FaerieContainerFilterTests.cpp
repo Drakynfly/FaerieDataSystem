@@ -36,21 +36,23 @@ bool FaerieContainerFilterTests::RunTest(const FString& Parameters)
 	TestTrue("GetDefaultFragment", TestItem1Info.IsValid());
 	TestTrue("GetDefaultFragment equals TestInfo", TestItem1Info->ObjectName.EqualTo(TestInfo.ObjectName));
 
+	// @todo re-implement all these once we have the ability to test in editor
+
 	UFaerieItemStorage* Storage = NewObject<UFaerieItemStorage>();
 
-	Storage->AddItemStack(FFaerieUnownedItemStack(TestItem1, 1), EFaerieStorageAddStackBehavior::AddToAnyStack);
-	Storage->AddItemStack(FFaerieUnownedItemStack(TestItem2, 1), EFaerieStorageAddStackBehavior::AddToAnyStack);
+	//Storage->AddItemStack(FFaerieUnownedItemStack(TestItem1, 1), EFaerieStorageAddStackBehavior::AddToAnyStack);
+	//Storage->AddItemStack(FFaerieUnownedItemStack(TestItem2, 1), EFaerieStorageAddStackBehavior::AddToAnyStack);
 	int32 ExpectedEntries = 2;
 
 	TestTrue("NumAfter2Adds", Storage->GetEntryCount() == ExpectedEntries);
 
 	// Adding another immutable item should not create an entry
-	Storage->AddItemStack(FFaerieUnownedItemStack(TestItem1, 1), EFaerieStorageAddStackBehavior::AddToAnyStack);
+	//Storage->AddItemStack(FFaerieUnownedItemStack(TestItem1, 1), EFaerieStorageAddStackBehavior::AddToAnyStack);
 
 	TestTrue("NumAfter3Adds", Storage->GetEntryCount() == ExpectedEntries);
 
 	// Adding another mutable item should create an entry
-	Storage->AddItemStack(FFaerieUnownedItemStack(TestItem2, 1), EFaerieStorageAddStackBehavior::AddToAnyStack);
+	//Storage->AddItemStack(FFaerieUnownedItemStack(TestItem2, 1), EFaerieStorageAddStackBehavior::AddToAnyStack);
 	ExpectedEntries++;
 
 	TestTrue("NumAfter4Adds", Storage->GetEntryCount() == ExpectedEntries);

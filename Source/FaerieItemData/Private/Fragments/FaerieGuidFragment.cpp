@@ -6,7 +6,7 @@
 
 FAERIE_REGISTER_TRAITS(FFaerieGuidFragment)
 
-bool FFaerieGuidFragment::InitializeRuntime(TNotNull<UObject*> Outer, const FFaerieItemInstance& Instance)
+bool FFaerieGuidFragment::InitializeRuntime(TNotNull<UObject*> Outer, const FMassEntityHandle Item)
 {
 	Guid = FGuid::NewGuid();
 	return true;

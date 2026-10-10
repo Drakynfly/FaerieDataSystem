@@ -34,15 +34,12 @@ namespace Faerie::ItemData
 		}
 	}
 
-	FCapacityHelper::FCapacityHelper(const FMassEntityManager* EntityManager, const FMassEntityHandle Item)
-	  : EntityManager(EntityManager), Item(nullptr, Item)
+	FCapacityHelper::FCapacityHelper(const FMassEntityManager& EntityManager, const FMassEntityHandle Item)
+	  : EntityManager(&EntityManager), Item(nullptr, Item)
 	{
-		if (EntityManager)
+		if (const FFaerieItemCapacity* CapacityFragment = ItemData::GetEntityFragment<FFaerieItemCapacity>(EntityManager, Item))
 		{
-			if (const FFaerieItemCapacity* CapacityFragment = ItemData::GetEntityFragment<FFaerieItemCapacity>(*EntityManager, Item))
-			{
-				MassCapacity = CapacityFragment;
-			}
+			MassCapacity = CapacityFragment;
 		}
 	}
 
@@ -85,7 +82,7 @@ namespace Faerie::ItemData
 
 		FInstancedStruct Fragment;
 		Fragment.InitializeAs<FFaerieItemCapacity>(Capacity);
-		FFaerieItemInstance::AddFragment(InEntityManager, Item.GetMassEntityHandle(), MoveTemp(Fragment));
+		AddFragment(InEntityManager, Item.GetMassEntityHandle(), MoveTemp(Fragment));
 		if (const FFaerieItemCapacity* CapacityStruct = ItemData::GetEntityFragment<FFaerieItemCapacity>(InEntityManager, Item.GetMassEntityHandle()))
 		{
 			MassCapacity = CapacityStruct;
@@ -205,7 +202,7 @@ namespace Faerie::ItemData
 					Fragment.Weight = NewValue;
 
 					// Broadcast change and tell replication to pass this along to clients.
-					FFaerieItemInstance::OnItemFragmentEdited(InEntityManager, Entity, FFaerieItemCapacity::StaticStruct(), GetWeightFieldData());
+					OnItemFragmentEdited(InEntityManager, Entity, FFaerieItemCapacity::StaticStruct(), GetWeightFieldData());
 				});
 
 			return;
@@ -233,7 +230,7 @@ namespace Faerie::ItemData
 					Fragment.Bounds = NewValue;
 
 					// Broadcast change and tell replication to pass this along to clients.
-					FFaerieItemInstance::OnItemFragmentEdited(InEntityManager, Entity, FFaerieItemCapacity::StaticStruct(), GetBoundsFieldData());
+					OnItemFragmentEdited(InEntityManager, Entity, FFaerieItemCapacity::StaticStruct(), GetBoundsFieldData());
 				});
 
 			return;
@@ -261,7 +258,7 @@ namespace Faerie::ItemData
 					Fragment.Efficiency = NewValue;
 
 					// Broadcast change and tell replication to pass this along to clients.
-					FFaerieItemInstance::OnItemFragmentEdited(InEntityManager, Entity, FFaerieItemCapacity::StaticStruct(), GetEfficiencyFieldData());
+					OnItemFragmentEdited(InEntityManager, Entity, FFaerieItemCapacity::StaticStruct(), GetEfficiencyFieldData());
 				});
 
 			return;
@@ -289,7 +286,7 @@ namespace Faerie::ItemData
 					Fragment = NewValue;
 
 					// Broadcast change and tell replication to pass this along to clients.
-					FFaerieItemInstance::OnItemFragmentEdited(InEntityManager, Entity, FFaerieItemCapacity::StaticStruct(), GetAllCapacityFieldData());
+					OnItemFragmentEdited(InEntityManager, Entity, FFaerieItemCapacity::StaticStruct(), GetAllCapacityFieldData());
 				});
 
 			return;
@@ -317,7 +314,7 @@ namespace Faerie::ItemData
 					Fragment = NewValue;
 
 					// Broadcast change and tell replication to pass this along to clients.
-					FFaerieItemInstance::OnItemFragmentEdited(InEntityManager, Entity, FFaerieItemCapacity::StaticStruct(), GetAllCapacityFieldData());
+					OnItemFragmentEdited(InEntityManager, Entity, FFaerieItemCapacity::StaticStruct(), GetAllCapacityFieldData());
 				});
 
 			return;

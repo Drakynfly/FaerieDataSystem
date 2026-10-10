@@ -82,10 +82,11 @@ void FFaerieItemContainerEjectionConfig::SpawnVisualizer(const TSubclassOf<AFaer
 	FActorSpawnParameters Args;
 	Args.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
-	if (AFaerieItemOwningActorBase* NewPickup = OwningActor->GetWorld()->SpawnActor<AFaerieItemOwningActorBase>(Class, SpawnTransform, Args);
+	UWorld* World = OwningActor->GetWorld();
+	if (AFaerieItemOwningActorBase* NewPickup = World->SpawnActor<AFaerieItemOwningActorBase>(Class, SpawnTransform, Args);
 		IsValid(NewPickup))
 	{
-		NewPickup->SetOwnedStack(Ejection.Stack);
+		NewPickup->SetOwnedStack(ItemData::GetFaerieEntityManagerChecked(World), Ejection.Stack);
 	}
 }
 
@@ -154,11 +155,11 @@ void UFaerieContainerEjectionHandler::Execute(FMassEntityManager& EntityManager,
 	});
 }
 
-bool FFaerieClientAction_EjectEntry::Server_Execute(const TNotNull<const UFaerieInventoryClient*> Client) const
+bool FFaerieClientAction_EjectEntry::Server_Execute(const TNotNull<const UFaerieInventoryClient*> Client, FMassEntityManager& EntityManager) const
 {
 	if (!Handle.IsValid()) return false;
 	UFaerieItemContainerBase* Container = Handle.Container.Get();
-	if (!Client->CanAccessContainer(Container, StaticStruct())) return false;
+	if (!Client->CanAccessContainer(EntityManager, Container, StaticStruct())) return false;
 
 	const TOptional<FFaerieUnownedItemStack> Stack = Container->Release(Handle.Address, Amount, Inventory::Tags::RemovalEject);
 	return Stack.IsSet();

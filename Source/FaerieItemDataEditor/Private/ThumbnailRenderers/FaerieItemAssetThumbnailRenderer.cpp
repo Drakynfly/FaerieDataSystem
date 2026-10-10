@@ -59,6 +59,11 @@ EThumbnailRenderFrequency UFaerieItemAssetThumbnailRenderer::GetThumbnailRenderF
 	return EThumbnailRenderFrequency::Realtime;
 }
 
+FMassEntityHandle UFaerieItemAssetThumbnailRenderer::GetEntityHandle() const
+{
+	return FMassEntityHandle();
+}
+
 TOptional<FFaerieItemInstance> UFaerieItemAssetThumbnailRenderer::GetItemInstance() const
 {
 	if (IsValid(ItemAsset))
@@ -68,7 +73,7 @@ TOptional<FFaerieItemInstance> UFaerieItemAssetThumbnailRenderer::GetItemInstanc
 	return NullOpt;
 }
 
-IFaerieItemOwnerInterface* UFaerieItemAssetThumbnailRenderer::GetItemOwner() const
+UObject* UFaerieItemAssetThumbnailRenderer::GetItemOwner() const
 {
 	return nullptr;
 }

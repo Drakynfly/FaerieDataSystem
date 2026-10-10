@@ -2,7 +2,6 @@
 
 #include "FaerieItem.h"
 #include "FaerieItemAsset.h"
-#include "FaerieItemOwnerInterface.h"
 #include "Fragments/FaerieReferenceFragment.h"
 #include "UObject/ObjectSaveContext.h"
 
@@ -241,11 +240,6 @@ bool UFaerieItem::DetermineFragmentMutability() const
 	return false;
 }
 
-IFaerieItemOwnerInterface* FFaerieMassItemOwner::GetInterface() const
-{
-	return Cast<IFaerieItemOwnerInterface>(Owner.Get());
-}
-
 namespace Faerie::ItemData
 {
 	bool HasEntityFragment(const FMassEntityManager& EntityManager, const FMassEntityHandle ItemHandle,
@@ -287,9 +281,9 @@ namespace Faerie::ItemData
 				}
 			}
 
-			if (auto&& ItemAssetFragment = EntityManager->GetFragmentDataPtr<FFaerieMassItemPointer>(Instance.GetMassEntityHandle()))
+			if (auto&& ItemAssetFragment = EntityManager->GetConstSharedFragmentDataPtr<FFaerieItemDataDefaults>(Instance.GetMassEntityHandle()))
 			{
-				if (HasDefaultFragment(ItemAssetFragment->Item.ResolveObjectPtr(), FragmentType))
+				if (HasDefaultFragment(ItemAssetFragment->ItemAsset, FragmentType))
 				{
 					return true;
 				}
@@ -346,10 +340,10 @@ namespace Faerie::ItemData
 				}
 			}
 
-			if (auto&& ItemAssetFragment = EntityManager->GetFragmentDataPtr<FFaerieMassItemPointer>(Instance.GetMassEntityHandle()))
+			if (auto&& ItemAssetFragment = EntityManager->GetConstSharedFragmentDataPtr<FFaerieItemDataDefaults>(Instance.GetMassEntityHandle()))
 			{
 				if (const TConstStructView<FFaerieMassFragment> Fragment = GetDefaultFragment(
-						ItemAssetFragment->Item.ResolveObjectPtr(), FragmentType);
+						ItemAssetFragment->ItemAsset, FragmentType);
 					Fragment.IsValid())
 				{
 					return Fragment;

@@ -10,7 +10,6 @@
 #include "FaerieItemOwnership.h"
 #include "FaerieItemStackContainer.h"
 #include "ItemContainerEvent.h"
-
 #include "Modules/ModuleManager.h"
 #include "Net/UnrealNetwork.h"
 
@@ -145,27 +144,48 @@ void AFaerieItemOwningActorBase::GetLifetimeReplicatedProps(TArray<class FLifeti
 
 void AFaerieItemOwningActorBase::BeginPlay()
 {
+	Super::BeginPlay();
+
+	if (!IsValid(ItemStack))
+	{
+		return;
+	}
+
+	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
+
 	Utils::ClearLoadFlags(ItemStack);
 
 	AddReplicatedSubObject(ItemStack);
-	ItemStack->InitializeNetObject(this);
-	ItemStack->GetOnContainerEvent().AddUObject(this, &ThisClass::OnItemDataChanged);
+	ItemStack->InitializeContainer(EntityManager);
+
+	Content::SubscribeToContainerEvents(ItemStack, this);
 
 	// @todo setup more complex trigger for initializing runtime instance. some actors might want to wait and only
 	// register at a later point.
 	if (ItemStack->IsFilled())
 	{
-		TOptional<FFaerieItemInstance> Instance = ItemStack->GetItemInstance();
-		if (Instance.IsSet() && Instance->IsMutable())
+		if (TOptional<FFaerieItemInstance> Instance = ItemStack->GetItemInstance();
+			Instance.IsSet())
 		{
-			FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
-			Instance->InitializeMassEntity(EntityManager);
-
-			Container::TakeOwnership(EntityManager, ItemStack, Instance.GetValue());
+			if (const UFaerieItem* ItemAsset = Instance->GetItemPtr();
+				ItemAsset && ItemAsset->CanMutate())
+			{
+				Instance->InitializeMassEntity(EntityManager);
+				Container::TakeOwnership(EntityManager, ItemStack, Instance->GetMassEntityHandle());
+			}
 		}
 	}
+}
 
-	Super::BeginPlay();
+void AFaerieItemOwningActorBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Content::UnsubscribeFromContainerEvents(ItemStack, this);
+	Super::EndPlay(EndPlayReason);
+}
+
+FMassEntityHandle AFaerieItemOwningActorBase::GetEntityHandle() const
+{
+	return ItemStack->GetEntityHandle();
 }
 
 TOptional<FFaerieItemInstance> AFaerieItemOwningActorBase::GetItemInstance() const
@@ -178,18 +198,30 @@ int32 AFaerieItemOwningActorBase::GetCopies() const
 	return ItemStack->GetCopies();
 }
 
-IFaerieItemOwnerInterface* AFaerieItemOwningActorBase::GetItemOwner() const
+const UObject* AFaerieItemOwningActorBase::GetItemOwner() const
 {
 	return ItemStack;
 }
 
-void AFaerieItemOwningActorBase::SetOwnedStack(const FFaerieUnownedItemStack& Stack)
+void AFaerieItemOwningActorBase::OnContainerEventBatch(TNotNull<UFaerieItemContainerBase*> Container,
+	TConstArrayView<const Container::FContainerEventPayload*> Events)
+{
+	RegenerateDataDisplay();
+}
+
+void AFaerieItemOwningActorBase::SetOwnedStack(FMassEntityManager& EntityManager, const FFaerieUnownedItemStack& Stack)
 {
 	if (ItemStack->IsFilled())
 	{
-		ItemStack->TakeItemFromSlot(ItemData::EntireStack, Inventory::Tags::RemovalDeletion);
+		ItemStack->TakeItemFromSlot(EntityManager, ItemData::EntireStack, Inventory::Tags::RemovalDeletion);
 	}
-	ItemStack->SetItemInSlot(Stack);
+	ItemStack->SetItemInSlot(EntityManager, Stack);
+}
+
+void AFaerieItemOwningActorBase::SetOwnedStack(const FFaerieUnownedItemStack& Stack)
+{
+	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
+	SetOwnedStack(EntityManager, Stack);
 }
 
 #if WITH_EDITOR
@@ -210,8 +242,3 @@ void AFaerieItemOwningActorBase::RegenerateStack()
 	InitStackFromConfig(true);
 }
 #endif
-
-void AFaerieItemOwningActorBase::OnItemDataChanged(const FFaerieItemProxy& Proxy, FGameplayTag Tag)
-{
-	RegenerateDataDisplay();
-}

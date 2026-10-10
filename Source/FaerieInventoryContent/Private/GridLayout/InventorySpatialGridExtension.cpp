@@ -420,7 +420,7 @@ bool UInventorySpatialGridExtension::MoveItem(const FFaerieContainerGridWriteCon
 			}
 
 			// Try merging them. This is known to be safe, since all stacks with the same key share immutability.
-			if (Context.GetStorage()->MergeStacks(Key.Get<0>(), Key.Get<1>(), OverlappingKey.Get<1>()))
+			if (Context.GetStorage()->MergeStacks(Context.GetManagerChecked(), Key.Get<0>(), Key.Get<1>(), OverlappingKey.Get<1>()))
 			{
 				return true;
 			}

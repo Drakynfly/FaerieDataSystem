@@ -181,7 +181,7 @@ namespace Faerie::ItemData
 
 		FInstancedStruct Fragment;
 		Fragment.InitializeAs<FFaerieItemUses>(NewUses);
-		FFaerieItemInstance::AddFragment(InEntityManager, Item.GetMassEntityHandle(), MoveTemp(Fragment));
+		AddFragment(InEntityManager, Item.GetMassEntityHandle(), MoveTemp(Fragment));
 		if (const FFaerieItemUses* UsesStruct = GetEntityFragment<FFaerieItemUses>(*EntityManager, Item.GetMassEntityHandle()))
 		{
 			FragmentPtr = UsesStruct;
@@ -223,7 +223,7 @@ namespace Faerie::ItemData
 				}
 
 				// Broadcast change and tell replication to pass this along to clients.
-				FFaerieItemInstance::OnItemFragmentEdited(InEntityManager, Entity, FFaerieItemUses::StaticStruct(), GetUsesRemainingFieldData());
+				OnItemFragmentEdited(InEntityManager, Entity, FFaerieItemUses::StaticStruct(), GetUsesRemainingFieldData());
 			});
 	}
 
@@ -251,7 +251,7 @@ namespace Faerie::ItemData
 				Fragment.UsesRemaining = NewUses;
 
 				// Broadcast change and tell replication to pass this along to clients.
-				FFaerieItemInstance::OnItemFragmentEdited(InEntityManager, Entity, FFaerieItemUses::StaticStruct(), GetUsesRemainingFieldData());
+				OnItemFragmentEdited(InEntityManager, Entity, FFaerieItemUses::StaticStruct(), GetUsesRemainingFieldData());
 
 				if (Fragment.UsesRemaining <= 0)
 				{
@@ -293,7 +293,7 @@ namespace Faerie::ItemData
 				Fragment.UsesRemaining = Amount;
 
 				// Broadcast change and tell replication to pass this along to clients.
-				FFaerieItemInstance::OnItemFragmentEdited(InEntityManager, Entity, FFaerieItemUses::StaticStruct(), GetUsesRemainingFieldData());
+				OnItemFragmentEdited(InEntityManager, Entity, FFaerieItemUses::StaticStruct(), GetUsesRemainingFieldData());
 			});
 	}
 
@@ -328,7 +328,7 @@ namespace Faerie::ItemData
 				Fragment.UsesRemaining = NewValue;
 
 				// Broadcast change and tell replication to pass this along to clients.
-				FFaerieItemInstance::OnItemFragmentEdited(InEntityManager, Entity, FFaerieItemUses::StaticStruct(), GetUsesRemainingFieldData());
+				OnItemFragmentEdited(InEntityManager, Entity, FFaerieItemUses::StaticStruct(), GetUsesRemainingFieldData());
 			});
 	}
 
@@ -369,11 +369,11 @@ namespace Faerie::ItemData
 				// Broadcast change and tell replication to pass this along to clients.
 				if (ChangedRemaining)
 				{
-					FFaerieItemInstance::OnItemFragmentEdited(InEntityManager, Entity, FFaerieItemUses::StaticStruct(), GetAllItemUsesFieldData());
+					OnItemFragmentEdited(InEntityManager, Entity, FFaerieItemUses::StaticStruct(), GetAllItemUsesFieldData());
 				}
 				else
 				{
-					FFaerieItemInstance::OnItemFragmentEdited(InEntityManager, Entity, FFaerieItemUses::StaticStruct(), GetMaxUsesFieldData());
+					OnItemFragmentEdited(InEntityManager, Entity, FFaerieItemUses::StaticStruct(), GetMaxUsesFieldData());
 				}
 			});
 	}

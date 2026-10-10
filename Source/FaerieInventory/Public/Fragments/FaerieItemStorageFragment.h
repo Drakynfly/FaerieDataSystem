@@ -33,7 +33,8 @@ struct FFaerieItemStorageFragment : public FFaerieMassFragment
 	EDataValidationResult IsDataValid(FDataValidationContext& Context) const;
 #endif
 
-	bool InitializeRuntime(FMassEntityManager& EntityManager, const FFaerieItemInstance& Instance);
+	bool InitializeRuntime(FMassEntityManager& EntityManager, FMassEntityHandle Item);
+	bool SaveDataConverter(FMassEntityManager& EntityManager, FInstancedStruct& SaveData);
 
 ____FAERIE_FRAGMENT_DECL(FFaerieItemStorageFragment)
 };
@@ -76,9 +77,25 @@ struct FFaerieChildStackFragment : public FFaerieMassFragment
 	UPROPERTY(EditInstanceOnly, Category = "ChildSlot")
 	TArray<FFaerieInlineStackContainer> Slots;
 
-	bool InitializeRuntime(FMassEntityManager& EntityManager, const FFaerieItemInstance& Instance);
+#if WITH_EDITOR
+	EDataValidationResult IsDataValid(FDataValidationContext& Context) const;
+#endif
+
+	bool InitializeRuntime(FMassEntityManager& EntityManager, FMassEntityHandle Item);
+	bool SaveDataConverter(FMassEntityManager& EntityManager, FInstancedStruct& SaveData);
 
 ____FAERIE_FRAGMENT_DECL(FFaerieChildStackFragment)
+};
+
+USTRUCT()
+struct FFaerieChildStackFragmentSaveData : public FFaerieItemFragmentSaveData
+{
+	GENERATED_BODY()
+
+	virtual const UScriptStruct* GetFragmentType() const override { return FFaerieChildStackFragment::StaticStruct(); }
+
+	UPROPERTY()
+	TArray<FInstancedStruct> Stacks;
 };
 
 template<>

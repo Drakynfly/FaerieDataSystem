@@ -26,7 +26,7 @@ namespace Faerie::Container
 			const FFaerieItemProxy Proxy = It.GetPersistentProxy();
 
 			// Iterate sub-containers in that item, and build another path from it.
-			for (UFaerieItemContainerBase* SubContainer : SubObject::Iterate(EntityManager, Proxy.GetItemInstanceOrInvalid()))
+			for (UFaerieItemContainerBase* SubContainer : SubObject::Iterate(EntityManager, Proxy.GetEntityHandle()))
 			{
 				BuildPath_Recurse(EntityManager, Proxy, SubContainer, NewPath, OutPaths);
 			}

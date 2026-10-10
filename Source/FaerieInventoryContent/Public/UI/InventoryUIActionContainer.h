@@ -20,7 +20,7 @@ public:
 	bool AddAction(TSubclassOf<UFaerieUIActionBase> Class);
 
 	UFUNCTION(BlueprintCallable, Category = "UIActionContainer")
-	bool AddActions(TSet<TSubclassOf<UFaerieUIActionBase>> Classes);
+	bool AddActions(const TArray<TSubclassOf<UFaerieUIActionBase>>& Classes);
 
 	UFUNCTION(BlueprintCallable, Category = "UIActionContainer")
 	bool AddActionInstance(UFaerieUIActionBase* Action);

@@ -7,7 +7,7 @@
 
 FMassEntityHandle UFaerieItemDataViewModelBase::GetItemHandle() const
 {
-	return ItemProxy.GetItemInstanceOrInvalid().GetMassEntityHandle();
+	return ItemProxy.GetEntityHandle();
 }
 
 void UFaerieItemDataViewModelBase::SetItemProxy(const FFaerieItemProxy& Item)

@@ -18,9 +18,10 @@ class FAERIEITEMDATAEDITOR_API UFaerieWidgetPreview : public UWidgetPreview, pub
 
 public:
 	//~ Faerie::ItemData::IViewBase
+	virtual FMassEntityHandle GetEntityHandle() const override;
 	virtual TOptional<FFaerieItemInstance> GetItemInstance() const override;
 	virtual int32 GetCopies() const override { return 1; }
-	virtual IFaerieItemOwnerInterface* GetItemOwner() const override;
+	virtual UObject* GetItemOwner() const override;
 	//~ Faerie::ItemData::IViewBase
 
 	void InitFaerieWidgetPreview(UFaerieItemAsset* InAsset);

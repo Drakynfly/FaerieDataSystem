@@ -20,15 +20,8 @@ struct FFaerieMassReplicatedEntity : public FFastArraySerializerItem
 {
 	GENERATED_BODY()
 
-	// Flag to detect when ItemPointer has replicated to the client, but hasn't been pushed into mass yet.
-	bool HasImportedItemPointer = false;
-
 	// Locally cached entity handle.
 	FMassEntityHandle EntityHandle;
-
-	// The ItemAsset for this item. May not always be valid.
-	UPROPERTY()
-	TObjectPtr<UFaerieItem> ItemPointer;
 
 	UPROPERTY()
 	TArray<FInstancedStruct> Fragments;
@@ -74,10 +67,6 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
-public:
-	virtual void Tick(float DeltaSeconds) override;
-
-public:
 	void Server_UpdateFragments(const FMassEntityManager& EntityManager, FMassEntityHandle Item, TConstArrayView<TConstStructView<FFaerieMassFragment>> FragmentViews);
 	void Server_RemoveFragments(const FMassEntityManager& EntityManager, FMassEntityHandle Item, TConstArrayView<const UScriptStruct*> FragmentTypes);
 	void Server_RemoveEntities(const FMassEntityManager& EntityManager, TConstArrayView<FMassEntityHandle> Items);
@@ -85,8 +74,6 @@ public:
 	void Client_AddEntity(FFaerieMassReplicatedEntity& Entity);
 	void Client_UpdateEntity(FFaerieMassReplicatedEntity& Entity);
 	void Client_RemoveEntity(const FFaerieMassReplicatedEntity& Entity);
-
-	void Client_CheckItemPointer(FFaerieMassReplicatedEntity& Entity);
 
 protected:
 	UPROPERTY(Replicated)

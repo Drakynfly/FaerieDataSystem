@@ -4,7 +4,6 @@
 #include "EntityManagerHelpers.h"
 #include "FaerieItem.h"
 #include "FaerieItemAsset.h"
-#include "FaerieItemOwnerInterface.h"
 #include "FaerieItemProxy.h"
 #include "Fragments/FaerieAssetInfo.h"
 #include "Fragments/ModificationDateFragment.h"
@@ -79,8 +78,7 @@ FFaerieUnownedItemStack UFaerieItemDataLibrary::NewItemInstance(const UObject* W
 	auto& EntityManager = Faerie::ItemData::GetFaerieEntityManagerChecked(World);
 
 	FFaerieUnownedItemStack OutStack;
-	OutStack.Instance.ImportFragmentData(EntityManager, Fragments);
-	OutStack.Instance.InitializeMassEntity(EntityManager);
+	OutStack.Instance.InitializeMassEntity(EntityManager, Fragments);
 	OutStack.Copies = 1;
 	return OutStack;
 }
@@ -190,6 +188,15 @@ bool UFaerieItemDataLibrary::FindFragment(const FFaerieItemProxy& Proxy, UScript
 		return false;
 	}
 
+#if WITH_EDITOR
+	const UWorld* TestWorld = Proxy.TestExtractWorld();
+	if (!IsValid(TestWorld) || !Faerie::ItemData::HasFaerieEntityManagerBeenAssigned(TestWorld))
+	{
+		// No entity manager... skip to looking on the item.
+		FoundFragment = Faerie::ItemData::GetDefaultFragment(InstanceOpt.GetValue().GetItemPtr(), FragmentType);
+		return FoundFragment.IsValid();
+	}
+#endif
 	const UWorld* World = Proxy.ExtractWorld();
 	if (!IsValid(World))
 	{

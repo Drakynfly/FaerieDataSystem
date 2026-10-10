@@ -9,6 +9,16 @@
 
 using namespace Faerie;
 
+FMassEntityHandle UFaerieItemStackProxy::GetEntityHandle() const
+{
+	if (!VerifyStatus())
+	{
+		return FMassEntityHandle();
+	}
+
+	return GetOuterUFaerieItemStorage()->GetItemHandle(Address);
+}
+
 TOptional<FFaerieItemInstance> UFaerieItemStackProxy::GetItemInstance() const
 {
 	if (!VerifyStatus())
@@ -29,7 +39,7 @@ int32 UFaerieItemStackProxy::GetCopies() const
 	return GetOuterUFaerieItemStorage()->GetStackCopies(Address);
 }
 
-IFaerieItemOwnerInterface* UFaerieItemStackProxy::GetItemOwner() const
+const UObject* UFaerieItemStackProxy::GetItemOwner() const
 {
 	return GetOuterUFaerieItemStorage();
 }

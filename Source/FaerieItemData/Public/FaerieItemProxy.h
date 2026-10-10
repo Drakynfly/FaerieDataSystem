@@ -48,17 +48,17 @@ struct FAERIEITEMDATA_API FFaerieItemProxy
 	FFaerieItemProxy() = default;
 
 	FFaerieItemProxy(const FFaerieItemProxy& Other)
-	  : ProxyObject(Other.ProxyObject), InterfacePtr(Other.InterfacePtr) {}
+	  : ProxyObject(Other.ProxyObject), InterfacePtr(Other.InterfacePtr), ValidWithoutProxyObject(Other.ValidWithoutProxyObject) {}
 
 	// Construct from a persistable pointer.
 	explicit FFaerieItemProxy(const TScriptInterface<const IFaerieItemDataProxy>& Interface)
-	  : ProxyObject(Interface.GetObject()), InterfacePtr(Interface.GetInterface()) {}
+	  : ProxyObject(Interface.GetObject()), InterfacePtr(Interface.GetInterface()), ValidWithoutProxyObject(false) {}
 
 	// Constructor for single frame 'view' proxies that are cheaper than persistent proxies since they don't need a
 	// UObject backing them.
 	enum ECtorOverride { ESingleFrame };
 	explicit FFaerieItemProxy(ECtorOverride, const TNotNull<const Faerie::ItemData::IViewBase*> View UE_LIFETIMEBOUND)
-	  : ProxyObject(nullptr), InterfacePtr(View) {}
+	  : ProxyObject(nullptr), InterfacePtr(View), ValidWithoutProxyObject(true) {}
 
 private:
 	// UObject to keep alive *if* this proxy refers to one.
@@ -68,6 +68,9 @@ private:
 	// Pointer to the interface. If ProxyObject is valid, this also will be, but not always the other way around.
 	// For single frame proxies, only this may be set.
 	const Faerie::ItemData::IViewBase* InterfacePtr = nullptr;
+
+	// @todo hack until better solution for detecting invalid proxies
+	bool ValidWithoutProxyObject = false;
 
 public:
 	// Only tests if this proxy has a valid interface pointer. It does not check if the data it points to is valid.
@@ -88,8 +91,8 @@ public:
 	template <typename T>
 	UE_REWRITE const T* GetTypedProxyObject() const { return Cast<T>(ProxyObject); }
 
-	// Get the Interface pointer.
-	UE_REWRITE const Faerie::ItemData::IViewBase* GetInterface() const { return InterfacePtr; }
+	// Get the MassEntityHandle for this proxy. Can return an invalid handle if we proxy an editor/unregistered instance.
+	FMassEntityHandle GetEntityHandle() const;
 
 	// Get the valid item instance or NullOpt from this proxy.
 	TOptional<FFaerieItemInstance> GetItemInstance() const;
@@ -105,6 +108,11 @@ public:
 
 	// Determine the UWorld this item resides in.
 	const UWorld* ExtractWorld() const;
+
+#if WITH_EDITOR
+	// Determine the UWorld this item resides in. Doesn't complain if it can't find one.
+	const UWorld* TestExtractWorld() const;
+#endif
 
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bSuccess);
 

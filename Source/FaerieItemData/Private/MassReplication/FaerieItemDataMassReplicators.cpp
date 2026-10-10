@@ -17,7 +17,7 @@ UFaerieItemDataCreationReplicator::UFaerieItemDataCreationReplicator()
   : EntityQuery(*this)
 {
 	// Observe creation of entities with an item pointer.
-	ObservedTypes = { FFaerieMassItemPointer::StaticStruct() };
+	ObservedTypes = { FFaerieItemDataDefaults::StaticStruct() };
 	ObservedOperations = EMassObservedOperationFlags::CreateEntity;
 
 	// Process only on the server.
@@ -29,7 +29,7 @@ UFaerieItemDataCreationReplicator::UFaerieItemDataCreationReplicator()
 
 void UFaerieItemDataCreationReplicator::ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager)
 {
-	EntityQuery.AddRequirement<FFaerieMassItemPointer>(EMassFragmentAccess::None); // Require presence, but we don't read or write.
+	EntityQuery.AddConstSharedRequirement<FFaerieItemDataDefaults>(EMassFragmentPresence::All);
 	ProcessorRequirements.AddSubsystemRequirement<UFaerieMassReplicationSubsystem>(EMassFragmentAccess::ReadWrite);
 }
 
@@ -76,7 +76,7 @@ UFaerieItemDataDeletionReplicator::UFaerieItemDataDeletionReplicator()
   : EntityQuery(*this)
 {
 	// Observe destruction of entities with an item pointer.
-	ObservedTypes = { FFaerieMassItemPointer::StaticStruct() };
+	ObservedTypes = { FFaerieItemDataDefaults::StaticStruct() };
 	ObservedOperations = EMassObservedOperationFlags::DestroyEntity;
 
 	// Process only on the server.
@@ -131,36 +131,76 @@ void UFaerieItemDataChangeReplicator::Execute(FMassEntityManager& EntityManager,
 		const TConstArrayView<ItemData::FMutationEvent> Events = InContext.GetFragmentView<ItemData::FMutationEvent>();
 		if (Events.IsEmpty()) return;
 
-		for (const ItemData::FMutationEvent& Event : Events)
+		for (int32 i = 0; i < InContext.GetNumEntities(); ++i)
 		{
-			if (Event.EventType == ItemData::Tags::FragmentAdd)
+			FMassEntityHandle EventEntity = InContext.GetEntity(i);
+			const ItemData::FMutationEvent& Event = Events[i];
+
+			if (Event.ChangeType == ItemData::FMutationPayloadChangeList::StaticStruct())
 			{
-				if (Event.ChangeType == ItemData::FMutationPayloadChangeList::StaticStruct())
+				const ItemData::FMutationPayloadChangeList& ChangeList = InContext.GetEntityManagerChecked().GetFragmentDataChecked<ItemData::FMutationPayloadChangeList>(EventEntity);
+
+				if (Event.EventType == ItemData::Tags::FragmentAdd)
 				{
-					// @todo
-					unimplemented()
+					TArray<TConstStructView<FFaerieMassFragment>> FragmentViews;
+					FragmentViews.Reserve(ChangeList.ChangeTypes.CountStoredTypes());
+
+					for (auto It = ChangeList.ChangeTypes.GetIndexIterator(); It; ++It)
+					{
+						const UScriptStruct* FragmentType = ChangeList.ChangeTypes.GetTypeAtIndex(*It);
+						const TConstStructView<FFaerieMassFragment> Fragment = Manager.GetFragmentDataStruct(Event.ItemHandle,
+							FragmentType).Get<FFaerieMassFragment>();
+						if (Fragment.IsValid())
+						{
+							FragmentViews.Add(Fragment);
+						}
+					}
+
+					ReplicationSubsystem.Server_UpdateFragments(InContext.GetEntityManagerChecked(), Event.ItemHandle, FragmentViews);
+				}
+				else if (Event.EventType == ItemData::Tags::FragmentRemove)
+				{
+					TArray<const UScriptStruct*> FragmentViews;
+					FragmentViews.Reserve(ChangeList.ChangeTypes.CountStoredTypes());
+
+					for (auto It = ChangeList.ChangeTypes.GetIndexIterator(); It; ++It)
+					{
+						const UScriptStruct* FragmentType = ChangeList.ChangeTypes.GetTypeAtIndex(*It);
+						if (IsValid(FragmentType))
+						{
+							FragmentViews.Add(FragmentType);
+						}
+					}
+
+					ReplicationSubsystem.Server_RemoveFragments(InContext.GetEntityManagerChecked(), Event.ItemHandle, FragmentViews);
 				}
 				else
+				{
+					// Unhandled EventType. Implement support here
+					unimplemented()
+				}
+			}
+			else if (Event.ChangeType->IsChildOf<FFaerieMassFragment>())
+			{
+				if (Event.EventType == ItemData::Tags::FragmentAdd ||
+					Event.EventType == ItemData::Tags::FragmentGenericPropertyEdit)
 				{
 					const TConstStructView<FFaerieMassFragment> Fragment = Manager.GetFragmentDataStruct(Event.ItemHandle,
 						Event.ChangeType.Get()).Get<FFaerieMassFragment>();
 					ReplicationSubsystem.Server_UpdateFragments(InContext.GetEntityManagerChecked(), Event.ItemHandle,
 						MakeConstArrayView(&Fragment, 1));
 				}
-			}
-			else if (Event.EventType == ItemData::Tags::FragmentRemove)
-			{
-				if (Event.ChangeType == ItemData::FMutationPayloadChangeList::StaticStruct())
-				{
-					// @todo
-					unimplemented()
-				}
-				else
+				else if (Event.EventType == ItemData::Tags::FragmentRemove)
 				{
 					const UScriptStruct* Type = Event.ChangeType.Get();
 					ReplicationSubsystem.Server_RemoveFragments(InContext.GetEntityManagerChecked(), Event.ItemHandle,
 						MakeConstArrayView(&Type, 1) );
 				}
+			}
+			else
+			{
+				// Unhandled ChangeType. If a new payload was added, implement support here
+				unimplemented()
 			}
 		}
 	});

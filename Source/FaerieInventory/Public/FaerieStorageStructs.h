@@ -9,6 +9,7 @@
 #include "FaerieFastArraySerializerHack.h"
 #include "FaerieItem.h"
 #include "FaerieItemContainerStructs.h"
+#include "FaerieItemExportData.h"
 #include "FaerieItemKey.h"
 #include "FaerieStorageStructs.generated.h"
 
@@ -84,7 +85,7 @@ private:
 
 	struct FStorageContentAccess
 	{
-		static const IFaerieItemOwnerInterface* GetListener(const FFaerieStorageContent& Source);
+		static const UObject* GetListener(const FFaerieStorageContent& Source);
 #if FAERIE_DEBUG
 		static uint32& GetWriteLock(const FFaerieStorageContent& Source);
 #endif
@@ -92,6 +93,7 @@ private:
 
 public:
 	UE_REWRITE FFaerieEntryKey GetKey() const { return Key; }
+	UE_REWRITE FMassEntityHandle GetEntityHandle() const { return ItemInstance.GetMassEntityHandle(); }
 	UE_REWRITE const FFaerieItemInstance& GetInstance() const { return ItemInstance; }
 	UE_REWRITE TConstArrayView<FFaerieKeyedStack> GetStacks() const { return Stacks; }
 
@@ -135,9 +137,10 @@ public:
 		  : Entry(Entry), Source(Source) {}
 
 		//~ ItemData::IViewBase
+		virtual FMassEntityHandle GetEntityHandle() const override { return Entry.ItemInstance.GetMassEntityHandle(); }
 		UE_REWRITE virtual TOptional<FFaerieItemInstance> GetItemInstance() const override { return Entry.ItemInstance; }
 		UE_REWRITE virtual int32 GetCopies() const override { return Entry.StackSum(); }
-		virtual const IFaerieItemOwnerInterface* GetItemOwner() const override;
+		virtual const UObject* GetItemOwner() const override;
 		//~ ItemData::IViewBase
 
 		//~ Container::IEntryView
@@ -162,9 +165,10 @@ public:
 		  : Entry(Entry), Stack(Stack), Source(Source) {}
 
 		//~ ItemData::IViewBase
+		virtual FMassEntityHandle GetEntityHandle() const override { return Entry.ItemInstance.GetMassEntityHandle(); }
 		UE_REWRITE virtual TOptional<FFaerieItemInstance> GetItemInstance() const override { return Entry.ItemInstance; }
 		UE_REWRITE virtual int32 GetCopies() const override { return Stack.Stack; }
-		virtual const IFaerieItemOwnerInterface* GetItemOwner() const override;
+		virtual const UObject* GetItemOwner() const override;
 		//~ ItemData::IViewBase
 
 		//~ Container::IEntryView
@@ -374,11 +378,12 @@ struct FFaerieStorageEntryExportData
 	TArray<FFaerieKeyedStack> Stacks;
 };
 
-
 USTRUCT()
-struct FFaerieStorageExportData
+struct FFaerieStorageExportData : public FFaerieItemFragmentSaveData
 {
 	GENERATED_BODY()
+
+	virtual const UScriptStruct* GetFragmentType() const override;
 
 	UPROPERTY()
 	TArray<FFaerieStorageEntryExportData> Entries;

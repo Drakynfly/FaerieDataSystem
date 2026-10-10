@@ -9,7 +9,7 @@
 
 #include "ContainerEventSubscription.generated.h"
 
-#define FAE_API FAERIEINVENTORYCONTENT_API
+#define FAE_API FAERIEINVENTORY_API
 
 namespace Faerie::Container
 {

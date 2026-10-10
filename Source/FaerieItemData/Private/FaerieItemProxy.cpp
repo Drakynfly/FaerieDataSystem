@@ -3,7 +3,6 @@
 #include "FaerieItemProxy.h"
 #include "FaerieItemDataLog.h"
 #include "FaerieItemDataView.h"
-#include "FaerieItemOwnerInterface.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemProxy)
 
@@ -14,6 +13,11 @@ bool FFaerieItemProxy::IsValid() const
 
 bool FFaerieItemProxy::HasValidInstance() const
 {
+	if (!ProxyObject && !ValidWithoutProxyObject)
+	{
+		return false;
+	}
+
 	if (InterfacePtr)
 	{
 		return InterfacePtr->GetItemInstance().IsSet() && Faerie::ItemData::IsValidStackAmount(InterfacePtr->GetCopies());
@@ -21,8 +25,27 @@ bool FFaerieItemProxy::HasValidInstance() const
 	return false;
 }
 
+FMassEntityHandle FFaerieItemProxy::GetEntityHandle() const
+{
+	if (!ProxyObject && !ValidWithoutProxyObject)
+	{
+		return FMassEntityHandle();
+	}
+
+	if (InterfacePtr)
+	{
+		return InterfacePtr->GetEntityHandle();
+	}
+	return FMassEntityHandle();
+}
+
 TOptional<FFaerieItemInstance> FFaerieItemProxy::GetItemInstance() const
 {
+	if (!ProxyObject && !ValidWithoutProxyObject)
+	{
+		return NullOpt;
+	}
+
 	if (InterfacePtr)
 	{
 		return InterfacePtr->GetItemInstance();
@@ -32,6 +55,11 @@ TOptional<FFaerieItemInstance> FFaerieItemProxy::GetItemInstance() const
 
 FFaerieItemInstance FFaerieItemProxy::GetItemInstanceOrInvalid() const
 {
+	if (!ProxyObject && !ValidWithoutProxyObject)
+	{
+		return FFaerieItemInstance();
+	}
+
 	if (InterfacePtr)
 	{
 		auto Option = InterfacePtr->GetItemInstance();
@@ -45,6 +73,11 @@ FFaerieItemInstance FFaerieItemProxy::GetItemInstanceOrInvalid() const
 
 int32 FFaerieItemProxy::GetCopies() const
 {
+	if (!ProxyObject && !ValidWithoutProxyObject)
+	{
+		return 0;
+	}
+
 	if (InterfacePtr)
 	{
 		return InterfacePtr->GetCopies();
@@ -54,6 +87,11 @@ int32 FFaerieItemProxy::GetCopies() const
 
 UObject* FFaerieItemProxy::GetItemOwner() const
 {
+	if (!ProxyObject && !ValidWithoutProxyObject)
+	{
+		return nullptr;
+	}
+
 	if (InterfacePtr)
 	{
 		return const_cast<UObject*>(Cast<UObject>(InterfacePtr->GetItemOwner()));
@@ -63,6 +101,11 @@ UObject* FFaerieItemProxy::GetItemOwner() const
 
 const UWorld* FFaerieItemProxy::ExtractWorld() const
 {
+	if (!ProxyObject && !ValidWithoutProxyObject)
+	{
+		return nullptr;
+	}
+
 	if (ProxyObject)
 	{
 		if (const UWorld* WorldFromProxy = ProxyObject->GetWorld())
@@ -72,7 +115,7 @@ const UWorld* FFaerieItemProxy::ExtractWorld() const
 	}
 	if (InterfacePtr)
 	{
-		if (const IFaerieItemOwnerInterface* Owner = InterfacePtr->GetItemOwner())
+		if (const UObject* Owner = InterfacePtr->GetItemOwner())
 		{
 			if (const UWorld* WorldFromOwner = Cast<UObject>(Owner)->GetWorld())
 			{
@@ -84,6 +127,36 @@ const UWorld* FFaerieItemProxy::ExtractWorld() const
 	UE_LOGF(LogFaerieItemData, Error, "Unable to determine world from item proxy. We are likely a non-persistent proxy, which should not be used to fetch worlds from!")
 	return nullptr;
 }
+
+#if WITH_EDITOR
+const UWorld* FFaerieItemProxy::TestExtractWorld() const
+{
+	if (!ProxyObject && !ValidWithoutProxyObject)
+	{
+		return nullptr;
+	}
+
+	if (ProxyObject)
+	{
+		if (const UWorld* WorldFromProxy = ProxyObject->GetWorld())
+		{
+			return WorldFromProxy;
+		}
+	}
+	if (InterfacePtr)
+	{
+		if (const UObject* Owner = InterfacePtr->GetItemOwner())
+		{
+			if (const UWorld* WorldFromOwner = Cast<UObject>(Owner)->GetWorld())
+			{
+				return WorldFromOwner;
+			}
+		}
+	}
+
+	return nullptr;
+}
+#endif
 
 bool FFaerieItemProxy::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bSuccess)
 {

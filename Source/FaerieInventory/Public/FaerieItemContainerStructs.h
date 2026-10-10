@@ -96,15 +96,6 @@ struct TStructOpsTypeTraits<FFaerieItemNetworkHandle> : public TStructOpsTypeTra
 	};
 };
 
-USTRUCT()
-struct FAERIEINVENTORY_API FFaerieItemExportData
-{
-	GENERATED_BODY()
-
-	UPROPERTY()
-	TArray<FInstancedStruct> MassInstances;
-};
-
 namespace Faerie::Container
 {
 	// Control how loading container data is handled.

@@ -22,7 +22,7 @@ struct FFaerieClientAction_FavoriteItem final : public FFaerieClientActionBase
 {
 	GENERATED_BODY()
 
-	virtual bool Server_Execute(TNotNull<const UFaerieInventoryClient*> Client) const override;
+	virtual bool Server_Execute(TNotNull<const UFaerieInventoryClient*> Client, FMassEntityManager& EntityManager) const override;
 
 	UPROPERTY(BlueprintReadWrite, Category = "MarkStackWithTag")
 	FFaerieItemNetworkHandle Handle;
@@ -33,7 +33,7 @@ struct FFaerieClientAction_UnfavoriteItem final : public FFaerieClientActionBase
 {
 	GENERATED_BODY()
 
-	virtual bool Server_Execute(TNotNull<const UFaerieInventoryClient*> Client) const override;
+	virtual bool Server_Execute(TNotNull<const UFaerieInventoryClient*> Client, FMassEntityManager& EntityManager) const override;
 
 	UPROPERTY(BlueprintReadWrite, Category = "ClearTagFromStack")
 	FFaerieItemNetworkHandle Handle;

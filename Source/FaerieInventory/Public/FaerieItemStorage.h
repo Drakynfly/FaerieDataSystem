@@ -42,20 +42,21 @@ public:
 	virtual void PostLoad() override;
 	//~ UObject
 
-	//~ UNetSupportedObject
-	//virtual void InitializeNetObject(TNotNull<AActor*> Actor) override;
-	//virtual void DeinitializeNetObject(TNotNull<AActor*> Actor) override;
-	//~ UNetSupportedObject
-
 	//~ UFaerieItemContainerBase
+	//virtual void InitializeContainer(FMassEntityManager& EntityManager) override;
+	//virtual void DeinitializeContainer(FMassEntityManager& EntityManager) override;
+
 	virtual FInstancedStruct MakeSaveData(const FMassEntityManager& EntityManager, Faerie::Container::FSaveParams Params) const override;
-	virtual void LoadSaveData(FMassEntityManager& EntityManager, FConstStructView ItemData, Faerie::Container::FLoadParams Params) override;
+	virtual bool LoadSaveData(FMassEntityManager& EntityManager, FConstStructView ItemData, Faerie::Container::FLoadParams Params) override;
 
 	virtual bool Contains(FFaerieAddress Address) const override;
+	virtual FMassEntityHandle GetItemHandle(FFaerieEntryKey Key) const override;
+	virtual FMassEntityHandle GetItemHandle(FFaerieAddress Address) const override;
 	virtual TOptional<FFaerieItemInstance> ViewInstance(FFaerieEntryKey Key) const override;
 	virtual TOptional<FFaerieItemInstance> ViewInstance(FFaerieAddress Address) const override;
 	virtual Faerie::ItemData::FScopeProxy ViewEntry(FFaerieEntryKey Key) const override;
 	virtual Faerie::ItemData::FScopeProxy ViewAddress(FFaerieAddress Address) const override;
+	virtual FFaerieItemProxy Proxy(FMassEntityHandle Item) const override;
 	virtual FFaerieItemProxy Proxy(FFaerieEntryKey Key) const override;
 	virtual FFaerieItemProxy Proxy(FFaerieAddress Address) const override;
 	virtual bool Possess(FMassEntityManager& EntityManager, const FFaerieUnownedItemStack& Stack) override;
@@ -67,15 +68,11 @@ public:
 	virtual void GetAllAddresses(TAdderReserverRef<FFaerieAddress> Addresses) const override;
 
 protected:
+	virtual void OnItemDataChanged(const FMassEntityHandle Item, FGameplayTag EditTag) override;
 	virtual TUniquePtr<Faerie::Container::IEntryIterator> CreateEntryIterator() const override;
 	virtual TUniquePtr<Faerie::Container::IAddressIterator> CreateAddressIterator() const override;
 	virtual TUniquePtr<Faerie::Container::IAddressIterator> CreateSingleEntryIterator(FFaerieEntryKey Key) const override;
 	//~ UFaerieItemContainerBase
-
-public:
-	//~ IFaerieItemOwnerInterface
-	virtual void OnItemDataChanged(const FFaerieItemInstance& Instance, FGameplayTag EditTag) override;
-	//~ IFaerieItemOwnerInterface
 
 
 	/**------------------------------*/
@@ -182,13 +179,89 @@ public:
 	FFaerieAddress GetFirstAddress() const;
 
 	// Check if a stack can be added to this storage. This is only a physical check not a permissions check.
+	bool CanAddStack(const FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy, EFaerieStorageAddStackBehavior AddStackBehavior) const;
+
+	// Check if several stacks can be added to this storage. This is only a physical check not a permissions check.
+	bool CanAddStacks(const FMassEntityManager& EntityManager, const TArray<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args) const;
+	bool CanAddStacks(const FMassEntityManager& EntityManager, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Stacks, FFaerieExtensionAllowsAdditionArgs Args) const;
+
+	// Check if an edit may be performed on stack in this storage. This is only a physical check not a permissions check.
+	bool CanEditStack(const FMassEntityManager& EntityManager, FFaerieAddress Address, FFaerieInventoryTag EditTag) const;
+
+	// Check if an entry can be removed from this storage. This is only a physical check not a permissions check.
+	bool CanRemoveEntry(const FMassEntityManager& EntityManager, FFaerieEntryKey Key,
+		UPARAM(meta = (Categories = "Fae.Inventory.Removal")) FFaerieInventoryTag Reason) const;
+
+	// Check if a stack can be removed from this storage. This is only a physical check not a permissions check.
+	bool CanRemoveStack(const FMassEntityManager& EntityManager, FFaerieAddress Address,
+		UPARAM(meta = (Categories = "Fae.Inventory.Removal")) FFaerieInventoryTag Reason) const;
+
+
+	/**---------------------------------*/
+	/*	 STORAGE API - AUTHORITY ONLY   */
+	/**---------------------------------*/
+
+	// Add an item stack into storage.
+	bool AddItemStack(FMassEntityManager& EntityManager, const FFaerieUnownedItemStack& Stack, EFaerieStorageAddStackBehavior AddStackBehavior);
+
+	// Add an item stack into storage, and return the full data about the change.
+	void AddItemStack(FMassEntityManager& EntityManager, const Faerie::TValid<const FFaerieUnownedItemStack&> Stack, EFaerieStorageAddStackBehavior AddStackBehavior, TValueOrError<Faerie::Container::FContainerEventPayload, FText>& OutResult);
+
+	bool AddItemStacks(FMassEntityManager& EntityManager, const Faerie::Utils::TArrayAdapter<FFaerieUnownedItemStack>& Adapter, EFaerieStorageAddStackBehavior AddStackBehavior, bool StopAfterFailure);
+
+	/**
+	 * Removes the entry with this key if it exists.
+	 * An amount of -1 will remove the entire stack.
+	 */
+	bool RemoveEntry(FMassEntityManager& EntityManager, FFaerieEntryKey Key, FFaerieInventoryTag RemovalTag, int32 Amount = -1);
+
+	/**
+	 * Removes the entry with this key if it exists.
+	 * An amount of -1 will remove the entire stack.
+	 */
+	bool RemoveStack(FMassEntityManager& EntityManager, FFaerieAddress Address, FFaerieInventoryTag RemovalTag, int32 Amount = -1);
+
+	/**
+	 * Removes and returns the entry with this key if it exists.
+	 * An amount of -1 will remove the entire stack.
+	 */
+	bool TakeEntry(FMassEntityManager& EntityManager, FFaerieEntryKey Key, FFaerieUnownedItemStack& OutStack, FFaerieInventoryTag RemovalTag, int32 Amount = -1);
+
+	/**
+	 * Removes and returns the entry with this key if it exists.
+	 * An amount of -1 will remove the entire stack.
+	 */
+	bool TakeStack(FMassEntityManager& EntityManager, FFaerieAddress Address, FFaerieUnownedItemStack& OutStack, FFaerieInventoryTag RemovalTag, int32 Amount = -1);
+
+	/**
+	 * Add an entry from this storage to another, then remove it from this one, optionally move only part of a stack.
+	 * @return The key used by the ToStorage to store the entry.
+	 */
+	FFaerieEntryKey MoveStack(FMassEntityManager& EntityManager, UFaerieItemStorage* ToStorage, FFaerieAddress Address, int32 Amount = -1,
+		EFaerieStorageAddStackBehavior AddStackBehavior = EFaerieStorageAddStackBehavior::AddToAnyStack);
+
+	FFaerieEntryKey MoveEntry(FMassEntityManager& EntityManager, UFaerieItemStorage* ToStorage, FFaerieEntryKey Key, EFaerieStorageAddStackBehavior AddStackBehavior);
+
+	bool MergeStacks(FMassEntityManager& EntityManager, FFaerieEntryKey Entry, FFaerieStackKey FromStack, FFaerieStackKey ToStack, int32 Amount = -1);
+
+	bool SplitStack(FMassEntityManager& EntityManager, FFaerieAddress Address, int32 Amount);
+
+	void Clear(FMassEntityManager& EntityManager, const FFaerieInventoryTag Reason);
+
+	void Dump(FMassEntityManager& EntityManager, UFaerieItemStorage* ToStorage);
+
+protected:
+	/**---------------------------------*/
+	/*			BLUEPRINT API			*/
+	/**---------------------------------*/
+
+	// Check if a stack can be added to this storage. This is only a physical check not a permissions check.
 	UFUNCTION(BlueprintCallable, Category = "Storage|Permissions")
 	bool CanAddStack(const FFaerieItemProxy& Proxy, EFaerieStorageAddStackBehavior AddStackBehavior) const;
 
 	// Check if several stacks can be added to this storage. This is only a physical check not a permissions check.
 	UFUNCTION(BlueprintCallable, Category = "Storage|Permissions")
 	bool CanAddStacks(const TArray<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args) const;
-	bool CanAddStacks(const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Stacks, FFaerieExtensionAllowsAdditionArgs Args) const;
 
 	// Check if an edit may be performed on stack in this storage. This is only a physical check not a permissions check.
 	UFUNCTION(BlueprintCallable, Category = "Storage|Permissions")
@@ -204,21 +277,10 @@ public:
 	bool CanRemoveStack(FFaerieAddress Address,
 		UPARAM(meta = (Categories = "Fae.Inventory.Removal")) FFaerieInventoryTag Reason) const;
 
-
-	/**---------------------------------*/
-	/*	 STORAGE API - AUTHORITY ONLY   */
-	/**---------------------------------*/
-
 	// Add an item stack into storage.
 	UFUNCTION(BlueprintCallable, Category = "Storage")
 	bool AddItemStack(const FFaerieUnownedItemStack& Stack, EFaerieStorageAddStackBehavior AddStackBehavior);
 
-	// Add an item stack into storage, and return the full data about the change.
-	void AddItemStack(const Faerie::TValid<const FFaerieUnownedItemStack&> Stack, EFaerieStorageAddStackBehavior AddStackBehavior, TValueOrError<Faerie::Container::FContainerEventPayload, FText>& OutResult);
-
-	bool AddItemStacks(const Faerie::Utils::TArrayAdapter<FFaerieUnownedItemStack>& Adapter, EFaerieStorageAddStackBehavior AddStackBehavior, bool StopAfterFailure);
-
-protected:
 	// Add an item stack into storage.
 	UFUNCTION(BlueprintCallable, Category = "Storage")
 	void AddItemStackBulk(const TArray<FFaerieUnownedItemStack>& Stacks, EFaerieStorageAddStackBehavior AddStackBehavior, bool StopAfterFailure);
@@ -227,7 +289,6 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Storage", DisplayName = "Add Item Stack (with Log)")
 	bool AddItemStackWithLog(const FFaerieUnownedItemStack& Stack, EFaerieStorageAddStackBehavior AddStackBehavior, FFaerieBlueprintInventoryEvent& Event);
 
-public:
 	/**
 	 * Removes the entry with this key if it exists.
 	 * An amount of -1 will remove the entire stack.
@@ -261,12 +322,6 @@ public:
 		UPARAM(meta = (Categories = "Fae.Inventory.Removal")) FFaerieInventoryTag RemovalTag, int32 Amount = -1);
 
 	/**
-	 * Clear out the entire contents of the storage.
-	 */
-	UFUNCTION(BlueprintCallable, Category = "Storage")
-    void Clear(UPARAM(meta = (Categories = "Fae.Inventory.Removal")) FFaerieInventoryTag RemovalTag);
-
-	/**
 	 * Add an entry from this storage to another, then remove it from this one, optionally move only part of a stack.
 	 * @return The key used by the ToStorage to store the entry.
 	 */
@@ -282,6 +337,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Storage")
 	bool SplitStack(FFaerieAddress Address, int32 Amount);
+
+	/**
+	 * Clear out the entire contents of the storage.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Storage")
+	void Clear(UPARAM(meta = (Categories = "Fae.Inventory.Removal")) FFaerieInventoryTag RemovalTag);
 
 	/** Call MoveEntry on all entries in this storage. */
 	UFUNCTION(BlueprintCallable, Category = "Storage")

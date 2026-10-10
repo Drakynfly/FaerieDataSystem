@@ -15,10 +15,10 @@ UFaerieItemModificationDataInitializer::UFaerieItemModificationDataInitializer()
 {
 	// Observe creation of entities with a modification data.
 	ObservedTypes = { FFaerieItemModificationDate::StaticStruct() };
-	ObservedOperations = EMassObservedOperationFlags::CreateEntity;
+	ObservedOperations = EMassObservedOperationFlags::Add;
 
 	// Process only on the server.
-	ExecutionFlags = static_cast<uint8>(EProcessorExecutionFlags::Server);
+	ExecutionFlags = static_cast<uint8>(EProcessorExecutionFlags::Standalone | EProcessorExecutionFlags::Server);
 }
 
 void UFaerieItemModificationDataInitializer::ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager)
@@ -33,12 +33,16 @@ void UFaerieItemModificationDataInitializer::Execute(FMassEntityManager& EntityM
 			const TArrayView<FFaerieItemModificationDate> Events = InContext.GetMutableFragmentView<FFaerieItemModificationDate>();
 			if (Events.IsEmpty()) return;
 
-			for (FFaerieItemModificationDate& DateFragment : Events)
+			for (FMassExecutionContext::FEntityIterator EntityIt = InContext.CreateEntityIterator(); EntityIt; ++EntityIt)
 			{
+				FFaerieItemModificationDate& DateFragment = Events[EntityIt];
+
 				// Assign new value if initialized to none
-				if (DateFragment.LastModified == FDateTime())
+				if (DateFragment.LastModified.GetYear() < 2000)
 				{
 					DateFragment.LastModified = FDateTime::UtcNow();
+					ItemData::OnItemFragmentEdited(InContext.GetEntityManagerChecked(), EntityIt.GetEntityHandle(),
+						FFaerieItemModificationDate::StaticStruct(), ItemData::AllFields);
 				}
 			}
 		});
@@ -68,6 +72,12 @@ void UFaerieItemModificationDateUpdater::Execute(FMassEntityManager& EntityManag
 
 		for (const ItemData::FMutationEvent& Event : Events)
 		{
+			if (!InContext.GetEntityManagerChecked().IsEntityValid(Event.ItemHandle))
+			{
+				// Item no longer exists, no date to update.
+				continue;
+			}
+
 			if (FFaerieItemModificationDate* DateFragment = InContext.GetIndirectFragmentPtr<FFaerieItemModificationDate>(Event.ItemHandle))
 			{
 				// Assign new value

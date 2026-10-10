@@ -58,7 +58,7 @@ bool UFaerieItemTemplate::TryMatchWithDescriptions(const FMassEntityManager* Ent
 	{
 		if (Logger.Errors.IsEmpty())
 		{
-			static const FTextFormat ErrorFormat = NSLOCTEXT("FaerieItemDataFilter", "GenericFilterError", "Filter '{0}' failed. Implement ExecWithLog for more details.");
+			static const FTextFormat ErrorFormat = NSLOCTEXT("FaerieItemTemplate", "TryMatchWithDescriptionsFilterError", "Filter '{0}' failed. Implement ExecWithLog for more details.");
 			FFormatOrderedArguments Args;
 			Args.Add(Filter.GetScriptStruct()->GetDisplayNameText());
 			Errors.Add(FText::Format(ErrorFormat, Args));

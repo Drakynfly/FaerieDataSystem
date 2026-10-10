@@ -7,13 +7,13 @@
 
 namespace Faerie::Container
 {
-	FContainerEventPayload FContainerEventPayload::MakeBlank(const TNotNull<UFaerieItemContainerBase*> Container,
-		const FFaerieEntryKey Entry)
+	FContainerEventPayload FContainerEventPayload::MakeNew(const TNotNull<UFaerieItemContainerBase*> Container,
+		const FFaerieEntryKey Entry, const FFaerieInventoryTag Type)
 	{
 		FContainerEventPayload NewEvent;
 		NewEvent.Timestamp = FDateTime::UtcNow();
 		NewEvent.Container = Container;
-		NewEvent.Type = Inventory::Tags::Addition;
+		NewEvent.Type = Type;
 		NewEvent.EntryTouched = Entry;
 		return NewEvent;
 	}

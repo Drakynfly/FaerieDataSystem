@@ -20,7 +20,7 @@ namespace Faerie::Container
 	{
 		GENERATED_BODY()
 
-		FAE_API static FContainerEventPayload MakeBlank(const TNotNull<UFaerieItemContainerBase*> Container, const FFaerieEntryKey Entry);
+		FAE_API static FContainerEventPayload MakeNew(const TNotNull<UFaerieItemContainerBase*> Container, const FFaerieEntryKey Entry, const FFaerieInventoryTag Type);
 
 		FAE_API static FContainerEventPayload MakeAddition(const TNotNull<UFaerieItemContainerBase*> Container, const FFaerieItemInstance& ItemInstance,
 			const int32 InCopies, const FFaerieEntryKey Entry, const TConstArrayView<FFaerieAddress> Addresses);

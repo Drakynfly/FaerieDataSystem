@@ -8,10 +8,10 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(StackContainerActions)
 
-bool FFaerieClientAction_MoveFromStackContainer::IsValid(const TNotNull<const UFaerieInventoryClient*> Client) const
+bool FFaerieClientAction_MoveFromStackContainer::IsValid(const TNotNull<const UFaerieInventoryClient*> Client, const FMassEntityManager& EntityManager) const
 {
 	return ::IsValid(Stack) &&
-		Client->CanAccessContainer(Stack, StaticStruct()) &&
+		Client->CanAccessContainer(EntityManager, Stack, StaticStruct()) &&
 		Stack->IsFilled();
 }
 
@@ -27,24 +27,24 @@ bool FFaerieClientAction_MoveFromStackContainer::View(const FMassEntityManager& 
 
 bool FFaerieClientAction_MoveFromStackContainer::CanMove(const FMassEntityManager& EntityManager, const Faerie::TValid<const FFaerieItemProxy&> Proxy) const
 {
-	return Stack->CouldSetInSlot(Proxy);
+	return Stack->CouldSetInSlot(EntityManager, Proxy);
 }
 
 bool FFaerieClientAction_MoveFromStackContainer::Release(FMassEntityManager& EntityManager, FFaerieUnownedItemStack& OutStack) const
 {
-	OutStack = Stack->TakeItemFromSlot(Faerie::ItemData::EntireStack, Faerie::Inventory::Tags::RemovalMoving);
+	OutStack = Stack->TakeItemFromSlot(EntityManager, Faerie::ItemData::EntireStack, Faerie::Inventory::Tags::RemovalMoving);
 	return OutStack.IsValid();
 }
 
 bool FFaerieClientAction_MoveFromStackContainer::Possess(FMassEntityManager& EntityManager, const Faerie::TValid<const FFaerieUnownedItemStack&> InStack) const
 {
-	return Stack->SetItemInSlot(InStack);
+	return Stack->SetItemInSlot(EntityManager, InStack);
 }
 
-bool FFaerieClientAction_MoveToStackContainer::IsValid(const TNotNull<const UFaerieInventoryClient*> Client) const
+bool FFaerieClientAction_MoveToStackContainer::IsValid(const TNotNull<const UFaerieInventoryClient*> Client, const FMassEntityManager& EntityManager) const
 {
 	return ::IsValid(Stack) &&
-		Client->CanAccessContainer(Stack, StaticStruct());
+		Client->CanAccessContainer(EntityManager, Stack, StaticStruct());
 }
 
 bool FFaerieClientAction_MoveToStackContainer::View(const FMassEntityManager& EntityManager, Faerie::ItemData::FScopeProxy& Proxy) const
@@ -59,18 +59,18 @@ bool FFaerieClientAction_MoveToStackContainer::View(const FMassEntityManager& En
 
 bool FFaerieClientAction_MoveToStackContainer::CanMove(const FMassEntityManager& EntityManager, const Faerie::TValid<const FFaerieItemProxy&> Proxy) const
 {
-	return Stack->CouldSetInSlot(Proxy);
+	return Stack->CouldSetInSlot(EntityManager, Proxy);
 }
 
 bool FFaerieClientAction_MoveToStackContainer::Release(FMassEntityManager& EntityManager, FFaerieUnownedItemStack& OutStack) const
 {
-	OutStack = Stack->TakeItemFromSlot(Faerie::ItemData::EntireStack, Faerie::Inventory::Tags::RemovalMoving);
+	OutStack = Stack->TakeItemFromSlot(EntityManager, Faerie::ItemData::EntireStack, Faerie::Inventory::Tags::RemovalMoving);
 	return OutStack.IsValid();
 }
 
 bool FFaerieClientAction_MoveToStackContainer::Possess(FMassEntityManager& EntityManager, const Faerie::TValid<const FFaerieUnownedItemStack&> InStack) const
 {
-	return Stack->SetItemInSlot(InStack);
+	return Stack->SetItemInSlot(EntityManager, InStack);
 }
 
 bool FFaerieClientAction_MoveToStackContainer::IsSwap(const FMassEntityManager& EntityManager) const

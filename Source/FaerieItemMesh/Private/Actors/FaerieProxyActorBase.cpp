@@ -2,7 +2,6 @@
 
 #include "Actors/FaerieProxyActorBase.h"
 #include "FaerieItem.h"
-#include "FaerieItemOwnerInterface.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieProxyActorBase)
 
@@ -10,6 +9,11 @@ AFaerieProxyActorBase::AFaerieProxyActorBase()
 {
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
+}
+
+FMassEntityHandle AFaerieProxyActorBase::GetEntityHandle() const
+{
+	return DataSource.GetEntityHandle();
 }
 
 TOptional<FFaerieItemInstance> AFaerieProxyActorBase::GetItemInstance() const
@@ -22,9 +26,9 @@ int32 AFaerieProxyActorBase::GetCopies() const
 	return DataSource.GetCopies();
 }
 
-const IFaerieItemOwnerInterface* AFaerieProxyActorBase::GetItemOwner() const
+const UObject* AFaerieProxyActorBase::GetItemOwner() const
 {
-	return Cast<IFaerieItemOwnerInterface>(DataSource.GetItemOwner());
+	return DataSource.GetItemOwner();
 }
 
 void AFaerieProxyActorBase::SetSourceProxy(const FFaerieItemProxy& Source)

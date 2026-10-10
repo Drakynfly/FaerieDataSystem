@@ -21,7 +21,7 @@ struct FAERIEINVENTORY_API FFaerieClientActionBase
 	 * Runs on the server when called by UFaerieInventoryClient::RequestExecuteAction.
 	 * Use this to implement Client-to-Server edits to item storage.
 	 */
-	virtual bool Server_Execute(TNotNull<const UFaerieInventoryClient*> Client) const
+	virtual bool Server_Execute(TNotNull<const UFaerieInventoryClient*> Client, FMassEntityManager& EntityManager) const
 		PURE_VIRTUAL(FFaerieClientActionBase::Server_Execute, return false; )
 };
 
@@ -33,7 +33,7 @@ struct FAERIEINVENTORY_API FFaerieClientAction_MoveHandlerBase
 	virtual ~FFaerieClientAction_MoveHandlerBase() = default;
 
 	// Called on any Move before attempting.
-	virtual bool IsValid(TNotNull<const UFaerieInventoryClient*> Client) const
+	virtual bool IsValid(TNotNull<const UFaerieInventoryClient*> Client, const FMassEntityManager& EntityManager) const
 		PURE_VIRTUAL(FFaerieClientAction_MoveHandlerBase::IsValid, return false; )
 
 	// Called on any MoveFrom. Called on MoveTo only when attempting a Swap.

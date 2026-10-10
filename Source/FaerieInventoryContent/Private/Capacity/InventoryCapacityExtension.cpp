@@ -26,8 +26,9 @@ void FFaerieItemContainerCapacityData::InitializeExtension(FMassEntityManager& E
 	}
 }
 
-EFaerieExtensionResponse FFaerieItemContainerCapacityData::AllowsAddition(const FMassEntityManager& EntityManager, const TNotNull<const UFaerieItemContainerBase*> Container, const Utils::TArrayAdapter<FFaerieItemProxy>& Proxies,
-	FFaerieExtensionAllowsAdditionArgs Args) const
+EFaerieExtensionResponse FFaerieItemContainerCapacityData::AllowsAddition(const FMassEntityManager& EntityManager,
+	const TNotNull<const UFaerieItemContainerBase*> Container, const Utils::TArrayAdapter<FFaerieItemProxy>& Proxies,
+	FFaerieExtensionAllowsAdditionArgs Args, bool RecursingCall) const
 {
 	// @todo Args.AddStackBehavior is not used at all.
 	// Because CanContain doesnt check for Efficiency, there is no differance, but its technically incorrect.

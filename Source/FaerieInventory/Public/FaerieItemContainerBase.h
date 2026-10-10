@@ -9,7 +9,6 @@
 #include "NetSupportedObject.h"
 #include "FaerieItemContainerStructs.h"
 #include "FaerieItemDataView.h"
-#include "FaerieItemOwnerInterface.h"
 #include "FaerieItemProxy.h"
 #include "FaerieUnownedItemStack.h"
 #include "ItemContainerExtensionBase.h"
@@ -32,9 +31,16 @@ namespace Faerie::Container
 		class FIteratorAccess;
 	}
 
+	// @todo refactor this into a traits flag
+	USTRUCT()
+	struct FNoExport
+	{
+		GENERATED_BODY()
+	};
+
 	// Data for nested containers that are owned by a live item instance.
 	USTRUCT()
-	struct FNestedContainer
+	struct FNestedContainer : public FNoExport
 	{
 		GENERATED_BODY()
 
@@ -101,8 +107,8 @@ public:
 	void ForEach(const TFunctionRef<Faerie::Utils::EIteratorFunctorReturn(FConstStructView)>& Functor) const;
 	void ForEachMutable(const TFunctionRef<Faerie::Utils::EIteratorFunctorReturn(FStructView)>& Functor);
 
-	void ForEach_Recursive(const TFunctionRef<Faerie::Utils::EIteratorFunctorReturn(FConstStructView)>& Functor) const;
-	void ForEachMutable_Recursive(const TFunctionRef<Faerie::Utils::EIteratorFunctorReturn(FStructView)>& Functor);
+	void ForEach_Recursive(const TFunctionRef<Faerie::Utils::EIteratorFunctorReturn(FConstStructView)>& Functor, bool& RecursingParents) const;
+	void ForEachMutable_Recursive(const TFunctionRef<Faerie::Utils::EIteratorFunctorReturn(FStructView)>& Functor, bool& RecursingParents);
 };
 
 UINTERFACE()
@@ -123,12 +129,13 @@ public:
  * The base class for objects that store and replicate FaerieItems.
  */
 UCLASS(Abstract, Blueprintable, EditInlineNew, DefaultToInstanced)
-class FAERIEINVENTORY_API UFaerieItemContainerBase : public UNetSupportedObject, public IFaerieItemOwnerInterface, public IFaerieTempInterfaceForGettingParentExtensions
+class FAERIEINVENTORY_API UFaerieItemContainerBase : public UNetSupportedObject, public IFaerieTempInterfaceForGettingParentExtensions
 {
 	GENERATED_BODY()
 
 	friend Faerie::Container::Private::FIteratorAccess;
 	friend FFaerieItemContainerExtensions;
+	friend class UFaerieItemOwnerNotifier;
 
 public:
 	UFaerieItemContainerBase();
@@ -138,29 +145,28 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	//~ UObject
 
-	//~ UNetSupportedObject
-	virtual void InitializeNetObject(TNotNull<AActor*> Actor) override;
-	//virtual void DeinitializeNetObject(TNotNull<AActor*> Actor) override;
-	//~ UNetSupportedObject
-
-	//~ IFaerieItemOwnerInterface
-	virtual void OnItemDataChanged(const FFaerieItemInstance& Instance, FGameplayTag EditTag) override;
-	//~ IFaerieItemOwnerInterface
-
 	//~ IFaerieTempInterfaceForGettingParentExtensions
 	virtual FFaerieItemContainerExtensions* GetExtensions() override { return &ExtensionData; }
 	//~ IFaerieTempInterfaceForGettingParentExtensions
 
 
 	/**------------------------------*/
-	/*		 SAVE DATA API			 */
+	/*		LIFETIME API			 */
 	/**------------------------------*/
 public:
-	[[nodiscard]] FFaerieItemExportData ExportItemData(const FMassEntityManager& EntityManager, const FFaerieItemInstance& Item) const;
+	virtual void InitializeContainer(FMassEntityManager& EntityManager);
+	virtual void DeinitializeContainer(FMassEntityManager& EntityManager) {}
+
+
+	/**------------------------------*/
+	/*		 SAVE DATA API			 */
+	/**------------------------------*/
+
+	[[nodiscard]] FFaerieItemExportData ExportItemData(const FMassEntityManager& EntityManager, const FMassEntityHandle Item) const;
 	[[nodiscard]] FFaerieItemInstance ImportItemData(FMassEntityManager& EntityManager, const UFaerieItem* Item, const FFaerieItemExportData& ExportData);
 
 	virtual FInstancedStruct MakeSaveData(const FMassEntityManager& EntityManager, Faerie::Container::FSaveParams Params) const PURE_VIRTUAL(UFaerieItemContainerBase::MakeSaveData, return {}; )
-	virtual void LoadSaveData(FMassEntityManager& EntityManager, FConstStructView ItemData, Faerie::Container::FLoadParams Params) PURE_VIRTUAL(UFaerieItemContainerBase::SaveData, )
+	virtual bool LoadSaveData(FMassEntityManager& EntityManager, FConstStructView ItemData, Faerie::Container::FLoadParams Params) PURE_VIRTUAL(UFaerieItemContainerBase::SaveData, return false; )
 
 protected:
 	void RavelExtensionData(const FMassEntityManager& EntityManager, TAdderRef<FInstancedStruct> SaveData) const;
@@ -174,6 +180,9 @@ public:
 	// Is this a valid address in this container?
 	virtual bool Contains(FFaerieAddress Address) const PURE_VIRTUAL(UFaerieItemContainerBase::Contains, return false; )
 
+	virtual FMassEntityHandle GetItemHandle(FFaerieEntryKey Key) const PURE_VIRTUAL(UFaerieItemContainerBase::GetItemHandle, return FMassEntityHandle(); )
+	virtual FMassEntityHandle GetItemHandle(FFaerieAddress Key) const PURE_VIRTUAL(UFaerieItemContainerBase::GetItemHandle, return FMassEntityHandle(); )
+
 	// Get the instance data of an item.
 	virtual TOptional<FFaerieItemInstance> ViewInstance(FFaerieEntryKey Key) const PURE_VIRTUAL(UFaerieItemContainerBase::ViewInstance, return NullOpt; )
 	virtual TOptional<FFaerieItemInstance> ViewInstance(FFaerieAddress Address) const PURE_VIRTUAL(UFaerieItemContainerBase::ViewInstance, return NullOpt; )
@@ -183,6 +192,7 @@ public:
 	[[nodiscard]] virtual Faerie::ItemData::FScopeProxy ViewAddress(FFaerieAddress Address) const PURE_VIRTUAL(UFaerieItemContainerBase::ViewAddress, return nullptr; )
 
 	// Creates or retrieves a proxy for an entry
+	[[nodiscard]] virtual FFaerieItemProxy Proxy(FMassEntityHandle Item) const PURE_VIRTUAL(UFaerieItemContainerBase::Proxy, return FFaerieItemProxy(); )
 	[[nodiscard]] virtual FFaerieItemProxy Proxy(FFaerieEntryKey Key) const PURE_VIRTUAL(UFaerieItemContainerBase::Proxy, return FFaerieItemProxy(); )
 	[[nodiscard]] virtual FFaerieItemProxy Proxy(FFaerieAddress Address) const PURE_VIRTUAL(UFaerieItemContainerBase::Proxy, return FFaerieItemProxy(); )
 
@@ -206,6 +216,8 @@ public:
 	virtual void GetAllAddresses(TAdderReserverRef<FFaerieAddress> Addresses) const PURE_VIRTUAL(UFaerieItemContainerBase::GetAllAddresses, ; )
 
 protected:
+	virtual void OnItemDataChanged(const FMassEntityHandle Item, FGameplayTag EditTag);
+
 	// Create an iterator for the entries in this container.
 	virtual TUniquePtr<Faerie::Container::IEntryIterator> CreateEntryIterator() const;
 

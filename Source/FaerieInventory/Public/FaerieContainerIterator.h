@@ -149,6 +149,7 @@ namespace Faerie::Container
 		[[nodiscard]] UE_REWRITE FFaerieEntryKey GetKey() const { return IteratorPtr->ResolveKey(); }
 		[[nodiscard]] UE_REWRITE FFaerieAddress GetAddress() const { return IteratorPtr->ResolveAddress(); }
 		[[nodiscard]] UE_REWRITE int32 GetCopies() const { return IteratorPtr->GetCopies(); }
+		[[nodiscard]] UE_REWRITE FMassEntityHandle GetEntityHandle() const { return IteratorPtr->GetEntityHandle(); }
 		[[nodiscard]] UE_REWRITE FFaerieItemInstance GetInstance() const { return IteratorPtr->GetItemInstance().GetValue(); }
 		[[nodiscard]] UE_REWRITE TOptional<TNotNull<FFaerieItemInstance*>> GetReference() const { return IteratorPtr->ResolveReference(); }
 

@@ -7,6 +7,7 @@
 #include "FaerieEquipmentManager.h"
 #include "FaerieItemStackContainer.h"
 #include "EntityManagerHelpers.h"
+#include "FaerieItemOwnership.h"
 
 #include "Actors/FaerieProxyActorBase.h"
 
@@ -102,6 +103,13 @@ void UEquipmentVisualizer::OnComponentDestroyed(const bool bDestroyingHierarchy)
 	Super::OnComponentDestroyed(bDestroyingHierarchy);
 }
 
+FFaerieVisualSlotElement UEquipmentVisualizer::GetDefaultVisualSlotElement() const
+{
+	return FFaerieVisualSlotElement{
+		.AllowLeaderPose = false
+	};
+}
+
 USkinnedMeshComponent* UEquipmentVisualizer::GetLeaderComponent() const
 {
 	return Cast<USkinnedMeshComponent>(LeaderPoseComponent.GetComponent(GetOwner()));
@@ -175,7 +183,7 @@ AActor* UEquipmentVisualizer::GetSpawnedActorByKey(const FFaerieVisualKey& Key) 
 {
 	if (!Key.IsValid()) return nullptr;
 
-	if (auto&& Found = SpawnedActors.Find(Key))
+	if (const TObjectPtr<AActor>* Found = SpawnedActors.Find(Key))
 	{
 		return *Found;
 	}
@@ -186,7 +194,7 @@ USceneComponent* UEquipmentVisualizer::GetSpawnedComponentByKey(const FFaerieVis
 {
 	if (!Key.IsValid()) return nullptr;
 
-	if (auto&& Found = SpawnedComponents.Find(Key))
+	if (const TObjectPtr<USceneComponent>* Found = SpawnedComponents.Find(Key))
 	{
 		return *Found;
 	}
@@ -207,8 +215,19 @@ TArray<USceneComponent*> UEquipmentVisualizer::GetSpawnedComponents() const
 	return Array;
 }
 
+void UEquipmentVisualizer::RefreshVisual(FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy)
+{
+	if (!Proxy.HasValidInstance())
+	{
+		RemoveVisualImpl(EntityManager, Proxy);
+	}
+	else
+	{
+		CreateVisualImpl(EntityManager, Proxy);
+	}
+}
 
-void UEquipmentVisualizer::CreateVisualImpl(FMassEntityManager& EntityManager, TValid<const FFaerieItemProxy&> Proxy, const FFaerieItemProxy* Parent)
+void UEquipmentVisualizer::CreateVisualImpl(FMassEntityManager& EntityManager, TValid<const FFaerieItemProxy&> Proxy, TOptional<const FFaerieItemProxy*> Parent)
 {
 	const FFaerieVisualKey Key{Proxy};
 	if (HasVisualForKey(Key))
@@ -218,13 +237,22 @@ void UEquipmentVisualizer::CreateVisualImpl(FMassEntityManager& EntityManager, T
 	}
 
 	// Step 1: Figure out what we are attaching to.
-
 	const TOptional<FFaerieVisualSlotElement> VisualSlotDataOpt = FindVisualSlotDataFromProxy(EntityManager, Proxy);
 	if (!VisualSlotDataOpt.IsSet())
 	{
-		UE_LOGF(LogFaerieEquipment, Warning, "No visual slot data found from proxy!");
+		//UE_LOGF(LogFaerieEquipment, Warning, "No visual slot data found from proxy!");
+		//return;
+	}
+
+	FFaerieVisualSlotElement VisualSlotData = VisualSlotDataOpt.IsSet() ? VisualSlotDataOpt.GetValue() : GetDefaultVisualSlotElement();
+	bool WantsToWaitForParent = false;
+	USceneComponent* AttachTo = GetComponentToAttachTo(EntityManager, Proxy, VisualSlotData.ComponentTag, WantsToWaitForParent);
+	if (WantsToWaitForParent)
+	{
 		return;
 	}
+
+	FEquipmentVisualAttachment Attachment = BuildAttachmentData(AttachTo, VisualSlotData);
 
 #if FAERIE_DEBUG
 	if (GetOwner()->GetLocalRole() == ROLE_Authority)
@@ -237,11 +265,14 @@ void UEquipmentVisualizer::CreateVisualImpl(FMassEntityManager& EntityManager, T
 	}
 #endif
 
-	const FFaerieVisualSlotElement& VisualSlotData = VisualSlotDataOpt.GetValue();
-	FEquipmentVisualAttachment Attachment = BuildAttachmentData(Proxy, VisualSlotData);
+	// If a parent was passed in, set it into metadata for this key.
+	if (Parent.IsSet())
+	{
+		KeyedMetadata.FindOrAdd(Key).Parent = *Parent.GetValue();
+	}
 
-	// FindAttachmentParent will return a UFaerieItemMeshComponent when it wants us to defer for a pending attaching.
-	if (Attachment.Parent->IsA<UFaerieItemMeshComponent>())
+	// BuildAttachmentData will return a UFaerieItemMeshComponent when it wants us to defer for a pending attaching.
+	if (Attachment.Parent.IsValid() && Attachment.Parent->IsA<UFaerieItemMeshComponent>())
 	{
 		// Enable hidden while in Pending. This allows this attachment to still start async loading itself, even while not attached.
 		Attachment.Hidden = true;
@@ -365,16 +396,12 @@ void UEquipmentVisualizer::CreateVisualImpl(FMassEntityManager& EntityManager, T
 	}
 
 	// Step 3: Recurse over children
-	if (Parent)
+	const FMassEntityHandle Entity = Instance.GetMassEntityHandle();
+	if (ItemData::IsMutable(EntityManager, Entity))
 	{
-		KeyedMetadata.FindOrAdd(Key).Parent = *Parent;
-	}
-
-	if (Instance.IsMutable())
-	{
-		for (auto SubContainer : Equipment::SlotFilter.Iterate(EntityManager, Instance))
+		for (auto SubContainer : Equipment::SlotFilter.Iterate(EntityManager, Entity))
 		{
-			auto EntryKey = SubContainer->GetCurrentKey();
+			const FFaerieEntryKey EntryKey = SubContainer->GetCurrentKey();
 			if (EntryKey.IsValid())
 			{
 				CreateVisualImpl(EntityManager, FFaerieItemProxy(SubContainer), &ValidGet(Proxy));
@@ -383,7 +410,7 @@ void UEquipmentVisualizer::CreateVisualImpl(FMassEntityManager& EntityManager, T
 	}
 }
 
-void UEquipmentVisualizer::RemoveVisualImpl(FMassEntityManager& EntityManager, const TValid<const FFaerieItemProxy&> Proxy)
+void UEquipmentVisualizer::RemoveVisualImpl(FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy)
 {
 	const FFaerieVisualKey Key{Proxy};
 
@@ -554,110 +581,19 @@ bool UEquipmentVisualizer::DestroyVisualByKey(const FFaerieVisualKey Key, const 
 FEquipmentVisualAttachment UEquipmentVisualizer::FindAttachment(const FFaerieItemProxy& Proxy) const
 {
 	const FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
-	TOptional<FFaerieVisualSlotElement> SlotData = FindVisualSlotDataFromProxy(EntityManager, Proxy);
-	if (!SlotData.IsSet())
-	{
-		return FEquipmentVisualAttachment();
-	}
-	return BuildAttachmentData(Proxy, SlotData.GetValue());
+	TOptional<FFaerieVisualSlotElement> SlotDataOpt = FindVisualSlotDataFromProxy(EntityManager, Proxy);
+	const FFaerieVisualSlotElement SlotData = SlotDataOpt.IsSet() ? SlotDataOpt.GetValue() : GetDefaultVisualSlotElement();
+	bool WantsToWaitForParent;
+	USceneComponent* AttachTo = GetComponentToAttachTo(EntityManager, Proxy, SlotData.ComponentTag, WantsToWaitForParent);
+	return BuildAttachmentData(AttachTo, SlotData);
 }
 
-FEquipmentVisualAttachment UEquipmentVisualizer::BuildAttachmentData(const FFaerieItemProxy& Proxy, const FFaerieVisualSlotElement& SlotData) const
+FEquipmentVisualAttachment UEquipmentVisualizer::BuildAttachmentData(USceneComponent* AttachTo, const FFaerieVisualSlotElement& SlotData)
 {
 	FEquipmentVisualAttachment Attachment;
-
-	const UFaerieItemContainerBase* Container = Cast<UFaerieItemContainerBase>(Proxy.GetItemOwner());
-
-	AActor* ParentActor = nullptr;
-	USceneComponent* ParentComponent = nullptr;
-
-	// See if we are owned by a slot, and try to determine attachment to it.
-	const UFaerieItemStackContainer* OwningSlot = Cast<UObject>(Container)->GetTypedOuter<UFaerieItemStackContainer>();
-	if (IsValid(OwningSlot))
-	{
-		UObject* Visual = GetSpawnedVisualByKey({ FFaerieItemProxy(OwningSlot) });
-
-		if (AActor* Actor = Cast<AActor>(Visual))
-		{
-			ParentActor = Actor;
-		}
-		else if (USceneComponent* Component = Cast<USceneComponent>(Visual))
-		{
-			ParentComponent = Component;
-		}
-
-		if (IsValid(ParentComponent))
-		{
-			Attachment.Parent = ParentComponent;
-		}
-		else if (IsValid(ParentActor))
-		{
-			Attachment.Parent = ParentComponent;
-		}
-	}
-	else
-	{
-		// In the case of no owning slot, use the parent actor.
-		ParentActor = GetOwner();
-	}
-
-	// If we directly found a Component, great, use it!
-	if (IsValid(ParentComponent))
-	{
-		if (UFaerieItemMeshComponent* ItemMeshComponent = Cast<UFaerieItemMeshComponent>(ParentComponent))
-		{
-			// If the Generated Mesh already exists, use it.
-			if (ItemMeshComponent->GetGeneratedMeshComponent())
-			{
-				Attachment.Parent = ItemMeshComponent->GetGeneratedMeshComponent();
-			}
-			// If it doesn't, then just return the ItemMeshComponent, and have CreateVisualImpl move us to Pending.
-			else
-			{
-				Attachment.Parent = ItemMeshComponent;
-			}
-		}
-		else
-		{
-			Attachment.Parent = ParentComponent;
-		}
-	}
-	// If we only found an Actor, determine the component to use.
-	else if (IsValid(ParentActor))
-	{
-		// First choice is the one specified by the Extension (if applicable)
-		if (USceneComponent* Component = ParentActor->FindComponentByTag<USceneComponent>(SlotData.ComponentTag);
-			IsValid(Component))
-		{
-			Attachment.Parent = Component;
-		}
-		else if (const ACharacter* Character = Cast<ACharacter>(ParentActor))
-		{
-			Attachment.Parent = Character->GetMesh();
-		}
-		else
-		{
-			Attachment.Parent = ParentActor->GetDefaultAttachComponent();
-
-			if (UFaerieItemMeshComponent* ItemMeshComponent = Cast<UFaerieItemMeshComponent>(Attachment.Parent.Get()))
-			{
-				// If the Generated Mesh already exists, use it.
-				if (ItemMeshComponent->GetGeneratedMeshComponent())
-				{
-					Attachment.Parent = ItemMeshComponent->GetGeneratedMeshComponent();
-				}
-				// If it doesn't, then just return the ItemMeshComponent, and have CreateVisualImpl move us to Pending.
-				else
-				{
-					Attachment.Parent = ItemMeshComponent;
-				}
-			}
-		}
-	}
-
+	Attachment.Parent = AttachTo;
 	Attachment.ParentSocket = SlotData.Socket;
 	Attachment.ChildSocket = SlotData.ChildSocket;
-
 	return Attachment;
 }
 
@@ -676,6 +612,116 @@ TOptional<FFaerieVisualSlotElement> UEquipmentVisualizer::FindVisualSlotDataFrom
 		}
 	}
 	return NullOpt;
+}
+
+USceneComponent* UEquipmentVisualizer::GetComponentToAttachTo(const FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy, const FName& ComponentTag, bool& WantsToWaitForParent) const
+{
+	const UFaerieItemContainerBase* Container = Cast<UFaerieItemContainerBase>(Proxy.GetItemOwner());
+
+	AActor* ParentActor = nullptr;
+	USceneComponent* ParentComponent = nullptr;
+
+	USceneComponent* AttachTo = nullptr;
+
+	// See if we are owned by another item, and try to determine attachment to it.
+	FFaerieItemProxy ParentItem;
+	if (const FMassEntityHandle ParentItemHandle = Container::GetContainerOwner(EntityManager, Container);
+		ParentItemHandle.IsValid())
+	{
+		const UFaerieItemContainerBase* ParentContainer = Container::GetItemOwner(EntityManager, ParentItemHandle);
+		if (IsValid(ParentContainer))
+		{
+			ParentItem = ParentContainer->Proxy(ParentItemHandle);
+		}
+	}
+
+	// If we have a parent, see if a visual already exists
+	if (UObject* Visual = GetSpawnedVisualByKey({ ParentItem });
+		IsValid(Visual))
+	{
+		if (AActor* Actor = Cast<AActor>(Visual))
+		{
+			ParentActor = Actor;
+		}
+		else if (USceneComponent* Component = Cast<USceneComponent>(Visual))
+		{
+			ParentComponent = Component;
+		}
+
+		if (IsValid(ParentComponent))
+		{
+			AttachTo = ParentComponent;
+		}
+		else if (IsValid(ParentActor))
+		{
+			AttachTo = ParentComponent;
+		}
+	}
+	else
+	{
+		// If the parent item is valid, but there is no visual for it yet, alert that we would prefer to attach later.
+		WantsToWaitForParent = ParentItem.IsValid();
+
+		// In the case of no owning container, use the parent actor.
+		ParentActor = GetOwner();
+	}
+
+	// If we directly found a Component, great, use it!
+	if (IsValid(ParentComponent))
+	{
+		if (UFaerieItemMeshComponent* ItemMeshComponent = Cast<UFaerieItemMeshComponent>(ParentComponent))
+		{
+			// If the Generated Mesh already exists, use it.
+			if (ItemMeshComponent->GetGeneratedMeshComponent())
+			{
+				AttachTo = ItemMeshComponent->GetGeneratedMeshComponent();
+			}
+			// If it doesn't, then just return the ItemMeshComponent, and have CreateVisualImpl move us to Pending.
+			else
+			{
+				AttachTo = ItemMeshComponent;
+			}
+		}
+		else
+		{
+			AttachTo = ParentComponent;
+		}
+	}
+	// If we only found an Actor, determine the component to use.
+	else if (IsValid(ParentActor))
+	{
+		// First choice is the one specified by the Extension (if applicable)
+		if (USceneComponent* Component = ParentActor->FindComponentByTag<USceneComponent>(ComponentTag);
+			IsValid(Component))
+		{
+			AttachTo = Component;
+		}
+		else if (const ACharacter* Character = Cast<ACharacter>(ParentActor))
+		{
+			AttachTo = Character->GetMesh();
+		}
+		else
+		{
+			AttachTo = ParentActor->GetDefaultAttachComponent();
+
+			if (UFaerieItemMeshComponent* ItemMeshComponent = Cast<UFaerieItemMeshComponent>(AttachTo))
+			{
+				// If the Generated Mesh already exists, use it.
+				if (ItemMeshComponent->GetGeneratedMeshComponent())
+				{
+					AttachTo = ItemMeshComponent->GetGeneratedMeshComponent();
+				}
+				// If it doesn't, then just return the ItemMeshComponent, and have CreateVisualImpl move us to Pending.
+				else
+				{
+					AttachTo = ItemMeshComponent;
+				}
+			}
+		}
+	}
+
+	UE_CLOGF(!IsValid(AttachTo), LogFaerieEquipment, Error, "GetComponentToAttachTo failed to find valid component for ");
+	return AttachTo;
 }
 
 void UEquipmentVisualizer::ResetAttachment(const FFaerieVisualKey Key)
@@ -729,6 +775,66 @@ void UEquipmentVisualizer::AwaitOrReceiveUpdate(const FFaerieVisualKey Key, cons
 FFaerieVisualKey UEquipmentVisualizer::MakeVisualKey(const FFaerieItemProxy& Proxy)
 {
 	return { Proxy };
+}
+
+void UEquipmentVisualizer::DumpDebugLog() const
+{
+#if FAERIE_DEBUG
+	auto GetAttachmentString = [](const FEquipmentVisualAttachment& Attachment) -> FString
+	{
+		const FString HiddenStr = Attachment.Hidden ? TEXT(" (hidden)") : TEXT("");
+		return FString::Printf(TEXT("Parent: '%ls', ParentSocket: %ls, ChildSocket: %ls%ls"),
+			*GetNameSafe(Attachment.Parent.Get()), *Attachment.ParentSocket.ToString(), *Attachment.ChildSocket.ToString(), *HiddenStr);
+	};
+
+	UE_LOGF(LogFaerieEquipment, Warning, "Start Equipment Visualizer debug log for '%ls'", *GetNameSafe(this))
+
+	UE_LOGF(LogFaerieEquipment, Log, "PreferredTag: %ls", *PreferredTag.ToString())
+	UE_LOGF(LogFaerieEquipment, Log, "LeaderComponent: '%ls'", *GetNameSafe(GetLeaderComponent()))
+
+	UE_LOGF(LogFaerieEquipment, Log, "Num SpawnedActors: '%i'", SpawnedActors.Num())
+	for (auto&& SpawnedActor : SpawnedActors)
+	{
+		FFaerieVisualKey Key = SpawnedActor.Key;
+		TObjectPtr<AActor> Value = SpawnedActor.Value;
+		UE_LOGF(LogFaerieEquipment, Log, "--- Visual Actor: '%ls' spawned for '%ls'", *GetNameSafe(Value), *GetNameSafe(Key.Proxy.GetProxyObject()))
+		if (const FEquipmentVisualMetadata* Metadata = KeyedMetadata.Find(Key))
+		{
+			UE_LOGF(LogFaerieEquipment, Log, "    Parent: '%ls'", *GetNameSafe(Metadata->Parent.Proxy.GetProxyObject()))
+			UE_LOGF(LogFaerieEquipment, Log, "    Attachment: '%ls'", *GetAttachmentString(Metadata->Attachment))
+		}
+	}
+
+	UE_LOGF(LogFaerieEquipment, Log, "Num SpawnedComponents: '%i'", SpawnedComponents.Num())
+	for (auto&& SpawnedComponent : SpawnedComponents)
+	{
+		FFaerieVisualKey Key = SpawnedComponent.Key;
+		TObjectPtr<USceneComponent> Value = SpawnedComponent.Value;
+		UE_LOGF(LogFaerieEquipment, Log, "--- Visual Component: '%ls' spawned for '%ls'", *GetNameSafe(Value), *GetNameSafe(Key.Proxy.GetProxyObject()))
+		if (const FEquipmentVisualMetadata* Metadata = KeyedMetadata.Find(Key))
+		{
+			UE_LOGF(LogFaerieEquipment, Log, "      Parent: '%ls'", *GetNameSafe(Metadata->Parent.Proxy.GetProxyObject()))
+			UE_LOGF(LogFaerieEquipment, Log, "      Attachment: '%ls'", *GetAttachmentString(Metadata->Attachment))
+		}
+	}
+
+	UE_LOGF(LogFaerieEquipment, Log, "Num Pending Attachments: '%i'", Pending.Num())
+	for (const FPendingAttachment& PendingAttachment : Pending)
+	{
+		UE_LOGF(LogFaerieEquipment, Log, "--- Pending: '%ls'", *GetNameSafe(PendingAttachment.Key.Proxy.GetProxyObject()))
+		UE_LOGF(LogFaerieEquipment, Log, "      Attachment: '%ls'", *GetAttachmentString(PendingAttachment.Attachment))
+	}
+
+	UE_LOGF(LogFaerieEquipment, Warning, "End Equipment Visualizer debug log")
+#endif
+}
+
+void UEquipmentVisualizer::RefreshAllAttachments()
+{
+	for (auto&& Metadata : KeyedMetadata)
+	{
+		ResetAttachment(Metadata.Key);
+	}
 }
 
 void UEquipmentVisualizer::OnVisualActorDestroyed(AActor* DestroyedActor)

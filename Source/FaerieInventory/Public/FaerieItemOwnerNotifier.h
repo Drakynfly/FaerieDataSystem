@@ -9,7 +9,7 @@
  * 
  */
 UCLASS()
-class FAERIEITEMDATA_API UFaerieItemOwnerNotifier : public UMassProcessor
+class FAERIEINVENTORY_API UFaerieItemOwnerNotifier : public UMassProcessor
 {
 	GENERATED_BODY()
 

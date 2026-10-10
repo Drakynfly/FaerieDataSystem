@@ -8,25 +8,26 @@
 
 namespace Faerie::Equipment
 {
-	bool RunEquipmentQuery(const TNotNull<UFaerieEquipmentManager*> Manager, const FFaerieEquipmentSetQuery& SetQuery, UFaerieItemStackContainer*& PassingSlot)
+	bool RunEquipmentQuery(const TNotNull<UFaerieEquipmentManager*> Manager, const FFaerieEquipmentSetQuery& SetQuery, FFaerieItemProxy& PassingSlot)
 	{
 		const FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(Manager->GetWorld());
-		for (auto&& QueryTag : SetQuery.TagSet.Tags)
+		for (const FFaerieSlotTag& QueryTag : SetQuery.TagSet.Tags)
 		{
-			if (auto&& Slot = Manager->FindSlot(EntityManager, QueryTag, true))
+			if (UFaerieItemStackContainer* Slot = Manager->FindSlot(EntityManager, QueryTag, true))
 			{
 				if (Slot->IsFilled())
 				{
-					if (SetQuery.Query.Filter.Execute(FFaerieItemProxy(Slot)) != SetQuery.Query.InvertFilter)
+					const FFaerieItemProxy SlotProxy(Slot);
+					if (SetQuery.Query.Filter.Execute(SlotProxy) != SetQuery.Query.InvertFilter)
 					{
-						PassingSlot = Slot;
+						PassingSlot = SlotProxy;
 						return true;
 					}
 				}
 			}
 		}
 
-		PassingSlot = nullptr;
+		PassingSlot = FFaerieItemProxy();
 		return false;
 	}
 }

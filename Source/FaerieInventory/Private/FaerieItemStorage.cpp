@@ -117,19 +117,40 @@ FInstancedStruct UFaerieItemStorage::MakeSaveData(const FMassEntityManager& Enti
 	return FInstancedStruct::Make(ExportData);
 }
 
-void UFaerieItemStorage::LoadSaveData(FMassEntityManager& EntityManager, const FConstStructView ItemData, const Container::FLoadParams Params)
+bool UFaerieItemStorage::LoadSaveData(FMassEntityManager& EntityManager, const FConstStructView ItemData, const Container::FLoadParams Params)
 {
 	if (ItemData.GetScriptStruct() != FFaerieStorageExportData::StaticStruct())
 	{
 		UE_LOGF(LogFaerieInventory, Error, "Invalid data to load from. Must be FFaerieStorageExportData.")
-		return;
+		return false;
 	}
 	LoadSaveData(EntityManager, ItemData.Get<const FFaerieStorageExportData>(), Params);
+	return true;
 }
 
 bool UFaerieItemStorage::Contains(const FFaerieAddress Address) const
 {
 	return ContainsAddress(Address);
+}
+
+FMassEntityHandle UFaerieItemStorage::GetItemHandle(const FFaerieEntryKey Key) const
+{
+	if (const FFaerieStorageEntry* EntryPtr = GetEntrySafe(Key))
+	{
+		return EntryPtr->GetEntityHandle();
+	}
+	return FMassEntityHandle();
+}
+
+FMassEntityHandle UFaerieItemStorage::GetItemHandle(const FFaerieAddress Address) const
+{
+	FFaerieEntryKey Entry;
+	Container::Address::Decode_Entry(Address, Entry);
+	if (const FFaerieStorageEntry* EntryPtr = GetEntrySafe(Entry))
+	{
+		return EntryPtr->GetEntityHandle();
+	}
+	return FMassEntityHandle();
 }
 
 TOptional<FFaerieItemInstance> UFaerieItemStorage::ViewInstance(const FFaerieEntryKey Key) const
@@ -171,6 +192,16 @@ ItemData::FScopeProxy UFaerieItemStorage::ViewAddress(const FFaerieAddress Addre
 		return ItemData::FScopeProxy(EntryPtr->GetInstance(), EntryPtr->GetStack(Stack), this);
 	}
 	return nullptr;
+}
+
+FFaerieItemProxy UFaerieItemStorage::Proxy(const FMassEntityHandle Item) const
+{
+	if (const FFaerieStorageEntry* Entry = FindEntry(FFaerieItemInstance(nullptr, Item)))
+	{
+		// @todo optimize to remove double lookup
+		return FFaerieItemProxy(GetEntryProxyImpl(Entry->GetKey()));
+	}
+	return FFaerieItemProxy();
 }
 
 FFaerieItemProxy UFaerieItemStorage::Proxy(const FFaerieEntryKey Key) const
@@ -273,6 +304,11 @@ void UFaerieItemStorage::GetAllAddresses(const TAdderReserverRef<FFaerieAddress>
 	}
 }
 
+void UFaerieItemStorage::OnItemDataChanged(const FMassEntityHandle Item, const FGameplayTag EditTag)
+{
+	Super::OnItemDataChanged(Item, EditTag);
+}
+
 TUniquePtr<Container::IEntryIterator> UFaerieItemStorage::CreateEntryIterator() const
 {
 	// Don't provide an iterator if we are empty...
@@ -295,11 +331,6 @@ TUniquePtr<Container::IAddressIterator> UFaerieItemStorage::CreateSingleEntryIte
 		return MakeUnique<Container::FIterator_SingleEntry_WithInterface>(this, *Entry);
 	}
 	return nullptr;
-}
-
-void UFaerieItemStorage::OnItemDataChanged(const FFaerieItemInstance& Instance, const FGameplayTag EditTag)
-{
-	Super::OnItemDataChanged(Instance, EditTag);
 }
 
 
@@ -463,7 +494,7 @@ Container::FContainerEventPayload UFaerieItemStorage::AddStackImplNoBroadcast(FM
 
 	if (ItemInstance.IsMutable())
 	{
-		Container::TakeOwnership(EntityManager, this, ItemInstance);
+		Container::TakeOwnership(EntityManager, this, ItemInstance.GetMassEntityHandle());
 	}
 
 	const int32 StackLimit = Container::GetItemStackLimit(&EntityManager, ItemInstance);
@@ -491,8 +522,7 @@ Container::FContainerEventPayload UFaerieItemStorage::AddStackImpl(FMassEntityMa
 Container::FContainerEventPayload UFaerieItemStorage::RemoveFromEntryImplNoBroadcast(FMassEntityManager& EntityManager, const FFaerieStorageEntry& Entry, const int32 Amount, const FFaerieInventoryTag Reason)
 {
 	// Log for this event
-	Container::FContainerEventPayload Event = Container::FContainerEventPayload::MakeBlank(this, Entry.GetKey());
-	Event.Type = Reason;
+	Container::FContainerEventPayload Event = Container::FContainerEventPayload::MakeNew(this, Entry.GetKey(), Reason);
 
 	// Open Mutable Scope
 	{
@@ -507,7 +537,7 @@ Container::FContainerEventPayload UFaerieItemStorage::RemoveFromEntryImplNoBroad
 			Handle->CopyAddresses(Event.AddressesTouched);
 			if (Event.Instance.IsMutable())
 			{
-				Container::ReleaseOwnership(EntityManager, this, Event.Instance);
+				Container::ReleaseOwnership(EntityManager, this, Event.Instance.GetMassEntityHandle());
 			}
 			Event.EntryRemoved = true;
 		}
@@ -538,8 +568,7 @@ Container::FContainerEventPayload UFaerieItemStorage::RemoveFromStackImplNoBroad
 	const FFaerieStorageEntry& Entry, const FFaerieStackKey Stack, const int32 Amount, const FFaerieInventoryTag Reason)
 {
 	// Log for this event
-	Container::FContainerEventPayload Event = Container::FContainerEventPayload::MakeBlank(this, Entry.GetKey());
-	Event.Type = Reason;
+	Container::FContainerEventPayload Event = Container::FContainerEventPayload::MakeNew(this, Entry.GetKey(), Reason);
 	Event.AddressesTouched.Add(Container::Address::Encode(Entry.GetKey(), Stack));
 
 	// Open Mutable Scope
@@ -558,7 +587,7 @@ Container::FContainerEventPayload UFaerieItemStorage::RemoveFromStackImplNoBroad
 			{
 				if (Handle->GetInstance().IsMutable())
 				{
-					Container::ReleaseOwnership(EntityManager, this, Handle->GetInstance());
+					Container::ReleaseOwnership(EntityManager, this, Handle->GetEntityHandle());
 				}
 				Event.EntryRemoved = true;
 			}
@@ -831,7 +860,7 @@ void UFaerieItemStorage::Client_PostContentChanged(const FFaerieStorageEntry& En
 		return;
 	}
 
-	Container::FContainerEventPayload Event = Container::FContainerEventPayload::MakeBlank(this, Entry.GetKey());
+	Container::FContainerEventPayload Event = Container::FContainerEventPayload::MakeNew(this, Entry.GetKey(), Inventory::Tags::ReplicationEdit);
 	Event.Type = Inventory::Tags::ReplicationEdit;
 	Event.Instance = Entry.GetInstance();
 	Event.AddressesTouched.Reserve(Entry.NumStacks());
@@ -916,7 +945,7 @@ void UFaerieItemStorage::MakeSaveData(const FMassEntityManager& EntityManager, F
 			FFaerieItemInstance Instance = Entry.GetInstance();
 			FFaerieStorageEntryExportData& ExportEntry = OutItemData.Entries.AddDefaulted_GetRef();
 			ExportEntry.ItemObject = Instance.GetItemPtr();
-			ExportEntry.ExportData = ExportItemData(EntityManager, Instance);
+			ExportEntry.ExportData = ExportItemData(EntityManager, Instance.GetMassEntityHandle());
 			ExportEntry.Stacks = Entry.GetStacks();
 		}
 	}
@@ -937,7 +966,7 @@ void UFaerieItemStorage::LoadSaveData(FMassEntityManager& EntityManager, const F
 
 	if (Params.ClearItemDataBeforeImport)
 	{
-		Clear(Inventory::Tags::RemovalDeletion);
+		Clear(EntityManager, Inventory::Tags::RemovalDeletion);
 	}
 
 	// See Footnote1
@@ -1174,7 +1203,7 @@ FFaerieAddress UFaerieItemStorage::GetFirstAddress() const
 	return Container::Address::Encode(FirstEntry.GetKey(), FirstEntry.GetStacks()[0].Key);
 }
 
-bool UFaerieItemStorage::CanAddStack(const FFaerieItemProxy& Proxy, const EFaerieStorageAddStackBehavior AddStackBehavior) const
+bool UFaerieItemStorage::CanAddStack(const FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy, const EFaerieStorageAddStackBehavior AddStackBehavior) const
 {
 	const TOptional<FFaerieItemInstance> Instance = Proxy.GetItemInstance();
 	if (!Instance.IsSet())
@@ -1183,13 +1212,9 @@ bool UFaerieItemStorage::CanAddStack(const FFaerieItemProxy& Proxy, const EFaeri
 	}
 
 	// Prevent recursive storage: don't allow adding an item that contains ourself.
-	const FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
-	if (EntityManager.IsEntityValid(Instance.GetValue().GetMassEntityHandle()))
+	if (SubObject::HasContainerInInstanceRecursive_Storage(EntityManager, Instance.GetValue().GetMassEntityHandle(), this))
 	{
-		if (SubObject::HasContainerInInstanceRecursive_Storage(EntityManager, Instance.GetValue(), this))
-		{
-			return false;
-		}
+		return false;
 	}
 
 	const FFaerieExtensionAllowsAdditionArgs CanAddStackArgs {
@@ -1199,91 +1224,81 @@ bool UFaerieItemStorage::CanAddStack(const FFaerieItemProxy& Proxy, const EFaeri
 	return AllowsAddition(EntityManager, MakeConstArrayView(&Proxy, 1), CanAddStackArgs, true);
 }
 
-bool UFaerieItemStorage::CanAddStacks(const TArray<FFaerieItemProxy>& Proxies, const FFaerieExtensionAllowsAdditionArgs Args) const
+bool UFaerieItemStorage::CanAddStacks(const FMassEntityManager& EntityManager, const TArray<FFaerieItemProxy>& Proxies, const FFaerieExtensionAllowsAdditionArgs Args) const
 {
 	if (Proxies.IsEmpty())
 	{
 		return false;
 	}
 
-	const FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
 	for (const FFaerieItemProxy& Proxy : Proxies)
 	{
-		const TOptional<FFaerieItemInstance> Instance = Proxy.GetItemInstance();
-		if (!Instance.IsSet())
+		const FMassEntityHandle Item = Proxy.GetEntityHandle();
+		if (!Item.IsSet())
 		{
 			return false;
 		}
 
 		// Prevent recursive storage: don't allow adding an item that contains ourself.
-		if (EntityManager.IsEntityValid(Instance.GetValue().GetMassEntityHandle()))
+		if (SubObject::HasContainerInInstanceRecursive_Storage(EntityManager, Item, this))
 		{
-			if (SubObject::HasContainerInInstanceRecursive_Storage(EntityManager, Instance.GetValue(), this))
-			{
-				return false;
-			}
+			return false;
 		}
 	}
 
 	return AllowsAddition(EntityManager, Proxies, Args, true);
 }
 
-bool UFaerieItemStorage::CanAddStacks(const Utils::TArrayAdapter<FFaerieItemProxy>& Stacks, const FFaerieExtensionAllowsAdditionArgs Args) const
+bool UFaerieItemStorage::CanAddStacks(const FMassEntityManager& EntityManager,
+	const Utils::TArrayAdapter<FFaerieItemProxy>& Stacks, const FFaerieExtensionAllowsAdditionArgs Args) const
 {
 	if (Stacks.Num() == 0)
 	{
 		return false;
 	}
 
-	const FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
 	for (int32 i = 0; i < Stacks.Num(); ++i)
 	{
 		const FFaerieItemProxy Proxy = Stacks[i];
 
-		const TOptional<FFaerieItemInstance> Instance = Proxy.GetItemInstance();
-		if (!Instance.IsSet())
+		const FMassEntityHandle Item = Proxy.GetEntityHandle();
+		if (!Item.IsSet())
 		{
 			return false;
 		}
 
 		// Prevent recursive storage: don't allow adding an item that contains ourself.
-		if (EntityManager.IsEntityValid(Instance.GetValue().GetMassEntityHandle()))
+		if (SubObject::HasContainerInInstanceRecursive_Storage(EntityManager, Item, this))
 		{
-			// Prevent recursive storage for mutable items
-			if (SubObject::HasContainerInInstanceRecursive_Storage(EntityManager, Instance.GetValue(), this))
-			{
-				return false;
-			}
+			return false;
 		}
 	}
 
 	return AllowsAddition(EntityManager, Stacks, Args, true);
 }
 
-bool UFaerieItemStorage::CanEditStack(const FFaerieAddress Address, const FFaerieInventoryTag EditTag) const
+bool UFaerieItemStorage::CanEditStack(const FMassEntityManager& EntityManager, const FFaerieAddress Address, const FFaerieInventoryTag EditTag) const
 {
 	FFaerieEntryKey Entry;
 	FFaerieStackKey Stack;
 	Container::Address::Decode(Address, Entry, Stack);
 	if (const FFaerieStorageEntry* EntryPtr = GetEntrySafe(Entry))
 	{
-		const FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
 		return CanEditStackImpl(EntityManager, *EntryPtr, Stack, EditTag);
 	}
 	return false;
 }
 
-bool UFaerieItemStorage::CanRemoveEntry(const FFaerieEntryKey Key, const FFaerieInventoryTag Reason) const
+bool UFaerieItemStorage::CanRemoveEntry(const FMassEntityManager& EntityManager, const FFaerieEntryKey Key, const FFaerieInventoryTag Reason) const
 {
 	if (const FFaerieStorageEntry* EntryPtr = GetEntrySafe(Key))
 	{
-		const FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
 		return CanRemoveEntryImpl(EntityManager, *EntryPtr, Reason);
 	}
 	return false;
 }
 
-bool UFaerieItemStorage::CanRemoveStack(const FFaerieAddress Address, const FFaerieInventoryTag Reason) const
+bool UFaerieItemStorage::CanRemoveStack(const FMassEntityManager& EntityManager, const FFaerieAddress Address, const FFaerieInventoryTag Reason) const
 {
 	// By default, some removal reasons are allowed, unless an extension explicitly disallows it.
 	const bool Default = Inventory::Tags::RemovalTagsAllowedByDefault().Contains(Reason);
@@ -1295,7 +1310,6 @@ bool UFaerieItemStorage::CanRemoveStack(const FFaerieAddress Address, const FFae
 	{
 		const FFaerieStorageEntry::FStackReadAccess ReadAccess = EntryPtr->GetStackReadAccess(EntryMap, Stack);
 
-		const FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
 		if (!AllowsRemoval(EntityManager, &ReadAccess, Reason, Default))
 		{
 			return false;
@@ -1310,7 +1324,8 @@ bool UFaerieItemStorage::CanRemoveStack(const FFaerieAddress Address, const FFae
 	/*	 STORAGE API - AUTHORITY ONLY   */
 	/**---------------------------------*/
 
-bool UFaerieItemStorage::AddItemStack(const FFaerieUnownedItemStack& Stack, const EFaerieStorageAddStackBehavior AddStackBehavior)
+bool UFaerieItemStorage::AddItemStack(FMassEntityManager& EntityManager, const FFaerieUnownedItemStack& Stack,
+	const EFaerieStorageAddStackBehavior AddStackBehavior)
 {
 	if (!Stack.IsValid()) return false;
 
@@ -1320,12 +1335,11 @@ bool UFaerieItemStorage::AddItemStack(const FFaerieUnownedItemStack& Stack, cons
 		return false;
 	}
 
-	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
 	(void)AddStackImpl(EntityManager, Stack, Container::IfOnlyNewStacks(AddStackBehavior));
 	return true;
 }
 
-void UFaerieItemStorage::AddItemStack(const TValid<const FFaerieUnownedItemStack&> Stack,
+void UFaerieItemStorage::AddItemStack(FMassEntityManager& EntityManager, const TValid<const FFaerieUnownedItemStack&> Stack,
 	const EFaerieStorageAddStackBehavior AddStackBehavior, TValueOrError<Container::FContainerEventPayload, FText>& OutResult)
 {
 	const ItemData::FScopeProxy Proxy(ValidGet(Stack).Instance, ValidGet(Stack).Copies, nullptr);
@@ -1335,11 +1349,11 @@ void UFaerieItemStorage::AddItemStack(const TValid<const FFaerieUnownedItemStack
 		return;
 	}
 
-	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
 	OutResult = MakeValue(AddStackImpl(EntityManager, Stack, Container::IfOnlyNewStacks(AddStackBehavior)));
 }
 
-bool UFaerieItemStorage::AddItemStacks(const Utils::TArrayAdapter<FFaerieUnownedItemStack>& Adapter, const EFaerieStorageAddStackBehavior AddStackBehavior, const bool StopAfterFailure)
+bool UFaerieItemStorage::AddItemStacks(FMassEntityManager& EntityManager, const Utils::TArrayAdapter<FFaerieUnownedItemStack>& Adapter,
+	const EFaerieStorageAddStackBehavior AddStackBehavior, const bool StopAfterFailure)
 {
 	SCOPE_CYCLE_COUNTER(STAT_Storage_AddMulti);
 
@@ -1347,8 +1361,6 @@ bool UFaerieItemStorage::AddItemStacks(const Utils::TArrayAdapter<FFaerieUnowned
 
 	TArray<Container::FContainerEventPayload> Events;
 	Events.Reserve(Adapter.Num());
-
-	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
 
 	ON_SCOPE_EXIT
 	{
@@ -1386,30 +1398,14 @@ bool UFaerieItemStorage::AddItemStacks(const Utils::TArrayAdapter<FFaerieUnowned
 	return true;
 }
 
-void UFaerieItemStorage::AddItemStackBulk(const TArray<FFaerieUnownedItemStack>& Stacks, const EFaerieStorageAddStackBehavior AddStackBehavior, const bool StopAfterFailure)
-{
-	AddItemStacks(Stacks, AddStackBehavior, StopAfterFailure);
-}
-
-bool UFaerieItemStorage::AddItemStackWithLog(const FFaerieUnownedItemStack& Stack, const EFaerieStorageAddStackBehavior AddStackBehavior, FFaerieBlueprintInventoryEvent& Event)
-{
-	TValueOrError<Container::FContainerEventPayload, FText> Result = MakeError(FText::GetEmpty());
-	AddItemStack(Stack, AddStackBehavior, Result);
-	if (Result.HasValue())
-	{
-		Event = FFaerieBlueprintInventoryEvent::FromNativeEvent(Result.GetValue());
-	}
-	return false;
-}
-
-bool UFaerieItemStorage::RemoveEntry(const FFaerieEntryKey Key, const FFaerieInventoryTag RemovalTag, const int32 Amount)
+bool UFaerieItemStorage::RemoveEntry(FMassEntityManager& EntityManager, const FFaerieEntryKey Key,
+	const FFaerieInventoryTag RemovalTag, const int32 Amount)
 {
 	if (Amount == 0 || Amount < ItemData::EntireStack) return false;
 	if (!RemovalTag.IsValid()) return false;
 
 	if (const FFaerieStorageEntry* EntryPtr = GetEntrySafe(Key))
 	{
-		FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
 		if (CanRemoveEntryImpl(EntityManager, *EntryPtr, RemovalTag))
 		{
 			(void)RemoveFromEntryImpl(EntityManager, *EntryPtr, Amount, RemovalTag);
@@ -1419,7 +1415,7 @@ bool UFaerieItemStorage::RemoveEntry(const FFaerieEntryKey Key, const FFaerieInv
 	return false;
 }
 
-bool UFaerieItemStorage::RemoveStack(const FFaerieAddress Address, const FFaerieInventoryTag RemovalTag, const int32 Amount)
+bool UFaerieItemStorage::RemoveStack(FMassEntityManager& EntityManager, const FFaerieAddress Address, const FFaerieInventoryTag RemovalTag, const int32 Amount)
 {
 	if (Amount == 0 || Amount < ItemData::EntireStack) return false;
 	if (!RemovalTag.IsValid()) return false;
@@ -1429,7 +1425,6 @@ bool UFaerieItemStorage::RemoveStack(const FFaerieAddress Address, const FFaerie
 	Container::Address::Decode(Address, Entry, Stack);
 	if (const FFaerieStorageEntry* EntryPtr = GetEntrySafe(Entry))
 	{
-		FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
 		if (CanRemoveStackImpl(EntityManager, *EntryPtr, Stack, RemovalTag))
 		{
 			(void)RemoveFromStackImpl(EntityManager, *EntryPtr, Stack, Amount, RemovalTag);
@@ -1439,28 +1434,27 @@ bool UFaerieItemStorage::RemoveStack(const FFaerieAddress Address, const FFaerie
 	return false;
 }
 
-bool UFaerieItemStorage::TakeEntry(const FFaerieEntryKey Key, FFaerieUnownedItemStack& OutStack,
-								   const FFaerieInventoryTag RemovalTag, const int32 Amount)
+bool UFaerieItemStorage::TakeEntry(FMassEntityManager& EntityManager, const FFaerieEntryKey Key,
+	FFaerieUnownedItemStack& OutStack, const  FFaerieInventoryTag RemovalTag, const  int32 Amount)
 {
 	if (Amount == 0 || Amount < ItemData::EntireStack) return false;
 	if (!RemovalTag.IsValid()) return false;
 
 	if (const FFaerieStorageEntry* EntryPtr = GetEntrySafe(Key))
 	{
-		FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
 		if (CanRemoveEntryImpl(EntityManager, *EntryPtr, RemovalTag))
 		{
 			const Container::FContainerEventPayload Event = RemoveFromEntryImpl(EntityManager, *EntryPtr, Amount, RemovalTag);
 			OutStack = FFaerieUnownedItemStack(Event.Instance, Event.Copies);
-            return true;
+			return true;
 		}
 	}
 
 	return false;
 }
 
-bool UFaerieItemStorage::TakeStack(const FFaerieAddress Address, FFaerieUnownedItemStack& OutStack,
-								   const FFaerieInventoryTag RemovalTag, const int32 Amount)
+bool UFaerieItemStorage::TakeStack(FMassEntityManager& EntityManager, const FFaerieAddress Address,
+	FFaerieUnownedItemStack& OutStack, const FFaerieInventoryTag RemovalTag, const int32 Amount)
 {
 	if (Amount == 0 || Amount < ItemData::EntireStack) return false;
 	if (!RemovalTag.IsValid()) return false;
@@ -1470,7 +1464,6 @@ bool UFaerieItemStorage::TakeStack(const FFaerieAddress Address, FFaerieUnownedI
 	Container::Address::Decode(Address, Entry, Stack);
 	if (const FFaerieStorageEntry* EntryPtr = GetEntrySafe(Entry))
 	{
-		FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
 		if (CanRemoveStackImpl(EntityManager, *EntryPtr, Stack, RemovalTag))
 		{
 			const Container::FContainerEventPayload Event = RemoveFromStackImpl(EntityManager, *EntryPtr, Stack, Amount, RemovalTag);
@@ -1482,56 +1475,8 @@ bool UFaerieItemStorage::TakeStack(const FFaerieAddress Address, FFaerieUnownedI
 	return false;
 }
 
-void UFaerieItemStorage::Clear(FFaerieInventoryTag RemovalTag)
-{
-	if (!RemovalTag.IsValid() || !RemovalTag.MatchesTag(Inventory::Tags::RemovalBase))
-	{
-		RemovalTag = Inventory::Tags::RemovalDeletion;
-	}
-
-	TArray<FFaerieEntryKey> Entries;
-	CopyEntryKeys(Entries);
-
-	TArray<Container::FContainerEventPayload> Events;
-	Events.Reserve(Entries.Num());
-
-	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
-
-	for (const FFaerieEntryKey EntryKey : Entries)
-	{
-		const FFaerieStorageEntry& Entry = EntryMap[EntryKey];
-
-		if (!CanRemoveEntryImpl(EntityManager, Entry, Inventory::Tags::RemovalMoving))
-		{
-			continue;
-		}
-
-		// RemoveFromEntryImplNoBroadcast should not be called with unvalidated parameters.
-		Events.Add(RemoveFromEntryImplNoBroadcast(EntityManager, Entry, ItemData::EntireStack, RemovalTag));
-	}
-
-	PostEventBatch(EntityManager, Events);
-
-	if (RemovalTag == Inventory::Tags::RemovalDeletion)
-	{
-		for (Container::FContainerEventPayload& Event : Events)
-		{
-			Event.Instance.DestroyMassEntity(EntityManager);
-		}
-	}
-
-#if WITH_EDITOR
-	// The editor should reset the KeyGen, so that clearing and generating new content doesn't rack up the key endlessly.
-	if (GEngine->IsEditor())
-	{
-		KeyGen.Reset();
-	}
-
-	// See Footnote1
-#endif
-}
-
-FFaerieEntryKey UFaerieItemStorage::MoveStack(UFaerieItemStorage* ToStorage, const FFaerieAddress Address, const int32 Amount, const EFaerieStorageAddStackBehavior AddStackBehavior)
+FFaerieEntryKey UFaerieItemStorage::MoveStack(FMassEntityManager& EntityManager, UFaerieItemStorage* ToStorage,
+	const FFaerieAddress Address, const int32 Amount, const EFaerieStorageAddStackBehavior AddStackBehavior)
 {
 	if (!IsValid(ToStorage) ||
 		ToStorage == this ||
@@ -1549,8 +1494,6 @@ FFaerieEntryKey UFaerieItemStorage::MoveStack(UFaerieItemStorage* ToStorage, con
 	{
 		return FFaerieEntryKey::InvalidKey;
 	}
-
-	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
 
 	if (!CanRemoveStackImpl(EntityManager, *EntryPtr, Stack, Inventory::Tags::RemovalMoving))
 	{
@@ -1576,14 +1519,14 @@ FFaerieEntryKey UFaerieItemStorage::MoveStack(UFaerieItemStorage* ToStorage, con
 
 	const Container::FContainerEventPayload Event = RemoveFromStackImpl(EntityManager, *EntryPtr, Stack, Amount, Inventory::Tags::RemovalMoving);
 
-	const TValid<FFaerieUnownedItemStack> ItemStack(Event.Instance, Event.Copies);
+	const FFaerieUnownedItemStack ItemStack(Event.Instance, Event.Copies);
 	return ToStorage->AddStackImpl(EntityManager, ItemStack, Container::IfOnlyNewStacks(AddStackBehavior)).EntryTouched;
 }
 
-FFaerieEntryKey UFaerieItemStorage::MoveEntry(UFaerieItemStorage* ToStorage, const FFaerieEntryKey Key, const EFaerieStorageAddStackBehavior AddStackBehavior)
+FFaerieEntryKey UFaerieItemStorage::MoveEntry(FMassEntityManager& EntityManager, UFaerieItemStorage* ToStorage, const FFaerieEntryKey Key, const EFaerieStorageAddStackBehavior AddStackBehavior)
 {
 	if (!IsValid(ToStorage) ||
-		ToStorage == this)
+	ToStorage == this)
 	{
 		return FFaerieEntryKey::InvalidKey;
 	}
@@ -1594,8 +1537,6 @@ FFaerieEntryKey UFaerieItemStorage::MoveEntry(UFaerieItemStorage* ToStorage, con
 	{
 		return FFaerieEntryKey::InvalidKey;
 	}
-
-	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
 
 	if (!CanRemoveEntryImpl(EntityManager, *EntryPtr, Inventory::Tags::RemovalMoving))
 	{
@@ -1611,11 +1552,12 @@ FFaerieEntryKey UFaerieItemStorage::MoveEntry(UFaerieItemStorage* ToStorage, con
 	const Container::FContainerEventPayload RemoveResult = RemoveFromEntryImpl(EntityManager, *EntryPtr,
 		ItemData::EntireStack, Inventory::Tags::RemovalMoving);
 
-	const TValid<FFaerieUnownedItemStack> ItemStack(RemoveResult.Instance, RemoveResult.Copies);
+	const FFaerieUnownedItemStack ItemStack(RemoveResult.Instance, RemoveResult.Copies);
 	return ToStorage->AddStackImpl(EntityManager, ItemStack, Container::IfOnlyNewStacks(AddStackBehavior)).EntryTouched;
 }
 
-bool UFaerieItemStorage::MergeStacks(const FFaerieEntryKey Entry, const FFaerieStackKey FromStack, const FFaerieStackKey ToStack, const int32 Amount)
+bool UFaerieItemStorage::MergeStacks(FMassEntityManager& EntityManager, const FFaerieEntryKey Entry,
+	const FFaerieStackKey FromStack, const FFaerieStackKey ToStack, const int32 Amount)
 {
 	const FFaerieAddress FromAddress = Container::Address::Encode(Entry, FromStack);
 	const FFaerieAddress ToAddress = Container::Address::Encode(Entry, ToStack);
@@ -1626,8 +1568,6 @@ bool UFaerieItemStorage::MergeStacks(const FFaerieEntryKey Entry, const FFaerieS
 	{
 		return false;
 	}
-
-	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
 
 	if (!CanEditStackImpl(EntityManager, *EntryPtr, FromStack, Inventory::Tags::Merge) ||
 		!CanEditStackImpl(EntityManager, *EntryPtr, ToStack, Inventory::Tags::Merge))
@@ -1645,8 +1585,7 @@ bool UFaerieItemStorage::MergeStacks(const FFaerieEntryKey Entry, const FFaerieS
 		return false;
 	}
 
-	Container::FContainerEventPayload Event = Container::FContainerEventPayload::MakeBlank(this, Entry);
-	Event.Type = Inventory::Tags::Merge;
+	Container::FContainerEventPayload Event = Container::FContainerEventPayload::MakeNew(this, Entry, Inventory::Tags::Merge);
 	Event.Copies = AmountB; // Initially store the amount in stack B here.
 	Event.Instance = EntryPtr->GetInstance();
 	Event.AddressesTouched.Add(FromAddress);
@@ -1669,7 +1608,7 @@ bool UFaerieItemStorage::MergeStacks(const FFaerieEntryKey Entry, const FFaerieS
 	return true;
 }
 
-bool UFaerieItemStorage::SplitStack(const FFaerieAddress Address, const int32 Amount)
+bool UFaerieItemStorage::SplitStack(FMassEntityManager& EntityManager, const FFaerieAddress Address, const int32 Amount)
 {
 	// Decode and verify the stack exists.
 	FFaerieEntryKey Entry;
@@ -1680,8 +1619,6 @@ bool UFaerieItemStorage::SplitStack(const FFaerieAddress Address, const int32 Am
 	{
 		return false;
 	}
-
-	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
 
 	// Check if we can edit the amount requested
 	if (!CanEditStackImpl(EntityManager, *EntryPtr, Stack, Inventory::Tags::Split))
@@ -1695,8 +1632,7 @@ bool UFaerieItemStorage::SplitStack(const FFaerieAddress Address, const int32 Am
 		return false;
 	}
 
-	Container::FContainerEventPayload Event = Container::FContainerEventPayload::MakeBlank(this, Entry);
-	Event.Type = Inventory::Tags::Split;
+	Container::FContainerEventPayload Event = Container::FContainerEventPayload::MakeNew(this, Entry, Inventory::Tags::Split);
 	Event.Instance = EntryPtr->GetInstance();
 	Event.Copies = Amount;
 	Event.AddressesTouched.Add(Address);
@@ -1717,7 +1653,54 @@ bool UFaerieItemStorage::SplitStack(const FFaerieAddress Address, const int32 Am
 	return true;
 }
 
-void UFaerieItemStorage::Dump(UFaerieItemStorage* ToStorage)
+void UFaerieItemStorage::Clear(FMassEntityManager& EntityManager, FFaerieInventoryTag Reason)
+{
+	if (!Reason.IsValid() || !Reason.MatchesTag(Inventory::Tags::RemovalBase))
+	{
+		Reason = Inventory::Tags::RemovalDeletion;
+	}
+
+	TArray<FFaerieEntryKey> Entries;
+	CopyEntryKeys(Entries);
+
+	TArray<Container::FContainerEventPayload> Events;
+	Events.Reserve(Entries.Num());
+
+	for (const FFaerieEntryKey EntryKey : Entries)
+	{
+		const FFaerieStorageEntry& Entry = EntryMap[EntryKey];
+
+		if (!CanRemoveEntryImpl(EntityManager, Entry, Inventory::Tags::RemovalMoving))
+		{
+			continue;
+		}
+
+		// RemoveFromEntryImplNoBroadcast should not be called with unvalidated parameters.
+		Events.Add(RemoveFromEntryImplNoBroadcast(EntityManager, Entry, ItemData::EntireStack, Reason));
+	}
+
+	PostEventBatch(EntityManager, Events);
+
+	if (Reason == Inventory::Tags::RemovalDeletion)
+	{
+		for (Container::FContainerEventPayload& Event : Events)
+		{
+			Event.Instance.DestroyMassEntity(EntityManager);
+		}
+	}
+
+#if WITH_EDITOR
+	// The editor should reset the KeyGen, so that clearing and generating new content doesn't rack up the key endlessly.
+	if (GEngine->IsEditor())
+	{
+		KeyGen.Reset();
+	}
+
+	// See Footnote1
+#endif
+}
+
+void UFaerieItemStorage::Dump(FMassEntityManager& EntityManager, UFaerieItemStorage* ToStorage)
 {
 	if (!IsValid(ToStorage) ||
 		ToStorage == this)
@@ -1735,8 +1718,6 @@ void UFaerieItemStorage::Dump(UFaerieItemStorage* ToStorage)
 
 	TArray<FFaerieUnownedItemStack> Stacks;
 	Stacks.Reserve(Entries.Num());
-
-	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
 
 	for (const FFaerieEntryKey EntryKey : Entries)
 	{
@@ -1760,7 +1741,120 @@ void UFaerieItemStorage::Dump(UFaerieItemStorage* ToStorage)
 
 	PostEventBatch(EntityManager, Events);
 
-	ToStorage->AddItemStacks(Stacks, DumpBehavior, false);
+	ToStorage->AddItemStacks(EntityManager, Stacks, DumpBehavior, false);
+}
+
+	/**---------------------------------*/
+	/*			BLUEPRINT API			*/
+	/**---------------------------------*/
+
+bool UFaerieItemStorage::CanAddStack(const FFaerieItemProxy& Proxy, const EFaerieStorageAddStackBehavior AddStackBehavior) const
+{
+	return CanAddStack(ItemData::GetFaerieEntityManagerChecked(GetWorld()), Proxy, AddStackBehavior);
+}
+
+bool UFaerieItemStorage::CanAddStacks(const TArray<FFaerieItemProxy>& Proxies, const FFaerieExtensionAllowsAdditionArgs Args) const
+{
+	return CanAddStacks(ItemData::GetFaerieEntityManagerChecked(GetWorld()), Proxies, Args);
+}
+
+bool UFaerieItemStorage::CanEditStack(const FFaerieAddress Address, const FFaerieInventoryTag EditTag) const
+{
+	return CanEditStack(ItemData::GetFaerieEntityManagerChecked(GetWorld()), Address, EditTag);
+}
+
+bool UFaerieItemStorage::CanRemoveEntry(const FFaerieEntryKey Key, const FFaerieInventoryTag Reason) const
+{
+	return CanRemoveEntry(ItemData::GetFaerieEntityManagerChecked(GetWorld()), Key, Reason);
+}
+
+bool UFaerieItemStorage::CanRemoveStack(const FFaerieAddress Address, const FFaerieInventoryTag Reason) const
+{
+	return CanRemoveStack(ItemData::GetFaerieEntityManagerChecked(GetWorld()), Address, Reason);
+}
+
+bool UFaerieItemStorage::AddItemStack(const FFaerieUnownedItemStack& Stack, const EFaerieStorageAddStackBehavior AddStackBehavior)
+{
+	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
+	return AddItemStack(EntityManager, Stack, AddStackBehavior);
+}
+
+void UFaerieItemStorage::AddItemStackBulk(const TArray<FFaerieUnownedItemStack>& Stacks, const EFaerieStorageAddStackBehavior AddStackBehavior, const bool StopAfterFailure)
+{
+	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
+	AddItemStacks(EntityManager, Stacks, AddStackBehavior, StopAfterFailure);
+}
+
+bool UFaerieItemStorage::AddItemStackWithLog(const FFaerieUnownedItemStack& Stack, const EFaerieStorageAddStackBehavior AddStackBehavior, FFaerieBlueprintInventoryEvent& Event)
+{
+	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
+	TValueOrError<Container::FContainerEventPayload, FText> Result = MakeError(FText::GetEmpty());
+	AddItemStack(EntityManager, Stack, AddStackBehavior, Result);
+	if (Result.HasValue())
+	{
+		Event = FFaerieBlueprintInventoryEvent::FromNativeEvent(Result.GetValue());
+	}
+	return false;
+}
+
+bool UFaerieItemStorage::RemoveEntry(const FFaerieEntryKey Key, const FFaerieInventoryTag RemovalTag, const int32 Amount)
+{
+	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
+	return RemoveEntry(EntityManager, Key, RemovalTag, Amount);
+}
+
+bool UFaerieItemStorage::RemoveStack(const FFaerieAddress Address, const FFaerieInventoryTag RemovalTag, const int32 Amount)
+{
+	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
+	return RemoveStack(EntityManager, Address, RemovalTag, Amount);
+}
+
+bool UFaerieItemStorage::TakeEntry(const FFaerieEntryKey Key, FFaerieUnownedItemStack& OutStack,
+								   const FFaerieInventoryTag RemovalTag, const int32 Amount)
+{
+	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
+	return TakeEntry(EntityManager, Key, OutStack, RemovalTag, Amount);
+}
+
+bool UFaerieItemStorage::TakeStack(const FFaerieAddress Address, FFaerieUnownedItemStack& OutStack,
+								   const FFaerieInventoryTag RemovalTag, const int32 Amount)
+{
+	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
+	return TakeStack(EntityManager, Address, OutStack, RemovalTag, Amount);
+}
+
+FFaerieEntryKey UFaerieItemStorage::MoveStack(UFaerieItemStorage* ToStorage, const FFaerieAddress Address, const int32 Amount, const EFaerieStorageAddStackBehavior AddStackBehavior)
+{
+	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
+	return MoveStack(EntityManager, ToStorage, Address, Amount, AddStackBehavior);
+}
+
+FFaerieEntryKey UFaerieItemStorage::MoveEntry(UFaerieItemStorage* ToStorage, const FFaerieEntryKey Key, const EFaerieStorageAddStackBehavior AddStackBehavior)
+{
+	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
+	return MoveEntry(EntityManager, ToStorage, Key, AddStackBehavior);
+}
+
+bool UFaerieItemStorage::MergeStacks(const FFaerieEntryKey Entry, const FFaerieStackKey FromStack, const FFaerieStackKey ToStack, const int32 Amount)
+{
+	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
+	return MergeStacks(EntityManager, Entry, FromStack, ToStack, Amount);
+}
+
+bool UFaerieItemStorage::SplitStack(const FFaerieAddress Address, const int32 Amount)
+{
+	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
+	return SplitStack(EntityManager, Address, Amount);
+}
+
+void UFaerieItemStorage::Clear(const FFaerieInventoryTag RemovalTag)
+{
+	Clear(ItemData::GetFaerieEntityManagerChecked(GetWorld()), RemovalTag);
+}
+
+void UFaerieItemStorage::Dump(UFaerieItemStorage* ToStorage)
+{
+	Dump(ItemData::GetFaerieEntityManagerChecked(GetWorld()), ToStorage);
 }
 
 #undef LOCTEXT_NAMESPACE

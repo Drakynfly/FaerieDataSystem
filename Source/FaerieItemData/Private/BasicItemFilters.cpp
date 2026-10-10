@@ -97,15 +97,25 @@ bool FFaerieItemFilter_And::Exec(const FMassEntityManager* EntityManager, const 
 bool FFaerieItemFilter_And::ExecWithLog(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy,
 	ItemData::FFilterLogger& Logger) const
 {
+	bool Success = true;
+
 	for (auto&& Rule : Rules)
 	{
+		const int32 ErrorCountBeforeRuleExec = Logger.Errors.Num();
 		if (!Rule->ExecWithLog(EntityManager, Proxy, Logger))
 		{
-			return false;
+			if (Logger.Errors.Num() == ErrorCountBeforeRuleExec)
+			{
+				static const FTextFormat ErrorFormat = NSLOCTEXT("FaerieItemFilter_And", "ExecWithLogNotImplemented", "Filter '{0}' failed. Implement ExecWithLog for more details.");
+				FFormatOrderedArguments Args;
+				Args.Add(Rule.GetScriptStruct()->GetDisplayNameText());
+				Logger.Errors.Add(FText::Format(ErrorFormat, Args));
+			}
+			Success = false;
 		}
 	}
 
-	return true;
+	return Success;
 }
 
 EFaerieItemFilterMutabilityStatus FFaerieItemFilter_And::GetMutabilityStatus() const

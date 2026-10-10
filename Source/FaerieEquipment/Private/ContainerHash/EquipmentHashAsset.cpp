@@ -23,7 +23,7 @@ void UFaerieEquipmentHashAsset::PreSave(FObjectPreSaveContext SaveContext)
 	// @TODO we cannot implement this until we can dump items into the editor's mass subsystem
 	FMassEntityManager* EntityManager = nullptr;
 
-	for (auto&& Config : Configs)
+	for (const FFaerieEquipmentHashAssetConfig& Config : Configs)
 	{
 		for (int32 i = 0; i < Config.Slots.Num(); ++i)
 		{

@@ -15,7 +15,7 @@ struct FFaerieClientAction_MoveToGrid final : public FFaerieClientAction_MoveHan
 {
 	GENERATED_BODY()
 
-	virtual bool IsValid(TNotNull<const UFaerieInventoryClient*> Client) const override;
+	virtual bool IsValid(TNotNull<const UFaerieInventoryClient*> Client, const FMassEntityManager& EntityManager) const override;
 	virtual bool View(const FMassEntityManager& EntityManager, Faerie::ItemData::FScopeProxy& Proxy) const override;
 	virtual bool CanMove(const FMassEntityManager& EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
 	virtual bool Possess(FMassEntityManager& EntityManager, Faerie::TValid<const FFaerieUnownedItemStack&> Stack) const override;
@@ -37,7 +37,7 @@ struct FFaerieClientAction_MoveItemOnGrid final : public FFaerieClientActionBase
 {
 	GENERATED_BODY()
 
-	virtual bool Server_Execute(TNotNull<const UFaerieInventoryClient*> Client) const override;
+	virtual bool Server_Execute(TNotNull<const UFaerieInventoryClient*> Client, FMassEntityManager& EntityManager) const override;
 
 	UPROPERTY(BlueprintReadWrite, Category = "MoveItemOnGrid")
 	TObjectPtr<UFaerieItemStorage> Storage = nullptr;
@@ -54,7 +54,7 @@ struct FFaerieClientAction_RotateGridEntry final : public FFaerieClientActionBas
 {
 	GENERATED_BODY()
 
-	virtual bool Server_Execute(TNotNull<const UFaerieInventoryClient*> Client) const override;
+	virtual bool Server_Execute(TNotNull<const UFaerieInventoryClient*> Client, FMassEntityManager& EntityManager) const override;
 
 	UPROPERTY(BlueprintReadWrite, Category = "RotateGridEntry")
 	TObjectPtr<UFaerieItemStorage> Storage = nullptr;

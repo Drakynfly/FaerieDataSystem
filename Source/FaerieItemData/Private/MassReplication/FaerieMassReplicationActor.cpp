@@ -35,7 +35,7 @@ void FFaerieMassReplicatedEntity::PostReplicatedChange(const FFaerieMassReplicat
 
 AFaerieMassReplicationActor::AFaerieMassReplicationActor()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
 	ReplicatedEntities.Owner = this;
 }
@@ -45,20 +45,6 @@ void AFaerieMassReplicationActor::GetLifetimeReplicatedProps(TArray<class FLifet
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(ThisClass, ReplicatedEntities);
-}
-
-void AFaerieMassReplicationActor::Tick(const float DeltaSeconds)
-{
-	Super::Tick(DeltaSeconds);
-
-	// Client-side check to fixup mass after receiving item pointers.
-	if (GetNetMode() == NM_Client)
-	{
-		for (FFaerieMassReplicatedEntity& Entity : ReplicatedEntities.Entries)
-		{
-			Client_CheckItemPointer(Entity);
-		}
-	}
 }
 
 void AFaerieMassReplicationActor::Server_UpdateFragments(const FMassEntityManager& EntityManager, const FMassEntityHandle Item, const TConstArrayView<TConstStructView<FFaerieMassFragment>> FragmentViews)
@@ -146,10 +132,8 @@ void AFaerieMassReplicationActor::Client_AddEntity(FFaerieMassReplicatedEntity& 
 	for (FInstancedStruct& Fragment : Entity.Fragments)
 	{
 		// Signal that all data changed, because we don't know what the server updated.
-		FFaerieItemInstance::OnItemFragmentEdited(EntityManager, Entity.EntityHandle, Fragment.GetScriptStruct(), ItemData::AllFields);
+		ItemData::OnItemFragmentEdited(EntityManager, Entity.EntityHandle, Fragment.GetScriptStruct(), ItemData::AllFields);
 	}
-
-	Client_CheckItemPointer(Entity);
 }
 
 void AFaerieMassReplicationActor::Client_UpdateEntity(FFaerieMassReplicatedEntity& Entity)
@@ -157,7 +141,7 @@ void AFaerieMassReplicationActor::Client_UpdateEntity(FFaerieMassReplicatedEntit
 	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
 
 	// Local item has already been initialized, apply delta.
-	FFaerieItemInstance::UpdateFragments(EntityManager, Entity.EntityHandle, Entity.Fragments, true);
+	ItemData::UpdateFragments(EntityManager, Entity.EntityHandle, Entity.Fragments, true);
 }
 
 void AFaerieMassReplicationActor::Client_RemoveEntity(const FFaerieMassReplicatedEntity& Entity)
@@ -166,26 +150,5 @@ void AFaerieMassReplicationActor::Client_RemoveEntity(const FFaerieMassReplicate
 	if (EntityManager.IsEntityValid(Entity.EntityHandle))
 	{
 		EntityManager.DestroyEntity(Entity.EntityHandle);
-	}
-}
-
-void AFaerieMassReplicationActor::Client_CheckItemPointer(FFaerieMassReplicatedEntity& Entity)
-{
-	if (!Entity.HasImportedItemPointer && IsValid(Entity.ItemPointer))
-	{
-		FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
-
-		// If the entity manager stores info for this instance, push our item to it.
-		if (EntityManager.IsEntityValid(Entity.EntityHandle))
-		{
-			EntityManager.Defer().PushCommand<FMassDeferredSetCommand>(
-					[Handle = Entity.EntityHandle, Item = Entity.ItemPointer](FMassEntityManager& InEntityManager)
-					{
-						// All faerie item instances must have this fragment.
-						FFaerieMassItemPointer& FragmentPtr = InEntityManager.GetFragmentDataChecked<FFaerieMassItemPointer>(Handle);
-						FragmentPtr.Item = Item;
-					});
-		}
-		Entity.HasImportedItemPointer = true;
 	}
 }

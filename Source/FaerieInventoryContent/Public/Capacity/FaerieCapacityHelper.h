@@ -14,7 +14,7 @@ namespace Faerie::ItemData
 	{
 		UE_NONCOPYABLE(FCapacityHelper)
 
-		FCapacityHelper(const FMassEntityManager* EntityManager, FMassEntityHandle Item);
+		FCapacityHelper(const FMassEntityManager& EntityManager, FMassEntityHandle Item);
 		FCapacityHelper(const FMassEntityManager* EntityManager, const FFaerieItemInstance& Instance);
 
 		/*

@@ -97,12 +97,13 @@ void UFaerieEquipmentManager::AddSubobjectsForReplication()
 	}
 	else
 	{
+		FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
 		for (auto&& Slot : Slots)
 		{
 			if (IsValid(Slot))
 			{
 				GetOwner()->AddReplicatedSubObject(Slot);
-				Slot->InitializeNetObject(Owner);
+				Slot->InitializeContainer(EntityManager);
 			}
 		}
 
@@ -162,7 +163,7 @@ UFaerieItemStackContainer* UFaerieEquipmentManager::AddSlotImpl(FMassEntityManag
 		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Slots, this)
 		Slots.Add(NewSlot);
 		Owner->AddReplicatedSubObject(NewSlot);
-		NewSlot->InitializeNetObject(Owner);
+		NewSlot->InitializeContainer(EntityManager);
 
 		NewSlot->GetOnContainerEvent().AddUObject(this, &ThisClass::OnDataChangeEvent);
 
@@ -204,22 +205,22 @@ const UFaerieItemStackContainer* UFaerieEquipmentManager::FindSlotImpl(const FMa
 }
 
 const UFaerieItemStackContainer* UFaerieEquipmentManager::FindSubSlotImpl(const UFaerieItemStackContainer* ParentSlot,
-																		  const FMassEntityManager& EntityManager, const FFaerieSlotTag SlotTag, const bool bRecursive)
+	const FMassEntityManager& EntityManager, const FFaerieSlotTag SlotTag, const bool bRecursive)
 {
 	if (!ParentSlot->IsFilled())
 	{
 		return nullptr;
 	}
 
-	const FFaerieItemInstance SlotInstance = ParentSlot->GetItemInstance().GetValue();
-	if (!SlotInstance.IsMutable())
+	const FMassEntityHandle SlotItem = ParentSlot->GetEntityHandle();
+	if (!SlotItem.IsSet() || !ItemData::IsMutable(EntityManager, SlotItem))
 	{
 		// If the instance is not mutable, it will never contain children.
 		return nullptr;
 	}
 
 	TArray<TNotNull<UFaerieItemStackContainer*>> Children;
-	Equipment::SlotFilter.Emit(EntityManager, SlotInstance, Children);
+	Equipment::SlotFilter.Emit(EntityManager, SlotItem, Children);
 
 	for (auto&& Child : Children)
 	{
@@ -303,7 +304,7 @@ void UFaerieEquipmentManager::AddSlot(const FFaerieEquipmentSlotConfig& Config)
 
 bool UFaerieEquipmentManager::RemoveSlot(const FFaerieSlotTag Slot)
 {
-	const FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
+	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
 	UFaerieItemStackContainer* Slot_Obj = FindSlot(EntityManager, Slot, true);
 	if (!IsValid(Slot_Obj))
 	{
@@ -317,7 +318,7 @@ bool UFaerieEquipmentManager::RemoveSlot(const FFaerieSlotTag Slot)
 		Slot_Obj->ClearParentExtensions();
 
 		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Slots, this)
-		Slot_Obj->DeinitializeNetObject(GetOwner());
+		Slot_Obj->DeinitializeContainer(EntityManager);
 		GetOwner()->RemoveReplicatedSubObject(Slot_Obj);
 
 		Slot_Obj->GetOnContainerEvent().RemoveAll(this);
@@ -338,12 +339,12 @@ bool UFaerieEquipmentManager::TrySwapSlots(const FFaerieSlotTag SlotA, const FFa
 		return false;
 	}
 
-	if (SlotB_Obj->IsFilled() && !SlotA_Obj->CouldSetInSlot(FFaerieItemProxy(SlotB_Obj))) return false;
-	if (SlotA_Obj->IsFilled() && !SlotB_Obj->CouldSetInSlot(FFaerieItemProxy(SlotA_Obj))) return false;
+	if (SlotB_Obj->IsFilled() && !SlotA_Obj->CouldSetInSlot(EntityManager, FFaerieItemProxy(SlotB_Obj))) return false;
+	if (SlotA_Obj->IsFilled() && !SlotB_Obj->CouldSetInSlot(EntityManager, FFaerieItemProxy(SlotA_Obj))) return false;
 
-	const FFaerieUnownedItemStack ContentA = SlotA_Obj->TakeItemFromSlot(ItemData::EntireStack,
+	const FFaerieUnownedItemStack ContentA = SlotA_Obj->TakeItemFromSlot(EntityManager, ItemData::EntireStack,
 															 Inventory::Tags::RemovalMoving);
-	const FFaerieUnownedItemStack ContentB = SlotB_Obj->TakeItemFromSlot(ItemData::EntireStack,
+	const FFaerieUnownedItemStack ContentB = SlotB_Obj->TakeItemFromSlot(EntityManager, ItemData::EntireStack,
 															 Inventory::Tags::RemovalMoving);
 
 	// Use Impl version to bypass redundant checks to CanSetInSlot
@@ -406,8 +407,8 @@ TArray<FFaerieItemContainerPath> UFaerieEquipmentManager::GetAllContainerPaths()
 	{
 		if (Slot->IsFilled())
 		{
-			const FFaerieItemInstance Instance = Slot->GetItemInstance().GetValue();
-			if (Instance.IsMutable())
+			const FMassEntityHandle Item = Slot->GetEntityHandle();
+			if (ItemData::IsMutable(EntityManager, Item))
 			{
 				FFaerieItemContainerPath::BuildChildrenPaths(EntityManager, FFaerieItemProxy(), Slot, OutPaths);
 			}

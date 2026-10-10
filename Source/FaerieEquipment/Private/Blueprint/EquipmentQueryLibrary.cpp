@@ -13,7 +13,7 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(EquipmentQueryLibrary)
 
-bool UFaerieEquipmentLibrary::RunEquipmentQuery(UFaerieEquipmentManager* Manager, const FFaerieEquipmentSetQuery& SetQuery, UFaerieItemStackContainer*& PassingSlot)
+bool UFaerieEquipmentLibrary::RunEquipmentQuery(UFaerieEquipmentManager* Manager, const FFaerieEquipmentSetQuery& SetQuery, FFaerieItemProxy& PassingSlot)
 {
 	if (!IsValid(Manager))
 	{

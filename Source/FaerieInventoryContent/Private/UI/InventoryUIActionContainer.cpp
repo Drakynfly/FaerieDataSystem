@@ -16,7 +16,7 @@ bool UInventoryUIActionContainer::AddAction(const TSubclassOf<UFaerieUIActionBas
 	return false;
 }
 
-bool UInventoryUIActionContainer::AddActions(const TSet<TSubclassOf<UFaerieUIActionBase>> Classes)
+bool UInventoryUIActionContainer::AddActions(const TArray<TSubclassOf<UFaerieUIActionBase>>& Classes)
 {
 	ActionClasses.Append(Classes);
 	return true;

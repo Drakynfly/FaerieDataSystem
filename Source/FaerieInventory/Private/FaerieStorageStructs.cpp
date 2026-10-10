@@ -5,6 +5,7 @@
 #include "FaerieInventoryLog.h"
 #include "FaerieItemStorage.h"
 
+#include "Fragments/FaerieItemStorageFragment.h"
 #include "Fragments/FaerieStackLimitFragment.h"
 
 #include "HAL/LowLevelMemStats.h"
@@ -191,7 +192,7 @@ void FFaerieStorageEntry::PostReplicatedChange(const FFaerieStorageContent& InAr
 	}
 }
 
-const IFaerieItemOwnerInterface* FFaerieStorageEntry::FStorageContentAccess::GetListener(const FFaerieStorageContent& Source)
+const UObject* FFaerieStorageEntry::FStorageContentAccess::GetListener(const FFaerieStorageContent& Source)
 {
 	return Source.ChangeListener;
 }
@@ -203,12 +204,12 @@ uint32& FFaerieStorageEntry::FStorageContentAccess::GetWriteLock(const FFaerieSt
 }
 #endif
 
-const IFaerieItemOwnerInterface* FFaerieStorageEntry::FReadAccess::GetItemOwner() const
+const UObject* FFaerieStorageEntry::FReadAccess::GetItemOwner() const
 {
 	return FStorageContentAccess::GetListener(Source);
 }
 
-const IFaerieItemOwnerInterface* FFaerieStorageEntry::FStackReadAccess::GetItemOwner() const
+const UObject* FFaerieStorageEntry::FStackReadAccess::GetItemOwner() const
 {
 	return FStorageContentAccess::GetListener(Source);
 }
@@ -550,4 +551,9 @@ FFaerieStorageContent::TRangedForConstIterator FFaerieStorageContent::end() cons
 	WriteLock--;
 #endif
 	return TRangedForConstIterator(Entries.end());
+}
+
+const UScriptStruct* FFaerieStorageExportData::GetFragmentType() const
+{
+	return FFaerieItemStorageFragment::StaticStruct();
 }

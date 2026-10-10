@@ -5,6 +5,11 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieWidgetPreview)
 
+FMassEntityHandle UFaerieWidgetPreview::GetEntityHandle() const
+{
+	return FMassEntityHandle();
+}
+
 TOptional<FFaerieItemInstance> UFaerieWidgetPreview::GetItemInstance() const
 {
 	if (Asset.IsValid())
@@ -14,7 +19,7 @@ TOptional<FFaerieItemInstance> UFaerieWidgetPreview::GetItemInstance() const
 	return NullOpt;
 }
 
-IFaerieItemOwnerInterface* UFaerieWidgetPreview::GetItemOwner() const
+UObject* UFaerieWidgetPreview::GetItemOwner() const
 {
 	return nullptr;
 }

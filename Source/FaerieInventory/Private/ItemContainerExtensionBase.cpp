@@ -6,6 +6,13 @@
 
 using namespace Faerie;
 
+#if WITH_EDITOR
+namespace Faerie::Container
+{
+	TOptional<EFaerieExtensionResponse> FScopedExpectedResponse::Response;
+}
+#endif
+
 void FFaerieItemContainerData::PostSerialize(const FArchive& Ar)
 {
 	if (Ar.IsSaving())
