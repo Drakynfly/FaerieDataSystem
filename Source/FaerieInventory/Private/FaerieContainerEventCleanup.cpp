@@ -42,11 +42,11 @@ void UFaerieContainerEventCleanup::Execute(FMassEntityManager& EntityManager, FM
 #if FAERIE_DEBUG
 		if (InContext.GetWorld()->GetNetMode() == ENetMode::NM_Client)
 		{
-			UE_LOGF(LogFaerieInventory, Log, "UFaerieContainerEventCleanup::Execute (client)")
+			UE_LOGF(LogFaerieInventory, Log, "UFaerieContainerEventCleanup::Execute (client) %i events", InContext.GetNumEntities())
 		}
 		else
 		{
-			//UE_LOGF(LogFaerieInventory, Log, "UFaerieContainerEventCleanup::Execute (server)")
+			UE_LOGF(LogFaerieInventory, Log, "UFaerieContainerEventCleanup::Execute (server) %i events", InContext.GetNumEntities())
 		}
 
 		const TConstArrayView<FMassEntityHandle> Entities = InContext.GetEntities();
@@ -54,35 +54,9 @@ void UFaerieContainerEventCleanup::Execute(FMassEntityManager& EntityManager, FM
 		check(Entities.Num() == Events.Num())
 		for (int32 i = 0; i < Events.Num(); ++i)
 		{
-			FMassEntityHandle Entity = Entities[i];
-			const Container::FContainerEventPayload& Event = Events[i];
-
-			if (Event.Container.IsExplicitlyNull())
+			if (!Events[i].DebugCheck())
 			{
-				UE_LOGF(LogFaerieInventory, Error, "EventCleanup: Invalid Container for FContainerEventPayload entity: '%llu'", Entity.AsNumber())
-			}
-			if (!Event.Type.IsValid())
-			{
-				UE_LOGF(LogFaerieInventory, Error, "EventCleanup: Invalid Type for FContainerEventPayload entity: '%llu'", Entity.AsNumber())
-			}
-			if (Event.Instance.IsEmpty())
-			{
-				UE_LOGF(LogFaerieInventory, Error, "EventCleanup: Invalid Instance for FContainerEventPayload entity: '%llu'", Entity.AsNumber())
-			}
-			if (!ItemData::IsValidStackAmount(Event.Copies))
-			{
-				UE_LOGF(LogFaerieInventory, Error, "EventCleanup: Invalid Copies for FContainerEventPayload entity: '%llu'", Entity.AsNumber())
-			}
-			if (!Event.EntryTouched.IsValid())
-			{
-				UE_LOGF(LogFaerieInventory, Error, "EventCleanup: Invalid Entry for FContainerEventPayload entity: '%llu'", Entity.AsNumber())
-			}
-			for (auto It = Event.AddressesTouched.CreateConstIterator(); It; ++It)
-			{
-				if (!It->IsValid())
-				{
-					UE_LOGF(LogFaerieInventory, Error, "EventCleanup: Invalid Address[%d] for FContainerEventPayload entity: '%llu'", It.GetIndex(), Entity.AsNumber())
-				}
+				UE_LOGF(LogFaerieInventory, Warning, "EventCleanup: Event failed DebugCheck for entity: '%ls'", *LexToString(Entities[i]))
 			}
 		}
 #endif

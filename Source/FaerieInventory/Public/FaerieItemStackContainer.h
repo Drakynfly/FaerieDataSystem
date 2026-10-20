@@ -46,8 +46,11 @@ struct FFaerieStackContainerContent
 	UPROPERTY(VisibleAnywhere, Category = "StackContainerContent")
 	FFaerieEntryKey StoredKey;
 
-	UPROPERTY(VisibleAnywhere, Category = "StackContainerContent")
+	UPROPERTY(VisibleAnywhere, NotReplicated, Category = "StackContainerContent")
 	FFaerieItemInstance Instance;
+
+	UPROPERTY(VisibleAnywhere, Category = "StackContainerContent")
+	FFaerieNetItemID NetID;
 
 	UPROPERTY(VisibleAnywhere, Category = "StackContainerContent")
 	int32 Copies = 0;
@@ -86,12 +89,13 @@ private:
 	virtual FFaerieItemProxy Proxy(FFaerieEntryKey Key) const override;
 	virtual FFaerieItemProxy Proxy(FFaerieAddress Address) const override;
 	virtual bool Possess(FMassEntityManager& EntityManager, const FFaerieUnownedItemStack& Stack) override;
-	virtual TOptional<FFaerieUnownedItemStack> Release(FFaerieEntryKey Key, int32 Copies, FFaerieInventoryTag Reason) override;
-	virtual TOptional<FFaerieUnownedItemStack> Release(FFaerieAddress Address, int32 Copies, FFaerieInventoryTag Reason) override;
-	virtual TOptional<FFaerieUnownedItemStack> Release(const FFaerieItemProxy& Proxy, int32 Copies, FFaerieInventoryTag Reason) override;
-	virtual bool CanPossess(const FFaerieItemProxy& Proxy) const override;
-	virtual bool CanRelease(const FFaerieItemProxy& Proxy, FFaerieInventoryTag Reason) const override;
+	virtual TOptional<FFaerieUnownedItemStack> Release(FMassEntityManager& EntityManager, FFaerieEntryKey Key, int32 Copies, FFaerieInventoryTag Reason) override;
+	virtual TOptional<FFaerieUnownedItemStack> Release(FMassEntityManager& EntityManager, FFaerieAddress Address, int32 Copies, FFaerieInventoryTag Reason) override;
+	virtual TOptional<FFaerieUnownedItemStack> Release(FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy, int32 Copies, FFaerieInventoryTag Reason) override;
+	virtual bool CanPossess(const FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy) const override;
+	virtual bool CanRelease(const FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy, FFaerieInventoryTag Reason) const override;
 	virtual void GetAllAddresses(TAdderReserverRef<FFaerieAddress> Addresses) const override;
+	virtual bool AckItemCreatedByNetwork(FMassEntityManager& EntityManager, FMassEntityHandle Entity, FFaerieNetItemID NetID) override;
 	virtual void OnItemDataChanged(const FMassEntityHandle Item, FGameplayTag EditTag) override;
 	virtual TUniquePtr<Faerie::Container::IEntryIterator> CreateEntryIterator() const override;
 	virtual TUniquePtr<Faerie::Container::IAddressIterator> CreateAddressIterator() const override;
@@ -143,17 +147,7 @@ public:
 
 	bool SetItemInSlot(FMassEntityManager& EntityManager, const FFaerieUnownedItemStack& Stack);
 
-#if WITH_EDITOR
-	// Directly set the contained item from the editor
-	void SetItemInSlot_Editor(const FFaerieUnownedItemStack& Stack);
-#endif
-
 	FFaerieUnownedItemStack TakeItemFromSlot(FMassEntityManager& EntityManager, int32 Copies, FFaerieInventoryTag Reason);
-
-#if WITH_EDITOR
-	// Directly remove the contained item from the editor
-	void ClearStackInSlot_Editor();
-#endif
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemStackContainer")
 	int32 GetStackCopies() const;
@@ -170,6 +164,11 @@ public:
 	// Is there currently an item in this container?
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemStackContainer")
 	bool IsFilled() const;
+
+
+	/**------------------------------*/
+	/*		 BLUEPRINT API			 */
+	/**------------------------------*/
 
 protected:
 	// This checks if the stack could ever be contained by this container, ignoring its current state.

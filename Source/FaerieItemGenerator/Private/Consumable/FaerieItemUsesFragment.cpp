@@ -30,7 +30,7 @@ void FFaerieItemLastUseLogic_Destroy::OnLastUse_Destroy(const FFaerieItemLastUse
 	if (UFaerieItemContainerBase* Container = Cast<UFaerieItemContainerBase>(Proxy.GetItemOwner()))
 	{
 		// Destroy and cast into the aether.
-		(void)Container->Release(Proxy, 1, Faerie::Inventory::Tags::RemovalDeletion);
+		(void)Container->Release(EntityManager, Proxy, 1, Faerie::Inventory::Tags::RemovalDeletion);
 	}
 }
 
@@ -74,7 +74,7 @@ void FFaerieItemLastUseLogic_Replace::OnLastUse_Replace(const FFaerieItemLastUse
 			}
 
 			// Destroy and cast into the aether.
-			(void)Container->Release(InProxy, Faerie::ItemData::EntireStack, Faerie::Inventory::Tags::RemovalDeletion);
+			(void)Container->Release(InEntityManager, InProxy, Faerie::ItemData::EntireStack, Faerie::Inventory::Tags::RemovalDeletion);
 
 			// Possess new item
 			if (!Container->Possess(InEntityManager, Result.WithInitialization(InEntityManager)))
@@ -123,8 +123,8 @@ namespace Faerie::ItemData
 		}
 	}
 
-	FUsesHelper::FUsesHelper(const FMassEntityManager& EntityManager, FMassEntityHandle Item)
-	  : EntityManager(&EntityManager), Item(nullptr, Item)
+	FUsesHelper::FUsesHelper(const FMassEntityManager& EntityManager, const FMassEntityHandle Item)
+	  : EntityManager(&EntityManager), Item(FFaerieItemInstance::FromEntity(Item))
 	{
 		if (const FFaerieItemUses* CapacityFragment = GetEntityFragment<FFaerieItemUses>(EntityManager, Item))
 		{

@@ -14,6 +14,9 @@
 #include "ItemContainerExtensionBase.h"
 
 #include "Containers/AdderRef.h"
+
+#include "MassReplication/FaerieItemReplicationTypes.h"
+
 #include "StructUtils/InstancedStruct.h"
 #include "StructUtils/StructView.h"
 
@@ -44,7 +47,8 @@ namespace Faerie::Container
 	{
 		GENERATED_BODY()
 
-		// Handle of the item that owns the container
+		// Handle of the item that owns the container. ItemHandle is not replicated to prevent server handles from reaching the client.
+		UPROPERTY(NotReplicated)
 		FMassEntityHandle ItemHandle;
 	};
 }
@@ -136,6 +140,7 @@ class FAERIEINVENTORY_API UFaerieItemContainerBase : public UNetSupportedObject,
 	friend Faerie::Container::Private::FIteratorAccess;
 	friend FFaerieItemContainerExtensions;
 	friend class UFaerieItemOwnerNotifier;
+	friend class AFaerieMassReplicationActor;
 
 public:
 	UFaerieItemContainerBase();
@@ -201,21 +206,21 @@ public:
 	// or none. Partial possession is not allowed.
 	[[nodiscard]] virtual bool Possess(FMassEntityManager& EntityManager, const FFaerieUnownedItemStack& Stack) PURE_VIRTUAL(UFaerieItemContainerBase::Possess, return false; )
 
-	[[nodiscard]] virtual TOptional<FFaerieUnownedItemStack> Release(FFaerieEntryKey Key, int32 Copies, FFaerieInventoryTag Reason) PURE_VIRTUAL(UFaerieItemContainerBase::Release, return NullOpt; )
+	[[nodiscard]] virtual TOptional<FFaerieUnownedItemStack> Release(FMassEntityManager& EntityManager, FFaerieEntryKey Key, int32 Copies, FFaerieInventoryTag Reason) PURE_VIRTUAL(UFaerieItemContainerBase::Release, return NullOpt; )
 
-	[[nodiscard]] virtual TOptional<FFaerieUnownedItemStack> Release(FFaerieAddress Address, int32 Copies, FFaerieInventoryTag Reason) PURE_VIRTUAL(UFaerieItemContainerBase::Release, return NullOpt; )
+	[[nodiscard]] virtual TOptional<FFaerieUnownedItemStack> Release(FMassEntityManager& EntityManager, FFaerieAddress Address, int32 Copies, FFaerieInventoryTag Reason) PURE_VIRTUAL(UFaerieItemContainerBase::Release, return NullOpt; )
 
-	[[nodiscard]] virtual TOptional<FFaerieUnownedItemStack> Release(const FFaerieItemProxy& Proxy, int32 Copies, FFaerieInventoryTag Reason) PURE_VIRTUAL(UFaerieItemContainerBase::Release, return NullOpt; )
+	[[nodiscard]] virtual TOptional<FFaerieUnownedItemStack> Release(FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy, int32 Copies, FFaerieInventoryTag Reason) PURE_VIRTUAL(UFaerieItemContainerBase::Release, return NullOpt; )
 
-	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainer")
-	virtual bool CanPossess(const FFaerieItemProxy& Proxy) const PURE_VIRTUAL(UFaerieItemContainerBase::CanPossess, return false; )
+	virtual bool CanPossess(const FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy) const PURE_VIRTUAL(UFaerieItemContainerBase::CanPossess, return false; )
 
-	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainer")
-	virtual bool CanRelease(const FFaerieItemProxy& Proxy, FFaerieInventoryTag Reason) const PURE_VIRTUAL(UFaerieItemContainerBase::CanRelease, return false; )
+	virtual bool CanRelease(const FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy, FFaerieInventoryTag Reason) const PURE_VIRTUAL(UFaerieItemContainerBase::CanRelease, return false; )
 
 	virtual void GetAllAddresses(TAdderReserverRef<FFaerieAddress> Addresses) const PURE_VIRTUAL(UFaerieItemContainerBase::GetAllAddresses, ; )
 
 protected:
+	virtual bool AckItemCreatedByNetwork(FMassEntityManager& EntityManager, FMassEntityHandle Entity, FFaerieNetItemID NetID) PURE_VIRTUAL(UFaerieItemContainerBase::AckItemCreatedByNetwork, return false; )
+
 	virtual void OnItemDataChanged(const FMassEntityHandle Item, FGameplayTag EditTag);
 
 	// Create an iterator for the entries in this container.
@@ -235,8 +240,8 @@ public:
 	// @todo temp raw accessor
 	UE_REWRITE FFaerieItemContainerExtensions& GetExtensionData() { return ExtensionData; }
 
-	void WriteContainerData(FMassEntityManager& EntityManager, TNotNull<const UScriptStruct*> Type, const TFunctionRef<void(FStructView, FFaerieItemContainerExtensions::EWriteContainerDataFlag)>& Functor, bool CreateIfMissing = true);
-	void WriteContainerData(FMassEntityManager& EntityManager, TNotNull<const UScriptStruct*> Type, const TFunctionRef<void(FStructView)>& Functor, bool CreateIfMissing = true);
+	void WriteContainerData(FMassEntityManager& EntityManager, TNotNull<const UScriptStruct*> Type, const TFunctionRef<void(FStructView, FFaerieItemContainerExtensions::EWriteContainerDataFlag)>& Functor, bool CreateIfMissing);
+	void WriteContainerData(FMassEntityManager& EntityManager, TNotNull<const UScriptStruct*> Type, const TFunctionRef<void(FStructView)>& Functor, bool CreateIfMissing);
 
 	bool HasContainerData(const FMassEntityManager& EntityManager, TNotNull<const UScriptStruct*> Type, bool RecurseParents = false) const;
 
@@ -273,6 +278,17 @@ public:
 
 	void PostEvent(FMassEntityManager& EntityManager, const Faerie::Container::FContainerEventPayload& Event);
 	void PostEventBatch(FMassEntityManager& EntityManager, TConstArrayView<Faerie::Container::FContainerEventPayload> Events);
+
+
+	/**------------------------------*/
+	/*		 BLUEPRINT API			 */
+	/**------------------------------*/
+protected:
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainer")
+	bool CanPossess(const FFaerieItemProxy& Proxy) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemContainer")
+	bool CanRelease(const FFaerieItemProxy& Proxy, FFaerieInventoryTag Reason) const;
 
 
 	/**------------------------------*/

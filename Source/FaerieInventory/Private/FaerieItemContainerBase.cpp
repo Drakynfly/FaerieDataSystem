@@ -7,7 +7,6 @@
 #include "FaerieContainerFilter.h"
 #include "FaerieItem.h"
 #include "FaerieItemExportData.h"
-#include "FaerieSubObjectFilter.h"
 #include "ItemContainerExtensionBase.h"
 #include "MassCommandBuffer.h"
 
@@ -268,12 +267,25 @@ FFaerieItemInstance UFaerieItemContainerBase::ImportItemData(FMassEntityManager&
 	return Instance;
 }
 
+#if FAERIE_DEBUG
+TAutoConsoleVariable<bool> CVarIncludeNoExportTypesInExtensionDataRavel(
+	TEXT("fae.IncludeNoExportTypesInExtensionDataRavel"),
+	false,
+	TEXT("Enable to track down bugs in container ExtensionData."));
+#endif
+
 void UFaerieItemContainerBase::RavelExtensionData(const FMassEntityManager& EntityManager, TAdderRef<FInstancedStruct> SaveData) const
 {
 	ExtensionData.ForEach([this, &SaveData](const FConstStructView Element)
 		{
+#if FAERIE_DEBUG
+			const bool IncludeNoExportTypes = CVarIncludeNoExportTypesInExtensionDataRavel.GetValueOnGameThread();
+#else
+			static constexpr bool IncludeNoExportTypes = false;
+#endif
+
 			// Skip NoExport types.
-			if (Element.GetScriptStruct()->IsChildOf<Container::FNoExport>())
+			if (Element.GetScriptStruct()->IsChildOf<Container::FNoExport>() && !IncludeNoExportTypes)
 			{
 				return Utils::Continue;
 			}
@@ -429,7 +441,7 @@ bool UFaerieItemContainerBase::AllowsRemoval(const FMassEntityManager& EntityMan
 	TOptional<bool> AllowedByStructs;
 
 	// Check this container for permission
-	if (auto ContainerPermissions = ReadContainerData<FFaerieItemContainerClientPermissions>(EntityManager, true))
+	if (auto* ContainerPermissions = ReadContainerData<FFaerieItemContainerClientPermissions>(EntityManager, true))
 	{
 		if (ContainerPermissions->AllowedActions.HasTag(Reason))
 		{
@@ -516,6 +528,8 @@ bool UFaerieItemContainerBase::AllowsEdit(const FMassEntityManager& EntityManage
 
 void UFaerieItemContainerBase::PostEvent(FMassEntityManager& EntityManager, const Container::FContainerEventPayload& Event)
 {
+	UE_CLOGF(!Event.DebugCheck(), LogFaerieInventory, Error, "PostEvent: Given Invalid Event to Post")
+
 	FInstancedStruct EventStruct = FInstancedStruct::Make(Event);
 	EntityManager.Defer().PushCommand<FMassDeferredCreateCommand>(
 		[EventStruct = MoveTemp(EventStruct)](FMassEntityManager& DeferredEntityManager)
@@ -527,9 +541,7 @@ void UFaerieItemContainerBase::PostEvent(FMassEntityManager& EntityManager, cons
 	{
 		// Create an event to tell our owning item that our data has changed.
 		// @todo we don't know which fragment type was changed...
-		ItemData::FMutationEvent Payload;
-		Payload.ItemHandle = Nesting->ItemHandle;
-		Payload.EventType = ItemData::Tags::FragmentGenericPropertyEdit;
+		const ItemData::FMutationEvent Payload(Nesting->ItemHandle, ItemData::Tags::FragmentGenericPropertyEdit, Container::FContainerEventPayload::StaticStruct());
 		ItemData::PostMutationEvent(EntityManager, Payload);
 	}
 }
@@ -539,6 +551,8 @@ void UFaerieItemContainerBase::PostEventBatch(FMassEntityManager& EntityManager,
 	// @Todo can we use a BatchCreateEntity here
 	for (const Container::FContainerEventPayload& Event : Events)
 	{
+		UE_CLOGF(!Event.DebugCheck(), LogFaerieInventory, Error, "PostEventBatch: Given Invalid Event to Post")
+
 		FInstancedStruct EventStruct = FInstancedStruct::Make(Event);
 		EntityManager.Defer().PushCommand<FMassDeferredCreateCommand>(
 			[EventStruct = MoveTemp(EventStruct)](FMassEntityManager& DeferredEntityManager)
@@ -551,9 +565,17 @@ void UFaerieItemContainerBase::PostEventBatch(FMassEntityManager& EntityManager,
 	{
 		// Create an event to tell our owning item that our data has changed.
 		// @todo we don't know which fragment type was changed...
-		ItemData::FMutationEvent Payload;
-		Payload.ItemHandle = Nesting->ItemHandle;
-		Payload.EventType = ItemData::Tags::FragmentGenericPropertyEdit;
+		const ItemData::FMutationEvent Payload(Nesting->ItemHandle, ItemData::Tags::FragmentGenericPropertyEdit, Container::FContainerEventPayload::StaticStruct());
 		ItemData::PostMutationEvent(EntityManager, Payload);
 	}
+}
+
+bool UFaerieItemContainerBase::CanPossess(const FFaerieItemProxy& Proxy) const
+{
+	return CanPossess(ItemData::GetFaerieEntityManagerChecked(GetWorld()), Proxy);
+}
+
+bool UFaerieItemContainerBase::CanRelease(const FFaerieItemProxy& Proxy, const FFaerieInventoryTag Reason) const
+{
+	return CanRelease(ItemData::GetFaerieEntityManagerChecked(GetWorld()), Proxy, Reason);
 }

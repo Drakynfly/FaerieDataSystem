@@ -139,7 +139,7 @@ UFaerieItemStackContainer* UFaerieEquipmentManager::AddSlotImpl(FMassEntityManag
 				[Config](const FStructView Data)
 				{
 					Data.Get<FFaerieContainerDataSlotTag>().SlotTag = Config.SlotID;
-				});
+				}, true);
 		}
 
 		if (IsValid(Config.SlotDescription))
@@ -148,7 +148,7 @@ UFaerieItemStackContainer* UFaerieEquipmentManager::AddSlotImpl(FMassEntityManag
 				[Config](const FStructView Data)
 				{
 					Data.Get<FFaerieItemContainerContentFilter>().Filter = Config.SlotDescription->Template;
-				});
+				}, true);
 		}
 
 		if (Config.SingleItemSlot)
@@ -157,7 +157,7 @@ UFaerieItemStackContainer* UFaerieEquipmentManager::AddSlotImpl(FMassEntityManag
 				[](const FStructView Data)
 				{
 					Data.Get<FFaerieItemContainerCountLimit>().SetMaxInstanceCount(1);
-				});
+				}, true);
 		}
 
 		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Slots, this)

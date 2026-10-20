@@ -182,6 +182,6 @@ protected:
 	FFaerieItemContainerExtensions ExtensionData;
 
 private:
-	UPROPERTY(Replicated)
+	UPROPERTY(Replicated, DuplicateTransient)
 	TArray<TObjectPtr<UFaerieItemStackContainer>> Slots;
 };

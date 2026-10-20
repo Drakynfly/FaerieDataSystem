@@ -249,6 +249,11 @@ FFaerieStorageEntry::FReadWriteAccess::~FReadWriteAccess()
 	Source.MarkItemDirty(Entry);
 }
 
+void FFaerieStorageEntry::FReadWriteAccess::AssignEntityFromReplication(const FMassEntityHandle EntityHandle)
+{
+	Entry.ItemInstance = FFaerieItemInstance::FromEntity(EntityHandle);
+}
+
 void FFaerieStorageEntry::FReadWriteAccess::SetStack(const FFaerieStackKey InKey, const int32 Stack)
 {
 	if (Stack <= 0)

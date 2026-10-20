@@ -35,7 +35,7 @@ namespace Faerie::ItemData
 	}
 
 	FCapacityHelper::FCapacityHelper(const FMassEntityManager& EntityManager, const FMassEntityHandle Item)
-	  : EntityManager(&EntityManager), Item(nullptr, Item)
+	  : EntityManager(&EntityManager), Item(FFaerieItemInstance::FromEntity(Item))
 	{
 		if (const FFaerieItemCapacity* CapacityFragment = ItemData::GetEntityFragment<FFaerieItemCapacity>(EntityManager, Item))
 		{

@@ -5,6 +5,7 @@
 #include "FaerieInventoryLog.h"
 #include "FaerieItem.h"
 #include "FaerieItemStackContainer.h"
+#include "FaerieItemStorage.h"
 
 #include "Fragments/FaerieItemStorageFragment.h"
 
@@ -62,11 +63,6 @@ namespace Faerie::SubObject
 
 	bool HasContainerInInstanceDirect_Stack(const FMassEntityManager& EntityManager, const FMassEntityHandle Item, const TNotNull<const UFaerieItemStackContainer*> TestContainer)
 	{
-		if (!EntityManager.IsEntityValid(Item))
-		{
-			return false;
-		}
-
 		if (auto* StacksFragment = ItemData::GetEntityFragment<FFaerieChildStackFragment>(EntityManager, Item))
 		{
 			for (auto&& Slot : StacksFragment->Slots)
@@ -83,11 +79,6 @@ namespace Faerie::SubObject
 
 	bool HasContainerInInstanceDirect_Storage(const FMassEntityManager& EntityManager, const FMassEntityHandle Item, const TNotNull<const UFaerieItemStorage*> TestContainer)
 	{
-		if (!EntityManager.IsEntityValid(Item))
-		{
-			return false;
-		}
-
 		if (auto* StorageFragment = ItemData::GetEntityFragment<FFaerieItemStorageFragment>(EntityManager, Item))
 		{
 			const TObjectPtr<UFaerieItemStorage>& ItemStorage = StorageFragment->Storage.Storage;
@@ -110,11 +101,6 @@ namespace Faerie::SubObject
 	bool HasContainerInInstanceRecursive_Stack(const FMassEntityManager& EntityManager,
 		const FMassEntityHandle Item, const TNotNull<const UFaerieItemStackContainer*> TestContainer)
 	{
-		if (!EntityManager.IsEntityValid(Item))
-		{
-			return false;
-		}
-
 		if (auto* StacksFragment = ItemData::GetEntityFragment<FFaerieChildStackFragment>(EntityManager, Item))
 		{
 			for (auto&& Slot : StacksFragment->Slots)
@@ -139,11 +125,6 @@ namespace Faerie::SubObject
 	bool HasContainerInInstanceRecursive_Storage(const FMassEntityManager& EntityManager,
 		const FMassEntityHandle Item, const TNotNull<const UFaerieItemStorage*> TestContainer)
 	{
-		if (!EntityManager.IsEntityValid(Item))
-		{
-			return false;
-		}
-
 		if (auto* StorageFragment = ItemData::GetEntityFragment<FFaerieItemStorageFragment>(EntityManager, Item))
 		{
 			const TObjectPtr<UFaerieItemStorage>& ItemStorage = StorageFragment->Storage.Storage;
@@ -173,11 +154,6 @@ namespace Faerie::SubObject
 
 	void GetContainersInInstanceDirect_All(const FMassEntityManager& EntityManager, const FMassEntityHandle Item, const TAdderRef<TNotNull<UFaerieItemContainerBase*>> Containers)
 	{
-		if (!EntityManager.IsEntityValid(Item))
-		{
-			return;
-		}
-
 		if (auto* StacksFragment = ItemData::GetEntityFragment<FFaerieChildStackFragment>(EntityManager, Item))
 		{
 			for (auto&& Slot : StacksFragment->Slots)
@@ -205,11 +181,6 @@ namespace Faerie::SubObject
 
 	void GetContainersInInstanceDirect_Stack(const FMassEntityManager& EntityManager, const FMassEntityHandle Item, const TAdderRef<TNotNull<UFaerieItemStackContainer*>> Containers)
 	{
-		if (!EntityManager.IsEntityValid(Item))
-		{
-			return;
-		}
-
 		if (auto* StacksFragment = ItemData::GetEntityFragment<FFaerieChildStackFragment>(EntityManager, Item))
 		{
 			for (auto&& Slot : StacksFragment->Slots)
@@ -224,11 +195,6 @@ namespace Faerie::SubObject
 
 	void GetContainersInInstanceDirect_Storage(const FMassEntityManager& EntityManager, const FMassEntityHandle Item, const TAdderRef<TNotNull<UFaerieItemStorage*>> Containers)
 	{
-		if (!EntityManager.IsEntityValid(Item))
-		{
-			return;
-		}
-
 		if (auto* StorageFragment = ItemData::GetEntityFragment<FFaerieItemStorageFragment>(EntityManager, Item))
 		{
 			const TObjectPtr<UFaerieItemStorage>& ItemStorage = StorageFragment->Storage.Storage;
@@ -347,10 +313,10 @@ namespace Faerie::SubObject
 		{
 			OutProxies.Add(Child);
 
-			const FMassEntityHandle Item = Child.GetEntityHandle();
-			if (ItemData::IsMutable(EntityManager, Item))
+			const FMassEntityHandle ChildItem = Child.GetEntityHandle();
+			if (ItemData::IsMutable(EntityManager, ChildItem))
 			{
-				for (UFaerieItemContainerBase* Container : SubObject::Iterate(EntityManager, Item))
+				for (UFaerieItemContainerBase* Container : SubObject::Iterate(EntityManager, ChildItem))
 				{
 					for (auto It = Container::MutableItemRange(Container); It; ++It)
 					{

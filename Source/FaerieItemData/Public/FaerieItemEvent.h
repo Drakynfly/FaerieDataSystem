@@ -14,11 +14,18 @@
 
 namespace Faerie::ItemData
 {
-	// Info packet for an item data mutation event. Carries the item handle that changed.
+	/*
+	 * Info packet for an item data mutation event. Carries the item handle that changed, the type of event, and the
+	 * relevant struct type.
+	 */
 	USTRUCT()
 	struct FMutationEvent : public FMassFragment
 	{
 		GENERATED_BODY()
+
+		FMutationEvent() = default;
+		FMutationEvent(const FMassEntityHandle Item, const  FGameplayTag EventType, const  TNotNull<const UScriptStruct*> ChangeType)
+		  : ItemHandle(Item), EventType(EventType), ChangeType(ChangeType) {}
 
 		FMassEntityHandle ItemHandle;
 		FGameplayTag EventType;
@@ -28,6 +35,9 @@ namespace Faerie::ItemData
 		TWeakObjectPtr<const UScriptStruct> ChangeType;
 	};
 
+	/*
+	 * A list of structs that were added or removed by a Mutation Event.
+	 */
 	USTRUCT()
 	struct FMutationPayloadChangeList : public FMassFragment
 	{
@@ -78,7 +88,7 @@ namespace Faerie::ItemData
 
 	static constexpr FFieldChangePayload AllFields = FFieldChangePayload().SetFlag(TNumericLimits<uint16>::Max());
 
-	// Event
+	// Event group that runs once per frame to destroy all FMutationEvent entities.
 	const FName EventCleanup = TEXT("ItemDataEventCleanup");
 }
 

@@ -183,7 +183,7 @@ void UFaerieItemContainerCountLimitUpdater::Execute(FMassEntityManager& EntityMa
 				{
 					auto& CountLimit = Element.Get<FFaerieItemContainerCountLimit>();
 					CountLimit.PostEvent(Event);
-				});
+				}, false);
 		}
 	});
 }

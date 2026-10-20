@@ -20,7 +20,7 @@ struct FFaerieGuidFragment : public FFaerieMassFragment
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GuidFragment")
 	FGuid Guid;
 
-	bool InitializeRuntime(TNotNull<UObject*> Outer, const FMassEntityHandle Item);
+	bool InitializeRuntime(FMassEntityManager& EntityManager, const FMassEntityHandle Item);
 
 	[[nodiscard]] UE_REWRITE friend uint32 GetTypeHash(const FFaerieGuidFragment& Value)
 	{
@@ -31,7 +31,7 @@ ____FAERIE_FRAGMENT_DECL(FFaerieGuidFragment)
 };
 
 template <>
-struct Faerie::ItemData::TMassFragmentTypeTraits<FFaerieGuidFragment> : TMassFragmentTypeTraitsBase<FFaerieGuidFragment>
+struct Faerie::ItemData::TMassTypeTraits<FFaerieGuidFragment> : TMassTypeTraitsBase<FFaerieGuidFragment>
 {
 	enum
 	{

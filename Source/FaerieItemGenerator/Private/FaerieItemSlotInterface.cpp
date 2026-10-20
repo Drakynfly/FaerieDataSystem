@@ -159,7 +159,7 @@ namespace Faerie::Generation
 			{
 				if (UFaerieItemContainerBase* Owner = Cast<UFaerieItemContainerBase>(SlotPayment.GetItemOwner()))
 				{
-					(void)Owner->Release(SlotPayment, Slot.Amount, Inventory::Tags::RemovalDeletion);
+					(void)Owner->Release(EntityManager, SlotPayment, Slot.Amount, Inventory::Tags::RemovalDeletion);
 				}
 			}
 

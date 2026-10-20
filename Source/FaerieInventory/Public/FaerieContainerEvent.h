@@ -22,7 +22,10 @@ namespace Faerie::Container
 
 		FAE_API static FContainerEventPayload MakeNew(const TNotNull<UFaerieItemContainerBase*> Container, const FFaerieEntryKey Entry, const FFaerieInventoryTag Type);
 
-		FAE_API static FContainerEventPayload MakeAddition(const TNotNull<UFaerieItemContainerBase*> Container, const FFaerieItemInstance& ItemInstance,
+		FAE_API static FContainerEventPayload MakeNewStack(const TNotNull<UFaerieItemContainerBase*> Container, const FFaerieItemInstance& ItemInstance,
+			const int32 InCopies, const FFaerieEntryKey Entry, const TConstArrayView<FFaerieAddress> Addresses);
+
+		FAE_API static FContainerEventPayload MakeAddedCopies(const TNotNull<UFaerieItemContainerBase*> Container, const FFaerieItemInstance& ItemInstance,
 			const int32 InCopies, const FFaerieEntryKey Entry, const TConstArrayView<FFaerieAddress> Addresses);
 
 		FAE_API static FContainerEventPayload MakeRemoval(const TNotNull<UFaerieItemContainerBase*> Container, const FFaerieItemInstance& ItemInstance,
@@ -51,12 +54,17 @@ namespace Faerie::Container
 		// All addresses that were modified by this event.
 		TArray<FFaerieAddress> AddressesTouched;
 
-		FAE_API bool IsAdditionEvent() const;
+		FAE_API bool IsCopiesChangeEvent() const;
+
+		FAE_API bool IsNewStackEvent() const;
 		FAE_API bool IsRemovalEvent() const;
 		FAE_API bool IsEditEvent() const;
 		FAE_API bool IsReplicationEvent() const;
+
+		UE_COLD bool DebugCheck() const;
 	};
 
+	// Event group that runs once per frame to destroy all FContainerEventPayload entities.
 	const FName EventCleanup = TEXT("ContainerEventCleanup");
 }
 

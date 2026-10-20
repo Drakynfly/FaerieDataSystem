@@ -82,6 +82,7 @@ UFaerieViewModelEntityDestructionNotifier::UFaerieViewModelEntityDestructionNoti
   : EntityQuery(*this)
 {
 	// Observe destruction of entities with an item pointer.
+	// @todo not great long term solution, replace with tag?
 	ObservedTypes = { FFaerieItemDataDefaults::StaticStruct() };
 	ObservedOperations = EMassObservedOperationFlags::DestroyEntity;
 

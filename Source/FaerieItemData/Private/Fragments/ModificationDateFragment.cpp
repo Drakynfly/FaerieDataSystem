@@ -2,8 +2,8 @@
 
 #include "Fragments/ModificationDateFragment.h"
 
-#include "FaerieItem.h"
 #include "FaerieItemEvent.h"
+#include "FaerieItemInstance.h"
 #include "MassExecutionContext.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ModificationDateFragment)

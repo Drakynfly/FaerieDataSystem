@@ -6,11 +6,13 @@
 #include "MassObserverProcessor.h"
 #include "FaerieItemDataMassReplicators.generated.h"
 
+class UFaerieMassReplicationSubsystem;
+
 /**
  * 
  */
 UCLASS()
-class FAERIEITEMDATA_API UFaerieItemDataCreationReplicator : public UMassObserverProcessor
+class UFaerieItemDataCreationReplicator : public UMassProcessor
 {
 	GENERATED_BODY()
 
@@ -21,6 +23,8 @@ protected:
 	virtual void ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager) override;
 	virtual void Execute(FMassEntityManager& EntityManager, FMassExecutionContext& Context) override;
 
+	static void ProcessEntities(FMassExecutionContext& Context, UFaerieMassReplicationSubsystem& ReplicationSubsystem);
+
 	FMassEntityQuery EntityQuery;
 };
 
@@ -28,7 +32,7 @@ protected:
  *
  */
 UCLASS()
-class FAERIEITEMDATA_API UFaerieItemDataDeletionReplicator : public UMassObserverProcessor
+class UFaerieItemDataDeletionReplicator : public UMassObserverProcessor
 {
 	GENERATED_BODY()
 
@@ -46,7 +50,7 @@ protected:
  *
  */
 UCLASS()
-class FAERIEITEMDATA_API UFaerieItemDataChangeReplicator : public UMassProcessor
+class UFaerieItemDataChangeReplicator : public UMassProcessor
 {
 	GENERATED_BODY()
 
@@ -56,6 +60,8 @@ public:
 protected:
 	virtual void ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager) override;
 	virtual void Execute(FMassEntityManager& EntityManager, FMassExecutionContext& Context) override;
+
+	static void ProcessEntities(FMassExecutionContext& Context, UFaerieMassReplicationSubsystem& ReplicationSubsystem);
 
 private:
 	FMassEntityQuery EventQuery;

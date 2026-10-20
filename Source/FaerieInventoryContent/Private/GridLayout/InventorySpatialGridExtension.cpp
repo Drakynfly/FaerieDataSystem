@@ -234,7 +234,7 @@ EFaerieExtensionResponse UInventorySpatialGridExtension::AllowsEdit(const FFaeri
 																   const TNotNull<const Container::IAddressView*> DataView,
 																   const FFaerieInventoryTag EditType) const
 {
-	if (EditType == Inventory::Tags::Split)
+	if (EditType == Container::Tags::Split)
 	{
 		if (!CanAddItemToGrid(Context, GetItemShape_Impl(Context.GetManagerChecked(), DataView->GetItemInstance().GetValue())))
 		{
@@ -247,7 +247,7 @@ EFaerieExtensionResponse UInventorySpatialGridExtension::AllowsEdit(const FFaeri
 
 void UInventorySpatialGridExtension::HandleEvent(const FFaerieContainerGridWriteContext& Context, const Container::FContainerEventPayload& Event) const
 {
-	if (Event.IsAdditionEvent())
+	if (Event.IsNewStackEvent())
 	{
         for (const FFaerieAddress Address : Event.AddressesTouched)
         {

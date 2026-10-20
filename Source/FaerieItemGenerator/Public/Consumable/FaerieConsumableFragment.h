@@ -3,6 +3,7 @@
 #pragma once
 
 #include "FaerieMassFragment.h"
+#include "StructUtils/StructView.h"
 #include "Templates/SubclassOf.h"
 #include "FaerieConsumableFragment.generated.h"
 
@@ -22,9 +23,9 @@ class FAERIEITEMGENERATOR_API UFaerieConsumableLogicBase : public UObject
 	GENERATED_BODY()
 
 public:
-	virtual bool TestConsumable(const FMassEntityManager& EntityManager, const TConstStructView<FFaerieMassFragment>& Fragment, const FFaerieItemProxy& Proxy, TNotNull<const AActor*> Consumer, int32 Cost) const;
+	virtual bool TestConsumable(const FMassEntityManager& EntityManager, const FConstStructView& Fragment, const FFaerieItemProxy& Proxy, TNotNull<const AActor*> Consumer, int32 Cost) const;
 
-	virtual void OnConsumed(FMassEntityManager& EntityManager, const TConstStructView<FFaerieMassFragment>& Fragment, const FFaerieItemProxy& Proxy, TNotNull<AActor*> Consumer, int32 Cost) const
+	virtual void OnConsumed(FMassEntityManager& EntityManager, const FConstStructView& Fragment, const FFaerieItemProxy& Proxy, TNotNull<AActor*> Consumer, int32 Cost) const
 		PURE_VIRTUAL(UFaerieConsumableLogicBase::OnConsumed, )
 };
 

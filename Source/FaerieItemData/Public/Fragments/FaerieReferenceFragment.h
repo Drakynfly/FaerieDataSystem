@@ -32,12 +32,7 @@ struct FFaerieReferenceFragment : public FFaerieMassFragment
 	UPROPERTY(EditAnywhere, Category = "ReferenceFragment", meta = (ForceInlineRow))
 	FFaerieTaggedReference References[3];
 
-	static const UFaerieItemAsset* GetReferencedAsset(const FMassEntityManager* EntityManager, const FFaerieItemInstance& Item, FGameplayTag ReferenceTag, bool MatchExact);
-	static const UFaerieItem* GetReferencedItem(const FMassEntityManager* EntityManager, const FFaerieItemInstance& Item, FGameplayTag ReferenceTag, bool MatchExact);
-
 	UE_REWRITE TConstArrayView<FFaerieTaggedReference> GetReferences() const { return References; }
-
-	const UFaerieItemAsset* GetReferencedAsset(FGameplayTag ReferenceTag, bool MatchExact) const;
 
 	const UFaerieItem* GetReferencedItem(FGameplayTag ReferenceTag, bool MatchExact) const;
 

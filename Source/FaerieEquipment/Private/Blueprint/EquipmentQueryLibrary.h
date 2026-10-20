@@ -12,7 +12,6 @@ struct FFaerieEquipmentSetQuery;
 struct FFaerieItemProxy;
 class UFaerieEquipmentHashAsset;
 class UFaerieEquipmentManager;
-class UFaerieItemStackContainer;
 
 DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(int32, FBlueprintEquipmentHash, const FFaerieItemProxy&, Instance);
 

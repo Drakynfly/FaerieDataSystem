@@ -165,12 +165,12 @@ void FFaerieItemGenerationActionSingle::Generate(const Generation::FActionExecut
 		// Initialize all generated instances for runtime.
 		for (auto&& Stack : ActionData.Stacks)
 		{
-			Stack.Instance.InitializeMassEntityIfInvalid(*Execution.EntityManager);
+			Stack.Instance.ConvertToRuntimeInPlace(*Execution.EntityManager);
 		}
 
 		for (auto&& GeneratedChild : Context.GeneratedChildren)
 		{
-			GeneratedChild.Value.Instance.InitializeMassEntityIfInvalid(*Execution.EntityManager);
+			GeneratedChild.Value.Instance.ConvertToRuntimeInPlace(*Execution.EntityManager);
 		}
 	}
 
@@ -367,17 +367,16 @@ void FFaerieItemGenerationAction::Generate(const Generation::FActionExecution& E
 
 	if (Execution.IsInGameWorld())
 	{
-		FMassEntityManager& EntityManager = *Execution.EntityManager;
+		// Ensure all generated instances are initialized for runtime.
 
-		// Initialize all generated instances for runtime.
         for (auto&& Stack : ActionData.Stacks)
         {
-        	Stack.Instance.InitializeMassEntityIfInvalid(EntityManager);
+        	ensure(Stack.Instance.HasMassEntity());
         }
 
         for (auto&& GeneratedChild : Context.GeneratedChildren)
         {
-        	GeneratedChild.Value.Instance.InitializeMassEntityIfInvalid(EntityManager);
+        	ensure(GeneratedChild.Value.Instance.HasMassEntity());
         }
 	}
 

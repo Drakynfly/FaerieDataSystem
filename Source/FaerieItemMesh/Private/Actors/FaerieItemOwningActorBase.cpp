@@ -32,9 +32,9 @@ void AFaerieItemOwningActorBase::InitStackFromConfig(const bool RegenerateDispla
 {
 	FEditorScriptExecutionGuard ScriptGuard;
 
-	if (ItemStack->IsFilled())
+	if (PreparedItemData.Copies > 0)
 	{
-		ItemStack->ClearStackInSlot_Editor();
+		PreparedItemData = FFaerieSimpleItemStackSaveData();
 		(void)MarkPackageDirty();
 	}
 
@@ -49,9 +49,10 @@ void AFaerieItemOwningActorBase::InitStackFromConfig(const bool RegenerateDispla
 		if (const ItemData::FGetInstanceResult Result = SourceAsset->CreateItemStack(Context);
 			Result.IsValid())
 		{
-			// We are knowingly possessing an un-initialized instance to the stack.
-			// We will properly initialize the instance in BeginPlay.
-			ItemStack->SetItemInSlot_Editor(Result.WithoutInitialization());
+			const FFaerieItemInstance Instance = Result.WithoutInitialization().Instance;
+			PreparedItemData.ItemObject = Instance.GetItemPtr();
+			PreparedItemData.Copies = 1;
+			// @todo allow for initializing PreparedItemData.ExportData and .ExtensionData with preconfigured instances.
 			(void)MarkPackageDirty();
 		}
 	}
@@ -91,6 +92,12 @@ void AFaerieItemOwningActorBase::PostLoad()
 	Super::PostLoad();
 
 #if WITH_EDITOR
+	// Purse existing data from old editor stacks with existing data. We no longer store editor data in the stack.
+	if (ItemStack->IsFilled())
+	{
+		ItemStack = NewObject<UFaerieItemStackContainer>(this);
+	}
+
 	if (const UFaerieItemAsset* ItemAsset = Cast<UFaerieItemAsset>(ItemSourceAsset.GetObject()))
 	{
 		SourceAsset = ItemAsset;
@@ -98,11 +105,12 @@ void AFaerieItemOwningActorBase::PostLoad()
 		(void)MarkPackageDirty();
 	}
 
-	if (ItemStack->IsFilled())
+	if (HasPreparedItemData())
 	{
 		if (IsValid(SourceAsset))
 		{
-			if (!Container::ValidateItemData(ItemStack->GetItemInstance().GetValue()))
+			const FFaerieItemInstance Instance = FFaerieItemInstance::FromPointer(PreparedItemData.ItemObject);
+			if (!Container::ValidateItemData(Instance))
 			{
 				UE_LOGF(LogFaerieItemMesh, Warning, "Detected out-of-date or invalid stack in: %ls! Regenerating stack.", *GetPathName())
 				InitStackFromConfig(false);
@@ -121,7 +129,7 @@ void AFaerieItemOwningActorBase::OnConstruction(const FTransform& Transform)
 	Super::OnConstruction(Transform);
 
 #if WITH_EDITOR
-	if (ItemStack->IsFilled())
+	if (HasPreparedItemData())
 	{
 		if (RegenerateDisplayOnConstruction)
 		{
@@ -162,18 +170,10 @@ void AFaerieItemOwningActorBase::BeginPlay()
 
 	// @todo setup more complex trigger for initializing runtime instance. some actors might want to wait and only
 	// register at a later point.
-	if (ItemStack->IsFilled())
+	if (HasPreparedItemData())
 	{
-		if (TOptional<FFaerieItemInstance> Instance = ItemStack->GetItemInstance();
-			Instance.IsSet())
-		{
-			if (const UFaerieItem* ItemAsset = Instance->GetItemPtr();
-				ItemAsset && ItemAsset->CanMutate())
-			{
-				Instance->InitializeMassEntity(EntityManager);
-				Container::TakeOwnership(EntityManager, ItemStack, Instance->GetMassEntityHandle());
-			}
-		}
+		Container::FLoadParams Params;
+		ItemStack->LoadSaveData(EntityManager, PreparedItemData, Params);
 	}
 }
 
@@ -209,6 +209,11 @@ void AFaerieItemOwningActorBase::OnContainerEventBatch(TNotNull<UFaerieItemConta
 	RegenerateDataDisplay();
 }
 
+bool AFaerieItemOwningActorBase::HasPreparedItemData() const
+{
+	return (PreparedItemData.ItemObject || !PreparedItemData.ExportData.IsEmpty()) && PreparedItemData.Copies > 0;
+}
+
 void AFaerieItemOwningActorBase::SetOwnedStack(FMassEntityManager& EntityManager, const FFaerieUnownedItemStack& Stack)
 {
 	if (ItemStack->IsFilled())
@@ -227,10 +232,7 @@ void AFaerieItemOwningActorBase::SetOwnedStack(const FFaerieUnownedItemStack& St
 #if WITH_EDITOR
 void AFaerieItemOwningActorBase::ViewItemObject()
 {
-	const TOptional<FFaerieItemInstance> Instance = GetItemInstance();
-	if (!Instance.IsSet()) return;
-
-	if (const UFaerieItem* Item = Instance->GetItemPtr())
+	if (const UFaerieItem* Item = PreparedItemData.ItemObject)
 	{
 		FFaerieDataUtilsModule& DataUtilsModule = FModuleManager::GetModuleChecked<FFaerieDataUtilsModule>("FaerieDataUtils");
 		DataUtilsModule.AskEditorToOpenObjectEditorWindow(const_cast<UFaerieItem*>(Item));

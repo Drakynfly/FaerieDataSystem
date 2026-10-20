@@ -5,12 +5,8 @@
 
 #include "FaerieEquipmentLog.h"
 #include "FaerieItemContainerBase.h"
-#include "FaerieItemStackContainer.h"
 #include "MassExecutionContext.h"
 #include "FaerieContainerEvent.h"
-
-#include "Components/MeshComponent.h"
-#include "Components/SkeletalMeshComponent.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(EquipmentVisualizationUpdater)
 
@@ -44,25 +40,12 @@ void UFaerieVisualizationUpdater::Execute(FMassEntityManager& EntityManager, FMa
 	EntityQuery.ForEachEntityChunk(Context, ProcessEvents);
 }
 
-UEquipmentVisualizer* UFaerieVisualizationUpdater::GetVisualizer(const FFaerieItemProxy& Proxy)
+UEquipmentVisualizer* UFaerieVisualizationUpdater::GetVisualizer(const TNotNull<const UObject*> ContextObject)
 {
-	const UObject* OwningObject = Proxy.GetProxyObject();
-	if (!IsValid(OwningObject))
-	{
-		// If there isn't a UObject stored in the proxy, fallback to the Item's owner.
-		OwningObject = Proxy.GetItemOwner();
-
-		if (!IsValid(OwningObject))
-		{
-			UE_LOGF(LogFaerieEquipment, Warning, "GetVisualizer failed: No UObject associated with Proxy!")
-			return nullptr;
-		}
-	}
-
-	const AActor* OwningActor = OwningObject->GetTypedOuter<AActor>();
+	const AActor* OwningActor = ContextObject->GetTypedOuter<AActor>();
 	if (!IsValid(OwningActor))
 	{
-		UE_LOGF(LogFaerieEquipment, Warning, "GetVisualizer failed: Proxy not owned by actor!")
+		UE_LOGF(LogFaerieEquipment, Warning, "GetVisualizer failed: ContextObject (%ls) not owned by actor!", *ContextObject->GetName())
 		return nullptr;
 	}
 
@@ -81,34 +64,52 @@ void UFaerieVisualizationUpdater::ProcessEvents(FMassExecutionContext& Context)
 #if FAERIE_DEBUG
 	if (Context.GetWorld()->GetNetMode() == ENetMode::NM_Client)
 	{
-		UE_LOGF(LogFaerieEquipment, Verbose, "UFaerieVisualizationUpdater::ProcessEvents (client)")
+		UE_LOGF(LogFaerieEquipment, Verbose, "VisualizationUpdater::ProcessEvents (client)")
 	}
 	else
 	{
-		UE_LOGF(LogFaerieEquipment, Verbose, "UFaerieVisualizationUpdater::ProcessEvents (server)")
+		UE_LOGF(LogFaerieEquipment, Verbose, "VisualizationUpdater::ProcessEvents (server)")
 	}
 #endif
 
 	const TConstArrayView<Container::FContainerEventPayload> Events = Context.GetFragmentView<Container::FContainerEventPayload>();
 	for (const Container::FContainerEventPayload& Event : Events)
 	{
-		UFaerieItemContainerBase* Container = Event.Container.Get();
+		const UFaerieItemContainerBase* Container = Event.Container.Get();
 		if (!IsValid(Container))
 		{
+			UE_LOGF(LogFaerieEquipment, Warning, "VisualizationUpdater: Skipping event with invalid Container!")
 			continue;
 		}
 
-		UFaerieItemStackContainer* Stack = Cast<UFaerieItemStackContainer>(Container);
-		if (!IsValid(Stack))
+		UEquipmentVisualizer* Visualizer = GetVisualizer(Container);
+		if (!IsValid(Visualizer))
 		{
 			continue;
 		}
 
-		const FFaerieItemProxy StackProxy(Stack);
-		UEquipmentVisualizer* Visualizer = GetVisualizer(StackProxy);
-		if (IsValid(Visualizer))
+		Visualizer->FlushInvalid(Context.GetEntityManagerChecked());
+
+		if (Event.IsCopiesChangeEvent())
 		{
-			Visualizer->RefreshVisual(Context.GetEntityManagerChecked(), StackProxy);
+			// Ignore copies change events, they don't affect visuals.
+			// @todo but what if they do...? add separate code path to update an existing visual with a new stack count, e.g, a quiver that displays its stack count as arrows.
+			continue;
 		}
+
+		if (Event.IsRemovalEvent())
+		{
+			// Flush invalid should take care of removals. The Proxy call below would fail anyway for removed items.
+			continue;
+		}
+
+		const FFaerieItemProxy Proxy = Container->Proxy(Event.Instance.GetMassEntityHandle());
+		if (!Proxy.IsValid())
+		{
+			UE_LOGF(LogFaerieEquipment, Warning, "VisualizationUpdater: Failed to create proxy for instance!")
+			continue;
+		}
+
+		Visualizer->RefreshVisual(Context.GetEntityManagerChecked(), Proxy);
 	}
 }

@@ -13,6 +13,18 @@ class UFaerieItemContainerBase;
 
 namespace Faerie::Container
 {
+	// RAII type to block TakeOwnership when intending to handle them later, typically during deserialization of nested
+	// items. Obviously, this is a loaded shotgun that will blow your leg off if used incorrectly. Only use if you are
+	// *sure* you are calling TakeOwnership again later, on the same frame as you've blocked it. This only exists to
+	// stop TakeOwnership from freaking out that the Owner doesn't yet have an Actor outer, which is normal during import,
+	// but prevents replication from being registered.
+	struct FAE_API FBlockTakeOwnershipScope
+	{
+		UE_NONCOPYABLE(FBlockTakeOwnershipScope)
+		FBlockTakeOwnershipScope();
+		~FBlockTakeOwnershipScope();
+	};
+
 	// Validate that an item is valid. Used after loading an item from disk/data.
 	// #@Todo move to ItemData module...
 	[[nodiscard]] FAE_API bool ValidateItemData(const FFaerieItemInstance& Instance);

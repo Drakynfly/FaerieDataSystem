@@ -6,14 +6,14 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieMassFragment)
 
-// Returning false, will report to UScriptStruct::SerializeItem that it should fallback to default serialization logic.
+// Returning false will report to UScriptStruct::SerializeItem that it should fallback to default serialization logic.
 // That is fine, as we are only using this as a point to inject the searchable name.
 #define FAERIE_IMPLEMENT_SERIALIZE(Type)\
 bool Type::Serialize(FArchive& Ar, const UStruct* DefaultsStruct, const void* Defaults)\
 {\
 	if (Ar.IsSaving())\
 	{\
-		Ar.MarkSearchableName(FFaerieMassFragment::StaticStruct(), *DefaultsStruct->GetName());\
+		Ar.MarkSearchableName(Type::StaticStruct(), *DefaultsStruct->GetName());\
 	}\
 	return false;\
 }
@@ -37,9 +37,15 @@ namespace Faerie::ItemData
 			Type->IsChildOf<FFaerieMassConstSharedFragment>();
 	}
 
+	bool IsFaerieMassTag(const TNotNull<const UScriptStruct*> Type)
+	{
+		return Type->IsChildOf<FFaerieMassTag>() ||
+			Type->IsChildOf<FFaerieMassSparseTag>();
+	}
+
 	namespace
 	{
-		TMap<TNotNull<const UScriptStruct*>, FMassFragmentTypeInterface> FragmentTraitsMap;
+		TMap<TNotNull<const UScriptStruct*>, FMassTypeTraitsInterface> FragmentTraitsMap;
 
 		FAutoConsoleCommandWithOutputDevice FDebugPrintFragmentTraitsMap
 		(
@@ -57,7 +63,7 @@ namespace Faerie::ItemData
 		);
 	}
 
-	void IAutoRegisterFragmentTraits::StaticRegisterTraits(const TNotNull<const UScriptStruct*> Type, const FMassFragmentTypeInterface& Interface)
+	void IAutoRegisterFragmentTraits::StaticRegisterTraits(const TNotNull<const UScriptStruct*> Type, const FMassTypeTraitsInterface& Interface)
 	{
 		FragmentTraitsMap.Add(Type, Interface);
 	}
@@ -67,9 +73,9 @@ namespace Faerie::ItemData
 		FragmentTraitsMap.Remove(Type);
 	}
 
-	const FMassFragmentTypeInterface* GetFragmentTraitsInterface(const TNotNull<const UScriptStruct*> Type)
+	const FMassTypeTraitsInterface* GetFragmentTraitsInterface(const TNotNull<const UScriptStruct*> Type)
 	{
-		if (const FMassFragmentTypeInterface* Traits = FragmentTraitsMap.Find(Type))
+		if (const FMassTypeTraitsInterface* Traits = FragmentTraitsMap.Find(Type))
 		{
 			return Traits;
 		}

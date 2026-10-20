@@ -2,16 +2,16 @@
 
 #pragma once
 
-#include "FaerieItemDataView.h"
-#include "Mass/EntityElementTypes.h"
 #include "FaerieItemDataConcepts.h"
+#include "Mass/EntityHandle.h"
 #include "StructImplementationMacros.h"
 
 #include "UObject/ObjectMacros.h"
 #include "FaerieMassFragment.generated.h"
 
-
 #define FAE_API FAERIEITEMDATA_API
+
+struct FInstancedStruct;
 
 /*
  * Faerie Mass Types have Serialize overridden to export the type as searchable.
@@ -24,7 +24,7 @@
 
 // ReSharper disable CppUEMissingStructMember
 #define FAERIE_MASS_FRAGMENT_BODY()\
-	bool Serialize(FArchive& Ar, const UStruct* DefaultsStruct, const void* Defaults);
+	FAE_API bool Serialize(FArchive& Ar, const UStruct* DefaultsStruct, const void* Defaults);
 
 // Macro to implement a faerie fragment type. Place in header at end of struct declaration.
 #define ____FAERIE_FRAGMENT_DECL(Type)\
@@ -38,7 +38,7 @@
  */
 USTRUCT()
 // Disabling ReSharper error, because it doesn't detect the Serialize overload with extra args.
-struct FAE_API FFaerieMassFragment : public FMassFragment
+struct FFaerieMassFragment : public FMassFragment
 {
 	GENERATED_BODY()
 	FAERIE_MASS_FRAGMENT_BODY()
@@ -102,24 +102,32 @@ struct FMassEntityManager;
 
 namespace Faerie::ItemData
 {
-	// @todo make concepts for these
 	FAE_API bool IsFaerieMassType(TNotNull<const UScriptStruct*> Type);
-	template <typename T> bool IsFaerieMassType() { return IsFaerieMassType(TBaseStructure<T>::Get()); }
-	
-	// Default enum values
+	FAE_API bool IsFaerieMassTag(TNotNull<const UScriptStruct*> Type);
+
+	// Default trait values for a mass fragment.
 	template <class TFaerieMassFragment>
-	struct TMassFragmentTypeTraitsBase
+	struct TMassTypeTraitsBase
 	{
 		enum
 		{
+			// Marks the fragment as being used to tell instances apart. @todo actually implement this lol
 			PrimaryIdentifier = false,
+
+			// The fragment will force the instance to be considered mutable. This disabled stacking, and enables runtime mutation.
 			RequiresMutable = false,
+
+			// The fragment is exported for serialization to save data. Disable for transient data.
+			Serialized = true,
+
+			// The fragment is exported for network replication. Disable for locally recreated data.
+			Replicated = true,
 		};
 	};
 
 	// Template to override default enum values
 	template <class TFragment>
-	struct TMassFragmentTypeTraits final : TMassFragmentTypeTraitsBase<TFragment>
+	struct TMassTypeTraits final : TMassTypeTraitsBase<TFragment>
 	{
 	};
 
@@ -148,7 +156,7 @@ namespace Faerie::ItemData
 
 	namespace Private
 	{
-		template <CFragmentImpl TFragment>
+		template <CDataImpl TFragment>
 		bool ExInitializeRuntime(TNotNull<void*> Value, FMassEntityManager& EntityManager, FMassEntityHandle Item)
 		{
 			if constexpr (CHasInitializeRuntime<TFragment>)
@@ -161,7 +169,7 @@ namespace Faerie::ItemData
 			}
 		}
 
-		template <CFragmentImpl TFragment>
+		template <CDataImpl TFragment>
 		bool ExSaveDataConverter(TNotNull<void*> Value, FMassEntityManager& EntityManager, FInstancedStruct& SaveData)
 		{
 			if constexpr (CHasSaveDataConverter<TFragment>)
@@ -175,7 +183,7 @@ namespace Faerie::ItemData
 		}
 
 #if WITH_EDITOR
-		template <CFragmentImpl TFragment>
+		template <CDataImpl TFragment>
 		EDataValidationResult ExIsDataValid(const TNotNull<const void*> Value, class FDataValidationContext& Context)
 		{
 			if constexpr (CHasIsDataValid<TFragment>)
@@ -190,9 +198,9 @@ namespace Faerie::ItemData
 #endif
 	}
 
-	struct FMassFragmentTypeInterface
+	struct FMassTypeTraitsInterface
 	{
-		~FMassFragmentTypeInterface()
+		~FMassTypeTraitsInterface()
 		{
 			// @todo deleting this here causes issues. it should be deleted somewhere, but not here
 			//delete Ops;
@@ -201,7 +209,7 @@ namespace Faerie::ItemData
 		// @Todo this create a table of all pointers for every type, even if the struct does not implement the function.
 		// This leaves a lot of pointers null, wasting a bit of memory per type.
 		// The solution is to do what TStructOpsFakeVTable does, and generate a unique template permutation for each type.
-		// This requires template magic I don't feel like
+		// This requires template magic I don't feel like writing currently.
 		struct ITraitOps
 		{
 			bool (*InitializeRuntimePtr)(TNotNull<void*>, FMassEntityManager&, FMassEntityHandle) = nullptr;
@@ -211,21 +219,23 @@ namespace Faerie::ItemData
 #endif
 		};
 
-		template <CFragmentImpl TFragment>
+		template <CElementImpl TElement>
 		struct TTraitOps final : ITraitOps
 		{
 			TTraitOps()
 			{
-				InitializeRuntimePtr = &Private::ExInitializeRuntime<TFragment>;
-				SaveDataConverterPtr = &Private::ExSaveDataConverter<TFragment>;
+				InitializeRuntimePtr = &Private::ExInitializeRuntime<TElement>;
+				SaveDataConverterPtr = &Private::ExSaveDataConverter<TElement>;
 #if WITH_EDITOR
-				IsDataValidPtr = &Private::ExIsDataValid<TFragment>;
+				IsDataValidPtr = &Private::ExIsDataValid<TElement>;
 #endif
 			}
 		};
 
 		bool PrimaryIdentifier; // @TODO implement filter by this
 		bool RequiresMutable;
+		bool Serialized;
+		bool Replicated;
 		bool HasInitializeRuntime;
 		bool HasSaveDataConverter;
 #if WITH_EDITOR
@@ -263,21 +273,23 @@ namespace Faerie::ItemData
 #endif
 	};
 
-	template <CFragmentImpl TFragment>
-	FMassFragmentTypeInterface MakeTypeInterface()
+	template <CElementImpl TElement>
+	FMassTypeTraitsInterface MakeTypeInterface()
 	{
-		using TraitsType = TMassFragmentTypeTraits<TFragment>;
+		using TraitsType = TMassTypeTraits<TElement>;
 
-		const FMassFragmentTypeInterface Interface
+		const FMassTypeTraitsInterface Interface
 		{
 			.PrimaryIdentifier = TraitsType::PrimaryIdentifier,
 			.RequiresMutable = TraitsType::RequiresMutable,
-			.HasInitializeRuntime = CHasInitializeRuntime<TFragment>,
-			.HasSaveDataConverter = CHasSaveDataConverter<TFragment>,
+			.Serialized = TraitsType::Serialized,
+			.Replicated = TraitsType::Replicated,
+			.HasInitializeRuntime = CHasInitializeRuntime<TElement>,
+			.HasSaveDataConverter = CHasSaveDataConverter<TElement>,
 #if WITH_EDITOR
-			.HasIsDataValid = CHasIsDataValid<TFragment>,
+			.HasIsDataValid = CHasIsDataValid<TElement>,
 #endif
-			.Ops = new FMassFragmentTypeInterface::TTraitOps<TFragment>
+			.Ops = new FMassTypeTraitsInterface::TTraitOps<TElement>
 		};
 
 		return Interface;
@@ -285,11 +297,11 @@ namespace Faerie::ItemData
 
 	struct IAutoRegisterFragmentTraits
 	{
-		FAE_API static void StaticRegisterTraits(TNotNull<const UScriptStruct*> Type, const FMassFragmentTypeInterface& Interface);
+		FAE_API static void StaticRegisterTraits(TNotNull<const UScriptStruct*> Type, const FMassTypeTraitsInterface& Interface);
 		FAE_API static void StaticDeregisterTraits(TNotNull<const UScriptStruct*> Type);
 	};
 
-	template <CFragmentImpl TFragment>
+	template <CElementImpl TFragment>
 	struct TAutoRegisterFragmentTraits final : FDelayedAutoRegisterHelper
 	{
 		TAutoRegisterFragmentTraits()
@@ -304,7 +316,7 @@ namespace Faerie::ItemData
 		}
 	};
 
-	FAE_API const FMassFragmentTypeInterface* GetFragmentTraitsInterface(TNotNull<const UScriptStruct*> Type);
+	FAE_API const FMassTypeTraitsInterface* GetFragmentTraitsInterface(TNotNull<const UScriptStruct*> Type);
 
 #define FAERIE_REGISTER_TRAITS(MassFragmentType) \
 	namespace\
@@ -315,7 +327,7 @@ namespace Faerie::ItemData
 	/*
 	 * Template parent for implementing common functions for interacting with mass fragments on a faerie item instance.
 	 */
-	template<typename Impl, CFragmentImpl TFragment>
+	template<typename Impl, CDataImpl TFragment>
 	struct [[nodiscard]] TFragmentHelperCRTP
 	{
 	private:

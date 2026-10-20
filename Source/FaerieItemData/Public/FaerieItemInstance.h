@@ -5,6 +5,7 @@
 #include "FaerieItemDataEnums.h"
 #include "FaerieItemDataFwd.h"
 #include "FaerieItemEvent.h"
+#include "FaerieMassFragment.h"
 
 #include "Mass/EntityHandle.h"
 
@@ -31,24 +32,22 @@ struct FAE_API FFaerieItemInstance
 
 private:
 	explicit FFaerieItemInstance(const UFaerieItem* Item) : Item(Item) {}
+	explicit FFaerieItemInstance(const FMassEntityHandle Item) : EntityHandle(Item) {}
 
 public:
 	FFaerieItemInstance() = default;
-
-	FFaerieItemInstance(const UFaerieItem* Item, const FMassEntityHandle Handle)
-	  : Item(Item), EntityHandle(Handle) {}
 
 	static FFaerieItemInstance FromPointer(const UFaerieItem* Item)
 	{
 		return FFaerieItemInstance(Item);
 	}
 
-	static FFaerieItemInstance FromFragments(FMassEntityManager& EntityManager, const TArrayView<FInstancedStruct> Fragments)
+	static FFaerieItemInstance FromEntity(const FMassEntityHandle Item)
 	{
-		FFaerieItemInstance Instance;
-		Instance.InitializeMassEntity(EntityManager, Fragments);
-		return Instance;
+		return FFaerieItemInstance(Item);
 	}
+
+	void ConvertToRuntimeInPlace(FMassEntityManager& EntityManager);
 
 protected:
 	/*
@@ -82,9 +81,6 @@ public:
 	bool IsMutable() const;
 	bool CanStack() const;
 
-	void InitializeMassEntity(FMassEntityManager& EntityManager, TArrayView<FInstancedStruct> Fragments = {});
-	void InitializeMassEntityIfInvalid(FMassEntityManager& EntityManager);
-
 	// Call on Server Only to destroy the mass entity for this item instance.
 	void DestroyMassEntity(FMassEntityManager& EntityManager);
 
@@ -111,7 +107,11 @@ public:
 
 namespace Faerie::ItemData
 {
-	FAE_API [[nodiscard]] FMassEntityHandle InitializeItemEntity(FMassEntityManager& EntityManager, const UFaerieItem* ItemAsset, const FMassTagBitSet& Tags, TArrayView<FInstancedStruct> Fragments);
+	FAE_API [[nodiscard]] FMassEntityHandle InitializeItemEntity(FMassEntityManager& EntityManager, const UFaerieItem* ItemAsset, const FMassTagBitSet& Tags, TConstArrayView<FInstancedStruct> Fragments);
+
+	// Utility for getting a view of a faerie fragment type
+	// @Todo move elsewhere
+	FAE_API [[nodiscard]] FConstStructView GetFaerieFragmentView(const FMassEntityManager& EntityManager, FMassEntityHandle Item, TNotNull<const UScriptStruct*> Type);
 
 	FAE_API bool IsMutable(const FMassEntityManager& EntityManager, FMassEntityHandle Item);
 
@@ -121,12 +121,12 @@ namespace Faerie::ItemData
 
 	// @todo do we need to make Deferred command versions of these?
 	FAE_API void AddFragment(FMassEntityManager& EntityManager, FMassEntityHandle Item, FInstancedStruct&& Fragment);
-	FAE_API void AddFragments(FMassEntityManager& EntityManager, FMassEntityHandle Item, TArrayView<FInstancedStruct> Fragments);
+	FAE_API void AddFragments(FMassEntityManager& EntityManager, FMassEntityHandle Item, TConstArrayView<FInstancedStruct> Fragments);
 
 	FAE_API void RemoveFragment(FMassEntityManager& EntityManager, FMassEntityHandle Item, TNotNull<const UScriptStruct*> FragmentType);
 	FAE_API void RemoveFragments(FMassEntityManager& EntityManager, FMassEntityHandle Item, TConstArrayView<const UScriptStruct*> FragmentTypes);
 
-	FAE_API void UpdateFragments(FMassEntityManager& EntityManager, FMassEntityHandle Item, TArrayView<FInstancedStruct> Fragments, bool ClearOthers);
+	FAE_API void UpdateFragments(FMassEntityManager& EntityManager, FMassEntityHandle Item, TConstArrayView<FInstancedStruct> Fragments, bool ClearOthers);
 
 	FAE_API void OnItemFragmentEdited(FMassEntityManager& EntityManager, FMassEntityHandle Item, TNotNull<const UScriptStruct*> FragmentType, const FFieldChangePayload& FieldChange);
 }

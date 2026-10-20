@@ -27,7 +27,7 @@ ____FAERIE_FRAGMENT_DECL(FFaerieTagFragment)
 };
 
 template <>
-struct Faerie::ItemData::TMassFragmentTypeTraits<FFaerieTagFragment> : TMassFragmentTypeTraitsBase<FFaerieTagFragment>
+struct Faerie::ItemData::TMassTypeTraits<FFaerieTagFragment> : TMassTypeTraitsBase<FFaerieTagFragment>
 {
 	enum
 	{

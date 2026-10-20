@@ -38,13 +38,15 @@ EDataValidationResult FFaerieItemStorageFragment::IsDataValid(FDataValidationCon
 
 bool FFaerieItemStorageFragment::InitializeRuntime(FMassEntityManager& EntityManager, const FMassEntityHandle Item)
 {
+	check(EntityManager.IsEntityValid(Item));
 	if (IsValid(Storage.Storage))
 	{
-		UObject* OwnerObj = Container::GetItemOwner(EntityManager, Item);
-		if (!OwnerObj)
+		UObject* OwnerObj = GetTransientPackageAsObject();
+
+		// Only fully built items will already have an owner set.
+		if (EntityManager.IsEntityBuilt(Item))
 		{
-			//UE_LOGF(LogFaerieInventory, Verbose, "Unable to retrieve owner from instance. This instance must be reparented when possessed!")
-			OwnerObj = GetTransientPackageAsObject();
+			OwnerObj = Container::GetItemOwner(EntityManager, Item);
 		}
 
 		if (Utils::HasLoadFlag(Storage.Storage))
@@ -53,11 +55,12 @@ bool FFaerieItemStorageFragment::InitializeRuntime(FMassEntityManager& EntityMan
 		}
 
 		Storage.Storage->WriteContainerData(EntityManager, Container::FNestedContainer::StaticStruct(),
-			[Item](const FStructView Element)
+			[this, Item](const FStructView Element)
 			{
 				check(Item.IsValid())
+				UE_LOGF(LogFaerieInventory, Log, "Assigned nested container item handle %ls to Storage '%ls'", *LexToString(Item), *GetNameSafe(Storage.Storage))
 				Element.Get<Container::FNestedContainer>().ItemHandle = Item;
-			});
+			}, true);
 	}
 	return true;
 }
@@ -113,11 +116,13 @@ EDataValidationResult FFaerieChildStackFragment::IsDataValid(FDataValidationCont
 
 bool FFaerieChildStackFragment::InitializeRuntime(FMassEntityManager& EntityManager, const FMassEntityHandle Item)
 {
-	UObject* OwnerObj = Container::GetItemOwner(EntityManager, Item);
-	if (!OwnerObj)
+	check(EntityManager.IsEntityValid(Item));
+	UObject* OwnerObj = GetTransientPackageAsObject();
+
+	// Only fully built items will already have an owner set.
+	if (EntityManager.IsEntityBuilt(Item))
 	{
-		//UE_LOGF(LogFaerieInventory, Verbose, "Unable to retrieve owner from instance. This instance must be reparented when possessed!")
-		OwnerObj = GetTransientPackageAsObject();
+		OwnerObj = Container::GetItemOwner(EntityManager, Item);
 	}
 
 	for (FFaerieInlineStackContainer& InlineStack : Slots)
@@ -130,11 +135,12 @@ bool FFaerieChildStackFragment::InitializeRuntime(FMassEntityManager& EntityMana
 			}
 
 			InlineStack.Stack->WriteContainerData(EntityManager, Container::FNestedContainer::StaticStruct(),
-				[Item](const FStructView Element)
+				[&, Item](const FStructView Element)
 				{
 					check(Item.IsValid())
+					UE_LOGF(LogFaerieInventory, Log, "Assigned nested container item handle %ls to Stack '%ls'", *LexToString(Item), *GetNameSafe(InlineStack.Stack))
 					Element.Get<Container::FNestedContainer>().ItemHandle = Item;
-				});
+				}, true);
 		}
 	}
 	return true;

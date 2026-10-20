@@ -15,4 +15,6 @@ struct FAERIEITEMDATA_API FFaerieItemExportData
 
 	UPROPERTY()
 	TArray<FInstancedStruct> MassInstances;
+
+	UE_REWRITE bool IsEmpty() const { return MassTags.IsEmpty() && MassInstances.IsEmpty(); }
 };

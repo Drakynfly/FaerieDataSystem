@@ -11,6 +11,7 @@
 #include "FaerieItemContainerStructs.h"
 #include "FaerieItemExportData.h"
 #include "FaerieItemKey.h"
+#include "MassReplication/FaerieItemReplicationTypes.h"
 #include "FaerieStorageStructs.generated.h"
 
 // Typesafe wrapper around an FFaerieItemKeyBase used for keying stacks in a UFaerieItemStorage.
@@ -66,8 +67,11 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = "StorageEntry")
 	FFaerieEntryKey Key;
 
-	// The item stored for all stacks in this entry.
 	UPROPERTY(VisibleAnywhere, Category = "StorageEntry")
+	FFaerieNetItemID NetID;
+
+	// The item stored for all stacks in this entry.
+	UPROPERTY(VisibleAnywhere, NotReplicated, Category = "StorageEntry")
 	FFaerieItemInstance ItemInstance;
 
 	UPROPERTY(VisibleAnywhere, Category = "StorageEntry")
@@ -93,6 +97,7 @@ private:
 
 public:
 	UE_REWRITE FFaerieEntryKey GetKey() const { return Key; }
+	UE_REWRITE FFaerieNetItemID GetNetID() const { return NetID; }
 	UE_REWRITE FMassEntityHandle GetEntityHandle() const { return ItemInstance.GetMassEntityHandle(); }
 	UE_REWRITE const FFaerieItemInstance& GetInstance() const { return ItemInstance; }
 	UE_REWRITE TConstArrayView<FFaerieKeyedStack> GetStacks() const { return Stacks; }
@@ -199,6 +204,8 @@ public:
 
 		FFaerieStorageEntry* operator->() const { return &Entry; }
 		FFaerieStorageEntry& Get() const { return Entry; }
+
+		void AssignEntityFromReplication(FMassEntityHandle EntityHandle);
 
 		// Sets the number of copies in a stack. If stack is less that or equal to zero, will defer to RemoveStack.
 		void SetStack(FFaerieStackKey InKey, const int32 Stack);
@@ -375,7 +382,7 @@ struct FFaerieStorageEntryExportData
 	FFaerieItemExportData ExportData;
 
 	UPROPERTY()
-	TArray<FFaerieKeyedStack> Stacks;
+	TArray<int32> Counts;
 };
 
 USTRUCT()

@@ -11,6 +11,8 @@
 
 #include "FaerieItemStorage.generated.h"
 
+#define FAE_API FAERIEINVENTORY_API
+
 struct FFaerieExtensionAllowsAdditionArgs;
 class UFaerieItemEntryProxy;
 class UFaerieItemStackProxy;
@@ -18,13 +20,22 @@ class UFaerieItemStackProxy;
 namespace Faerie::Container
 {
 	class FStorageDataAccess;
+
+	namespace Tags
+	{
+		FAE_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, Merge)
+		FAE_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, Split)
+
+		FAE_API const TSet<FFaerieInventoryTag>& StorageEditTagsAllowedByDefault();
+		FAE_API const TSet<FFaerieInventoryTag>& StorageRemovalTagsAllowedByDefault();
+	}
 }
 
 /**
  *
  */
 UCLASS(BlueprintType)
-class FAERIEINVENTORY_API UFaerieItemStorage : public UFaerieItemContainerBase
+class FAE_API UFaerieItemStorage : public UFaerieItemContainerBase
 {
 	GENERATED_BODY()
 
@@ -60,14 +71,15 @@ public:
 	virtual FFaerieItemProxy Proxy(FFaerieEntryKey Key) const override;
 	virtual FFaerieItemProxy Proxy(FFaerieAddress Address) const override;
 	virtual bool Possess(FMassEntityManager& EntityManager, const FFaerieUnownedItemStack& Stack) override;
-	virtual TOptional<FFaerieUnownedItemStack> Release(FFaerieEntryKey Key, int32 Copies, FFaerieInventoryTag Reason) override;
-	virtual TOptional<FFaerieUnownedItemStack> Release(FFaerieAddress Address, int32 Copies, FFaerieInventoryTag Reason) override;
-	virtual TOptional<FFaerieUnownedItemStack> Release(const FFaerieItemProxy& Proxy, int32 Copies, FFaerieInventoryTag Reason) override;
-	virtual bool CanPossess(const FFaerieItemProxy& Proxy) const override;
-	virtual bool CanRelease(const FFaerieItemProxy& Proxy, FFaerieInventoryTag Reason) const override;
+	virtual TOptional<FFaerieUnownedItemStack> Release(FMassEntityManager& EntityManager, FFaerieEntryKey Key, int32 Copies, FFaerieInventoryTag Reason) override;
+	virtual TOptional<FFaerieUnownedItemStack> Release(FMassEntityManager& EntityManager, FFaerieAddress Address, int32 Copies, FFaerieInventoryTag Reason) override;
+	virtual TOptional<FFaerieUnownedItemStack> Release(FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy, int32 Copies, FFaerieInventoryTag Reason) override;
+	virtual bool CanPossess(const FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy) const override;
+	virtual bool CanRelease(const FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy, FFaerieInventoryTag Reason) const override;
 	virtual void GetAllAddresses(TAdderReserverRef<FFaerieAddress> Addresses) const override;
 
 protected:
+	virtual bool AckItemCreatedByNetwork(FMassEntityManager& EntityManager, FMassEntityHandle Entity, FFaerieNetItemID NetID) override;
 	virtual void OnItemDataChanged(const FMassEntityHandle Item, FGameplayTag EditTag) override;
 	virtual TUniquePtr<Faerie::Container::IEntryIterator> CreateEntryIterator() const override;
 	virtual TUniquePtr<Faerie::Container::IAddressIterator> CreateAddressIterator() const override;
@@ -82,7 +94,7 @@ private:
 	void CopyEntryKeys(TAdderReserverRef<FFaerieEntryKey> OutKeys) const;
 
 	// Collect all addresses for an entry into an array.
-	[[nodiscard]] static TArray<FFaerieAddress> CollateAddresses(const FFaerieStorageEntry& Entry);
+	static void CollateAddresses(const FFaerieStorageEntry& Entry, TArray<FFaerieAddress>& OutAddresses);
 
 	[[nodiscard]] const FFaerieStorageEntry* GetEntrySafe(FFaerieEntryKey Key) const;
 
@@ -348,18 +360,16 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Storage")
 	void Dump(UFaerieItemStorage* ToStorage);
 
-
-	/**-------------*/
-	/*	 VARIABLES	*/
-	/**-------------*/
 private:
 	// Our internal data containing the contents of the storage.
 	UPROPERTY(Replicated)
 	FFaerieStorageContent EntryMap;
 
-	// Locally stored proxies per entry stack.
+	// Locally stored proxies per entry/stack.
 	// Using weak pointers here is intentional. We don't want this storage to keep these alive. They
 	// should be stored in a strong pointer by whatever requested them, and once nothing needs the proxies, they will die.
 	TCompactMap<FFaerieEntryKey, TWeakObjectPtr<UFaerieItemEntryProxy>> LocalEntryProxies;
 	TCompactMap<FFaerieAddress, TWeakObjectPtr<UFaerieItemStackProxy>> LocalStackProxies;
 };
+
+#undef FAE_API

@@ -7,21 +7,23 @@
 #include "TypedGameplayTags.h"
 #include "ItemContainerEvent.generated.h"
 
+#define FAE_API FAERIEINVENTORY_API
+
 namespace Faerie::Inventory
 {
 	namespace Tags
 	{
-		FAERIEINVENTORY_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, Addition)
-		FAERIEINVENTORY_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, RemovalBase)
-		FAERIEINVENTORY_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, RemovalDeletion)
-		FAERIEINVENTORY_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, RemovalMoving)
-		FAERIEINVENTORY_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, EditBase)
-		FAERIEINVENTORY_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, ReplicationEdit)
-		FAERIEINVENTORY_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, Merge)
-		FAERIEINVENTORY_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, Split)
+		FAE_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, NewStack)
 
-		FAERIEINVENTORY_API const TSet<FFaerieInventoryTag>& EditTagsAllowedByDefault();
-		FAERIEINVENTORY_API const TSet<FFaerieInventoryTag>& RemovalTagsAllowedByDefault();
+		FAE_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, RemovalBase)
+		FAE_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, RemovalDeletion)
+		FAE_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, RemovalMoving)
+
+		FAE_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, AddedCopies)
+		FAE_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, RemovedCopies)
+
+		FAE_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, EditBase)
+		FAE_API UE_DECLARE_GAMEPLAY_TAG_TYPED_EXTERN(FFaerieInventoryTag, ReplicationEdit)
 	}
 }
 
@@ -34,7 +36,7 @@ namespace Faerie::Container
  * Blueprint wrapper of Faerie::Container::FContainerEventPayload. The data is the same, but I keep it a separate type for flexibility.
  */
 USTRUCT(BlueprintType)
-struct FAERIEINVENTORY_API FFaerieBlueprintInventoryEvent
+struct FAE_API FFaerieBlueprintInventoryEvent
 {
 	GENERATED_BODY()
 
@@ -63,3 +65,5 @@ struct FAERIEINVENTORY_API FFaerieBlueprintInventoryEvent
 
 	static FFaerieBlueprintInventoryEvent FromNativeEvent(const Faerie::Container::FContainerEventPayload& NativeEvent);
 };
+
+#undef FAE_API

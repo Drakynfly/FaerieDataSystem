@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "FaerieItemStackContainer.h"
 #include "FaerieItemVisualBase.h"
 
 #include "Extensions/ContainerEventSubscription.h"
@@ -57,6 +58,8 @@ protected:
 	virtual void OnContainerEventBatch(TNotNull<UFaerieItemContainerBase*> Container, TConstArrayView<const Faerie::Container::FContainerEventPayload*> Events) override;
 	//~ IFaerieContainerEventSubscriber
 
+	bool HasPreparedItemData() const;
+
 public:
 	UFaerieItemStackContainer* GetContainer() const { return ItemStack; }
 
@@ -78,6 +81,10 @@ protected:
 	// The item stack replication wrapper object.
 	UPROPERTY(BlueprintReadOnly, Replicated, Category = "ItemOwningActor")
 	TObjectPtr<UFaerieItemStackContainer> ItemStack;
+
+	// Preset item data, typically stored by the editor.
+	UPROPERTY()
+	FFaerieSimpleItemStackSaveData PreparedItemData;
 
 #if WITH_EDITORONLY_DATA
 private:

@@ -46,7 +46,7 @@ EFaerieExtensionResponse UInventorySimpleGridExtension::AllowsEdit(const FFaerie
 																  const TNotNull<const Container::IAddressView*> DataView,
 																  const FFaerieInventoryTag EditType) const
 {
-	if (EditType == Inventory::Tags::Split)
+	if (EditType == Container::Tags::Split)
 	{
 		if (Context.IsFull())
 		{
@@ -60,7 +60,7 @@ EFaerieExtensionResponse UInventorySimpleGridExtension::AllowsEdit(const FFaerie
 
 void UInventorySimpleGridExtension::HandleEvent(const FFaerieContainerGridWriteContext& Context, const Container::FContainerEventPayload& Event) const
 {
-	if (Event.IsAdditionEvent())
+	if (Event.IsNewStackEvent())
 	{
 		for (const FFaerieAddress Address : Event.AddressesTouched)
 		{

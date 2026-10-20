@@ -2,13 +2,9 @@
 
 #pragma once
 
-#include "FaerieItemContainerBase.h"
 #include "FaerieMassFragment.h"
-#include "FaerieItemStorage.h"
-
 #include "FaerieItemStorageFragment.generated.h"
 
-class UFaerieItemContainerBase;
 class UFaerieItemStackContainer;
 class UFaerieItemStorage;
 
@@ -21,8 +17,13 @@ struct FFaerieInlineItemStorage
 	TObjectPtr<UFaerieItemStorage> Storage;
 };
 
+/*
+ * Fragment to store an item storage object inside an item (eg, a backpack).
+ * Implemented as a SharedFragment to keep the storage object alive, as regular fragments are not memory-managed.
+ * SaveData is exported as a FFaerieStorageExportData instance.
+ */
 USTRUCT()
-struct FFaerieItemStorageFragment : public FFaerieMassFragment
+struct FFaerieItemStorageFragment : public FFaerieMassConstSharedFragment
 {
 	GENERATED_BODY()
 
@@ -49,7 +50,7 @@ struct TMassFragmentTraits<FFaerieItemStorageFragment> final
 };
 
 template <>
-struct Faerie::ItemData::TMassFragmentTypeTraits<FFaerieItemStorageFragment> : TMassFragmentTypeTraitsBase<FFaerieItemStorageFragment>
+struct Faerie::ItemData::TMassTypeTraits<FFaerieItemStorageFragment> : TMassTypeTraitsBase<FFaerieItemStorageFragment>
 {
 	enum
 	{
@@ -66,8 +67,13 @@ struct FFaerieInlineStackContainer
 	TObjectPtr<UFaerieItemStackContainer> Stack;
 };
 
+/*
+ * Fragment to store sub-items inside an item.
+ * Implemented as a SharedFragment to keep the storage object alive, as regular fragments are not memory-managed.
+ * SaveData is exported as a FFaerieChildStackFragmentSaveData instance.
+ */
 USTRUCT()
-struct FFaerieChildStackFragment : public FFaerieMassFragment
+struct FFaerieChildStackFragment : public FFaerieMassConstSharedFragment
 {
 	GENERATED_BODY()
 
@@ -108,7 +114,7 @@ struct TMassFragmentTraits<FFaerieChildStackFragment> final
 };
 
 template <>
-struct Faerie::ItemData::TMassFragmentTypeTraits<FFaerieChildStackFragment> : TMassFragmentTypeTraitsBase<FFaerieChildStackFragment>
+struct Faerie::ItemData::TMassTypeTraits<FFaerieChildStackFragment> : TMassTypeTraitsBase<FFaerieChildStackFragment>
 {
 	enum
 	{

@@ -85,30 +85,33 @@ void UFaerieStorageWidgetBase::OnContainerEventBatch(TNotNull<UFaerieItemContain
 
 	for (auto&& Event : Events)
 	{
-		if (Event->IsAdditionEvent())
+		if (Event->IsCopiesChangeEvent())
 		{
-			for (auto&& Address : Event->AddressesTouched)
+			for (const FFaerieAddress& Address : Event->AddressesTouched)
 			{
-				// @Todo we don't know if the address was added "to" or added for the first time. separate "Addition" tag
-				// into "NewEntry" versus "CountIncrement".
-				int32 Index = SortedAndFilteredAddresses.Find(Address);
-				if (Index != INDEX_NONE)
+				if (const int32 Index = SortedAndFilteredAddresses.Find(Address);
+					Index != INDEX_NONE)
 				{
 					OnAddressUpdated(Address, Index);
 				}
-				else
+			}
+		}
+		else if (Event->IsNewStackEvent())
+		{
+			for (const FFaerieAddress& Address : Event->AddressesTouched)
+			{
+				UE_CLOGF(SortedAndFilteredAddresses.Contains(Address), LogFaerieInventoryContent, Error, "Storage widget already contains address. Why?")
+
+				if (const int32 Index = AddToSortOrder(Address, true);
+					Index != INDEX_NONE)
 				{
-					Index = AddToSortOrder(Address, true);
-					if (Index != INDEX_NONE)
-					{
-						OnAddressAdded(Address, Index);
-					}
+					OnAddressAdded(Address, Index);
 				}
 			}
 		}
 		else if (Event->IsRemovalEvent())
 		{
-			for (auto&& Address : Event->AddressesTouched)
+			for (const FFaerieAddress& Address : Event->AddressesTouched)
             {
                 if (const int32 Index = SortedAndFilteredAddresses.Find(Address);
                 	Index != INDEX_NONE)
@@ -122,7 +125,7 @@ void UFaerieStorageWidgetBase::OnContainerEventBatch(TNotNull<UFaerieItemContain
 		{
 			check(Event->IsEditEvent())
 
-			for (auto&& Address : Event->AddressesTouched)
+			for (const FFaerieAddress& Address : Event->AddressesTouched)
 			{
 				int32 Index = AddToSortOrder(Address, false);
 				if (Index != INDEX_NONE)

@@ -14,6 +14,11 @@
 
 namespace Faerie::Container
 {
+	static int32 BlockTakeOwnershipScopeCount = 0;
+
+	FBlockTakeOwnershipScope::FBlockTakeOwnershipScope() { BlockTakeOwnershipScopeCount++; }
+	FBlockTakeOwnershipScope::~FBlockTakeOwnershipScope() { BlockTakeOwnershipScopeCount--; }
+
 	bool ValidateItemData(const FFaerieItemInstance& Instance)
 	{
 		if (Instance.IsEmpty())
@@ -47,6 +52,7 @@ namespace Faerie::Container
 		if (const FNestedContainer* NestedContainer = Container->ReadContainerData<FNestedContainer>(EntityManager))
 		{
 			UE_CLOGF(!NestedContainer->ItemHandle.IsValid(), LogFaerieInventory, Error, "GetContainerOwner found NestedContainer, but ItemHandle was not valid!")
+			UE_CLOGF(!EntityManager.IsEntityActive(NestedContainer->ItemHandle), LogFaerieInventory, Error, "GetContainerOwner found NestedContainer, but ItemHandle was not built!")
 			return NestedContainer->ItemHandle;
 		}
 
@@ -56,13 +62,16 @@ namespace Faerie::Container
 
 	UFaerieItemContainerBase* GetItemOwner(const FMassEntityManager& EntityManager, const FMassEntityHandle Item)
 	{
-		if (EntityManager.IsEntityValid(Item) && EntityManager.IsEntityBuilt(Item))
+		if (!EntityManager.IsEntityValid(Item) || !EntityManager.IsEntityBuilt(Item))
 		{
-			if (const FFaerieMassItemOwningContainer* Fragment = EntityManager.GetConstSharedFragmentDataPtr<FFaerieMassItemOwningContainer>(Item))
-			{
-				UE_CLOGF(!IsValid(Fragment->Owner), LogFaerieInventory, Error, "GetItemOwner found MassItemOwningContainer, but Owner ptr was not valid!")
-				return Fragment->Owner;
-			}
+			UE_LOGF(LogFaerieInventory, Warning, "GetItemOwner called with invalid Item!")
+			return nullptr;
+		}
+
+		if (const FFaerieMassItemOwningContainer* Fragment = EntityManager.GetConstSharedFragmentDataPtr<FFaerieMassItemOwningContainer>(Item))
+		{
+			UE_CLOGF(!IsValid(Fragment->Owner), LogFaerieInventory, Error, "GetItemOwner found MassItemOwningContainer, but Owner ptr was not valid!")
+			return Fragment->Owner;
 		}
 
 		// Item has no owner.
@@ -100,11 +109,25 @@ namespace Faerie::Container
 			if constexpr (!IsSubItem)
 			{
 				// Remove the owner fragment
-				EntityManager.RemoveConstSharedFragmentFromEntity<FFaerieMassItemOwningContainer>(Item);
+				if (EntityManager.IsProcessing())
+				{
+					EntityManager.Defer().PushCommand<FMassDeferredRemoveCommand>([Item](FMassEntityManager& InEntityManager)
+					{
+						if (InEntityManager.IsEntityValid(Item))
+						{
+							InEntityManager.RemoveConstSharedFragmentFromEntity<FFaerieMassItemOwningContainer>(Item);
+						}
+					});
+				}
+				else
+				{
+					EntityManager.RemoveConstSharedFragmentFromEntity<FFaerieMassItemOwningContainer>(Item);
+				}
 			}
 		}
 
-		void TakeOwnership_Impl(FMassEntityManager& EntityManager, AActor* RegisteringActor, const TNotNull<UFaerieItemContainerBase*> Owner, const FMassEntityHandle Item)
+		template <bool IsSubItem>
+		void TakeOwnership_Impl(FMassEntityManager& EntityManager, const TNotNull<AActor*> RegisteringActor, const TNotNull<UFaerieItemContainerBase*> Owner, const FMassEntityHandle Item)
 		{
 			/*
 			if (EntityManager.IsEntityValid(Entity) && EntityManager.IsEntityBuilt(Entity))
@@ -144,24 +167,23 @@ namespace Faerie::Container
 			SubObject::GetContainersInInstanceDirect<UFaerieItemContainerBase>(EntityManager, Item, Containers);
 			for (TNotNull<UFaerieItemContainerBase*> Container : Containers)
 			{
+				UE_LOGF(LogFaerieInventory, Log, "Sub-container (%ls) found. Recursing TakeOwnership!", *Container->GetName())
+
 				if (Container->GetOuter() != Owner)
 				{
 					check(Container->GetOuter() == GetTransientPackageAsObject());
 					Container->Rename(nullptr, Owner);
 				}
 
-				if (RegisteringActor)
-				{
-					RegisteringActor->AddReplicatedSubObject(Container);
-					Container->InitializeContainer(EntityManager);
-				}
+				RegisteringActor->AddReplicatedSubObject(Container);
+				Container->InitializeContainer(EntityManager);
 
 				Container->SetParentExtensions(Owner);
 
 				// If the object contains nested items, take ownership recursively.
 				for (auto It = Container::MutableItemRange(Container); It; ++It)
 				{
-					TakeOwnership_Impl(EntityManager, RegisteringActor, Container, It.GetEntityHandle());
+					TakeOwnership_Impl<true>(EntityManager, RegisteringActor, Container, It.GetEntityHandle());
 				}
 			}
 		}
@@ -187,11 +209,15 @@ namespace Faerie::Container
 			return nullptr;
 		}();
 
+		UE_CLOGF(!IsValid(RegisteringActor), LogFaerieInventory, Warning, "Unable to find owning Actor for container. Release ownership will continue anyway!")
+
 		ReleaseOwnership_Impl<false>(EntityManager, RegisteringActor, Owner, Item);
 	}
 
 	void TakeOwnership(FMassEntityManager& EntityManager, const TNotNull<UFaerieItemContainerBase*> Owner, const FMassEntityHandle Instance)
 	{
+		if (BlockTakeOwnershipScopeCount > 0) return;
+
 		AActor* RegisteringActor = [Owner]() -> AActor*
 		{
 			if (AActor* Actor = Owner->GetTypedOuter<AActor>();
@@ -202,6 +228,12 @@ namespace Faerie::Container
 			return nullptr;
 		}();
 
-		TakeOwnership_Impl(EntityManager, RegisteringActor, Owner, Instance);
+		if (!ensure(IsValid(RegisteringActor)))
+		{
+			UE_LOGF(LogFaerieInventory, Error, "Unable to find owning Actor for container (%ls). Unable to take ownership of item instance!", *Owner->GetName())
+			return;
+		}
+
+		TakeOwnership_Impl<false>(EntityManager, RegisteringActor, Owner, Instance);
 	}
 }

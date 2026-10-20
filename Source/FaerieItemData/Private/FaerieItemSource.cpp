@@ -8,7 +8,7 @@ FFaerieUnownedItemStack Faerie::ItemData::FGetInstanceResult::WithInitialization
 {
 	// Setup new instance for runtime.
 	FFaerieUnownedItemStack ItemStack = Stack.GetValue();
-	ItemStack.Instance.InitializeMassEntityIfInvalid(EntityManager);
+	ItemStack.Instance.ConvertToRuntimeInPlace(EntityManager);
 	return ItemStack;
 }
 

@@ -161,6 +161,6 @@ bool FFaerieClientAction_EjectEntry::Server_Execute(const TNotNull<const UFaerie
 	UFaerieItemContainerBase* Container = Handle.Container.Get();
 	if (!Client->CanAccessContainer(EntityManager, Container, StaticStruct())) return false;
 
-	const TOptional<FFaerieUnownedItemStack> Stack = Container->Release(Handle.Address, Amount, Inventory::Tags::RemovalEject);
+	const TOptional<FFaerieUnownedItemStack> Stack = Container->Release(EntityManager, Handle.Address, Amount, Inventory::Tags::RemovalEject);
 	return Stack.IsSet();
 }

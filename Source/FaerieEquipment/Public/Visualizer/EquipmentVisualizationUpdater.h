@@ -72,7 +72,7 @@ protected:
 	virtual void ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager) override;
 	virtual void Execute(FMassEntityManager& EntityManager, FMassExecutionContext& Context) override;
 
-	static UEquipmentVisualizer* GetVisualizer(const FFaerieItemProxy& Proxy);
+	static UEquipmentVisualizer* GetVisualizer(TNotNull<const UObject*> ContextObject);
 
 	static void ProcessEvents(FMassExecutionContext& Context);
 

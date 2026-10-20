@@ -214,8 +214,8 @@ FFaerieItemInstance UFaerieItemAsset::CreateReferencingInstance_Editor(const TNo
 {
 	const FFaerieTaggedReference Reference
 	{
-		ItemData::Tags::ReferenceDefaults,
-		this
+		.Tag = ItemData::Tags::ReferenceDefaults,
+		.Reference = this
 	};
 
 	FFaerieReferenceFragment ReferenceFragment;
@@ -243,7 +243,7 @@ FFaerieItemInstance UFaerieItemAsset::CreateReferencingInstance_Runtime(FMassEnt
 	FInstancedStruct FragmentStruct;
 	FragmentStruct.InitializeAs<FFaerieReferenceFragment>(ReferenceFragment);
 
-	return FFaerieItemInstance::FromFragments(EntityManager, MakeArrayView(&FragmentStruct, 1));
+	return FFaerieItemInstance::FromEntity(ItemData::InitializeItemEntity(EntityManager, nullptr, FMassTagBitSet(), MakeConstArrayView(&FragmentStruct, 1)));
 }
 
 FFaerieItemInstance UFaerieItemAsset::GetTemplateInstance() const

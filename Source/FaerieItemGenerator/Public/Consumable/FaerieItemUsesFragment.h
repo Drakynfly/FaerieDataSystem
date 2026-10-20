@@ -77,7 +77,7 @@ ____FAERIE_FRAGMENT_DECL(FFaerieItemUses)
 namespace Faerie::ItemData
 {
 	template <>
-	struct TMassFragmentTypeTraits<FFaerieItemUses> : TMassFragmentTypeTraitsBase<FFaerieItemUses>
+	struct TMassTypeTraits<FFaerieItemUses> : TMassTypeTraitsBase<FFaerieItemUses>
 	{
 		enum
 		{

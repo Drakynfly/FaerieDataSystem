@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include "Mass/EntityElementTypes.h"
+#include "FaerieMassFragment.h"
 #include "FaerieItemOwningContainer.generated.h"
 
 class UFaerieItemContainerBase;
 
 USTRUCT()
-struct FAERIEINVENTORY_API FFaerieMassItemOwningContainer : public FMassConstSharedFragment
+struct FAERIEINVENTORY_API FFaerieMassItemOwningContainer : public FFaerieMassConstSharedFragment
 {
 	GENERATED_BODY()
 
@@ -18,4 +18,16 @@ struct FAERIEINVENTORY_API FFaerieMassItemOwningContainer : public FMassConstSha
 
 	UPROPERTY()
 	TObjectPtr<UFaerieItemContainerBase> Owner;
+
+____FAERIE_FRAGMENT_DECL(FFaerieMassItemOwningContainer)
+};
+
+template <>
+struct Faerie::ItemData::TMassTypeTraits<FFaerieMassItemOwningContainer> : TMassTypeTraitsBase<FFaerieMassItemOwningContainer>
+{
+	enum
+	{
+		// Runtime pointer to container doesn't serialize, it gets restored by TakeOwnership, or via replication
+		Serialized = false
+	};
 };
