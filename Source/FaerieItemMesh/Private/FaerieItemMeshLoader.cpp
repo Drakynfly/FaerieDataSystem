@@ -183,7 +183,7 @@ bool UFaerieItemMeshLoader::LoadMeshFromAssetSynchronous(const TNotNull<const UF
 		return false;
 	}
 
-	auto MeshFragment = ItemData::GetDefaultFragment<FFaerieMeshFragment>(InItem);
+	const TConstStructView<FFaerieMeshFragment> MeshFragment = InItem->GetDefaultFragment<FFaerieMeshFragment>();
 	if (!MeshFragment.IsValid())
 	{
 		UE_LOGF(LogFaerieItemMesh, Error, "%hs: Invalid fragment!", __FUNCTION__)

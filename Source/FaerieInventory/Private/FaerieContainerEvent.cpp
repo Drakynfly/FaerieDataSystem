@@ -20,13 +20,13 @@ namespace Faerie::Container
 	}
 
 	FContainerEventPayload FContainerEventPayload::MakeNewStack(const TNotNull<UFaerieItemContainerBase*> Container,
-		const FFaerieItemInstance& ItemInstance, const int32 InCopies, const FFaerieEntryKey Entry,
+		const FMassEntityHandle Item, const int32 InCopies, const FFaerieEntryKey Entry,
 		const TConstArrayView<FFaerieAddress> Addresses)
 	{
 		FContainerEventPayload NewEvent;
 		NewEvent.Timestamp = FDateTime::UtcNow();
 		NewEvent.Container = Container;
-		NewEvent.Instance = ItemInstance;
+		NewEvent.Item = Item;
 		NewEvent.Copies = InCopies;
 		NewEvent.Type = Inventory::Tags::NewStack;
 		NewEvent.EntryTouched = Entry;
@@ -35,13 +35,13 @@ namespace Faerie::Container
 	}
 
 	FContainerEventPayload FContainerEventPayload::MakeAddedCopies(const TNotNull<UFaerieItemContainerBase*> Container,
-		const FFaerieItemInstance& ItemInstance, const int32 InCopies, const FFaerieEntryKey Entry,
+		const FMassEntityHandle Item, const int32 InCopies, const FFaerieEntryKey Entry,
 		const TConstArrayView<FFaerieAddress> Addresses)
 	{
 		FContainerEventPayload NewEvent;
 		NewEvent.Timestamp = FDateTime::UtcNow();
 		NewEvent.Container = Container;
-		NewEvent.Instance = ItemInstance;
+		NewEvent.Item = Item;
 		NewEvent.Copies = InCopies;
 		NewEvent.Type = Inventory::Tags::AddedCopies;
 		NewEvent.EntryTouched = Entry;
@@ -50,13 +50,13 @@ namespace Faerie::Container
 	}
 
 	FContainerEventPayload FContainerEventPayload::MakeRemoval(const TNotNull<UFaerieItemContainerBase*> Container,
-															   const FFaerieItemInstance& ItemInstance, const int32 InCopies, const FFaerieInventoryTag Reason,
-															   const FFaerieEntryKey Entry, const TConstArrayView<FFaerieAddress> Addresses, const bool InEntryRemoved)
+		const FMassEntityHandle Item, const int32 InCopies, const FFaerieInventoryTag Reason,
+		const FFaerieEntryKey Entry, const TConstArrayView<FFaerieAddress> Addresses, const bool InEntryRemoved)
 	{
 		FContainerEventPayload NewEvent;
 		NewEvent.Timestamp = FDateTime::UtcNow();
 		NewEvent.Container = Container;
-		NewEvent.Instance = ItemInstance;
+		NewEvent.Item = Item;
 		NewEvent.Copies = InCopies;
 		NewEvent.Type = Reason;
 		NewEvent.EntryTouched = Entry;
@@ -105,9 +105,9 @@ namespace Faerie::Container
 			UE_LOGF(LogFaerieInventory, Warning, "ContainerEventPayload::DebugCheck: Invalid Type")
 			HasError |= true;
 		}
-		if (Instance.IsEmpty())
+		if (!Item.IsSet())
 		{
-			UE_LOGF(LogFaerieInventory, Warning, "ContainerEventPayload::DebugCheck: Invalid Instance")
+			UE_LOGF(LogFaerieInventory, Warning, "ContainerEventPayload::DebugCheck: Invalid Item Entity Handle")
 			HasError |= true;
 		}
 		if (!ItemData::IsValidStackAmount(Copies))

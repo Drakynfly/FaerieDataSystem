@@ -1,24 +1,22 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieItemComparator.h"
-#include "EntityManagerHelpers.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemComparator)
 
+using namespace Faerie;
+
 bool UFaerieItemComparator::K2_Exec(const FFaerieItemProxy& A, const FFaerieItemProxy& B) const
 {
-	const FMassEntityManager* EntityManager = Faerie::ItemData::GetFaerieEntityManager(A.ExtractWorld());
-
 	if (A.HasValidInstance() && B.HasValidInstance())
 	{
-		return Exec(EntityManager, A, B);
+		return Exec(A, B);
 	}
 	return false;
 }
 
-bool UFaerieItemComparator_BlueprintBase::Exec(const FMassEntityManager*,
-												   const Faerie::TValid<const FFaerieItemProxy&> ProxyA,
-												   const Faerie::TValid<const FFaerieItemProxy&> ProxyB) const
+bool UFaerieItemComparator_BlueprintBase::Exec(const TValid<const FFaerieItemProxy&> ProxyA,
+											   const TValid<const FFaerieItemProxy&> ProxyB) const
 {
 	return Execute(ValidGet(ProxyA), ValidGet(ProxyB));
 }

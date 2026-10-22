@@ -71,10 +71,10 @@ bool FFaerieItemContainerCapacityData::CanContain(const FMassEntityManager& Enti
 {
 	// @todo this does not account for the idea that if we add to an existing stack, the Efficiency would reduce the weight.
 
-	const ItemData::FCapacityHelper Capacity(&EntityManager, ValidGet(Proxy).GetItemInstanceOrInvalid());
+	const ItemData::FCapacityHelper Capacity(EntityManager, ValidGet(Proxy).GetItemInstanceOrInvalid());
 
 	// If the fragment is invalid, return true if we don't require one.
-	if (!Capacity.HasCapacity())
+	if (!Capacity.HasFragmentValue())
 	{
 		return !Config.HasCheck(EFaerieCapacityExtensionChecks::Fragment);
 	}
@@ -85,7 +85,7 @@ bool FFaerieItemContainerCapacityData::CanContain(const FMassEntityManager& Enti
 	{
 		// Convert Bounds to a FVector so we can multiply by a float, then convert back
 		const FIntVector TestBounds = FIntVector(FVector(Config.Bounds) * Config.BoundsFudgeFactor);
-		const FIntVector BoundsDiff = Capacity.GetCapacity().Bounds - TestBounds;
+		const FIntVector BoundsDiff = Capacity.GetFragmentValue()->Bounds - TestBounds;
 
 		// If the largest bound exceeds the limits, forbid containment.
 		if (BoundsDiff.GetMax() > 0)
@@ -137,8 +137,8 @@ bool FFaerieItemContainerCapacityData::CanContain_Multi(const FMassEntityManager
 		}
 
 		TUniquePtr<ItemData::FCapacityHelper>& HelperPtr = Capacities.Add_GetRef(
-			MakeUnique<ItemData::FCapacityHelper>(&EntityManager, ItemInstanceOpt.GetValue()));
-		if (!HelperPtr->HasCapacity())
+			MakeUnique<ItemData::FCapacityHelper>(EntityManager, ItemInstanceOpt.GetValue()));
+		if (!HelperPtr->HasFragmentValue())
 		{
 			// If the fragment is invalid, return false if we require one.
 			if (Config.HasCheck(EFaerieCapacityExtensionChecks::Fragment))
@@ -157,7 +157,7 @@ bool FFaerieItemContainerCapacityData::CanContain_Multi(const FMassEntityManager
 				FIntVector Bounds;
 				for (auto&& Capacity : Capacities)
 				{
-					Bounds += Capacity->GetCapacity().Bounds;
+					Bounds += Capacity->GetFragmentValue()->Bounds;
 				}
 				return Bounds;
 			}();
@@ -181,7 +181,7 @@ bool FFaerieItemContainerCapacityData::CanContain_Multi(const FMassEntityManager
 				int32 Weights = 0;
 				for (int32 i = 0; i < Proxies.Num(); ++i)
 				{
-					if (Capacities[i]->HasCapacity())
+					if (Capacities[i]->HasFragmentValue())
 					{
 						Weights += Capacities[i]->GetWeightOfStack(Proxies[i].GetCopies());
 					}
@@ -207,7 +207,7 @@ bool FFaerieItemContainerCapacityData::CanContain_Multi(const FMassEntityManager
 				int64 Volumes = 0;
 				for (int32 i = 0; i < Proxies.Num(); ++i)
 				{
-					if (Capacities[i]->HasCapacity())
+					if (Capacities[i]->HasFragmentValue())
 					{
 						Volumes += Capacities[i]->GetVolumeOfStack(Proxies[i].GetCopies());
 					}
@@ -252,8 +252,8 @@ bool FFaerieItemContainerCapacityData::UpdateCacheForEntry(const FMassEntityMana
 	FFaerieWeightAndVolume Total;
 
 	// @todo we need to calculate the recursive capacity, not just the direct capacity.
-	const ItemData::FCapacityHelper Capacity(&EntityManager, View.Instance);
-	if (Capacity.HasCapacity())
+	const ItemData::FCapacityHelper Capacity(EntityManager, View.Instance);
+	if (Capacity.HasFragmentValue())
 	{
 		// Get the weight of the sum of all stacks.
 		Total.GramWeight = Capacity.GetWeightOfStack(View.Copies);

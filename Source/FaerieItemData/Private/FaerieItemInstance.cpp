@@ -36,27 +36,9 @@ bool FFaerieItemInstance::IsMutable() const
 	return HasMassEntity();
 }
 
-bool FFaerieItemInstance::CanStack() const
-{
-	// Mutable instances cannot stack, due to, well, being mutable, meaning that each instance retains the ability to
-	// uniquely differ from others.
-	return !IsMutable();
-}
-
 bool FFaerieItemInstance::UEOpEquals(const FFaerieItemInstance& Other) const
 {
 	return EntityHandle == Other.EntityHandle && Item == Other.Item;
-}
-
-void FFaerieItemInstance::DestroyMassEntity(FMassEntityManager& EntityManager)
-{
-	if (EntityManager.IsEntityValid(EntityHandle))
-	{
-		// @Todo
-		//EntityManager->GetWorld()->GetSubsystemChecked<UFaerieViewModelSubsystem>()->HandleInstanceDestruction(*this);
-		EntityManager.DestroyEntity(EntityHandle);
-	}
-	EntityHandle.Reset();
 }
 
 void FFaerieItemInstance::ImportFragmentData(FMassEntityManager& EntityManager, FFaerieItemExportData& ExportData)
@@ -72,7 +54,7 @@ void FFaerieItemInstance::ImportFragmentData(FMassEntityManager& EntityManager, 
 
 	for (auto&& It = ExportData.MassTags.CreateIterator(); It; ++It)
 	{
-		if (const ItemData::FMassTypeTraitsInterface* Traits = ItemData::GetFragmentTraitsInterface(*It))
+		if (const ItemData::FMassTypeTraitsInterface* Traits = ItemData::GetMassTraitsInterface(*It))
 		{
 			if (!Traits->Serialized)
 			{
@@ -84,7 +66,7 @@ void FFaerieItemInstance::ImportFragmentData(FMassEntityManager& EntityManager, 
 
 	for (auto&& It = ExportData.MassInstances.CreateIterator(); It; ++It)
 	{
-		if (const ItemData::FMassTypeTraitsInterface* Traits = ItemData::GetFragmentTraitsInterface(It->GetScriptStruct()))
+		if (const ItemData::FMassTypeTraitsInterface* Traits = ItemData::GetMassTraitsInterface(It->GetScriptStruct()))
 		{
 			if (!Traits->Serialized)
 			{
@@ -119,7 +101,7 @@ void FFaerieItemInstance::ExportFragmentData(const FMassEntityManager& EntityMan
 
 				if (ItemData::IsFaerieMassTag(FragmentType))
 				{
-					if (const ItemData::FMassTypeTraitsInterface* Traits = ItemData::GetFragmentTraitsInterface(FragmentType))
+					if (const ItemData::FMassTypeTraitsInterface* Traits = ItemData::GetMassTraitsInterface(FragmentType))
 					{
 						if (!Traits->Serialized)
 						{
@@ -139,7 +121,7 @@ void FFaerieItemInstance::ExportFragmentData(const FMassEntityManager& EntityMan
 				}
 
 				// If the fragment type has a custom save data type, convert to it.
-				if (const ItemData::FMassTypeTraitsInterface* Traits = ItemData::GetFragmentTraitsInterface(FragmentType))
+				if (const ItemData::FMassTypeTraitsInterface* Traits = ItemData::GetMassTraitsInterface(FragmentType))
 				{
 					if (!Traits->Serialized)
 					{
@@ -193,7 +175,7 @@ namespace Faerie::ItemData
 		{
 			for (const FInstancedStruct& DefaultFragment : ItemAsset->GetFragmentDefaults())
 			{
-				const FMassTypeTraitsInterface* Traits = GetFragmentTraitsInterface(DefaultFragment.GetScriptStruct());
+				const FMassTypeTraitsInterface* Traits = GetMassTraitsInterface(DefaultFragment.GetScriptStruct());
 				if (Traits && Traits->HasInitializeRuntime)
 				{
 					FInstancedStruct FragmentCopy = DefaultFragment;
@@ -212,7 +194,7 @@ namespace Faerie::ItemData
 			if (Fragment.GetScriptStruct()->IsChildOf<FFaerieItemFragmentSaveData>())
 			{
 				TNotNull<const UScriptStruct*> RealFragmentType = Fragment.Get<FFaerieItemFragmentSaveData>().GetFragmentType();
-				if (const FMassTypeTraitsInterface* Traits = GetFragmentTraitsInterface(RealFragmentType))
+				if (const FMassTypeTraitsInterface* Traits = GetMassTraitsInterface(RealFragmentType))
 				{
 					FInstancedStruct NewFragment; // New blank to write to.
 					NewFragment.InitializeAs(RealFragmentType);
@@ -227,7 +209,7 @@ namespace Faerie::ItemData
 					Traits->InitializeRuntime(NewFragment.GetMutableMemory(), EntityManager, Builder.GetEntityHandle());
 				}
 			}
-			else if (const FMassTypeTraitsInterface* Traits = GetFragmentTraitsInterface(Fragment.GetScriptStruct()))
+			else if (const FMassTypeTraitsInterface* Traits = GetMassTraitsInterface(Fragment.GetScriptStruct()))
 			{
 				Traits->InitializeRuntime(Fragment.GetMutableMemory(), EntityManager, Builder.GetEntityHandle());
 			}
@@ -343,9 +325,9 @@ namespace Faerie::ItemData
 	{
 		check(EntityManager.IsEntityValid(Item));
 
-		TArray<FInstancedStruct> SimpleFragments;
-		TArray<FSharedStruct> SharedFragments;
-		TArray<FConstSharedStruct> ConstSharedFragments;
+		TArray<FInstancedStruct, TInlineAllocator<4>> SimpleFragments;
+		TArray<FSharedStruct, TInlineAllocator<2>> SharedFragments;
+		TArray<FConstSharedStruct, TInlineAllocator<2>> ConstSharedFragments;
 
 		for (auto&& Fragment : Fragments)
 		{
@@ -467,5 +449,13 @@ namespace Faerie::ItemData
 	{
 		const FMutationEvent Payload(Item, Tags::FragmentGenericPropertyEdit, FragmentType);
 		PostMutationEventWithFieldChange(EntityManager, Payload, FieldChange);
+	}
+
+	void DestroyMassEntity(FMassEntityManager& EntityManager, const FMassEntityHandle Item)
+	{
+		if (EntityManager.IsEntityValid(Item))
+		{
+			EntityManager.DestroyEntity(Item);
+		}
 	}
 }

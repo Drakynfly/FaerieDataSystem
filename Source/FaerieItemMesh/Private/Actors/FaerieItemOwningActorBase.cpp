@@ -166,7 +166,7 @@ void AFaerieItemOwningActorBase::BeginPlay()
 	AddReplicatedSubObject(ItemStack);
 	ItemStack->InitializeContainer(EntityManager);
 
-	Content::SubscribeToContainerEvents(ItemStack, this);
+	Content::SubscribeToContainerEvents(EntityManager, ItemStack, this);
 
 	// @todo setup more complex trigger for initializing runtime instance. some actors might want to wait and only
 	// register at a later point.
@@ -179,7 +179,11 @@ void AFaerieItemOwningActorBase::BeginPlay()
 
 void AFaerieItemOwningActorBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	Content::UnsubscribeFromContainerEvents(ItemStack, this);
+	if (ItemData::HasFaerieEntityManagerBeenAssigned(GetWorld()))
+	{
+		FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
+		Content::UnsubscribeFromContainerEvents(EntityManager, ItemStack, this);
+	}
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -196,11 +200,6 @@ TOptional<FFaerieItemInstance> AFaerieItemOwningActorBase::GetItemInstance() con
 int32 AFaerieItemOwningActorBase::GetCopies() const
 {
 	return ItemStack->GetCopies();
-}
-
-const UObject* AFaerieItemOwningActorBase::GetItemOwner() const
-{
-	return ItemStack;
 }
 
 void AFaerieItemOwningActorBase::OnContainerEventBatch(TNotNull<UFaerieItemContainerBase*> Container,

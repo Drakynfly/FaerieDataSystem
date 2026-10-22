@@ -61,5 +61,5 @@ public:
 	static FBlueprintEquipmentHash GetEquipmentHash_ByName();
 
 protected:
-	static int32 ExecHashItemByName(const FFaerieItemProxy& Instance);
+	static int32 ExecHashItemByName(const FFaerieItemProxy& Proxy);
 };

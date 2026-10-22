@@ -20,6 +20,7 @@ struct FFaerieSimpleItemStackSaveData : public FFaerieItemFragmentSaveData
 
 	FAERIEINVENTORY_API virtual const UScriptStruct* GetFragmentType() const override;
 
+	// @Todo remove me, once Prepared data can store this in a fragment in ExportData
 	UPROPERTY()
 	TObjectPtr<const UFaerieItem> ItemObject;
 
@@ -36,7 +37,7 @@ struct FFaerieSimpleItemStackSaveData : public FFaerieItemFragmentSaveData
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FEquipmentSlotEvent, UFaerieItemStackContainer*, Slot, FFaerieInventoryTag, Event);
 
-// A struct binding a FaerieInstance to a copies value for atomic replication.
+// A struct containing the minimum atomically replicated state of a stack container.
 USTRUCT()
 struct FFaerieStackContainerContent
 {
@@ -45,9 +46,6 @@ struct FFaerieStackContainerContent
 	// Incremented each time a new item is stored in this stack. Not changed when stack Copies is edited.
 	UPROPERTY(VisibleAnywhere, Category = "StackContainerContent")
 	FFaerieEntryKey StoredKey;
-
-	UPROPERTY(VisibleAnywhere, NotReplicated, Category = "StackContainerContent")
-	FFaerieItemInstance Instance;
 
 	UPROPERTY(VisibleAnywhere, Category = "StackContainerContent")
 	FFaerieNetItemID NetID;
@@ -85,9 +83,9 @@ private:
 	virtual TOptional<FFaerieItemInstance> ViewInstance(FFaerieAddress Address) const override;
 	virtual Faerie::ItemData::FScopeProxy ViewEntry(FFaerieEntryKey Key) const override;
 	virtual Faerie::ItemData::FScopeProxy ViewAddress(FFaerieAddress Address) const override;
-	virtual FFaerieItemProxy Proxy(FMassEntityHandle Item) const override;
-	virtual FFaerieItemProxy Proxy(FFaerieEntryKey Key) const override;
-	virtual FFaerieItemProxy Proxy(FFaerieAddress Address) const override;
+	virtual FFaerieItemProxy Proxy(FMassEntityManager& EntityManager, FMassEntityHandle Item) const override;
+	virtual FFaerieItemProxy Proxy(FMassEntityManager& EntityManager, FFaerieEntryKey Key) const override;
+	virtual FFaerieItemProxy Proxy(FMassEntityManager& EntityManager, FFaerieAddress Address) const override;
 	virtual bool Possess(FMassEntityManager& EntityManager, const FFaerieUnownedItemStack& Stack) override;
 	virtual TOptional<FFaerieUnownedItemStack> Release(FMassEntityManager& EntityManager, FFaerieEntryKey Key, int32 Copies, FFaerieInventoryTag Reason) override;
 	virtual TOptional<FFaerieUnownedItemStack> Release(FMassEntityManager& EntityManager, FFaerieAddress Address, int32 Copies, FFaerieInventoryTag Reason) override;
@@ -96,7 +94,7 @@ private:
 	virtual bool CanRelease(const FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy, FFaerieInventoryTag Reason) const override;
 	virtual void GetAllAddresses(TAdderReserverRef<FFaerieAddress> Addresses) const override;
 	virtual bool AckItemCreatedByNetwork(FMassEntityManager& EntityManager, FMassEntityHandle Entity, FFaerieNetItemID NetID) override;
-	virtual void OnItemDataChanged(const FMassEntityHandle Item, FGameplayTag EditTag) override;
+	virtual void OnItemDataChanged(FMassEntityManager& EntityManager, const FMassEntityHandle Item, FGameplayTag EditTag) override;
 	virtual TUniquePtr<Faerie::Container::IEntryIterator> CreateEntryIterator() const override;
 	virtual TUniquePtr<Faerie::Container::IAddressIterator> CreateAddressIterator() const override;
 	virtual TUniquePtr<Faerie::Container::IAddressIterator> CreateSingleEntryIterator(FFaerieEntryKey Key) const override;
@@ -109,7 +107,6 @@ public:
 	virtual FMassEntityHandle GetEntityHandle() const override final;
 	virtual TOptional<FFaerieItemInstance> GetItemInstance() const override final;
 	virtual int32 GetCopies() const override final;
-	virtual const UObject* GetItemOwner() const override final;
 	//~ Faerie::ItemData::IViewBase
 
 	//~ IFaerieContainerProxy
@@ -122,7 +119,7 @@ public:
 
 	FFaerieAddress GetAddress() const;
 
-	void BroadcastChange(FFaerieInventoryTag Event);
+	void BroadcastChange(FMassEntityManager& EntityManager, FFaerieInventoryTag Event);
 
 	bool IsOurItem(FMassEntityHandle Item) const;
 	bool IsOurKey(FFaerieEntryKey Key) const;
@@ -203,4 +200,8 @@ protected:
 	// The current item stack being stored in this container.
 	UPROPERTY(VisibleInstanceOnly, ReplicatedUsing = "OnRep_ItemStack", Category = "State")
 	FFaerieStackContainerContent ItemStack;
+
+	// Locally assigned item entity handle.
+	UPROPERTY(VisibleInstanceOnly, Category = "State")
+	FMassEntityHandle ItemEntity;
 };

@@ -43,7 +43,7 @@ namespace Faerie::ItemData
 	{
 		GENERATED_BODY()
 
-		UE::Mass::FElementBitSet ChangeTypes;
+		FMassElementBitSet ChangeTypes;
 	};
 
 	USTRUCT()

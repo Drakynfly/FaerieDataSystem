@@ -6,6 +6,7 @@
 
 #define FAE_API FAERIEINVENTORY_API
 
+struct FFaerieItemProxy;
 struct FMassEntityHandle;
 struct FFaerieItemInstance;
 struct FMassEntityManager;
@@ -32,6 +33,7 @@ namespace Faerie::Container
 	[[nodiscard]] FAE_API FMassEntityHandle GetContainerOwner(const FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container);
 
 	[[nodiscard]] FAE_API UFaerieItemContainerBase* GetItemOwner(const FMassEntityManager& EntityManager, FMassEntityHandle Item);
+	[[nodiscard]] FAE_API UFaerieItemContainerBase* GetItemOwner(const FFaerieItemProxy& Proxy);
 
 	// Finds the owner of an item, and calls ReleaseOwnership. WARNING: This is a low-level function: Use only if you know why.
 	FAE_API void ClearOwnership(FMassEntityManager& EntityManager, FMassEntityHandle Item);

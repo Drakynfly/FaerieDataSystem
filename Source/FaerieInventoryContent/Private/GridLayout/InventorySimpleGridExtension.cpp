@@ -22,9 +22,9 @@ void UInventorySimpleGridExtension::InitializeGrid(const FFaerieContainerGridWri
 
 	for (Container::FIterator_AllAddresses It(Context.GetStorage()); It; ++It)
 	{
-		const FFaerieItemInstance Instance = It.GetInstance();
+		const FMassEntityHandle Item = It.GetEntityHandle();
 		const FFaerieAddress Address = It.GetAddress();
-		if (!AddItemToGrid(Context, Address, Instance))
+		if (!AddItemToGrid(Context, Address, Item))
 		{
 			// @todo Cannot add this item, ignore and try next for now...
 		}
@@ -70,7 +70,7 @@ void UInventorySimpleGridExtension::HandleEvent(const FFaerieContainerGridWriteC
 				continue;
 			}
 
-			(void)AddItemToGrid(Context, Address, Event.Instance);
+			(void)AddItemToGrid(Context, Address, Event.Item);
 		}
 	}
 	else if (Event.IsRemovalEvent())
@@ -89,7 +89,7 @@ void UInventorySimpleGridExtension::HandleEvent(const FFaerieContainerGridWriteC
                 AddressesToRemove.Add(Address);
             }
         }
-        RemoveItemBatch(Context, AddressesToRemove, Event.Instance);
+        RemoveItemBatch(Context, AddressesToRemove, Event.Item);
 	}
 	else
 	{
@@ -113,7 +113,7 @@ void UInventorySimpleGridExtension::HandleEvent(const FFaerieContainerGridWriteC
                 }
                 else
                 {
-                    (void)AddItemToGrid(Context, Address, Event.Instance);
+                    (void)AddItemToGrid(Context, Address, Event.Item);
                 }
             }
         }
@@ -121,10 +121,10 @@ void UInventorySimpleGridExtension::HandleEvent(const FFaerieContainerGridWriteC
         // remove the stored keys
         for (const FFaerieAddress& AddressToRemove : AddressesToRemove)
         {
-        	if (auto Instance = Context.GetStorage()->ViewInstance(AddressToRemove);
-        		Instance.IsSet())
+        	if (const FMassEntityHandle Item = Context.GetStorage()->GetItemHandle(AddressToRemove);
+        		Item.IsSet())
         	{
-        		RemoveItem(Context, AddressToRemove, Instance.GetValue());
+        		RemoveItem(Context, AddressToRemove, Item);
         	}
             BroadcastEvent(AddressToRemove, EFaerieGridEventType::ItemRemoved);
         }
@@ -139,7 +139,7 @@ void UInventorySimpleGridExtension::PreStackRemove_Client(const FFaerieContainer
 	BroadcastEvent(Stack.Key, EFaerieGridEventType::ItemRemoved);
 }
 
-void UInventorySimpleGridExtension::PreStackRemove_Server(const FFaerieContainerGridWriteContext& Context, const FFaerieGridKeyedStack& Stack, const FFaerieItemInstance& Item) const
+void UInventorySimpleGridExtension::PreStackRemove_Server(const FFaerieContainerGridWriteContext& Context, const FFaerieGridKeyedStack& Stack, const FMassEntityHandle Item) const
 {
 	// This is to account for removals through proxies that don't directly interface with the grid
 	Context.Unwrap().OccupiedCells.UnmarkCell(Stack.Value.Origin);
@@ -173,7 +173,7 @@ bool UInventorySimpleGridExtension::CanAddAtLocation(const FFaerieContainerGridR
 	return !Context.IsCellOccupied(IntPoint);
 }
 
-bool UInventorySimpleGridExtension::AddItemToGrid(const FFaerieContainerGridWriteContext& Context, const FFaerieAddress Address, const FFaerieItemInstance& Instance) const
+bool UInventorySimpleGridExtension::AddItemToGrid(const FFaerieContainerGridWriteContext& Context, const FFaerieAddress Address, FMassEntityHandle Item) const
 {
 	if (!Address.IsValid())
 	{
@@ -235,20 +235,20 @@ bool UInventorySimpleGridExtension::RotateItem(const FFaerieContainerGridWriteCo
 	return true;
 }
 
-void UInventorySimpleGridExtension::RemoveItem(const FFaerieContainerGridWriteContext& Context, const FFaerieAddress Address, const FFaerieItemInstance& Instance) const
+void UInventorySimpleGridExtension::RemoveItem(const FFaerieContainerGridWriteContext& Context, const FFaerieAddress Address, const FMassEntityHandle Item) const
 {
 	Context.Unwrap().GridContent.BSOA::Remove(Address,
-		[Instance, Context, this](const FFaerieGridKeyedStack& Stack)
+		[Item, Context, this](const FFaerieGridKeyedStack& Stack)
 		{
-			PreStackRemove_Server(Context, Stack, Instance);
+			PreStackRemove_Server(Context, Stack, Item);
 		});
 }
 
-void UInventorySimpleGridExtension::RemoveItemBatch(const FFaerieContainerGridWriteContext& Context, const TConstArrayView<FFaerieAddress>& Keys, const FFaerieItemInstance& Instance) const
+void UInventorySimpleGridExtension::RemoveItemBatch(const FFaerieContainerGridWriteContext& Context, const TConstArrayView<FFaerieAddress>& Keys, const FMassEntityHandle Item) const
 {
 	for (const FFaerieAddress& KeyToRemove : Keys)
 	{
-		RemoveItem(Context, KeyToRemove, Instance);
+		RemoveItem(Context, KeyToRemove, Item);
 		BroadcastEvent(KeyToRemove, EFaerieGridEventType::ItemRemoved);
 	}
 	Context.Unwrap().GridContent.MarkArrayDirty();

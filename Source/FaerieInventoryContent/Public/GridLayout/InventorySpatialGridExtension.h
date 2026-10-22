@@ -39,27 +39,27 @@ public:
 	virtual void HandleEvent(const FFaerieContainerGridWriteContext& Context, const Faerie::Container::FContainerEventPayload& Event) const override;
 
 	virtual void PreStackRemove_Client(const FFaerieContainerGridWriteContext& Context, const FFaerieGridKeyedStack& Stack) const override;
-	virtual void PreStackRemove_Server(const FFaerieContainerGridWriteContext& Context, const FFaerieGridKeyedStack& Stack, const FFaerieItemInstance& Item) const override;
+	virtual void PreStackRemove_Server(const FFaerieContainerGridWriteContext& Context, const FFaerieGridKeyedStack& Stack, const FMassEntityHandle Item) const override;
 
 	virtual void PostStackAdd(const FFaerieContainerGridWriteContext& Context, const FFaerieGridKeyedStack& Stack) const override;
 	virtual void PostStackChange(const FFaerieContainerGridWriteContext& Context, const FFaerieGridKeyedStack& Stack) const override;
 
 	virtual TOptional<FFaerieAddress> GetKeyAt(const FFaerieContainerGridReadContext& Context, const FIntPoint& Position) const override;
 	virtual bool CanAddAtLocation(const FFaerieContainerGridReadContext& Context, Faerie::TValid<const FFaerieItemProxy&> Proxy, FIntPoint IntPoint) const override;
-	virtual bool AddItemToGrid(const FFaerieContainerGridWriteContext& Context, FFaerieAddress Address, const FFaerieItemInstance& Instance) const override;
+	virtual bool AddItemToGrid(const FFaerieContainerGridWriteContext& Context, FFaerieAddress Address, FMassEntityHandle Item) const override;
 	virtual bool MoveItem(const FFaerieContainerGridWriteContext& Context, FFaerieAddress Address, const FIntPoint& TargetPoint) const override;
 	virtual bool RotateItem(const FFaerieContainerGridWriteContext& Context, FFaerieAddress Address, EFaerieSpatialItemRotation RotationToAdd) const override;
 	//~ UInventoryGridExtensionBase
 
 private:
-	void RemoveItem(const FFaerieContainerGridWriteContext& Context, FFaerieAddress Address, const FFaerieItemInstance& Item) const;
-	void RemoveItemBatch(const FFaerieContainerGridWriteContext& Context, const TConstArrayView<FFaerieAddress>& Addresses, const FFaerieItemInstance& Item) const;
+	void RemoveItem(const FFaerieContainerGridWriteContext& Context, FFaerieAddress Address, FMassEntityHandle Item) const;
+	void RemoveItemBatch(const FFaerieContainerGridWriteContext& Context, const TConstArrayView<FFaerieAddress>& Addresses, FMassEntityHandle Item) const;
 
 	// The client has to manually rebuild its cell after a removal, as the item's shape is likely lost.
 	void RebuildOccupiedCells(const FFaerieContainerGridWriteContext& Context) const;
 
 	// Gets a shape from a shape fragment on the item, or returns a single cell at 0,0 for items with no fragment.
-	FFaerieGridShapeConstView GetItemShape_Impl(const FMassEntityManager& EntityManager, const FFaerieItemInstance& Item) const;
+	FFaerieGridShapeConstView GetItemShape_Impl(const FMassEntityManager& EntityManager, const FMassEntityHandle Item) const;
 	FFaerieGridShapeConstView GetItemShape_Impl(const FFaerieContainerGridReadContext& Context, FFaerieAddress Address) const;
 
 public:

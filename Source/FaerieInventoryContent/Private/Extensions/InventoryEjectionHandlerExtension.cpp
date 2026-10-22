@@ -4,7 +4,6 @@
 #include "EntityManagerHelpers.h"
 #include "FaerieContainerEvent.h"
 #include "FaerieInventoryContentLog.h"
-#include "FaerieItemStorage.h"
 #include "ItemContainerEvent.h"
 #include "MassExecutionContext.h"
 
@@ -118,10 +117,10 @@ void UFaerieContainerEjectionHandler::Execute(FMassEntityManager& EntityManager,
 			// @todo this could be rolled into event somehow... could the type tag be check in the requirements
 			if (Event.Type != Inventory::Tags::RemovalEject) continue;
 
-			if (Event.Instance.IsEmpty()) continue;
+			if (!Event.Item.IsSet()) continue;
 
 #if DO_CHECK
-			if (Event.Instance.IsMutable())
+			if (ItemData::IsMutable(InContext.GetEntityManagerChecked(), Event.Item))
 			{
 				check(Event.Copies == 1);
 			}
@@ -147,7 +146,7 @@ void UFaerieContainerEjectionHandler::Execute(FMassEntityManager& EntityManager,
 
 			Content::FEjectionData Ejection;
 			Ejection.Owner = Actor;
-			Ejection.Stack.Instance = Event.Instance;
+			Ejection.Stack.Instance = FFaerieItemInstance::FromEntity(Event.Item);
 			Ejection.Stack.Copies = Event.Copies;
 
 			Config->HandleNextInQueue(Ejection);

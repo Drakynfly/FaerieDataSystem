@@ -7,8 +7,6 @@
 #include "Misc/DataValidation.h"
 #endif
 
-#include "EntityManagerHelpers.h"
-
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemTemplate)
 
 #define LOCTEXT_NAMESPACE "FaerieItemTemplate"
@@ -30,17 +28,17 @@ EDataValidationResult UFaerieItemTemplate::IsDataValid(FDataValidationContext& C
 }
 #endif
 
-bool UFaerieItemTemplate::TryMatch(const FMassEntityManager* EntityManager, const Faerie::TValid<const FFaerieItemProxy&> Proxy) const
+bool UFaerieItemTemplate::Matches(const Faerie::TValid<const FFaerieItemProxy&> Proxy) const
 {
 	if (ensure(Filter.IsValid()))
 	{
-		return Filter->Exec(EntityManager, Proxy);
+		return Filter->Exec(Proxy);
 	}
 	return false;
 }
 
 #if WITH_EDITOR
-bool UFaerieItemTemplate::TryMatchWithDescriptions(const FMassEntityManager* EntityManager, const Faerie::TValid<const FFaerieItemProxy&> Proxy, TArray<FText>& Errors) const
+bool UFaerieItemTemplate::MatchesWithErrors(const Faerie::TValid<const FFaerieItemProxy&> Proxy, TArray<FText>& Errors) const
 {
 	if (!ensure(Filter.IsValid()))
 	{
@@ -54,7 +52,7 @@ bool UFaerieItemTemplate::TryMatchWithDescriptions(const FMassEntityManager* Ent
 	}
 
 	if (Faerie::ItemData::FFilterLogger Logger;
-		!Filter->ExecWithLog(EntityManager, Proxy, Logger))
+		!Filter->ExecWithLog(Proxy, Logger))
 	{
 		if (Logger.Errors.IsEmpty())
 		{
@@ -79,7 +77,7 @@ bool UFaerieItemTemplate::TryMatch(const FFaerieItemProxy& Proxy) const
 {
 	if (ensure(Filter.IsValid()))
 	{
-		return Filter->Exec(Faerie::ItemData::GetFaerieEntityManager(Proxy.ExtractWorld()), Proxy);
+		return Filter->Exec(Proxy);
 	}
 	return false;
 }

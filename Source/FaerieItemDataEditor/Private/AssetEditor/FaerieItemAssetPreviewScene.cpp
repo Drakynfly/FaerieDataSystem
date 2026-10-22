@@ -137,8 +137,8 @@ namespace Faerie::Editor
 		const UFaerieItem* FaerieItem = ItemInstanceOpt.GetValue().GetItemPtr();
 		if (!IsValid(FaerieItem)) return;
 
-		auto ProxyClassFragment = Faerie::ItemData::GetDefaultFragment<FFaerieProxyActorFragment>(FaerieItem);
-		auto Capacity = Faerie::ItemData::GetDefaultFragment<FFaerieItemCapacity>(FaerieItem);
+		auto ProxyClassFragment = FaerieItem->GetDefaultFragment<FFaerieProxyActorFragment>();
+		auto Capacity = FaerieItem->GetDefaultFragment<FFaerieItemCapacity>();
 
 		// Draw Capacity Bounds
 		if (Capacity.IsValid())

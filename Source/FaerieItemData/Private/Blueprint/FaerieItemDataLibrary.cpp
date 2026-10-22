@@ -33,15 +33,14 @@ FDateTime UFaerieItemDataLibrary::GetItemLastModified(const FFaerieItemProxy& Pr
 		return FDateTime();
 	}
 
-	const UWorld* World = Proxy.ExtractWorld();
-	if (!ItemData::HasFaerieEntityManagerBeenAssigned(World))
+	const TSharedPtr<FMassEntityManager> EntityManager = Proxy.GetEntityManager();
+	if (!EntityManager)
 	{
 		FFrame::KismetExecutionMessage(TEXT("No Entity Manager assigned to handle UFaerieItemDataLibrary::GetItemLastModified"), ELogVerbosity::Error);
 		return FDateTime();
 	}
 
-	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(World);
-	if (auto* ModificationData = Faerie::ItemData::GetEntityFragment<FFaerieItemModificationDate>(EntityManager, InstanceOpt->GetMassEntityHandle()))
+	if (auto* ModificationData = Faerie::ItemData::GetEntityFragment<FFaerieItemModificationDate>(*EntityManager, InstanceOpt->GetMassEntityHandle()))
 	{
 		return ModificationData->LastModified;
 	}
@@ -100,14 +99,8 @@ bool UFaerieItemDataLibrary::HasItemFragment(const FFaerieItemProxy& Proxy, UScr
 		return false;
 	}
 
-	const UWorld* World = Proxy.ExtractWorld();
-	if (!ItemData::HasFaerieEntityManagerBeenAssigned(World))
-	{
-		FFrame::KismetExecutionMessage(TEXT("No Entity Manager assigned to handle UFaerieItemDataLibrary::HasItemFragment"), ELogVerbosity::Error);
-		return false;
-	}
-
-	return ItemData::HasEntityFragmentOrDefault(&ItemData::GetFaerieEntityManagerChecked(World), InstanceOpt.GetValue(), FragmentType);
+	const TSharedPtr<FMassEntityManager> EntityManager = Proxy.GetEntityManager();
+	return ItemData::HasEntityFragmentOrDefault(EntityManager.Get(), InstanceOpt.GetValue(), FragmentType);
 }
 
 /*
@@ -190,31 +183,8 @@ bool UFaerieItemDataLibrary::FindFragment(const FFaerieItemProxy& Proxy, UScript
 		return false;
 	}
 
-#if WITH_EDITOR
-	const UWorld* TestWorld = Proxy.TestExtractWorld();
-	if (!IsValid(TestWorld) || !ItemData::HasFaerieEntityManagerBeenAssigned(TestWorld))
-	{
-		// No entity manager... skip to looking on the item.
-		FoundFragment = ItemData::GetDefaultFragment(InstanceOpt.GetValue().GetItemPtr(), FragmentType);
-		return FoundFragment.IsValid();
-	}
-#endif
-	const UWorld* World = Proxy.ExtractWorld();
-	if (!IsValid(World))
-	{
-		const FString ProxyName = Proxy.GetProxyObject() ? Proxy.GetProxyObject()->GetName() : "SingleFrameProxy";
-		const FString Message = FString::Printf(TEXT("No World found for proxy '%s' to handle UFaerieItemDataLibrary::FindFragment"), *ProxyName);
-		FFrame::KismetExecutionMessage(*Message, ELogVerbosity::Error);
-		return false;
-	}
-
-	if (!ItemData::HasFaerieEntityManagerBeenAssigned(World))
-	{
-		FFrame::KismetExecutionMessage(TEXT("No Entity Manager assigned to handle UFaerieItemDataLibrary::FindFragment"), ELogVerbosity::Error);
-		return false;
-	}
-
-	FoundFragment = ItemData::GetEntityFragmentOrDefault(ItemData::GetFaerieEntityManager(World), InstanceOpt.GetValue(), FragmentType);
+	const TSharedPtr<FMassEntityManager> EntityManager = Proxy.GetEntityManager();
+	FoundFragment = ItemData::GetEntityFragmentOrDefault(EntityManager.Get(), InstanceOpt.GetValue(), FragmentType);
 	return FoundFragment.IsValid();
 }
 
@@ -253,7 +223,9 @@ bool UFaerieItemDataLibrary::CastProxy(const FFaerieItemProxy& Proxy, UClass* Cl
 
 FFaerieItemProxy UFaerieItemDataLibrary::ToProxyStruct(const TScriptInterface<IFaerieItemDataProxy>& ProxyObject)
 {
-	return FFaerieItemProxy(ProxyObject);
+	const UObject* Obj = ProxyObject.GetObject();
+	FMassEntityManager* EntityManager = ItemData::GetFaerieEntityManager(Obj->GetWorld());
+	return FFaerieItemProxy(EntityManager ? EntityManager->AsShared().ToSharedPtr() : nullptr, ProxyObject);
 }
 
 const UObject* UFaerieItemDataLibrary::GetProxyObject(const FFaerieItemProxy& Proxy)
@@ -287,7 +259,7 @@ bool UFaerieItemDataLibrary::ItemLexicographicNameComparator(const FFaerieItemPr
 	const TOptional<FFaerieItemInstance> ItemInstanceOptB = ProxyB.GetItemInstance();
 	if (!ItemInstanceOptA.IsSet() || !ItemInstanceOptB.IsSet()) return false;
 
-	FMassEntityManager* EntityManager = ItemData::GetFaerieEntityManager(ProxyA.ExtractWorld());
+	FMassEntityManager* EntityManager = ProxyA.GetEntityManager().Get();
 	auto InfoA = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieAssetInfo>(EntityManager, ItemInstanceOptA.GetValue());
 	auto InfoB = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieAssetInfo>(EntityManager, ItemInstanceOptB.GetValue());
 
@@ -305,7 +277,7 @@ bool UFaerieItemDataLibrary::ItemDateModifiedComparator(const FFaerieItemProxy& 
 	const TOptional<FFaerieItemInstance> ItemInstanceOptB = ProxyB.GetItemInstance();
 	if (!ItemInstanceOptA.IsSet() || !ItemInstanceOptB.IsSet()) return false;
 
-	if (const FMassEntityManager* EntityManager = ItemData::GetFaerieEntityManager(ProxyA.ExtractWorld()))
+	if (const FMassEntityManager* EntityManager = ProxyA.GetEntityManager().Get())
 	{
 		const FFaerieItemModificationDate* ModificationDataA = Faerie::ItemData::GetEntityFragment<FFaerieItemModificationDate>(*EntityManager, ItemInstanceOptA.GetValue().GetMassEntityHandle());
 		const FFaerieItemModificationDate* ModificationDataB = Faerie::ItemData::GetEntityFragment<FFaerieItemModificationDate>(*EntityManager, ItemInstanceOptB.GetValue().GetMassEntityHandle());

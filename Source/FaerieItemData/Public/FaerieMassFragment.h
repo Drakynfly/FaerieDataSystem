@@ -295,33 +295,33 @@ namespace Faerie::ItemData
 		return Interface;
 	}
 
-	struct IAutoRegisterFragmentTraits
+	struct IAutoRegisterMassTraits
 	{
 		FAE_API static void StaticRegisterTraits(TNotNull<const UScriptStruct*> Type, const FMassTypeTraitsInterface& Interface);
 		FAE_API static void StaticDeregisterTraits(TNotNull<const UScriptStruct*> Type);
 	};
 
-	template <CElementImpl TFragment>
-	struct TAutoRegisterFragmentTraits final : FDelayedAutoRegisterHelper
+	template <CElementImpl TElement>
+	struct TAutoRegisterMassTraits final : FDelayedAutoRegisterHelper
 	{
-		TAutoRegisterFragmentTraits()
+		TAutoRegisterMassTraits()
 		  : FDelayedAutoRegisterHelper(EDelayedRegisterRunPhase::EndOfEngineInit, []()
 			{
-				IAutoRegisterFragmentTraits::StaticRegisterTraits(TFragment::StaticStruct(), MakeTypeInterface<TFragment>());
+				IAutoRegisterMassTraits::StaticRegisterTraits(TElement::StaticStruct(), MakeTypeInterface<TElement>());
 			}, true) {}
 
-		~TAutoRegisterFragmentTraits()
+		~TAutoRegisterMassTraits()
 		{
-			IAutoRegisterFragmentTraits::StaticDeregisterTraits(TFragment::StaticStruct());
+			IAutoRegisterMassTraits::StaticDeregisterTraits(TElement::StaticStruct());
 		}
 	};
 
-	FAE_API const FMassTypeTraitsInterface* GetFragmentTraitsInterface(TNotNull<const UScriptStruct*> Type);
+	FAE_API const FMassTypeTraitsInterface* GetMassTraitsInterface(TNotNull<const UScriptStruct*> Type);
 
-#define FAERIE_REGISTER_TRAITS(MassFragmentType) \
+#define FAERIE_REGISTER_TRAITS(Type) \
 	namespace\
 	{\
-		[[maybe_unused]] Faerie::ItemData::TAutoRegisterFragmentTraits<MassFragmentType> MassFragmentType##_TypeTraitsRegister;\
+		[[maybe_unused]] Faerie::ItemData::TAutoRegisterMassTraits<Type> Type##_TypeTraitsRegister;\
 	}
 
 	/*
@@ -335,28 +335,30 @@ namespace Faerie::ItemData
 
 	public:
 		template <typename... ArgTypes>
-		UE_REWRITE void CreateFragmentIfMissing(ArgTypes&&... InArgs)
+		UE_REWRITE Impl& CreateFragmentIfMissing(ArgTypes&&... InArgs)
 		{
 			if (!FragmentPtr)
 			{
+				check(Defaults_FragmentPtr)
 				AsImpl().CreateFragment(InArgs...);
 			}
+			return AsImpl();
 		}
 
 		/*
 		 * Does this instance has a live mass fragment registered.
 		 */
-		UE_REWRITE bool HasRuntimeFragment() const { return !!FragmentPtr; }
+		UE_REWRITE bool HasRuntimeValue() const { return !!FragmentPtr; }
 
 		/*
 		 * Does this instance has a default value of this fragment type.
 		 */
-		UE_REWRITE bool HasDefaultFragment() const { return !!Defaults_FragmentPtr; }
+		UE_REWRITE bool HasDefaultValue() const { return !!Defaults_FragmentPtr; }
 
 		/*
 		 * Does this instance has a live mass fragment registered or a default value of this fragment type.
 		 */
-		UE_REWRITE bool HasFragmentValue() const { return !!Defaults_FragmentPtr; }
+		UE_REWRITE bool HasFragmentValue() const { return HasRuntimeValue() || HasDefaultValue(); }
 
 		/*
 		 * Get the value of the runtime fragment. Assumes validity.
@@ -371,7 +373,7 @@ namespace Faerie::ItemData
 		/*
 		 * Get the live mass fragment if it exists or the default otherwise.
 		 */
-		UE_REWRITE const TFragment* GetFragmentValue() const { return HasRuntimeFragment() ? FragmentPtr : Defaults_FragmentPtr; }
+		UE_REWRITE const TFragment* GetFragmentValue() const { return HasRuntimeValue() ? FragmentPtr : Defaults_FragmentPtr; }
 
 	protected:
 		const TFragment* FragmentPtr = nullptr;

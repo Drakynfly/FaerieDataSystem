@@ -5,18 +5,16 @@
 #include "FaerieContainerEvent.h"
 #include "FaerieItemContainerBase.h"
 #include "MassExecutionContext.h"
-#include "EntityManagerHelpers.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ContainerEventSubscription)
 
 namespace Faerie::Content
 {
-	void SubscribeToContainerEvents(const TNotNull<UFaerieItemContainerBase*> Container, const TNotNull<IFaerieContainerEventSubscriber*> Object)
+	void SubscribeToContainerEvents(FMassEntityManager& EntityManager, const TNotNull<UFaerieItemContainerBase*> Container, const TNotNull<IFaerieContainerEventSubscriber*> Object)
 	{
 		// @Todo permissions check in-case we want to stop this from being created??
 		static constexpr bool CreateIfMissing = true;
 
-		FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(Container->GetWorld());
 		Container->WriteContainerData(EntityManager, FContainerEventSubscribers::StaticStruct(),
 			[Object](const FStructView Element)
 			{
@@ -24,12 +22,11 @@ namespace Faerie::Content
 			}, CreateIfMissing);
 	}
 
-	void UnsubscribeFromContainerEvents(const TNotNull<UFaerieItemContainerBase*> Container, const TNotNull<IFaerieContainerEventSubscriber*> Object)
+	void UnsubscribeFromContainerEvents(FMassEntityManager& EntityManager, const TNotNull<UFaerieItemContainerBase*> Container, const TNotNull<IFaerieContainerEventSubscriber*> Object)
 	{
 		// Don't create data, just to remove from it.
 		static constexpr bool CreateIfMissing = false;
 
-		FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(Container->GetWorld());
 		Container->WriteContainerData(EntityManager, FContainerEventSubscribers::StaticStruct(),
 			[Object](const FStructView Element)
 			{
@@ -64,7 +61,7 @@ void UFaerieContainerEventSubscriptionUpdater::Execute(FMassEntityManager& Entit
 		const TConstArrayView<Container::FContainerEventPayload> Events = InContext.GetFragmentView<Container::FContainerEventPayload>();
 		if (Events.IsEmpty()) return;
 
-		// Collated events per container for this chunk. Uses IndirectArray to avoid copying the events.
+		// Collated events per container for this chunk. Uses pointers to avoid copying the events.
 		TCompactMap<UFaerieItemContainerBase*, TArray<const Container::FContainerEventPayload*>> EventsPerContainer;
 
 		for (const Container::FContainerEventPayload& Event : Events)

@@ -9,7 +9,7 @@ namespace Faerie::Container
 	// Run a callback on the iterator, allowing user code to run arbitrary selection logic.
 	struct FAERIEINVENTORY_API FCallbackFilter
 	{
-		bool Exec(const FMassEntityManager* EntityManager, TValid<const FFaerieItemProxy&> Proxy) const;
+		bool Exec(TValid<const FFaerieItemProxy&> Proxy) const;
 		ItemData::FViewPredicate Callback;
 	};
 }

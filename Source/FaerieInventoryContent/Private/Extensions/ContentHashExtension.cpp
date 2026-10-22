@@ -12,7 +12,7 @@
 
 using namespace Faerie;
 
-void FFaerieContainerContentHash::RecalcHash(const FMassEntityManager& EntityManager, UFaerieItemContainerBase* InContainer)
+void FFaerieContainerContentHash::RecalcHash(FMassEntityManager& EntityManager, UFaerieItemContainerBase* InContainer)
 {
 	// Everyone updates their local checksum.
 	// @todo we need to check items recursively, not only top level.

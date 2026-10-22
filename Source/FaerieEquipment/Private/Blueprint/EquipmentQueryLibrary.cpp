@@ -6,7 +6,6 @@
 #include "EquipmentQueryStatics.h"
 #include "FaerieEquipmentManager.h"
 #include "FaerieHash.h"
-#include "FaerieItem.h"
 
 #include "ContainerHash/EquipmentHashAsset.h"
 #include "ContainerHash/EquipmentHashStatics.h"
@@ -46,10 +45,10 @@ FFaerieHash UFaerieEquipmentLibrary::HashEquipment(const UFaerieEquipmentManager
 		return FFaerieHash();
 	}
 
-	const FMassEntityManager& EntityManager = Faerie::ItemData::GetFaerieEntityManagerChecked(World);
+	FMassEntityManager& EntityManager = Faerie::ItemData::GetFaerieEntityManagerChecked(World);
 
 	return Faerie::Hash::HashEquipment(Manager, EntityManager, Config.Slots,
-		[&Config](const FMassEntityManager*, const Faerie::TValid<const FFaerieItemProxy&> Item)
+		[&Config](const Faerie::TValid<const FFaerieItemProxy&> Item)
 		{
 			return Config.HashFunction.Execute(Item);
 		});
@@ -69,7 +68,7 @@ bool UFaerieEquipmentLibrary::ExecuteHashInstructions(const UFaerieEquipmentMana
 		return false;
 	}
 
-	const FMassEntityManager& EntityManager = Faerie::ItemData::GetFaerieEntityManagerChecked(Manager->GetWorld());
+	FMassEntityManager& EntityManager = Faerie::ItemData::GetFaerieEntityManagerChecked(Manager->GetWorld());
 
 	return Faerie::Hash::ExecuteHashInstructions(Manager, EntityManager, Asset);
 }
@@ -79,8 +78,7 @@ FBlueprintEquipmentHash UFaerieEquipmentLibrary::GetEquipmentHash_ByName()
 	return AUTO_DELEGATE_STATIC(FBlueprintEquipmentHash, ThisClass, ExecHashItemByName);
 }
 
-int32 UFaerieEquipmentLibrary::ExecHashItemByName(const FFaerieItemProxy& Instance)
+int32 UFaerieEquipmentLibrary::ExecHashItemByName(const FFaerieItemProxy& Proxy)
 {
-	const FMassEntityManager& EntityManager = Faerie::ItemData::GetFaerieEntityManagerChecked(Instance.ExtractWorld());
-	return Faerie::Hash::HashItemByName(&EntityManager, Instance);
+	return Faerie::Hash::HashItemByName(Proxy);
 }

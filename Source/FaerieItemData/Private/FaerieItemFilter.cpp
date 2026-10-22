@@ -1,21 +1,19 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieItemFilter.h"
-#include "FaerieItemDataView.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemFilter)
 
 using namespace Faerie;
 
 #if WITH_EDITOR
-bool FFaerieItemFilterBase::ExecWithLog(const FMassEntityManager* EntityManager,
-	const TValid<const FFaerieItemProxy&> Proxy, ItemData::FFilterLogger& Logger) const
+bool FFaerieItemFilterBase::ExecWithLog(const TValid<const FFaerieItemProxy&> Proxy, ItemData::FFilterLogger& Logger) const
 {
-	return Exec(EntityManager, Proxy);
+	return Exec(Proxy);
 }
 #endif
 
-bool FFaerieItemFilter_Blueprint::Exec(const FMassEntityManager*, const TValid<const FFaerieItemProxy&> Proxy) const
+bool FFaerieItemFilter_Blueprint::Exec(const TValid<const FFaerieItemProxy&> Proxy) const
 {
 	if (Blueprint)
 	{
@@ -25,8 +23,7 @@ bool FFaerieItemFilter_Blueprint::Exec(const FMassEntityManager*, const TValid<c
 }
 
 #if WITH_EDITOR
-bool FFaerieItemFilter_Blueprint::ExecWithLog(const FMassEntityManager* EntityManager,
-	const TValid<const FFaerieItemProxy&> Proxy, ItemData::FFilterLogger& Logger) const
+bool FFaerieItemFilter_Blueprint::ExecWithLog(const TValid<const FFaerieItemProxy&> Proxy, ItemData::FFilterLogger& Logger) const
 {
 	if (Blueprint)
 	{

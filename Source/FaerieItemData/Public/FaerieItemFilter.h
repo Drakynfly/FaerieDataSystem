@@ -57,12 +57,12 @@ struct FAERIEITEMDATA_API FFaerieItemFilterBase
 
 	virtual ~FFaerieItemFilterBase() = default;
 
-	virtual bool Exec(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const
+	virtual bool Exec(Faerie::TValid<const FFaerieItemProxy&> Proxy) const
 		PURE_VIRTUAL(FFaerieItemFilterBase::Exec, return false; )
 
 #if WITH_EDITOR
 	// Overload with ability to log errors. Used by editor validation to collect info about failures.
-	virtual bool ExecWithLog(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy, Faerie::ItemData::FFilterLogger& Logger) const;
+	virtual bool ExecWithLog(Faerie::TValid<const FFaerieItemProxy&> Proxy, Faerie::ItemData::FFilterLogger& Logger) const;
 
 	// This function allows the owning object to know if this filter will allow mutable or immutable assets through, or
 	// if it doesn't know. The default is unknown, and specific children must override one way or the other.
@@ -89,10 +89,10 @@ struct FFaerieItemFilter_Blueprint final : public FFaerieItemFilterBase
 {
 	GENERATED_BODY()
 
-	virtual bool Exec(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
+	virtual bool Exec(Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
 
 #if WITH_EDITOR
-	virtual bool ExecWithLog(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy, Faerie::ItemData::FFilterLogger& Logger) const override;
+	virtual bool ExecWithLog(Faerie::TValid<const FFaerieItemProxy&> Proxy, Faerie::ItemData::FFilterLogger& Logger) const override;
 	virtual EFaerieItemFilterMutabilityStatus GetMutabilityStatus() const override;
 #endif
 

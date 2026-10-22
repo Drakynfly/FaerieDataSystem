@@ -78,6 +78,16 @@ namespace Faerie::Container
 		return nullptr;
 	}
 
+	UFaerieItemContainerBase* GetItemOwner(const FFaerieItemProxy& Proxy)
+	{
+		const TSharedPtr<FMassEntityManager> EntityManager = Proxy.GetEntityManager();
+		if (!EntityManager.IsValid())
+		{
+			return nullptr;
+		}
+		return GetItemOwner(*EntityManager.Get(), Proxy.GetEntityHandle());
+	}
+
 	namespace
 	{
 		template <bool IsSubItem>

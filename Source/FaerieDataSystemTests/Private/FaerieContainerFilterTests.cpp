@@ -31,7 +31,7 @@ bool FaerieContainerFilterTests::RunTest(const FString& Parameters)
 	FFaerieItemInstance TestItem2 = FFaerieItemInstance::FromPointer(
 		UFaerieItem::CreateNewInstance(MakeConstArrayView(&TestInfoInstance, 1), GetTransientPackageAsObject(), EFaerieItemInstancingMutability::Mutable));
 
-	auto TestItem1Info = Faerie::ItemData::GetDefaultFragment<FFaerieAssetInfo>(TestItem1.GetItemPtr());
+	auto TestItem1Info = TestItem1.GetItemPtr()->GetDefaultFragment<FFaerieAssetInfo>();
 
 	TestTrue("GetDefaultFragment", TestItem1Info.IsValid());
 	TestTrue("GetDefaultFragment equals TestInfo", TestItem1Info->ObjectName.EqualTo(TestInfo.ObjectName));

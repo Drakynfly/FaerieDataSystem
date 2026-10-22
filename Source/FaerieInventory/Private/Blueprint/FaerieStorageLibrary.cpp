@@ -32,11 +32,10 @@ int32 UFaerieStorageLibrary::GetItemStackLimit(const FFaerieItemProxy& Proxy)
 		return 0;
 	}
 
-	return Container::GetItemStackLimit(ItemData::GetFaerieEntityManager(Proxy.ExtractWorld()), InstanceOpt.GetValue());
+	return Container::GetItemStackLimit(Proxy.GetEntityManager().Get(), InstanceOpt.GetValue());
 }
 
-bool UFaerieStorageLibrary::GetNetworkHandleFromProxy(const FFaerieItemProxy& Proxy,
-	FFaerieItemNetworkHandle& OutHandle)
+bool UFaerieStorageLibrary::GetNetworkHandleFromProxy(const FFaerieItemProxy& Proxy, FFaerieItemNetworkHandle& OutHandle)
 {
 	if (Proxy.HasValidInstance())
 	{
@@ -88,7 +87,12 @@ FFaerieAddress UFaerieStorageLibrary::QueryFirst(UFaerieItemStorage* Storage, co
 
 UFaerieItemContainerBase* UFaerieStorageLibrary::GetOwningContainer(const FFaerieItemProxy& Proxy)
 {
-	return Cast<UFaerieItemContainerBase>(Proxy.GetItemOwner());
+	if (!Proxy.HasEntityManager())
+	{
+		FFrame::KismetExecutionMessage(TEXT("No Entity Manager assigned to handle UFaerieStorageLibrary::GetOwningContainer"), ELogVerbosity::Error);
+		return nullptr;
+	}
+	return Container::GetItemOwner(Proxy);
 }
 
 bool UFaerieStorageLibrary::FindSubobject(const FFaerieItemProxy& Proxy, const TSubclassOf<UFaerieItemContainerBase> Class,
@@ -104,9 +108,26 @@ bool UFaerieStorageLibrary::FindSubobject(const FFaerieItemProxy& Proxy, const T
 	const FFaerieItemInstance Instance = InstanceOpt.GetValue();
 	if (!Instance.IsMutable()) return false;
 
-#if WITH_EDITOR
-	const UWorld* TestWorld = Proxy.TestExtractWorld();
-	if (!ItemData::HasFaerieEntityManagerBeenAssigned(TestWorld))
+	if (const TSharedPtr<FMassEntityManager>& EntityManager = Proxy.GetEntityManager())
+	{
+		TArray<TNotNull<UFaerieItemContainerBase*>> Containers;
+		if (Recursive)
+		{
+			SubObject::GetContainersInInstanceRecursive(*EntityManager.Get(), Instance.GetMassEntityHandle(), Containers, Class);
+		}
+		else
+		{
+			SubObject::GetContainersInInstanceDirect(*EntityManager.Get(), Instance.GetMassEntityHandle(), Containers, Class);
+		}
+
+		// Return first
+		if (!Containers.IsEmpty())
+		{
+			FoundContainer = Containers[0];
+			return true;
+		}
+	}
+	else
 	{
 		TArray<TNotNull<const UFaerieItemContainerBase*>> Containers;
 		if (const UFaerieItem* ItemAsset = Instance.GetItemPtr())
@@ -128,28 +149,6 @@ bool UFaerieStorageLibrary::FindSubobject(const FFaerieItemProxy& Proxy, const T
 			return true;
 		}
 	}
-	else
-#endif
-	{
-		const UWorld* World = Proxy.ExtractWorld();
-		FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(World);
-		TArray<TNotNull<UFaerieItemContainerBase*>> Containers;
-		if (Recursive)
-		{
-			SubObject::GetContainersInInstanceRecursive(EntityManager, Instance.GetMassEntityHandle(), Containers, Class);
-		}
-		else
-		{
-			SubObject::GetContainersInInstanceDirect(EntityManager, Instance.GetMassEntityHandle(), Containers, Class);
-		}
-
-		// Return first
-		if (!Containers.IsEmpty())
-		{
-			FoundContainer = Containers[0];
-			return true;
-		}
-	}
 
 	return false;
 }
@@ -167,9 +166,18 @@ void UFaerieStorageLibrary::FindSubObjectsByClass(const FFaerieItemProxy& Proxy,
 	const FFaerieItemInstance Instance = InstanceOpt.GetValue();
 	if (!Instance.IsMutable()) return;
 
-#if WITH_EDITOR
-	const UWorld* TestWorld = Proxy.TestExtractWorld();
-	if (!ItemData::HasFaerieEntityManagerBeenAssigned(TestWorld))
+	if (const TSharedPtr<FMassEntityManager>& EntityManager = Proxy.GetEntityManager())
+	{
+		if (Recursive)
+		{
+			SubObject::GetContainersInInstanceRecursive(*EntityManager.Get(), Instance.GetMassEntityHandle(), FoundContainers, Class);
+		}
+		else
+		{
+			SubObject::GetContainersInInstanceDirect(*EntityManager.Get(), Instance.GetMassEntityHandle(), FoundContainers, Class);
+		}
+	}
+	else
 	{
 		if (const UFaerieItem* ItemAsset = Instance.GetItemPtr())
 		{
@@ -181,20 +189,6 @@ void UFaerieStorageLibrary::FindSubObjectsByClass(const FFaerieItemProxy& Proxy,
 			{
 				SubObject::GetTemplateContainersInInstanceDirect(ItemAsset, *reinterpret_cast<TArray<TNotNull<const UFaerieItemContainerBase*>>*>(&FoundContainers), Class);
 			}
-		}
-	}
-	else
-#endif
-	{
-		const UWorld* World = Proxy.ExtractWorld();
-		FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(World);
-		if (Recursive)
-		{
-			SubObject::GetContainersInInstanceRecursive(EntityManager, Instance.GetMassEntityHandle(), FoundContainers, Class);
-		}
-		else
-		{
-			SubObject::GetContainersInInstanceDirect(EntityManager, Instance.GetMassEntityHandle(), FoundContainers, Class);
 		}
 	}
 }
@@ -211,9 +205,18 @@ void UFaerieStorageLibrary::GetAllContainersInItem(const FFaerieItemProxy& Proxy
 	const FFaerieItemInstance Instance = InstanceOpt.GetValue();
 	if (!Instance.IsMutable()) return;
 
-#if WITH_EDITOR
-	const UWorld* TestWorld = Proxy.TestExtractWorld();
-	if (!ItemData::HasFaerieEntityManagerBeenAssigned(TestWorld))
+	if (const TSharedPtr<FMassEntityManager>& EntityManager = Proxy.GetEntityManager())
+	{
+		if (Recursive)
+		{
+			SubObject::GetContainersInInstanceRecursive<UFaerieItemContainerBase>(*EntityManager.Get(), Instance.GetMassEntityHandle(), FoundContainers);
+		}
+		else
+		{
+			SubObject::GetContainersInInstanceDirect<UFaerieItemContainerBase>(*EntityManager.Get(), Instance.GetMassEntityHandle(), FoundContainers);
+		}
+	}
+	else
 	{
 		if (const UFaerieItem* ItemAsset = Instance.GetItemPtr())
 		{
@@ -227,20 +230,6 @@ void UFaerieStorageLibrary::GetAllContainersInItem(const FFaerieItemProxy& Proxy
 			{
 				SubObject::GetTemplateContainersInInstanceDirect(ItemAsset, ConstContainerArray);
 			}
-		}
-	}
-	else
-#endif
-	{
-		const UWorld* World = Proxy.ExtractWorld();
-		FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(World);
-		if (Recursive)
-		{
-			SubObject::GetContainersInInstanceRecursive<UFaerieItemContainerBase>(EntityManager, Instance.GetMassEntityHandle(), FoundContainers);
-		}
-		else
-		{
-			SubObject::GetContainersInInstanceDirect<UFaerieItemContainerBase>(EntityManager, Instance.GetMassEntityHandle(), FoundContainers);
 		}
 	}
 }
@@ -259,22 +248,20 @@ void UFaerieStorageLibrary::GetItemChildren(const FFaerieItemProxy& Proxy, TArra
 	// Only mutable instances have children, so we can early-out it it's not.
 	if (!Instance.IsMutable()) return;
 
-	const UWorld* World = Proxy.ExtractWorld();
-
-	if (!ItemData::HasFaerieEntityManagerBeenAssigned(World))
+	const TSharedPtr<FMassEntityManager>& EntityManager = Proxy.GetEntityManager();
+	if (!EntityManager)
 	{
 		FFrame::KismetExecutionMessage(TEXT("No Entity Manager assigned to handle UFaerieStorageLibrary::GetItemChildren"), ELogVerbosity::Error);
 		return;
 	}
 
-	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(World);
 	if (Recursive)
 	{
-		SubObject::GetChildrenInItemRecursive(EntityManager, Instance.GetMassEntityHandle(), FoundChildren);
+		SubObject::GetChildrenInItemRecursive(*EntityManager.Get(), Instance.GetMassEntityHandle(), FoundChildren);
 	}
 	else
 	{
-		SubObject::GetChildrenInItem(EntityManager, Instance.GetMassEntityHandle(), FoundChildren);
+		SubObject::GetChildrenInItem(*EntityManager.Get(), Instance.GetMassEntityHandle(), FoundChildren);
 	}
 }
 

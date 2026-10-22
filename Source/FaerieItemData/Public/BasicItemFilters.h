@@ -22,7 +22,7 @@ struct FFaerieItemFilter_Literal final : public FFaerieItemFilterBase
 {
 	GENERATED_BODY()
 
-	virtual bool Exec(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const override { return true; }
+	virtual bool Exec(Faerie::TValid<const FFaerieItemProxy&> Proxy) const override { return true; }
 };
 
 /**
@@ -33,10 +33,10 @@ struct FFaerieItemFilter_Not final : public FFaerieItemFilterBase
 {
 	GENERATED_BODY()
 
-	virtual bool Exec(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
+	virtual bool Exec(Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
 
 #if WITH_EDITOR
-	virtual bool ExecWithLog(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy, Faerie::ItemData::FFilterLogger& Logger) const override;
+	virtual bool ExecWithLog(Faerie::TValid<const FFaerieItemProxy&> Proxy, Faerie::ItemData::FFilterLogger& Logger) const override;
 	virtual EFaerieItemFilterMutabilityStatus GetMutabilityStatus() const override;
 #endif
 
@@ -52,10 +52,10 @@ struct FFaerieItemFilter_Or final : public FFaerieItemFilterBase
 {
 	GENERATED_BODY()
 
-	virtual bool Exec(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
+	virtual bool Exec(Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
 
 #if WITH_EDITOR
-	virtual bool ExecWithLog(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy, Faerie::ItemData::FFilterLogger& Logger) const override;
+	virtual bool ExecWithLog(Faerie::TValid<const FFaerieItemProxy&> Proxy, Faerie::ItemData::FFilterLogger& Logger) const override;
 	virtual EFaerieItemFilterMutabilityStatus GetMutabilityStatus() const override;
 #endif
 
@@ -71,10 +71,10 @@ struct FFaerieItemFilter_And final : public FFaerieItemFilterBase
 {
 	GENERATED_BODY()
 
-	virtual bool Exec(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
+	virtual bool Exec(Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
 
 #if WITH_EDITOR
-	virtual bool ExecWithLog(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy, Faerie::ItemData::FFilterLogger& Logger) const override;
+	virtual bool ExecWithLog(Faerie::TValid<const FFaerieItemProxy&> Proxy, Faerie::ItemData::FFilterLogger& Logger) const override;
 	virtual EFaerieItemFilterMutabilityStatus GetMutabilityStatus() const override;
 #endif
 
@@ -90,7 +90,7 @@ struct FFaerieItemFilter_Conditional final : public FFaerieItemFilterBase
 {
 	GENERATED_BODY()
 
-	virtual bool Exec(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
+	virtual bool Exec(Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
 
 #if WITH_EDITOR
 	virtual EFaerieItemFilterMutabilityStatus GetMutabilityStatus() const override;
@@ -115,7 +115,7 @@ struct FFaerieItemFilter_Ternary final : public FFaerieItemFilterBase
 {
 	GENERATED_BODY()
 
-	virtual bool Exec(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
+	virtual bool Exec(Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
 
 #if WITH_EDITOR
 	virtual EFaerieItemFilterMutabilityStatus GetMutabilityStatus() const override;
@@ -139,7 +139,7 @@ struct FFaerieItemFilter_Mutability final : public FFaerieItemFilterBase
 {
 	GENERATED_BODY()
 
-	virtual bool Exec(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
+	virtual bool Exec(Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
 
 #if WITH_EDITOR
 	virtual EFaerieItemFilterMutabilityStatus GetMutabilityStatus() const override;
@@ -158,10 +158,10 @@ struct FFaerieItemFilter_MatchTemplate final : public FFaerieItemFilterBase
 {
 	GENERATED_BODY()
 
-	virtual bool Exec(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
+	virtual bool Exec(Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
 
 #if WITH_EDITOR
-	virtual bool ExecWithLog(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy, Faerie::ItemData::FFilterLogger& Logger) const override;
+	virtual bool ExecWithLog(Faerie::TValid<const FFaerieItemProxy&> Proxy, Faerie::ItemData::FFilterLogger& Logger) const override;
 	virtual EFaerieItemFilterMutabilityStatus GetMutabilityStatus() const override;
 #endif
 
@@ -179,10 +179,10 @@ struct FFaerieItemFilter_HasFragments final : public FFaerieItemFilterBase
 
 	FFaerieItemFilter_HasFragments();
 
-	virtual bool Exec(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
+	virtual bool Exec(Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
 
 #if WITH_EDITOR
-	virtual bool ExecWithLog(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy, Faerie::ItemData::FFilterLogger& Logger) const override;
+	virtual bool ExecWithLog(Faerie::TValid<const FFaerieItemProxy&> Proxy, Faerie::ItemData::FFilterLogger& Logger) const override;
 	virtual EFaerieItemFilterMutabilityStatus GetMutabilityStatus() const override;
 #endif
 
@@ -219,7 +219,7 @@ struct FFaerieItemFilter_Copies final : public FFaerieItemFilterBase
 {
 	GENERATED_BODY()
 
-	virtual bool Exec(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
+	virtual bool Exec(Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
 
 #if WITH_EDITOR
 	virtual EFaerieItemFilterMutabilityStatus GetMutabilityStatus() const override;
@@ -240,7 +240,7 @@ struct FFaerieItemFilter_CompareName final : public FFaerieItemFilterBase
 {
 	GENERATED_BODY()
 
-	virtual bool Exec(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
+	virtual bool Exec(Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
 
 	UPROPERTY(EditAnywhere, Category = "CompareName")
 	FText CompareText;
@@ -256,7 +256,7 @@ struct FFaerieItemFilter_GameplayTagAny final : public FFaerieItemFilterBase
 {
 	GENERATED_BODY()
 
-	virtual bool Exec(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
+	virtual bool Exec(Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
 
 	UPROPERTY(EditAnywhere, Category = "GameplayTagAny")
 	FGameplayTagContainer Tags;
@@ -273,7 +273,7 @@ struct FFaerieItemFilter_GameplayTagAll final : public FFaerieItemFilterBase
 {
 	GENERATED_BODY()
 
-	virtual bool Exec(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
+	virtual bool Exec(Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
 
 	UPROPERTY(EditAnywhere, Category = "GameplayTagAll")
 	FGameplayTagContainer Tags;
@@ -290,7 +290,7 @@ struct FFaerieItemFilter_GameplayTagQuery final : public FFaerieItemFilterBase
 {
 	GENERATED_BODY()
 
-	virtual bool Exec(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
+	virtual bool Exec(Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
 
 	UPROPERTY(EditAnywhere, Category = "GameplayTagAll")
 	FGameplayTagQuery Query;

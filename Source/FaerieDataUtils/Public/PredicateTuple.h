@@ -47,31 +47,31 @@ namespace Faerie::Utils
 
 		// Returns true if the object passes every predicate
 		template <typename ObjectType>
-		[[nodiscard]] bool TestAll(const FMassEntityManager* EntityManager, ObjectType Object) const
+		[[nodiscard]] bool TestAll(ObjectType Object) const
 		{
-			return PredicateTuple.ApplyAfter([EntityManager, Object](const Predicates&... TupleValues)
+			return PredicateTuple.ApplyAfter([Object](const Predicates&... TupleValues)
 				{
-					auto Run = [](const FMassEntityManager* EntityManager, ObjectType InObject, const auto& InPredicate)
+					auto Run = [](ObjectType InObject, const auto& InPredicate)
 					{
-						return InPredicate.Exec(EntityManager, InObject);
+						return InPredicate.Exec(InObject);
 					};
 
-					return (Run(EntityManager, Object, TupleValues) && ...);
+					return (Run(Object, TupleValues) && ...);
 				});
 		}
 
 		// Returns true if the object passes any predicate
 		template <typename ObjectType>
-		[[nodiscard]] bool TestAny(const FMassEntityManager* EntityManager, ObjectType Object) const
+		[[nodiscard]] bool TestAny(ObjectType Object) const
 		{
-			return PredicateTuple.ApplyAfter([EntityManager, Object](const Predicates&... TupleValues)
+			return PredicateTuple.ApplyAfter([Object](const Predicates&... TupleValues)
 				{
-					auto Run = [](const FMassEntityManager* EntityManager, ObjectType InObject, const auto& InPredicate)
+					auto Run = [](ObjectType InObject, const auto& InPredicate)
 					{
-						return InPredicate.Exec(EntityManager, InObject);
+						return InPredicate.Exec(InObject);
 					};
 
-					return (Run(EntityManager, Object, TupleValues) || ...);
+					return (Run(Object, TupleValues) || ...);
 				});
 		}
 

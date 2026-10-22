@@ -12,6 +12,7 @@ namespace Faerie::ItemData
 	public:
 		virtual ~IViewBase() = default;
 
+		// Get the item entity handle from this view.
 		virtual FMassEntityHandle GetEntityHandle() const = 0;
 
 		// Get the valid item instance or NullOpt from this view.
@@ -19,9 +20,6 @@ namespace Faerie::ItemData
 
 		// Get the number of copies this view may access.
 		virtual int32 GetCopies() const = 0;
-
-		// Get the Owner Interface for the UObject that owns the item this view represents.
-		virtual const UObject* GetItemOwner() const = 0;
 	};
 }
 
@@ -31,17 +29,16 @@ namespace Faerie::ItemData
 	struct FScopeProxy final : public IViewBase
 	{
 		FScopeProxy(TYPE_OF_NULLPTR)
-		  : Copies(0), ItemOwner(nullptr) {}
+		  : Copies(0) {}
 
-		FScopeProxy(const FFaerieItemInstance& Ref, const int32 Copies, const UObject* ItemOwner)
-		  : Instance(Ref), Copies(Copies), ItemOwner(ItemOwner) {}
+		FScopeProxy(const FFaerieItemInstance& Ref, const int32 Copies)
+		  : Instance(Ref), Copies(Copies) {}
 
 	protected:
 		// ReSharper disable CppOverrideWithDifferentVisibility
 		UE_REWRITE virtual FMassEntityHandle GetEntityHandle() const override { return Instance.GetMassEntityHandle(); }
 		UE_REWRITE virtual TOptional<FFaerieItemInstance> GetItemInstance() const override { return Instance; }
 		UE_REWRITE virtual int32 GetCopies() const override { return Copies; }
-		UE_REWRITE virtual const UObject* GetItemOwner() const override { return ItemOwner; }
 		// ReSharper restore CppOverrideWithDifferentVisibility
 
 	public:
@@ -51,6 +48,5 @@ namespace Faerie::ItemData
 
 		FFaerieItemInstance Instance;
 		int32 Copies;
-		const UObject* ItemOwner;
 	};
 }

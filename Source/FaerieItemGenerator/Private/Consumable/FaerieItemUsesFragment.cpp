@@ -4,6 +4,7 @@
 #include "FaerieItem.h"
 #include "FaerieItemContainerBase.h"
 #include "FaerieItemGenerationLog.h"
+#include "FaerieItemOwnership.h"
 #include "FaerieItemSource.h"
 #include "FaerieUnownedItemStack.h"
 #include "ItemContainerEvent.h"
@@ -12,6 +13,8 @@
 #include "MassEntityManager.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemUsesFragment)
+
+using namespace Faerie;
 
 void FFaerieItemLastUseLogicBase::HandleOnLastUse(const FFaerieItemLastUseLogicBase* ThisBase, FMassEntityManager& EntityManager,
 	const FFaerieItemProxy& Proxy, const bool ProcessAsync) const
@@ -27,10 +30,10 @@ FFaerieItemLastUseLogic_Destroy::FFaerieItemLastUseLogic_Destroy()
 
 void FFaerieItemLastUseLogic_Destroy::OnLastUse_Destroy(const FFaerieItemLastUseLogicBase* ThisBase, FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy, bool ProcessAsync)
 {
-	if (UFaerieItemContainerBase* Container = Cast<UFaerieItemContainerBase>(Proxy.GetItemOwner()))
+	if (UFaerieItemContainerBase* Container = Container::GetItemOwner(Proxy))
 	{
 		// Destroy and cast into the aether.
-		(void)Container->Release(EntityManager, Proxy, 1, Faerie::Inventory::Tags::RemovalDeletion);
+		(void)Container->Release(EntityManager, Proxy, 1, Inventory::Tags::RemovalDeletion);
 	}
 }
 
@@ -57,7 +60,7 @@ void FFaerieItemLastUseLogic_Replace::OnLastUse_Replace(const FFaerieItemLastUse
 				return;
 			}
 
-			UFaerieItemContainerBase* Container = Cast<UFaerieItemContainerBase>(InProxy.GetItemOwner());
+			UFaerieItemContainerBase* Container = Container::GetItemOwner(InProxy);
 			if (!IsValid(Container))
 			{
 				UE_LOGF(LogItemGeneration, Error, "Invalid Container (no item instance owner) for FFaerieItemLastUseLogic_Replace on '%ls'", *InProxy.GetProxyObject()->GetName())
@@ -66,7 +69,7 @@ void FFaerieItemLastUseLogic_Replace::OnLastUse_Replace(const FFaerieItemLastUse
 
 			FFaerieItemInstancingContext Context;
 			Context.EntityManager = &InEntityManager;
-			const Faerie::ItemData::FGetInstanceResult Result = ItemSource->CreateItemStack(Context);
+			const ItemData::FGetInstanceResult Result = ItemSource->CreateItemStack(Context);
 			if (!Result.IsValid())
 			{
 				UE_LOGF(LogItemGeneration, Error, "Failed to create item instance for FFaerieItemLastUseLogic_Replace on '%ls'", *InProxy.GetProxyObject()->GetName())
@@ -74,7 +77,7 @@ void FFaerieItemLastUseLogic_Replace::OnLastUse_Replace(const FFaerieItemLastUse
 			}
 
 			// Destroy and cast into the aether.
-			(void)Container->Release(InEntityManager, InProxy, Faerie::ItemData::EntireStack, Faerie::Inventory::Tags::RemovalDeletion);
+			(void)Container->Release(InEntityManager, InProxy, ItemData::EntireStack, Inventory::Tags::RemovalDeletion);
 
 			// Possess new item
 			if (!Container->Possess(InEntityManager, Result.WithInitialization(InEntityManager)))
@@ -136,16 +139,10 @@ namespace Faerie::ItemData
 	  : EntityManager(&EntityManager), Item(Instance)
 	{
 		// Look for a live fragment if we have an entity manager
-		if (const FFaerieItemUses* CapacityFragment = GetEntityFragment<FFaerieItemUses>(EntityManager, Item.GetMassEntityHandle()))
-		{
-			FragmentPtr = CapacityFragment;
-		}
+		FragmentPtr = GetEntityFragment<FFaerieItemUses>(EntityManager, Item.GetMassEntityHandle());
 
 		// For the default value.
-		if (const FFaerieItemUses* DefaultCapacityFragment = Item.GetItemPtr()->GetDefaultFragment<FFaerieItemUses>())
-		{
-			Defaults_FragmentPtr = DefaultCapacityFragment;
-		}
+		Defaults_FragmentPtr = GetDefaultFragmentPtr<FFaerieItemUses>(&EntityManager, Item);
 	}
 
 	void FUsesHelper::CreateFragment(FMassEntityManager& InEntityManager, const TOptional<int32>& MaxUses, const TOptional<int32>& InitialUses)
@@ -198,7 +195,7 @@ namespace Faerie::ItemData
 		if (Amount <= 0) return;
 
 		// Ensure live fragment is registered.
-		check(HasRuntimeFragment())
+		check(HasRuntimeValue())
 
 		EntityManager->Defer().PushCommand<FMassDeferredSetCommand>(
 			[Entity = Item.GetMassEntityHandle(), Amount, ClampToMax](FMassEntityManager& InEntityManager)
@@ -232,7 +229,7 @@ namespace Faerie::ItemData
 		if (Amount <= 0) return;
 
 		// Ensure live fragment is registered.
-		check(HasRuntimeFragment())
+		check(HasRuntimeValue())
 		check(Proxy_TempForNow.IsSafeToPersist())
 
 		EntityManager->Defer().PushCommand<FMassDeferredSetCommand>(
@@ -267,7 +264,7 @@ namespace Faerie::ItemData
 	void FUsesHelper::SetUses(int32 Amount)
 	{
 		// Ensure live fragment is registered.
-		check(HasRuntimeFragment())
+		check(HasRuntimeValue())
 
 		// Always clamp Amount to a positive value
 		Amount = FMath::Max(Amount, 0);
@@ -299,13 +296,13 @@ namespace Faerie::ItemData
 
 	void FUsesHelper::ResetUses()
 	{
-		if (!ensureMsgf(HasDefaultFragment(), TEXT("ResetUses should not be called for an instance that does not have defaults!")))
+		if (!ensureMsgf(HasDefaultValue(), TEXT("ResetUses should not be called for an instance that does not have defaults!")))
 		{
 			return;
 		}
 
 		// Ensure live fragment is registered.
-		check(HasRuntimeFragment())
+		check(HasRuntimeValue())
 
 		if (FragmentPtr->UsesRemaining == Defaults_FragmentPtr->UsesRemaining)
 		{
@@ -335,7 +332,7 @@ namespace Faerie::ItemData
 	void FUsesHelper::SetMaxUses(int32 Value, bool ClampRemainingIfOverMax)
 	{
 		// Ensure live fragment is registered.
-		check(HasRuntimeFragment())
+		check(HasRuntimeValue())
 
 		// Always clamp Value to a positive value
 		Value = FMath::Max(Value, 0);

@@ -27,8 +27,8 @@ namespace LocalCopy
 	}
 }
 
-FFaerieStorageEntry::FFaerieStorageEntry(const FFaerieEntryKey EntryKey, FFaerieItemInstance& Item, const int32 StackLimit, int32 Amount, TArray<FFaerieAddress>& OutNewAddresses)
-  : Key(EntryKey), ItemInstance(MoveTemp(Item)), CachedLimit(StackLimit)
+FFaerieStorageEntry::FFaerieStorageEntry(const FFaerieEntryKey EntryKey, const FMassEntityHandle Item, const int32 StackLimit, int32 Amount, TArray<FFaerieAddress>& OutNewAddresses)
+  : Key(EntryKey), CachedLimit(StackLimit), CachedItemHandle(Item)
 {
 	if (StackLimit == Faerie::ItemData::UnlimitedStack)
 	{
@@ -51,8 +51,8 @@ FFaerieStorageEntry::FFaerieStorageEntry(const FFaerieEntryKey EntryKey, FFaerie
 	}
 }
 
-FFaerieStorageEntry::FFaerieStorageEntry(const FFaerieEntryKey EntryKey, FFaerieItemInstance& Item, const int32 StackLimit, const TConstArrayView<FFaerieKeyedStack> Stacks)
-  : Key(EntryKey), ItemInstance(MoveTemp(Item)), Stacks(Stacks), CachedLimit(StackLimit)
+FFaerieStorageEntry::FFaerieStorageEntry(const FFaerieEntryKey EntryKey, const FMassEntityHandle Item, const int32 StackLimit, const TConstArrayView<FFaerieKeyedStack> Stacks)
+  : Key(EntryKey), Stacks(Stacks), CachedLimit(StackLimit), CachedItemHandle(Item)
 {
 	// @Todo split Stacks up if any are larger than StackLimit
 }
@@ -74,7 +74,7 @@ const FFaerieKeyedStack* FFaerieStorageEntry::GetStackPtr(const FFaerieStackKey 
 
 void FFaerieStorageEntry::UpdateCachedStackLimit(const FMassEntityManager& EntityManager)
 {
-	CachedLimit = Faerie::Container::GetItemStackLimit(&EntityManager, ItemInstance);
+	CachedLimit = Faerie::Container::GetItemStackLimit(&EntityManager, GetInstance());
 }
 
 bool FFaerieStorageEntry::Contains(const FFaerieStackKey InKey) const
@@ -133,20 +133,22 @@ int32 FFaerieStorageEntry::StackSum() const
 
 bool FFaerieStorageEntry::IsValid() const
 {
-	// No instance, obviously invalid
-	if (ItemInstance.IsEmpty()) return false;
+	// No id, obviously invalid
+	if (!NetID.IsSet()) return false;
 
 	// No stacks, invalid
 	if (Stacks.IsEmpty()) return false;
 
 	// Check that each stack is valid
-	for (auto&& Element : Stacks)
+	for (const FFaerieKeyedStack& Element : Stacks)
 	{
 		if (!Element.Key.IsValid() || !Faerie::ItemData::IsValidStackAmount(Element.Stack))
 		{
 			return false;
 		}
 	}
+
+	// Note: we don't check if the entity handle is valid, as we might be a client that hasn't had the entity handle ack'd to us yet.
 
 	// Everything is good
 	return true;
@@ -192,27 +194,12 @@ void FFaerieStorageEntry::PostReplicatedChange(const FFaerieStorageContent& InAr
 	}
 }
 
-const UObject* FFaerieStorageEntry::FStorageContentAccess::GetListener(const FFaerieStorageContent& Source)
-{
-	return Source.ChangeListener;
-}
-
 #if FAERIE_DEBUG
 uint32& FFaerieStorageEntry::FStorageContentAccess::GetWriteLock(const FFaerieStorageContent& Source)
 {
 	return Source.WriteLock;
 }
 #endif
-
-const UObject* FFaerieStorageEntry::FReadAccess::GetItemOwner() const
-{
-	return FStorageContentAccess::GetListener(Source);
-}
-
-const UObject* FFaerieStorageEntry::FStackReadAccess::GetItemOwner() const
-{
-	return FStorageContentAccess::GetListener(Source);
-}
 
 FFaerieAddress FFaerieStorageEntry::FStackReadAccess::ResolveAddress() const
 {
@@ -251,7 +238,7 @@ FFaerieStorageEntry::FReadWriteAccess::~FReadWriteAccess()
 
 void FFaerieStorageEntry::FReadWriteAccess::AssignEntityFromReplication(const FMassEntityHandle EntityHandle)
 {
-	Entry.ItemInstance = FFaerieItemInstance::FromEntity(EntityHandle);
+	Entry.CachedItemHandle = EntityHandle;
 }
 
 void FFaerieStorageEntry::FReadWriteAccess::SetStack(const FFaerieStackKey InKey, const int32 Stack)

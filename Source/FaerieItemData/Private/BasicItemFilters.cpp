@@ -12,14 +12,14 @@
 
 using namespace Faerie;
 
-bool FFaerieItemFilter_Not::Exec(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy) const
+bool FFaerieItemFilter_Not::Exec(const TValid<const FFaerieItemProxy&> Proxy) const
 {
 	if (!InvertedFilter.IsValid()) return false;
-	return !InvertedFilter->Exec(EntityManager, Proxy);
+	return !InvertedFilter->Exec(Proxy);
 }
 
 #if WITH_EDITOR
-bool FFaerieItemFilter_Not::ExecWithLog(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy,
+bool FFaerieItemFilter_Not::ExecWithLog(const TValid<const FFaerieItemProxy&> Proxy,
 	ItemData::FFilterLogger& Logger) const
 {
 	if (!InvertedFilter.IsValid())
@@ -28,7 +28,7 @@ bool FFaerieItemFilter_Not::ExecWithLog(const FMassEntityManager* EntityManager,
 		Logger.Errors.Add(ErrorFormat);
 	}
 
-	return !InvertedFilter->ExecWithLog(EntityManager, Proxy, Logger);
+	return !InvertedFilter->ExecWithLog(Proxy, Logger);
 }
 
 EFaerieItemFilterMutabilityStatus FFaerieItemFilter_Not::GetMutabilityStatus() const
@@ -39,11 +39,11 @@ EFaerieItemFilterMutabilityStatus FFaerieItemFilter_Not::GetMutabilityStatus() c
 }
 #endif
 
-bool FFaerieItemFilter_Or::Exec(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy) const
+bool FFaerieItemFilter_Or::Exec(const TValid<const FFaerieItemProxy&> Proxy) const
 {
 	for (auto&& Rule : Rules)
 	{
-		if (Rule->Exec(EntityManager, Proxy))
+		if (Rule->Exec(Proxy))
 		{
 			return true;
 		}
@@ -53,12 +53,12 @@ bool FFaerieItemFilter_Or::Exec(const FMassEntityManager* EntityManager, const T
 }
 
 #if WITH_EDITOR
-bool FFaerieItemFilter_Or::ExecWithLog(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy,
+bool FFaerieItemFilter_Or::ExecWithLog(const TValid<const FFaerieItemProxy&> Proxy,
 	ItemData::FFilterLogger& Logger) const
 {
 	for (auto&& Rule : Rules)
 	{
-		if (!Rule->ExecWithLog(EntityManager, Proxy, Logger))
+		if (!Rule->ExecWithLog(Proxy, Logger))
 		{
 			return false;
 		}
@@ -80,11 +80,11 @@ EFaerieItemFilterMutabilityStatus FFaerieItemFilter_Or::GetMutabilityStatus() co
 }
 #endif
 
-bool FFaerieItemFilter_And::Exec(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy) const
+bool FFaerieItemFilter_And::Exec(const TValid<const FFaerieItemProxy&> Proxy) const
 {
 	for (auto&& Rule : Rules)
 	{
-		if (!Rule->Exec(EntityManager, Proxy))
+		if (!Rule->Exec(Proxy))
 		{
 			return false;
 		}
@@ -94,15 +94,14 @@ bool FFaerieItemFilter_And::Exec(const FMassEntityManager* EntityManager, const 
 }
 
 #if WITH_EDITOR
-bool FFaerieItemFilter_And::ExecWithLog(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy,
-	ItemData::FFilterLogger& Logger) const
+bool FFaerieItemFilter_And::ExecWithLog(const TValid<const FFaerieItemProxy&> Proxy, ItemData::FFilterLogger& Logger) const
 {
 	bool Success = true;
 
 	for (auto&& Rule : Rules)
 	{
 		const int32 ErrorCountBeforeRuleExec = Logger.Errors.Num();
-		if (!Rule->ExecWithLog(EntityManager, Proxy, Logger))
+		if (!Rule->ExecWithLog(Proxy, Logger))
 		{
 			if (Logger.Errors.Num() == ErrorCountBeforeRuleExec)
 			{
@@ -132,13 +131,13 @@ EFaerieItemFilterMutabilityStatus FFaerieItemFilter_And::GetMutabilityStatus() c
 
 #endif
 
-bool FFaerieItemFilter_Conditional::Exec(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy) const
+bool FFaerieItemFilter_Conditional::Exec(const TValid<const FFaerieItemProxy&> Proxy) const
 {
 	if (!ConditionRule.IsValid()) return false;
-	if (ConditionRule->Exec(EntityManager, Proxy))
+	if (ConditionRule->Exec(Proxy))
 	{
 		if (!TrueBranch.IsValid()) return false;
-		return TrueBranch->Exec(EntityManager, Proxy);
+		return TrueBranch->Exec(Proxy);
 	}
 	return FalseBranch;
 }
@@ -152,16 +151,16 @@ EFaerieItemFilterMutabilityStatus FFaerieItemFilter_Conditional::GetMutabilitySt
 }
 #endif
 
-bool FFaerieItemFilter_Ternary::Exec(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy) const
+bool FFaerieItemFilter_Ternary::Exec(const TValid<const FFaerieItemProxy&> Proxy) const
 {
 	if (!ConditionRule.IsValid()) return false;
-	if (ConditionRule->Exec(EntityManager, Proxy))
+	if (ConditionRule->Exec(Proxy))
 	{
 		if (!TrueBranch.IsValid()) return false;
-		return TrueBranch->Exec(EntityManager, Proxy);
+		return TrueBranch->Exec(Proxy);
 	}
 	if (!FalseBranch.IsValid()) return false;
-	return FalseBranch->Exec(EntityManager, Proxy);
+	return FalseBranch->Exec(Proxy);
 }
 
 #if WITH_EDITOR
@@ -174,7 +173,7 @@ EFaerieItemFilterMutabilityStatus FFaerieItemFilter_Ternary::GetMutabilityStatus
 }
 #endif
 
-bool FFaerieItemFilter_Mutability::Exec(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy) const
+bool FFaerieItemFilter_Mutability::Exec(const TValid<const FFaerieItemProxy&> Proxy) const
 {
 	return ValidGet(Proxy).GetItemInstanceOrInvalid().IsMutable() == RequireMutable;
 }
@@ -186,22 +185,22 @@ EFaerieItemFilterMutabilityStatus FFaerieItemFilter_Mutability::GetMutabilitySta
 }
 #endif
 
-bool FFaerieItemFilter_MatchTemplate::Exec(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy) const
+bool FFaerieItemFilter_MatchTemplate::Exec(const TValid<const FFaerieItemProxy&> Proxy) const
 {
 	if (IsValid(Template))
 	{
-		return Template->TryMatch(EntityManager, Proxy);
+		return Template->Matches(Proxy);
 	}
 	return false;
 }
 
 #if WITH_EDITOR
-bool FFaerieItemFilter_MatchTemplate::ExecWithLog(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy,
+bool FFaerieItemFilter_MatchTemplate::ExecWithLog(const TValid<const FFaerieItemProxy&> Proxy,
 	ItemData::FFilterLogger& Logger) const
 {
 	if (IsValid(Template))
 	{
-		return Template->TryMatchWithDescriptions(EntityManager, Proxy, Logger.Errors);
+		return Template->MatchesWithErrors(Proxy, Logger.Errors);
 	}
 	return false;
 }
@@ -221,7 +220,7 @@ FFaerieItemFilter_HasFragments::FFaerieItemFilter_HasFragments()
 	ReferenceTag= ItemData::Tags::ReferenceDefaults;
 }
 
-bool FFaerieItemFilter_HasFragments::Exec(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy) const
+bool FFaerieItemFilter_HasFragments::Exec(const TValid<const FFaerieItemProxy&> Proxy) const
 {
 	const FFaerieItemInstance Instance = ValidGet(Proxy).GetItemInstanceOrInvalid();
 
@@ -245,7 +244,7 @@ bool FFaerieItemFilter_HasFragments::Exec(const FMassEntityManager* EntityManage
 	for (auto&& It = BitSet.GetIndexIterator(); It; ++It)
 	{
 		const UScriptStruct* FragmentType = BitSet.GetTypeAtIndex(*It);
-		if (ItemData::HasEntityFragmentOrDefault(EntityManager, Instance, FragmentType, ReferenceTag))
+		if (ItemData::HasEntityFragmentOrDefault(ValidGet(Proxy).GetEntityManager().Get(), Instance, FragmentType, ReferenceTag))
 		{
 			BitSet.RemoveAtIndex(*It);
 		}
@@ -255,7 +254,7 @@ bool FFaerieItemFilter_HasFragments::Exec(const FMassEntityManager* EntityManage
 }
 
 #if WITH_EDITOR
-bool FFaerieItemFilter_HasFragments::ExecWithLog(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy,
+bool FFaerieItemFilter_HasFragments::ExecWithLog(const TValid<const FFaerieItemProxy&> Proxy,
 	ItemData::FFilterLogger& Logger) const
 {
 	static const FTextFormat MissingStructErrorFormat = LOCTEXT("HasFragments_MissingClassError", "Missing required fragment of type: '{0}'");
@@ -291,7 +290,7 @@ bool FFaerieItemFilter_HasFragments::ExecWithLog(const FMassEntityManager* Entit
 	{
 		const UScriptStruct* FragmentType = BitSet.GetTypeAtIndex(*It);
 
-		if (ItemData::HasEntityFragmentOrDefault(EntityManager, Instance, FragmentType, ReferenceTag))
+		if (ItemData::HasEntityFragmentOrDefault(ValidGet(Proxy).GetEntityManager().Get(), Instance, FragmentType, ReferenceTag))
 		{
 			BitSet.RemoveAtIndex(*It);
 		}
@@ -320,7 +319,7 @@ EFaerieItemFilterMutabilityStatus FFaerieItemFilter_HasFragments::GetMutabilityS
 }
 #endif
 
-bool FFaerieItemFilter_Copies::Exec(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy) const
+bool FFaerieItemFilter_Copies::Exec(const TValid<const FFaerieItemProxy&> Proxy) const
 {
 	const int32 Copies = ValidGet(Proxy).GetCopies();
 	switch (Operator)
@@ -355,9 +354,10 @@ EFaerieItemFilterMutabilityStatus FFaerieItemFilter_Copies::GetMutabilityStatus(
 
 #endif
 
-bool FFaerieItemFilter_CompareName::Exec(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy) const
+bool FFaerieItemFilter_CompareName::Exec(const TValid<const FFaerieItemProxy&> Proxy) const
 {
-	auto AssetInfo = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieAssetInfo>(EntityManager, ValidGet(Proxy).GetItemInstanceOrInvalid());
+	auto AssetInfo = ItemData::GetEntityFragmentOrDefault<FFaerieAssetInfo>(
+		ValidGet(Proxy).GetEntityManager().Get(), ValidGet(Proxy).GetItemInstanceOrInvalid());
 	if (AssetInfo.IsValid())
 	{
 		return AssetInfo->ObjectName.CompareTo(CompareText, ComparisonType) == 0;
@@ -365,9 +365,10 @@ bool FFaerieItemFilter_CompareName::Exec(const FMassEntityManager* EntityManager
 	return false;
 }
 
-bool FFaerieItemFilter_GameplayTagAny::Exec(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy) const
+bool FFaerieItemFilter_GameplayTagAny::Exec(const TValid<const FFaerieItemProxy&> Proxy) const
 {
-	auto TagFragment = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieTagFragment>(EntityManager, ValidGet(Proxy).GetItemInstanceOrInvalid());
+	auto TagFragment = ItemData::GetEntityFragmentOrDefault<FFaerieTagFragment>(
+		ValidGet(Proxy).GetEntityManager().Get(), ValidGet(Proxy).GetItemInstanceOrInvalid());
 	if (TagFragment.IsValid())
 	{
 		if (Exact)
@@ -379,9 +380,10 @@ bool FFaerieItemFilter_GameplayTagAny::Exec(const FMassEntityManager* EntityMana
 	return false;
 }
 
-bool FFaerieItemFilter_GameplayTagAll::Exec(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy) const
+bool FFaerieItemFilter_GameplayTagAll::Exec(const TValid<const FFaerieItemProxy&> Proxy) const
 {
-	auto TagFragment = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieTagFragment>(EntityManager, ValidGet(Proxy).GetItemInstanceOrInvalid());
+	auto TagFragment = ItemData::GetEntityFragmentOrDefault<FFaerieTagFragment>(
+		ValidGet(Proxy).GetEntityManager().Get(), ValidGet(Proxy).GetItemInstanceOrInvalid());
 	if (TagFragment.IsValid())
 	{
 		if (Exact)
@@ -393,9 +395,10 @@ bool FFaerieItemFilter_GameplayTagAll::Exec(const FMassEntityManager* EntityMana
 	return false;
 }
 
-bool FFaerieItemFilter_GameplayTagQuery::Exec(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy) const
+bool FFaerieItemFilter_GameplayTagQuery::Exec(const TValid<const FFaerieItemProxy&> Proxy) const
 {
-	auto TagFragment = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieTagFragment>(EntityManager, ValidGet(Proxy).GetItemInstanceOrInvalid());
+	auto TagFragment = ItemData::GetEntityFragmentOrDefault<FFaerieTagFragment>(
+		ValidGet(Proxy).GetEntityManager().Get(), ValidGet(Proxy).GetItemInstanceOrInvalid());
 	if (TagFragment.IsValid())
 	{
 		return Query.Matches(TagFragment->Tags);

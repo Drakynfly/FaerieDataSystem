@@ -21,7 +21,6 @@ public:
 	virtual FMassEntityHandle GetEntityHandle() const override;
 	virtual TOptional<FFaerieItemInstance> GetItemInstance() const override;
 	virtual int32 GetCopies() const override;
-	virtual const UObject* GetItemOwner() const override;
 	//~ Faerie::ItemData::IViewBase
 
 	const FFaerieItemProxy& GetSourceProxy() const { return DataSource; }

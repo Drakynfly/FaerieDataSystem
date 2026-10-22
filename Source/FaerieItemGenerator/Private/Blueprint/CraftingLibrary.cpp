@@ -2,7 +2,6 @@
 
 #include "CraftingLibrary.h"
 #include "EntityManagerHelpers.h"
-#include "FaerieItem.h"
 #include "FaerieItemSlotInterface.h"
 
 #include "Consumable/FaerieConsumableFragment.h"
@@ -151,7 +150,7 @@ bool UFaerieGenerationLibrary::CanConsume(const FFaerieItemProxy& Proxy, UScript
         return false;
     }
 
-    const UWorld* World = Proxy.ExtractWorld();
+    const UWorld* World = Consumer->GetWorld();
     if (!ItemData::HasFaerieEntityManagerBeenAssigned(World))
     {
         FFrame::KismetExecutionMessage(TEXT("No Entity Manager assigned to handle UFaerieGenerationLibrary::CanConsume"), ELogVerbosity::Error);
@@ -182,7 +181,7 @@ bool UFaerieGenerationLibrary::TryConsume(const FFaerieItemProxy& Proxy, UScript
         return false;
     }
 
-    const UWorld* World = Proxy.ExtractWorld();
+    const UWorld* World = Consumer->GetWorld();
     if (!ItemData::HasFaerieEntityManagerBeenAssigned(World))
     {
         FFrame::KismetExecutionMessage(TEXT("No Entity Manager assigned to handle UFaerieGenerationLibrary::TryConsume"), ELogVerbosity::Error);

@@ -3,6 +3,7 @@
 #include "Mutators/ItemMutator_BlueprintBase.h"
 #include "FaerieItemDataView.h"
 #include "FaerieItemProxy.h"
+#include "MassEntityManager.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ItemMutator_BlueprintBase)
 
@@ -25,8 +26,9 @@ bool FFaerieItemMutator_Blueprint::Apply(FFaerieItemInstance& Item, const FFaeri
 {
 	if (IsValid(Blueprint))
 	{
-		const Faerie::ItemData::FScopeProxy Proxy(Item, 1, nullptr);
-		return GetDefault<UFaerieItemMutator_BlueprintBase>(Blueprint)->Apply(FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, &Proxy), Context.Squirrel);
+		const Faerie::ItemData::FScopeProxy Proxy(Item, 1);
+		const TSharedPtr<FMassEntityManager> EntityManagerShared = Context.EntityManager ? Context.EntityManager->AsShared().ToSharedPtr() : nullptr;
+		return GetDefault<UFaerieItemMutator_BlueprintBase>(Blueprint)->Apply(FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, EntityManagerShared, &Proxy), Context.Squirrel);
 	}
 	return false;
 }

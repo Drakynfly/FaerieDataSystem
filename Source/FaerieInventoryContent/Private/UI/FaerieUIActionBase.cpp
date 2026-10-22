@@ -75,19 +75,18 @@ TSoftObjectPtr<UTexture2D> UFaerieUIActionBase::GetDisplayIcon_Implementation(co
 	return ButtonIcon;
 }
 
-EFaerieUIActionState UFaerieUIActionBase::CanStart(const FFaerieItemProxy& Proxy) const
+EFaerieUIActionState UFaerieUIActionBase::CanStart(UFaerieInventoryClient* Client, const FFaerieItemProxy& Proxy) const
 {
-	UFaerieInventoryClient* Client = GetFaerieClient(Cast<UObject>(Proxy.GetItemOwner()));
 	if (IsValid(Client))
 	{
-		return TestCanRun(Client, Proxy);
+		// Client doesn't exist. Hide all actions.
+		return EFaerieUIActionState::Hidden;
 	}
 
-	// Client doesn't exist. Hide all actions.
-	return EFaerieUIActionState::Hidden;
+	return TestCanRun(Client, Proxy);
 }
 
-bool UFaerieUIActionBase::Start(const FFaerieItemProxy& Proxy)
+bool UFaerieUIActionBase::Start(UFaerieInventoryClient* Client, const FFaerieItemProxy& Proxy)
 {
 	if (InProgress)
 	{
@@ -95,7 +94,6 @@ bool UFaerieUIActionBase::Start(const FFaerieItemProxy& Proxy)
 		return false;
 	}
 
-	UFaerieInventoryClient* Client = GetFaerieClient(Proxy.GetProxyObject());
 	if (!IsValid(Client))
 	{
 		return false;

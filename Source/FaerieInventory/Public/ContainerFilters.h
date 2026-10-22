@@ -26,7 +26,7 @@ struct FFaerieItemFilter_StackLimit final : public FFaerieItemFilterBase
 {
 	GENERATED_BODY()
 
-	virtual bool Exec(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
+	virtual bool Exec(Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
 
 #if WITH_EDITOR
 	virtual EFaerieItemFilterMutabilityStatus GetMutabilityStatus() const override;

@@ -3,6 +3,7 @@
 #include "UI/FaerieStorageWidgetBase.h"
 #include "UI/InventoryUIActionContainer.h"
 
+#include "EntityManagerHelpers.h"
 #include "FaerieContainerEvent.h"
 #include "FaerieInventoryContentLog.h"
 #include "FaerieContainerQuery.h"
@@ -153,7 +154,8 @@ void UFaerieStorageWidgetBase::InitWithStorage()
 	{
 		if (EnableUpdateEvents)
 		{
-			Content::SubscribeToContainerEvents(Storage, this);
+			FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
+			Content::SubscribeToContainerEvents(EntityManager, Storage, this);
 		}
 
 		OnInitWithInventory();
@@ -174,7 +176,8 @@ void UFaerieStorageWidgetBase::Reset()
 
 	if (UFaerieItemStorage* Storage = ItemStorage.Get())
 	{
-		Content::UnsubscribeFromContainerEvents(Storage, this);
+		FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
+		Content::UnsubscribeFromContainerEvents(EntityManager, Storage, this);
 	}
 
 	OnReset();

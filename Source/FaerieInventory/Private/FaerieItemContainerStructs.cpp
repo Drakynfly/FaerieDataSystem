@@ -1,6 +1,7 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieItemContainerStructs.h"
+#include "EntityManagerHelpers.h"
 #include "FaerieItemContainerBase.h"
 #include "FaerieItemProxyBase.h"
 
@@ -15,7 +16,7 @@ FFaerieItemProxy FFaerieItemNetworkHandle::ResolveProxy() const
 {
 	if (Container.IsValid())
 	{
-		return Container->Proxy(Address);
+		return Container->Proxy(Faerie::ItemData::GetFaerieEntityManagerChecked(Container->GetWorld()), Address);
 	}
 	return FFaerieItemProxy();
 }

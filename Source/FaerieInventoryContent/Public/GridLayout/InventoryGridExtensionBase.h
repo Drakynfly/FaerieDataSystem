@@ -105,7 +105,7 @@ struct FFaerieContainerGridReadContext
 	Faerie::ItemData::FScopeProxy ViewAt_Native(const FIntPoint& Position) const;
 
 	// View the stack on a specified position on the grid.
-	FFaerieItemProxy ViewAt(const FIntPoint& Position) const;
+	FFaerieItemProxy ViewAt(FMassEntityManager& EntityManager, const FIntPoint& Position) const;
 
 	bool IsCellOccupied(const FIntPoint& Position) const;
 
@@ -222,7 +222,7 @@ public:
 	virtual void InitializeGrid(const FFaerieContainerGridWriteContext& Context) const PURE_VIRTUAL(UInventoryGridExtensionBase::InitializeGrid, ; )
 
 	virtual void PreStackRemove_Client(const FFaerieContainerGridWriteContext& Context, const FFaerieGridKeyedStack& Stack) const {}
-	virtual void PreStackRemove_Server(const FFaerieContainerGridWriteContext& Context, const FFaerieGridKeyedStack& Stack, const FFaerieItemInstance& Item) const {}
+	virtual void PreStackRemove_Server(const FFaerieContainerGridWriteContext& Context, const FFaerieGridKeyedStack& Stack, FMassEntityHandle Item) const {}
 
 	virtual void PostStackAdd(const FFaerieContainerGridWriteContext& Context, const FFaerieGridKeyedStack& Stack) const {}
 	virtual void PostStackChange(const FFaerieContainerGridWriteContext& Context, const FFaerieGridKeyedStack& Stack) const {}
@@ -234,7 +234,7 @@ public:
 	// Publicly accessible actions. Only call on server.
 	virtual TOptional<FFaerieAddress> GetKeyAt(const FFaerieContainerGridReadContext& Context, const FIntPoint& Position) const PURE_VIRTUAL(UInventoryGridExtensionBase::GetKeyAt, return NullOpt; )
 	virtual bool CanAddAtLocation(const FFaerieContainerGridReadContext& Context, Faerie::TValid<const FFaerieItemProxy&> Proxy, FIntPoint IntPoint) const PURE_VIRTUAL(UInventoryGridExtensionBase::CanAddAtLocation, return false; )
-	virtual bool AddItemToGrid(const FFaerieContainerGridWriteContext& Context, FFaerieAddress Address, const FFaerieItemInstance& Instance) const PURE_VIRTUAL(UInventoryGridExtensionBase::AddItemToGrid, return false; )
+	virtual bool AddItemToGrid(const FFaerieContainerGridWriteContext& Context, FFaerieAddress Address, FMassEntityHandle Item) const PURE_VIRTUAL(UInventoryGridExtensionBase::AddItemToGrid, return false; )
 	virtual bool MoveItem(const FFaerieContainerGridWriteContext& Context, FFaerieAddress Address, const FIntPoint& TargetPoint) const PURE_VIRTUAL(UInventoryGridExtensionBase::MoveItem, return false; )
 	virtual bool RotateItem(const FFaerieContainerGridWriteContext& Context, FFaerieAddress Address, EFaerieSpatialItemRotation RotationToAdd) const PURE_VIRTUAL(UInventoryGridExtensionBase::RotateItem, return false; )
 

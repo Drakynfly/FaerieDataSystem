@@ -67,9 +67,9 @@ public:
 	virtual TOptional<FFaerieItemInstance> ViewInstance(FFaerieAddress Address) const override;
 	virtual Faerie::ItemData::FScopeProxy ViewEntry(FFaerieEntryKey Key) const override;
 	virtual Faerie::ItemData::FScopeProxy ViewAddress(FFaerieAddress Address) const override;
-	virtual FFaerieItemProxy Proxy(FMassEntityHandle Item) const override;
-	virtual FFaerieItemProxy Proxy(FFaerieEntryKey Key) const override;
-	virtual FFaerieItemProxy Proxy(FFaerieAddress Address) const override;
+	virtual FFaerieItemProxy Proxy(FMassEntityManager& EntityManager, FMassEntityHandle Item) const override;
+	virtual FFaerieItemProxy Proxy(FMassEntityManager& EntityManager, FFaerieEntryKey Key) const override;
+	virtual FFaerieItemProxy Proxy(FMassEntityManager& EntityManager, FFaerieAddress Address) const override;
 	virtual bool Possess(FMassEntityManager& EntityManager, const FFaerieUnownedItemStack& Stack) override;
 	virtual TOptional<FFaerieUnownedItemStack> Release(FMassEntityManager& EntityManager, FFaerieEntryKey Key, int32 Copies, FFaerieInventoryTag Reason) override;
 	virtual TOptional<FFaerieUnownedItemStack> Release(FMassEntityManager& EntityManager, FFaerieAddress Address, int32 Copies, FFaerieInventoryTag Reason) override;
@@ -80,7 +80,7 @@ public:
 
 protected:
 	virtual bool AckItemCreatedByNetwork(FMassEntityManager& EntityManager, FMassEntityHandle Entity, FFaerieNetItemID NetID) override;
-	virtual void OnItemDataChanged(const FMassEntityHandle Item, FGameplayTag EditTag) override;
+	//virtual void OnItemDataChanged(FMassEntityManager& EntityManager, const FMassEntityHandle Item, FGameplayTag EditTag) override;
 	virtual TUniquePtr<Faerie::Container::IEntryIterator> CreateEntryIterator() const override;
 	virtual TUniquePtr<Faerie::Container::IAddressIterator> CreateAddressIterator() const override;
 	virtual TUniquePtr<Faerie::Container::IAddressIterator> CreateSingleEntryIterator(FFaerieEntryKey Key) const override;
@@ -98,7 +98,7 @@ private:
 
 	[[nodiscard]] const FFaerieStorageEntry* GetEntrySafe(FFaerieEntryKey Key) const;
 
-	[[nodiscard]] const FFaerieStorageEntry* FindEntry(const FFaerieItemInstance& Item) const;
+	[[nodiscard]] const FFaerieStorageEntry* FindEntry(FMassEntityHandle Item) const;
 
 	[[nodiscard]] UObject* GetEntryProxyImpl(FFaerieEntryKey Key) const;
 	[[nodiscard]] UFaerieItemStackProxy* GetStackProxyImpl(FFaerieAddress Address) const;

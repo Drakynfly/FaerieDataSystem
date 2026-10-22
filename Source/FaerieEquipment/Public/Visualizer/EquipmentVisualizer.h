@@ -188,7 +188,7 @@ public:
 
 	static TOptional<FFaerieVisualSlotElement> FindVisualSlotDataFromProxy(const FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy);
 
-	USceneComponent* GetComponentToAttachTo(const FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy, const FName& ComponentTag, bool& WantsToWaitForParentVisual) const;
+	USceneComponent* GetComponentToAttachTo(FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy, const FName& ComponentTag, bool& WantsToWaitForParentVisual) const;
 	static FFaerieVisualAttachment BuildAttachmentData(USceneComponent* AttachTo, const FFaerieVisualSlotElement& SlotData);
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentVisualizer")

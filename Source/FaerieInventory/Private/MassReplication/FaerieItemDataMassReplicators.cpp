@@ -60,7 +60,7 @@ void UFaerieItemDataCreationReplicator::ProcessEntities(FMassExecutionContext& C
 		Manager.ForEachArchetypeElementType(Archetype,
 			[Entity, &Manager, &FragmentViews](const UScriptStruct* FragmentType)
 			{
-				if (const ItemData::FMassTypeTraitsInterface* Traits = ItemData::GetFragmentTraitsInterface(FragmentType))
+				if (const ItemData::FMassTypeTraitsInterface* Traits = ItemData::GetMassTraitsInterface(FragmentType))
 				{
 					if (!Traits->Replicated)
 					{

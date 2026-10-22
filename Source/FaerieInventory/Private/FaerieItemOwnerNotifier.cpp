@@ -48,7 +48,7 @@ void UFaerieItemOwnerNotifier::Execute(FMassEntityManager& EntityManager, FMassE
 			{
 				if (IsValid(OwnerFragment->Owner))
 				{
-					OwnerFragment->Owner->OnItemDataChanged(Event.ItemHandle, Event.EventType);
+					OwnerFragment->Owner->OnItemDataChanged(InContext.GetEntityManagerChecked(), Event.ItemHandle, Event.EventType);
 				}
 			}
 		}

@@ -19,11 +19,6 @@ TOptional<FFaerieItemInstance> UFaerieWidgetPreview::GetItemInstance() const
 	return NullOpt;
 }
 
-UObject* UFaerieWidgetPreview::GetItemOwner() const
-{
-	return nullptr;
-}
-
 void UFaerieWidgetPreview::InitFaerieWidgetPreview(UFaerieItemAsset* InAsset)
 {
 	Asset = InAsset;

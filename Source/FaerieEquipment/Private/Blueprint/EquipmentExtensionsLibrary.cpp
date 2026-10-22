@@ -54,7 +54,7 @@ UFaerieItemContainerCapacityView* UFaerieEquipmentExtensionsLibrary::GetOrCreate
 		return nullptr;
 	}
 
-	auto& EntityManager = Faerie::ItemData::GetFaerieEntityManagerChecked(Manager->GetWorld());
+	FMassEntityManager& EntityManager = Faerie::ItemData::GetFaerieEntityManagerChecked(Manager->GetWorld());
 
 	UFaerieItemContainerCapacityView* View = NewObject<UFaerieItemContainerCapacityView>(Manager);
 	View->InitializeView(EntityManager, Faerie::Content::FContainerCapacityViewFragment::StaticStruct(), Manager);

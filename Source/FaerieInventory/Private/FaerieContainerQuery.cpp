@@ -62,7 +62,7 @@ void UFaerieContainerQuery::SetFilterByObject(const UFaerieItemTemplate* Object)
 {
 	if (Object != FilterObject)
 	{
-		FilterFunction = ItemData::FViewPredicate::CreateUObject(Object, &UFaerieItemTemplate::TryMatch);
+		FilterFunction = ItemData::FViewPredicate::CreateUObject(Object, &UFaerieItemTemplate::Matches);
 		FilterObject = Object;
 		OnQueryChanged.Broadcast(this);
 	}
@@ -245,15 +245,15 @@ bool UFaerieContainerQuery::IsAddressFiltered(const UFaerieItemContainerBase* Co
 		const ItemData::FScopeProxy StackView = Container->ViewAddress(Address);
 		if (!StackView.IsValid()) return false;
 
-		const FFaerieItemProxy Proxy(FFaerieItemProxy::ESingleFrame, &StackView);
+		FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(Container->GetWorld());
 
-		const FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(Container->GetWorld());
+		const FFaerieItemProxy Proxy(FFaerieItemProxy::ESingleFrame, EntityManager.AsShared(), &StackView);
 
 		if (InvertFilter)
 		{
-			return !FilterFunction.Execute(&EntityManager, Proxy);
+			return !FilterFunction.Execute(Proxy);
 		}
-		return FilterFunction.Execute(&EntityManager, Proxy);
+		return FilterFunction.Execute(Proxy);
 	}
 
 	return false;
@@ -266,15 +266,15 @@ bool UFaerieContainerQuery::CompareAddresses_Impl(const TNotNull<const UFaerieIt
 	const ItemData::FScopeProxy StackViewB = Container->ViewAddress(AddressB);
 	if (!StackViewA.IsValid() || StackViewB.IsValid()) return false;
 
-	const FFaerieItemProxy ProxyA(FFaerieItemProxy::ESingleFrame, &StackViewA);
-	const FFaerieItemProxy ProxyB(FFaerieItemProxy::ESingleFrame, &StackViewB);
-
 	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(Container->GetWorld());
+
+	const FFaerieItemProxy ProxyA(FFaerieItemProxy::ESingleFrame, EntityManager.AsShared(), &StackViewA);
+	const FFaerieItemProxy ProxyB(FFaerieItemProxy::ESingleFrame, EntityManager.AsShared(), &StackViewB);
 
 	if (InvertSort)
 	{
-		return !SortFunction.Execute(&EntityManager, ProxyA, ProxyB);
+		return !SortFunction.Execute(ProxyA, ProxyB);
 	}
 
-	return SortFunction.Execute(&EntityManager, ProxyA, ProxyB);
+	return SortFunction.Execute(ProxyA, ProxyB);
 }

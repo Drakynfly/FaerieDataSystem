@@ -32,7 +32,7 @@ EFaerieExtensionResponse FFaerieItemContainerContentFilter::AllowsAddition(const
 		if (Container::FScopedExpectedResponse::Get().IsSet())
 		{
 			TArray<FText> Errors;
-			if (!Filter->TryMatchWithDescriptions(&EntityManager, Proxy, Errors))
+			if (!Filter->MatchesWithErrors(Proxy, Errors))
 			{
 				if (Container::FScopedExpectedResponse::Get().GetValue() != EFaerieExtensionResponse::Disallowed)
 				{
@@ -47,7 +47,7 @@ EFaerieExtensionResponse FFaerieItemContainerContentFilter::AllowsAddition(const
 		else
 #endif
 		{
-			if (!Filter->TryMatch(&EntityManager, Proxy))
+			if (!Filter->Matches(Proxy))
 			{
 				return EFaerieExtensionResponse::Disallowed;
 			}

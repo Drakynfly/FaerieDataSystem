@@ -4,6 +4,7 @@
 #include "FaerieItemDataView.h"
 #include "FaerieItemProxy.h"
 #include "FaerieItemTemplate.h"
+#include "MassEntityManager.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ItemMutator_Condition)
 
@@ -18,8 +19,9 @@ bool FFaerieItemMutator_TemplateCondition::Apply(FFaerieItemInstance& Item, cons
 {
 	if (IsValid(ItemTemplate))
 	{
-		const Faerie::ItemData::FScopeProxy StackProxy(Item, 1, nullptr);
-		if (!ItemTemplate->TryMatch(Context.EntityManager, FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, &StackProxy)))
+		const Faerie::ItemData::FScopeProxy StackProxy(Item, 1);
+		const TSharedPtr<FMassEntityManager> EntityManagerShared = Context.EntityManager ? Context.EntityManager->AsShared().ToSharedPtr() : nullptr;
+		if (!ItemTemplate->Matches(FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, EntityManagerShared, &StackProxy)))
 		{
 			// Template failed, cannot apply.
 			return false;

@@ -3,12 +3,13 @@
 #include "BasicItemHashInstructions.h"
 #include "FaerieHashStatics.h"
 #include "FaerieItem.h"
-#include "FaerieItemFilter.h"
 #include "FaerieItemDataView.h"
 #include "FaerieItemTemplate.h"
 #include "Squirrel.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(BasicItemHashInstructions)
+
+using namespace Faerie;
 
 // WARNING: Changing any of these will invalidate all existing hashes generated with them.
 // These are all random large primes, that will *hopefully* generate decent hashes with Squirrel
@@ -21,30 +22,30 @@
 #define BOOLEAN_FILTER_TRUE 279557143
 #define BOOLEAN_FILTER_FALSE 582595723
 
-uint32 FISHI_Literal::Hash(const FMassEntityManager*, Faerie::TValid<const FFaerieItemProxy&>) const
+uint32 FISHI_Literal::Hash(TValid<const FFaerieItemProxy&>) const
 {
 	return Value.Hash;
 }
 
-uint32 FISHI_And::Hash(const FMassEntityManager* EntityManager, const Faerie::TValid<const FFaerieItemProxy&> View) const
+uint32 FISHI_And::Hash(const TValid<const FFaerieItemProxy&> Proxy) const
 {
 	int32 Hash = 0;
 
 	for (auto&& Instruction : Instructions)
 	{
-		Hash = Squirrel::HashCombine(Hash, Instruction->Hash(EntityManager, View));
+		Hash = Squirrel::HashCombine(Hash, Instruction->Hash(Proxy));
 	}
 
 	return Hash;
 }
 
-uint32 FISHI_Or::Hash(const FMassEntityManager* EntityManager, const Faerie::TValid<const FFaerieItemProxy&> View) const
+uint32 FISHI_Or::Hash(const TValid<const FFaerieItemProxy&> Proxy) const
 {
 	for (auto&& Instruction : Instructions)
 	{
 		if (!Instruction.IsValid()) continue;
 
-		if (const int32 Hash = Instruction->Hash(EntityManager, View);
+		if (const int32 Hash = Instruction->Hash(Proxy);
 			Hash != HASH_FAILURE)
 		{
 			return Hash;
@@ -54,14 +55,14 @@ uint32 FISHI_Or::Hash(const FMassEntityManager* EntityManager, const Faerie::TVa
 	return HASH_FAILURE;
 }
 
-uint32 FISHI_BooleanFilter::Hash(const FMassEntityManager* EntityManager, const Faerie::TValid<const FFaerieItemProxy&> View) const
+uint32 FISHI_BooleanFilter::Hash(const TValid<const FFaerieItemProxy&> View) const
 {
 	if (!ensure(IsValid(Pattern)))
 	{
 		return HASH_FAILURE;
 	}
 
-	if (Pattern->TryMatch(EntityManager, View))
+	if (Pattern->Matches(View))
 	{
 		return BOOLEAN_FILTER_TRUE;
 	}
@@ -69,46 +70,46 @@ uint32 FISHI_BooleanFilter::Hash(const FMassEntityManager* EntityManager, const 
 	return BOOLEAN_FILTER_FALSE;
 }
 
-uint32 FISHI_BooleanSelect::Hash(const FMassEntityManager* EntityManager, const Faerie::TValid<const FFaerieItemProxy&> View) const
+uint32 FISHI_BooleanSelect::Hash(const TValid<const FFaerieItemProxy&> View) const
 {
 	if (!ensure(IsValid(Pattern)))
 	{
 		return HASH_FAILURE;
 	}
 
-	if (Pattern->TryMatch(EntityManager, View))
+	if (Pattern->Matches(View))
 	{
 		if (True.IsValid())
 		{
-			return True->Hash(EntityManager, View);
+			return True->Hash(View);
 		}
 		return BOOLEAN_FILTER_TRUE;
 	}
 
 	if (False.IsValid())
 	{
-		return False->Hash(EntityManager, View);
+		return False->Hash(View);
 	}
 	return BOOLEAN_FILTER_FALSE;
 }
 
-uint32 FISHI_Fragments::Hash(const FMassEntityManager* EntityManager, const Faerie::TValid<const FFaerieItemProxy&> View) const
+uint32 FISHI_Fragments::Hash(const TValid<const FFaerieItemProxy&> Proxy) const
 {
 	if (FragmentTypes.IsEmpty()) return 0;
 
 	uint32 Hash = 0;
 
-	const TOptional<FFaerieItemInstance> Instance = Faerie::ValidGet(View).GetItemInstance();
+	const TOptional<FFaerieItemInstance> Instance = ValidGet(Proxy).GetItemInstance();
 	if (!Instance.IsSet()) return 0;
 
 	for (auto&& FragmentType : FragmentTypes)
 	{
 		if (FragmentType->GetCppStructOps()->HasGetTypeHash())
 		{
-			auto FragmentView = Faerie::ItemData::GetEntityFragmentOrDefault(EntityManager, Instance.GetValue(), FragmentType);
+			const FConstStructView FragmentView = ItemData::GetEntityFragmentOrDefault(ValidGet(Proxy).GetEntityManager().Get(), Instance.GetValue(), FragmentType);
 			if (FragmentView.IsValid())
 			{
-				Hash = Faerie::Hash::Combine(Hash, FragmentType->GetCppStructOps()->GetStructTypeHash(FragmentView.GetMemory()));
+				Hash = Hash::Combine(Hash, FragmentType->GetCppStructOps()->GetStructTypeHash(FragmentView.GetMemory()));
 			}
 		}
 	}

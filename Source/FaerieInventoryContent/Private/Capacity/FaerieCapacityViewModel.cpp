@@ -26,16 +26,16 @@ void UFaerieCapacityViewModel::OnProxySet(FMassEntityManager& EntityManager)
 
 	if (ItemProxy.HasValidInstance())
 	{
-		const ItemData::FCapacityHelper Helper(&EntityManager, ItemProxy.GetItemInstanceOrInvalid());
+		const ItemData::FCapacityHelper Helper(EntityManager, ItemProxy.GetItemInstanceOrInvalid());
 
-		UE_MVVM_SET_PROPERTY_VALUE(HasCapacity, Helper.HasCapacity());
+		UE_MVVM_SET_PROPERTY_VALUE(HasCapacity, Helper.HasFragmentValue());
 
 		if (HasCapacity)
 		{
-			auto&& Capacity = Helper.GetCapacity();
-			NewWeight = Capacity.Weight;
-			NewBounds = Capacity.Bounds;
-			NewEfficiency = Capacity.Efficiency;
+			const FFaerieItemCapacity* Capacity = Helper.GetFragmentValue();
+			NewWeight = Capacity->Weight;
+			NewBounds = Capacity->Bounds;
+			NewEfficiency = Capacity->Efficiency;
 		}
 	}
 	else
@@ -50,18 +50,18 @@ void UFaerieCapacityViewModel::OnProxySet(FMassEntityManager& EntityManager)
 
 void UFaerieCapacityViewModel::OnFieldChange(const FMassEntityManager& EntityManager, const ItemData::FFieldChangePayload& Data)
 {
-	const ItemData::FCapacityHelper Helper(&EntityManager, ItemProxy.GetItemInstanceOrInvalid());
+	const ItemData::FCapacityHelper Helper(EntityManager, ItemProxy.GetItemInstanceOrInvalid());
 
 	if (Data.HasFlag(FFaerieItemCapacity::EFieldFlags::Weight))
 	{
-		UE_MVVM_SET_PROPERTY_VALUE(Weight, Helper.GetCapacity().Weight);
+		UE_MVVM_SET_PROPERTY_VALUE(Weight, Helper.GetFragmentValue()->Weight);
 	}
 	if (Data.HasFlag(FFaerieItemCapacity::EFieldFlags::Bounds))
 	{
-		UE_MVVM_SET_PROPERTY_VALUE(Bounds, Helper.GetCapacity().Bounds);
+		UE_MVVM_SET_PROPERTY_VALUE(Bounds, Helper.GetFragmentValue()->Bounds);
 	}
 	if (Data.HasFlag(FFaerieItemCapacity::EFieldFlags::Efficiency))
 	{
-		UE_MVVM_SET_PROPERTY_VALUE(Efficiency, Helper.GetCapacity().Efficiency);
+		UE_MVVM_SET_PROPERTY_VALUE(Efficiency, Helper.GetFragmentValue()->Efficiency);
 	}
 }

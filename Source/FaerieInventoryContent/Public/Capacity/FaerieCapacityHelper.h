@@ -10,26 +10,25 @@ namespace Faerie::ItemData
 	/*
 	 * Utility struct to interact with items that have Capacity.
 	 */
-	struct FAERIEINVENTORYCONTENT_API FCapacityHelper
+	struct FAERIEINVENTORYCONTENT_API FCapacityHelper : TFragmentHelperCRTP<FCapacityHelper, FFaerieItemCapacity>
 	{
 		UE_NONCOPYABLE(FCapacityHelper)
+		friend TFragmentHelperCRTP<FCapacityHelper, FFaerieItemCapacity>;
 
 		FCapacityHelper(const FMassEntityManager& EntityManager, FMassEntityHandle Item);
+		FCapacityHelper(const FMassEntityManager& EntityManager, const FFaerieItemInstance& Instance);
 		FCapacityHelper(const FMassEntityManager* EntityManager, const FFaerieItemInstance& Instance);
 
+	protected:
 		/*
 		 * Adds capacity to the item if it doesn't have it.
 		 * OverrideDefault will be used instead of the default if provided.
 		 */
-		void CreateCapacity(FMassEntityManager& InEntityManager, const FFaerieItemCapacity* OverrideDefault = nullptr);
-		void CreateCapacityIfMissing(FMassEntityManager& InEntityManager, const FFaerieItemCapacity* OverrideDefault = nullptr);
+		void CreateFragment(FMassEntityManager& InEntityManager, const FFaerieItemCapacity* OverrideDefault = nullptr);
 
-		bool HasCapacity() const;
-		FFaerieItemCapacity GetCapacity() const;
+		void Mutate(TFunctionRef<FFieldChangePayload(FCapacityHelper& Helper, FFaerieItemCapacity&)> Func);
 
-		bool HasDefaultCapacity() const;
-		const FFaerieItemCapacity& GetDefaultCapacity() const;
-
+	public:
 		int32 GetWeightOfStack(const int32 Stack) const;
 
 		// Gets the volume of an entire stack. Volume == X + (X * (Stack - 1) * Efficiency)
@@ -53,7 +52,5 @@ namespace Faerie::ItemData
 	private:
 		const FMassEntityManager* EntityManager;
 		const FFaerieItemInstance Item;
-		const FFaerieItemCapacity* MassCapacity = nullptr;
-		const FFaerieItemCapacity* MassCapacityDefault = nullptr;
 	};
 }

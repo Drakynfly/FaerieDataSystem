@@ -114,16 +114,13 @@ void UFaerieEquipmentManager::AddSubobjectsForReplication()
 
 void UFaerieEquipmentManager::OnDataChangeEvent(const FFaerieItemProxy& Proxy, const FGameplayTag Tag)
 {
-	if (UFaerieItemStackContainer* Slot = const_cast<UFaerieItemStackContainer*>(CastChecked<UFaerieItemStackContainer>(Proxy.GetProxyObject())))
-	{
-		BroadcastSlotEvent(Slot, Inventory::Tags::ReplicationEdit);
-	}
+	BroadcastSlotEvent(Proxy, Inventory::Tags::ReplicationEdit);
 }
 
-void UFaerieEquipmentManager::BroadcastSlotEvent(const TNotNull<UFaerieItemStackContainer*> Slot, const FFaerieInventoryTag Event)
+void UFaerieEquipmentManager::BroadcastSlotEvent(const FFaerieItemProxy& Proxy, const FFaerieInventoryTag Event)
 {
-	OnEquipmentSlotEventNative.Broadcast(FFaerieItemProxy(Slot), Event);
-	OnEquipmentChangedEvent.Broadcast(Slot, Event);
+	OnEquipmentSlotEventNative.Broadcast(Proxy, Event);
+	OnEquipmentChangedEvent.Broadcast(Proxy, Event);
 }
 
 UFaerieItemStackContainer* UFaerieEquipmentManager::AddSlotImpl(FMassEntityManager& EntityManager, const FFaerieEquipmentSlotConfig& Config)
@@ -169,7 +166,7 @@ UFaerieItemStackContainer* UFaerieEquipmentManager::AddSlotImpl(FMassEntityManag
 
 		NewSlot->SetParentExtensions(this);
 
-		BroadcastSlotEvent(NewSlot, Equipment::Tags::SlotCreated);
+		BroadcastSlotEvent(FFaerieItemProxy(EntityManager.AsShared(), NewSlot), Equipment::Tags::SlotCreated);
 
 		return NewSlot;
 	}
@@ -313,7 +310,7 @@ bool UFaerieEquipmentManager::RemoveSlot(const FFaerieSlotTag Slot)
 
 	if (Slots.Remove(Slot_Obj))
 	{
-		BroadcastSlotEvent(Slot_Obj, Equipment::Tags::SlotDeleted);
+		BroadcastSlotEvent(FFaerieItemProxy(EntityManager.AsShared(), Slot_Obj), Equipment::Tags::SlotDeleted);
 
 		Slot_Obj->ClearParentExtensions();
 
@@ -339,8 +336,8 @@ bool UFaerieEquipmentManager::TrySwapSlots(const FFaerieSlotTag SlotA, const FFa
 		return false;
 	}
 
-	if (SlotB_Obj->IsFilled() && !SlotA_Obj->CouldSetInSlot(EntityManager, FFaerieItemProxy(SlotB_Obj))) return false;
-	if (SlotA_Obj->IsFilled() && !SlotB_Obj->CouldSetInSlot(EntityManager, FFaerieItemProxy(SlotA_Obj))) return false;
+	if (SlotB_Obj->IsFilled() && !SlotA_Obj->CouldSetInSlot(EntityManager, FFaerieItemProxy(EntityManager.AsShared(), SlotB_Obj))) return false;
+	if (SlotA_Obj->IsFilled() && !SlotB_Obj->CouldSetInSlot(EntityManager, FFaerieItemProxy(EntityManager.AsShared(), SlotA_Obj))) return false;
 
 	const FFaerieUnownedItemStack ContentA = SlotA_Obj->TakeItemFromSlot(EntityManager, ItemData::EntireStack,
 															 Inventory::Tags::RemovalMoving);
@@ -358,6 +355,17 @@ bool UFaerieEquipmentManager::TrySwapSlots(const FFaerieSlotTag SlotA, const FFa
 	}
 
 	return true;
+}
+
+TArray<UObject*> UFaerieEquipmentManager::GetProxyObjects() const
+{
+	TArray<UObject*> Proxies;
+	Proxies.Reserve(Slots.Num());
+	for (UObject* Slot : Slots)
+	{
+		Proxies.Add(Slot);
+	}
+	return Proxies;
 }
 
 const UFaerieItemStackContainer* UFaerieEquipmentManager::FindSlot(const FFaerieSlotTag SlotID, const bool Recursive) const
@@ -378,8 +386,8 @@ UFaerieItemStackContainer* UFaerieEquipmentManager::FindSlot(const FMassEntityMa
 
 FFaerieItemProxy UFaerieEquipmentManager::FindSlotProxy(const FFaerieSlotTag SlotID, const bool Recursive) const
 {
-	auto& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
-	return FFaerieItemProxy(FindSlotImpl(EntityManager, SlotID, Recursive));
+	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
+	return FFaerieItemProxy(EntityManager.AsShared(), FindSlotImpl(EntityManager, SlotID, Recursive));
 }
 
 void UFaerieEquipmentManager::WriteContainerData(FMassEntityManager& EntityManager, const TNotNull<const UScriptStruct*> Type,
@@ -399,7 +407,7 @@ TArray<FFaerieItemContainerPath> UFaerieEquipmentManager::GetAllContainerPaths()
 		return {};
 	}
 
-	const FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(World);
+	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(World);
 
 	TArray<FFaerieItemContainerPath> OutPaths;
 	OutPaths.Reserve(Slots.Num());

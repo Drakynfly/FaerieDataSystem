@@ -27,9 +27,9 @@ public:
 	virtual EDataValidationResult IsDataValid(FDataValidationContext& Context) const override;
 #endif
 
-	bool TryMatch(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const;
+	bool Matches(Faerie::TValid<const FFaerieItemProxy&> Proxy) const;
 #if WITH_EDITOR
-	bool TryMatchWithDescriptions(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy, TArray<FText>& Errors) const;
+	bool MatchesWithErrors(Faerie::TValid<const FFaerieItemProxy&> Proxy, TArray<FText>& Errors) const;
 #endif
 
 protected:

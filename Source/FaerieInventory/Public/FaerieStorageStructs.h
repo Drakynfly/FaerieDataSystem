@@ -59,8 +59,8 @@ struct FFaerieStorageEntry : public FFastArraySerializerItem
 	friend TBinarySearchOptimizedArray<FFaerieStorageContent, FFaerieStorageEntry>;
 
 	FFaerieStorageEntry() = default;
-	FFaerieStorageEntry(FFaerieEntryKey EntryKey, FFaerieItemInstance& Item, int32 StackLimit, int32 Amount, TArray<FFaerieAddress>& OutNewAddresses);
-	FFaerieStorageEntry(FFaerieEntryKey EntryKey, FFaerieItemInstance& Item, int32 StackLimit, TConstArrayView<FFaerieKeyedStack> Stacks);
+	FFaerieStorageEntry(FFaerieEntryKey EntryKey, FMassEntityHandle Item, int32 StackLimit, int32 Amount, TArray<FFaerieAddress>& OutNewAddresses);
+	FFaerieStorageEntry(FFaerieEntryKey EntryKey, FMassEntityHandle Item, int32 StackLimit, TConstArrayView<FFaerieKeyedStack> Stacks);
 
 private:
 	// Unique key to identify this entry.
@@ -69,10 +69,6 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "StorageEntry")
 	FFaerieNetItemID NetID;
-
-	// The item stored for all stacks in this entry.
-	UPROPERTY(VisibleAnywhere, NotReplicated, Category = "StorageEntry")
-	FFaerieItemInstance ItemInstance;
 
 	UPROPERTY(VisibleAnywhere, Category = "StorageEntry")
 	TArray<FFaerieKeyedStack> Stacks;
@@ -84,12 +80,14 @@ private:
 	// Internal count of how many stacks we've made. Used to track key creation. Only valid on the server.
 	Faerie::Inventory::TKeyGen<FFaerieStackKey> KeyGen;
 
+	// Local item handle. Not replicated, as entity handles are not consistent across the network. Cached by AckItemCreatedByNetwork.
+	FMassEntityHandle CachedItemHandle;
+
 	int32 GetStackIndex(FFaerieStackKey InKey) const;
 	const FFaerieKeyedStack* GetStackPtr(FFaerieStackKey InKey) const;
 
 	struct FStorageContentAccess
 	{
-		static const UObject* GetListener(const FFaerieStorageContent& Source);
 #if FAERIE_DEBUG
 		static uint32& GetWriteLock(const FFaerieStorageContent& Source);
 #endif
@@ -98,8 +96,8 @@ private:
 public:
 	UE_REWRITE FFaerieEntryKey GetKey() const { return Key; }
 	UE_REWRITE FFaerieNetItemID GetNetID() const { return NetID; }
-	UE_REWRITE FMassEntityHandle GetEntityHandle() const { return ItemInstance.GetMassEntityHandle(); }
-	UE_REWRITE const FFaerieItemInstance& GetInstance() const { return ItemInstance; }
+	UE_REWRITE FMassEntityHandle GetEntityHandle() const { return CachedItemHandle; }
+	UE_REWRITE FFaerieItemInstance GetInstance() const { return FFaerieItemInstance::FromEntity(CachedItemHandle); }
 	UE_REWRITE TConstArrayView<FFaerieKeyedStack> GetStacks() const { return Stacks; }
 
 	UE_REWRITE int32 NumStacks() const { return Stacks.Num(); }
@@ -142,10 +140,9 @@ public:
 		  : Entry(Entry), Source(Source) {}
 
 		//~ ItemData::IViewBase
-		virtual FMassEntityHandle GetEntityHandle() const override { return Entry.ItemInstance.GetMassEntityHandle(); }
-		UE_REWRITE virtual TOptional<FFaerieItemInstance> GetItemInstance() const override { return Entry.ItemInstance; }
+		virtual FMassEntityHandle GetEntityHandle() const override { return Entry.CachedItemHandle; }
+		UE_REWRITE virtual TOptional<FFaerieItemInstance> GetItemInstance() const override { return Entry.GetInstance(); }
 		UE_REWRITE virtual int32 GetCopies() const override { return Entry.StackSum(); }
-		virtual const UObject* GetItemOwner() const override;
 		//~ ItemData::IViewBase
 
 		//~ Container::IEntryView
@@ -170,10 +167,9 @@ public:
 		  : Entry(Entry), Stack(Stack), Source(Source) {}
 
 		//~ ItemData::IViewBase
-		virtual FMassEntityHandle GetEntityHandle() const override { return Entry.ItemInstance.GetMassEntityHandle(); }
-		UE_REWRITE virtual TOptional<FFaerieItemInstance> GetItemInstance() const override { return Entry.ItemInstance; }
+		virtual FMassEntityHandle GetEntityHandle() const override { return Entry.CachedItemHandle; }
+		UE_REWRITE virtual TOptional<FFaerieItemInstance> GetItemInstance() const override { return Entry.GetInstance(); }
 		UE_REWRITE virtual int32 GetCopies() const override { return Stack.Stack; }
-		virtual const UObject* GetItemOwner() const override;
 		//~ ItemData::IViewBase
 
 		//~ Container::IEntryView
@@ -375,6 +371,7 @@ struct FFaerieStorageEntryExportData
 {
 	GENERATED_BODY()
 
+	// @todo remove me
 	UPROPERTY()
 	TObjectPtr<const UFaerieItem> ItemObject;
 

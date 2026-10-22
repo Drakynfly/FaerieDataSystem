@@ -39,11 +39,6 @@ int32 UFaerieItemEntryProxy::GetCopies() const
 	return GetOuterUFaerieItemStorage()->GetEntryCopies(Key);
 }
 
-UObject* UFaerieItemEntryProxy::GetItemOwner() const
-{
-	return GetOuterUFaerieItemStorage();
-}
-
 UFaerieItemStorage* UFaerieItemEntryProxy::GetItemStorage() const
 {
 	return GetOuterUFaerieItemStorage();
@@ -59,7 +54,7 @@ void UFaerieItemEntryProxy::NotifyDelayedCreation()
 {
 	// If we are created on a client for a pre-existing item, set Version to 0.
 	// For clients that do not have the item replicated yet, -1 denotes awaiting initial replication.
-	if (GetItemInstance().IsSet())
+	if (GetEntityHandle().IsSet())
 	{
 		LocalItemVersion = 0;
 	}
@@ -68,13 +63,13 @@ void UFaerieItemEntryProxy::NotifyDelayedCreation()
 		LocalItemVersion = -1;
 	}
 
-	CheckItemCount(GetCopies());
+	CheckItemCount(GetOuterUFaerieItemStorage()->GetEntryCopies(Key));
 }
 
 void UFaerieItemEntryProxy::NotifyUpdate()
 {
 	LocalItemVersion++;
-	CheckItemCount(GetCopies());
+	CheckItemCount(GetOuterUFaerieItemStorage()->GetEntryCopies(Key));
 }
 
 void UFaerieItemEntryProxy::NotifyRemoval()

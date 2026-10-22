@@ -13,7 +13,7 @@ bool FFaerieClientAction_UseConsumable::Server_Execute(const TNotNull<const UFae
 	if (!Client->CanAccessContainer(EntityManager, Handle.Container.Get(), StaticStruct())) return false;
 	if (!IsValid(ConsumableType)) return false;
 
-	const FFaerieItemProxy Proxy = Handle.Container->Proxy(Handle.Address);
+	const FFaerieItemProxy Proxy = Handle.Container->Proxy(EntityManager, Handle.Address);
 	if (!Proxy.HasValidInstance()) return false;
 
 	return Faerie::Generation::TryConsume(EntityManager, Proxy, ConsumableType, Client->GetOwner(), 1);

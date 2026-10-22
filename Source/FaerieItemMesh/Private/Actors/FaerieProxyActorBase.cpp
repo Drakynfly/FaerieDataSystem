@@ -26,11 +26,6 @@ int32 AFaerieProxyActorBase::GetCopies() const
 	return DataSource.GetCopies();
 }
 
-const UObject* AFaerieProxyActorBase::GetItemOwner() const
-{
-	return DataSource.GetItemOwner();
-}
-
 void AFaerieProxyActorBase::SetSourceProxy(const FFaerieItemProxy& Source)
 {
 	if (Source != DataSource)

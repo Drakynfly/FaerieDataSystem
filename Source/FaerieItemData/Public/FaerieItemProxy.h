@@ -48,22 +48,25 @@ struct FAERIEITEMDATA_API FFaerieItemProxy
 	FFaerieItemProxy() = default;
 
 	FFaerieItemProxy(const FFaerieItemProxy& Other)
-	  : ProxyObject(Other.ProxyObject), InterfacePtr(Other.InterfacePtr), ValidWithoutProxyObject(Other.ValidWithoutProxyObject) {}
+	  : ProxyObject(Other.ProxyObject), EntityManager(Other.EntityManager), InterfacePtr(Other.InterfacePtr), ValidWithoutProxyObject(Other.ValidWithoutProxyObject) {}
 
 	// Construct from a persistable pointer.
-	explicit FFaerieItemProxy(const TScriptInterface<const IFaerieItemDataProxy>& Interface)
-	  : ProxyObject(Interface.GetObject()), InterfacePtr(Interface.GetInterface()), ValidWithoutProxyObject(false) {}
+	explicit FFaerieItemProxy(const TSharedPtr<FMassEntityManager>& EntityManager, const TScriptInterface<const IFaerieItemDataProxy>& Interface)
+	  : ProxyObject(Interface.GetObject()), EntityManager(EntityManager), InterfacePtr(Interface.GetInterface()), ValidWithoutProxyObject(false) {}
 
 	// Constructor for single frame 'view' proxies that are cheaper than persistent proxies since they don't need a
 	// UObject backing them.
 	enum ECtorOverride { ESingleFrame };
-	explicit FFaerieItemProxy(ECtorOverride, const TNotNull<const Faerie::ItemData::IViewBase*> View UE_LIFETIMEBOUND)
-	  : ProxyObject(nullptr), InterfacePtr(View), ValidWithoutProxyObject(true) {}
+	explicit FFaerieItemProxy(ECtorOverride, const TSharedPtr<FMassEntityManager>& EntityManager, const TNotNull<const Faerie::ItemData::IViewBase*> View UE_LIFETIMEBOUND)
+	  : ProxyObject(nullptr), EntityManager(EntityManager), InterfacePtr(View), ValidWithoutProxyObject(true) {}
 
 private:
 	// UObject to keep alive *if* this proxy refers to one.
 	UPROPERTY()
 	TObjectPtr<const UObject> ProxyObject;
+
+	// Entity manager to access item data.
+	TSharedPtr<FMassEntityManager> EntityManager;
 
 	// Pointer to the interface. If ProxyObject is valid, this also will be, but not always the other way around.
 	// For single frame proxies, only this may be set.
@@ -80,6 +83,8 @@ public:
 	// Test if this proxy is valid and points to a valid item stack.
 	bool HasValidInstance() const;
 
+	bool HasEntityManager() const { return EntityManager.IsValid(); }
+
 	// Will this proxy safely refer to the same data if kept alive across multiple frame. If this returns false, do not
 	// store this proxy as a member.
 	UE_REWRITE bool IsSafeToPersist() const { return !!ProxyObject; }
@@ -90,6 +95,8 @@ public:
 
 	template <typename T>
 	UE_REWRITE const T* GetTypedProxyObject() const { return Cast<T>(ProxyObject); }
+
+	const TSharedPtr<FMassEntityManager>& GetEntityManager() const { return EntityManager; }
 
 	// Get the MassEntityHandle for this proxy. Can return an invalid handle if we proxy an editor/unregistered instance.
 	FMassEntityHandle GetEntityHandle() const;
@@ -102,17 +109,6 @@ public:
 
 	// Get the number of copies this proxy may access.
 	int32 GetCopies() const;
-
-	// Get the owning object for the item this proxy represents.
-	UObject* GetItemOwner() const;
-
-	// Determine the UWorld this item resides in.
-	const UWorld* ExtractWorld() const;
-
-#if WITH_EDITOR
-	// Determine the UWorld this item resides in. Doesn't complain if it can't find one.
-	const UWorld* TestExtractWorld() const;
-#endif
 
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bSuccess);
 
@@ -139,8 +135,8 @@ struct TStructOpsTypeTraits<FFaerieItemProxy> : public TStructOpsTypeTraitsBase2
 namespace Faerie::ItemData
 {
 	// Typedef for delegates that consume predicate functions.
-	using FViewPredicate = TDelegate<bool(const FMassEntityManager* EntityManager, TValid<const FFaerieItemProxy&>)>;
+	using FViewPredicate = TDelegate<bool(TValid<const FFaerieItemProxy&>)>;
 
 	// Typedef for delegate that consume comparison functions.
-	using FViewComparator = TDelegate<bool(const FMassEntityManager* EntityManager, TValid<const FFaerieItemProxy&>, TValid<const FFaerieItemProxy&>)>;
+	using FViewComparator = TDelegate<bool(TValid<const FFaerieItemProxy&>, TValid<const FFaerieItemProxy&>)>;
 }

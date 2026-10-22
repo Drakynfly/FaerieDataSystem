@@ -50,7 +50,7 @@ namespace Faerie::Equipment
 	static inline const auto RecursiveSlotFilter = SubObject::Filter().Recursive().ByClass<UFaerieItemStackContainer>();
 }
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FEquipmentChangedEvent, UFaerieItemStackContainer*, Slot, FFaerieInventoryTag, Event);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FEquipmentChangedEvent, const FFaerieItemProxy&, Proxy, FFaerieInventoryTag, Event);
 
 /*
  * An actor component that manages an array of Equipment Slots, which can each store a single item entry.
@@ -86,7 +86,7 @@ private:
 
 protected:
 	void OnDataChangeEvent(const FFaerieItemProxy& Proxy, FGameplayTag Tag);
-	void BroadcastSlotEvent(TNotNull<UFaerieItemStackContainer*> Slot, FFaerieInventoryTag Event);
+	void BroadcastSlotEvent(const FFaerieItemProxy& Proxy, FFaerieInventoryTag Event);
 
 	UFaerieItemStackContainer* AddSlotImpl(FMassEntityManager& EntityManager, const FFaerieEquipmentSlotConfig& Config);
 	const UFaerieItemStackContainer* FindSlotImpl(const FMassEntityManager& EntityManager, FFaerieSlotTag SlotTag, bool bRecursive) const;
@@ -118,8 +118,8 @@ public:
 	bool TrySwapSlots(FFaerieSlotTag SlotA, FFaerieSlotTag SlotB);
 
 protected:
-	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentManager", meta = (DisplayName = "Get Slots"))
-	TArray<UFaerieItemStackContainer*> BP_GetSlots() const { return Slots; }
+	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentManager")
+	TArray<UObject*> GetProxyObjects() const;
 
 	/**
 	 * Find a slot contained in this manager. Enable recursive to check slots contained in other slots.

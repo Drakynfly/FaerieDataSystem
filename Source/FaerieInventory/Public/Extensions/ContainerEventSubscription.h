@@ -45,8 +45,8 @@ namespace Faerie::Content
 		TArray<TWeakInterfacePtr<IFaerieContainerEventSubscriber>> Subscribers;
 	};
 
-	FAE_API void SubscribeToContainerEvents(TNotNull<UFaerieItemContainerBase*> Container, TNotNull<IFaerieContainerEventSubscriber*> Object);
-	FAE_API void UnsubscribeFromContainerEvents(TNotNull<UFaerieItemContainerBase*> Container, TNotNull<IFaerieContainerEventSubscriber*> Object);
+	FAE_API void SubscribeToContainerEvents(FMassEntityManager& EntityManager, TNotNull<UFaerieItemContainerBase*> Container, TNotNull<IFaerieContainerEventSubscriber*> Object);
+	FAE_API void UnsubscribeFromContainerEvents(FMassEntityManager& EntityManager, TNotNull<UFaerieItemContainerBase*> Container, TNotNull<IFaerieContainerEventSubscriber*> Object);
 }
 
 /*

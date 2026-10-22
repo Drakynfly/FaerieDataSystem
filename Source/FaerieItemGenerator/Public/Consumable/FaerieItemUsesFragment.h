@@ -91,10 +91,12 @@ namespace Faerie::ItemData
 	struct FAERIEITEMGENERATOR_API FUsesHelper : TFragmentHelperCRTP<FUsesHelper, FFaerieItemUses>
 	{
 		UE_NONCOPYABLE(FUsesHelper)
+		friend TFragmentHelperCRTP<FUsesHelper, FFaerieItemUses>;
 
 		FUsesHelper(const FMassEntityManager& EntityManager, FMassEntityHandle Item);
 		FUsesHelper(const FMassEntityManager& EntityManager, const FFaerieItemInstance& Instance);
 
+	protected:
 		/*
 		 * Adds uses to the item if it doesn't have it.
 		 * MaxUses will default to 1 if not provided.
@@ -102,6 +104,7 @@ namespace Faerie::ItemData
 		 */
 		void CreateFragment(FMassEntityManager& EntityManager, const TOptional<int32>& MaxUses = NullOpt, const TOptional<int32>& InitialUses = NullOpt);
 
+	public:
 		bool HasUsesRemaining(int32 Amount) const;
 
 		void AddUses(int32 Amount, bool ClampToMax);

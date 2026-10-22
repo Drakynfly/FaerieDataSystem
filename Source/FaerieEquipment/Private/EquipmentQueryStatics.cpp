@@ -10,14 +10,14 @@ namespace Faerie::Equipment
 {
 	bool RunEquipmentQuery(const TNotNull<UFaerieEquipmentManager*> Manager, const FFaerieEquipmentSetQuery& SetQuery, FFaerieItemProxy& PassingSlot)
 	{
-		const FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(Manager->GetWorld());
+		FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(Manager->GetWorld());
 		for (const FFaerieSlotTag& QueryTag : SetQuery.TagSet.Tags)
 		{
 			if (UFaerieItemStackContainer* Slot = Manager->FindSlot(EntityManager, QueryTag, true))
 			{
 				if (Slot->IsFilled())
 				{
-					const FFaerieItemProxy SlotProxy(Slot);
+					const FFaerieItemProxy SlotProxy(EntityManager.AsShared(), Slot);
 					if (SetQuery.Query.Filter.Execute(SlotProxy) != SetQuery.Query.InvertFilter)
 					{
 						PassingSlot = SlotProxy;

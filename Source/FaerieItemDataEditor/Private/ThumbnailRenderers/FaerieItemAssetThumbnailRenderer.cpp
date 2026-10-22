@@ -35,10 +35,10 @@ void UFaerieItemAssetThumbnailRenderer::Draw(UObject* Object, const int32 X, con
 	{
 		if (!ThumbnailScene)
 		{
-			ThumbnailScene = new Faerie::Editor::FItemAssetPreviewSceneThumbnail(FFaerieItemProxy(this));
+			ThumbnailScene = new Faerie::Editor::FItemAssetPreviewSceneThumbnail(FFaerieItemProxy(nullptr, this));
 		}
 
-		ThumbnailScene->SetItemProxy(FFaerieItemProxy(this));
+		ThumbnailScene->SetItemProxy(FFaerieItemProxy(nullptr, this));
 		FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(RenderTarget, ThumbnailScene->GetScene(), FEngineShowFlags(ESFIM_Game))
 			.SetTime(UThumbnailRenderer::GetTime())
 			.SetAdditionalViewFamily(bAdditionalViewFamily));
@@ -71,11 +71,6 @@ TOptional<FFaerieItemInstance> UFaerieItemAssetThumbnailRenderer::GetItemInstanc
 		return ItemAsset->GetTemplateInstance();
 	}
 	return NullOpt;
-}
-
-UObject* UFaerieItemAssetThumbnailRenderer::GetItemOwner() const
-{
-	return nullptr;
 }
 
 UThumbnailInfo* UFaerieItemAssetThumbnailRenderer::GetThumbnailInfo() const

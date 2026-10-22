@@ -34,7 +34,7 @@ namespace Faerie::Container
 
 		FFaerieEntryKey GetKey() const;
 		FMassEntityHandle GetEntityHandle() const;
-		const FFaerieItemInstance& GetInstance() const;
+		FFaerieItemInstance GetInstance() const;
 		int32 GetCopies() const;
 
 		UE_REWRITE void operator++()
@@ -81,7 +81,7 @@ namespace Faerie::Container
 		FFaerieEntryKey GetKey() const;
 		FFaerieAddress GetAddress() const;
 		FMassEntityHandle GetEntityHandle() const;
-		const FFaerieItemInstance& GetInstance() const;
+		FFaerieItemInstance GetInstance() const;
 		int32 GetCopies() const;
 
 		void operator++();
@@ -127,7 +127,7 @@ namespace Faerie::Container
 		FFaerieEntryKey GetKey() const;
 		FFaerieAddress GetAddress() const;
 		FMassEntityHandle GetEntityHandle() const;
-		const FFaerieItemInstance& GetInstance() const;
+		FFaerieItemInstance GetInstance() const;
 		int32 GetCopies() const;
 
 		void operator++();
@@ -160,7 +160,6 @@ namespace Faerie::Container
 		UE_REWRITE virtual FMassEntityHandle GetEntityHandle() const override { return Inner.GetEntityHandle(); }
 		UE_REWRITE virtual TOptional<FFaerieItemInstance> GetItemInstance() const override { return Inner.GetInstance(); }
 		UE_REWRITE virtual int32 GetCopies() const override { return Inner.GetCopies(); }
-		virtual const UObject* GetItemOwner() const override;
 		//~ ItemData::ViewBase
 
 		//~ Container::IAddressIterator
@@ -185,7 +184,6 @@ namespace Faerie::Container
 		UE_REWRITE virtual FFaerieAddress ResolveAddress() const override { return Inner.GetAddress(); }
 		UE_REWRITE virtual TOptional<FFaerieItemInstance> GetItemInstance() const override { return Inner.GetInstance(); }
 		UE_REWRITE virtual int32 GetCopies() const override { return Inner.GetCopies(); }
-		virtual const UObject* GetItemOwner() const override;
 		//~ ItemData::ViewBase
 
 		//~ Container::IAddressIterator
@@ -210,7 +208,6 @@ namespace Faerie::Container
 		UE_REWRITE virtual FFaerieAddress ResolveAddress() const override { return Inner.GetAddress(); }
 		UE_REWRITE virtual TOptional<FFaerieItemInstance> GetItemInstance() const override { return Inner.GetInstance(); }
 		UE_REWRITE virtual int32 GetCopies() const override { return Inner.GetCopies(); }
-		virtual const UObject* GetItemOwner() const override;
 		//~ ItemData::ViewBase
 
 		//~ Container::IAddressIterator

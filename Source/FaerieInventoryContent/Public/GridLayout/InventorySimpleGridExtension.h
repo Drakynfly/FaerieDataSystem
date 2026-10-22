@@ -22,20 +22,20 @@ public:
 	virtual void HandleEvent(const FFaerieContainerGridWriteContext& Context, const Faerie::Container::FContainerEventPayload& Event) const override;
 
 	virtual void PreStackRemove_Client(const FFaerieContainerGridWriteContext& Context, const FFaerieGridKeyedStack& Stack) const override;
-	virtual void PreStackRemove_Server(const FFaerieContainerGridWriteContext& Context, const FFaerieGridKeyedStack& Stack, const FFaerieItemInstance& Item) const override;
+	virtual void PreStackRemove_Server(const FFaerieContainerGridWriteContext& Context, const FFaerieGridKeyedStack& Stack, FMassEntityHandle Item) const override;
 	virtual void PostStackAdd(const FFaerieContainerGridWriteContext& Context, const FFaerieGridKeyedStack& Stack) const override;
 	virtual void PostStackChange(const FFaerieContainerGridWriteContext& Context, const FFaerieGridKeyedStack& Stack) const override;
 
 	virtual TOptional<FFaerieAddress> GetKeyAt(const FFaerieContainerGridReadContext& Context, const FIntPoint& Position) const override;
 	virtual bool CanAddAtLocation(const FFaerieContainerGridReadContext& Context, Faerie::TValid<const FFaerieItemProxy&> Proxy, FIntPoint IntPoint) const override;
-	virtual bool AddItemToGrid(const FFaerieContainerGridWriteContext& Context, FFaerieAddress Address, const FFaerieItemInstance& Instance) const override;
+	virtual bool AddItemToGrid(const FFaerieContainerGridWriteContext& Context, FFaerieAddress Address, FMassEntityHandle Item) const override;
 	virtual bool MoveItem(const FFaerieContainerGridWriteContext& Context, FFaerieAddress Address, const FIntPoint& TargetPoint) const override;
 	virtual bool RotateItem(const FFaerieContainerGridWriteContext& Context, FFaerieAddress Address, EFaerieSpatialItemRotation RotationToAdd) const override;
 	//~ UInventoryGridExtensionBase
 
 private:
-	void RemoveItem(const FFaerieContainerGridWriteContext& Context, FFaerieAddress Address, const FFaerieItemInstance& Instance) const;
-	void RemoveItemBatch(const FFaerieContainerGridWriteContext& Context, const TConstArrayView<FFaerieAddress>& Keys, const FFaerieItemInstance& Instance) const;
+	void RemoveItem(const FFaerieContainerGridWriteContext& Context, FFaerieAddress Address, const FMassEntityHandle Item) const;
+	void RemoveItemBatch(const FFaerieContainerGridWriteContext& Context, const TConstArrayView<FFaerieAddress>& Keys, const FMassEntityHandle Item) const;
 
 public:
 	static FFaerieGridPlacement FindFirstEmptyLocation(const FFaerieContainerGridReadContext& Context);

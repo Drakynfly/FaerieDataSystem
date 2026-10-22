@@ -18,7 +18,7 @@ namespace Faerie::ItemData
 namespace Faerie::Hash
 {
 	// A function that takes in a UFaerieItem and returns a hash for it.
-	using FItemHashFunction = TFunctionRef<uint32(const FMassEntityManager*, TValid<const FFaerieItemProxy&>)>;
+	using FItemHashFunction = TFunctionRef<uint32(TValid<const FFaerieItemProxy&>)>;
 
 	[[nodiscard]] FAE_API uint32 Combine(const uint32 A, const uint32 B);
 
@@ -31,7 +31,7 @@ namespace Faerie::Hash
 	[[nodiscard]] FAE_API uint32 HashObjectByProps(TNotNull<const UObject*> Obj, bool IncludeSuper);
 
 	// A simple HashFunction that hashes the name of an item by its AssetInfo
-	[[nodiscard]] FAE_API uint32 HashItemByName(const FMassEntityManager* EntityManager, TValid<const FFaerieItemProxy&> Item);
+	[[nodiscard]] FAE_API uint32 HashItemByName(TValid<const FFaerieItemProxy&> Item);
 }
 
 #undef FAE_API

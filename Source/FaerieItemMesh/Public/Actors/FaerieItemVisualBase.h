@@ -36,7 +36,6 @@ public:
 	virtual FMassEntityHandle GetEntityHandle() const override PURE_VIRTUAL(AFaerieItemVisualBase::GetEntityHandle, return FMassEntityHandle(); )
 	virtual TOptional<FFaerieItemInstance> GetItemInstance() const override;
 	virtual int32 GetCopies() const override PURE_VIRTUAL(AFaerieItemVisualBase::GetCopies, return -1; )
-	virtual const UObject* GetItemOwner() const override PURE_VIRTUAL(AFaerieItemVisualBase::GetItemOwner, return nullptr; )
 	//~ Faerie::ItemData::IViewBase
 
 	Faerie::Mesh::FOnVisualActorDisplayFinished::RegistrationType& GetOnDisplayFinished() { return OnDisplayFinished; }

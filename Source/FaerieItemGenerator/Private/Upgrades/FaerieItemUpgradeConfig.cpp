@@ -57,7 +57,7 @@ bool UFaerieItemUpgradeConfig::ApplyUpgrade(FMassEntityManager* EntityManager, F
 	Context.Squirrel = Squirrel;
 	Context.Config = this;
 
-	for (auto&& OperationStack : Stacks.Stacks)
+	for (FFaerieUnownedItemStack& OperationStack : Stacks.Stacks)
 	{
 		if (OperationStack.Copies == 0)
 		{
@@ -107,10 +107,11 @@ bool UFaerieItemUpgradeConfig_BlueprintBase::ApplyUpgrade(FMassEntityManager* En
 														  FFaerieCraftingActionData& Stacks, USquirrel* Squirrel) const
 {
 	bool Success = true;
-	for (auto&& Stack : Stacks.Stacks)
+	for (const FFaerieUnownedItemStack& Stack : Stacks.Stacks)
 	{
-		Faerie::ItemData::FScopeProxy Proxy(Stack.Instance, Stack.Copies, nullptr);
-		if (!BP_ApplyUpgrade(FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, &Proxy), Squirrel))
+		Faerie::ItemData::FScopeProxy Proxy(Stack.Instance, Stack.Copies);
+		const TSharedPtr<FMassEntityManager> EntityManagerShared = EntityManager ? EntityManager->AsShared().ToSharedPtr() : nullptr;
+		if (!BP_ApplyUpgrade(FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, EntityManagerShared, &Proxy), Squirrel))
 		{
 			Success = false;
 		}

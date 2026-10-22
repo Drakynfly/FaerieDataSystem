@@ -5,8 +5,8 @@
 
 namespace Faerie::Container
 {
-	bool FCallbackFilter::Exec(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy) const
+	bool FCallbackFilter::Exec(const TValid<const FFaerieItemProxy&> Proxy) const
 	{
-		return Callback.Execute(EntityManager, Proxy);
+		return Callback.Execute(Proxy);
 	}
 }

@@ -197,9 +197,9 @@ public:
 	[[nodiscard]] virtual Faerie::ItemData::FScopeProxy ViewAddress(FFaerieAddress Address) const PURE_VIRTUAL(UFaerieItemContainerBase::ViewAddress, return nullptr; )
 
 	// Creates or retrieves a proxy for an entry
-	[[nodiscard]] virtual FFaerieItemProxy Proxy(FMassEntityHandle Item) const PURE_VIRTUAL(UFaerieItemContainerBase::Proxy, return FFaerieItemProxy(); )
-	[[nodiscard]] virtual FFaerieItemProxy Proxy(FFaerieEntryKey Key) const PURE_VIRTUAL(UFaerieItemContainerBase::Proxy, return FFaerieItemProxy(); )
-	[[nodiscard]] virtual FFaerieItemProxy Proxy(FFaerieAddress Address) const PURE_VIRTUAL(UFaerieItemContainerBase::Proxy, return FFaerieItemProxy(); )
+	[[nodiscard]] virtual FFaerieItemProxy Proxy(FMassEntityManager& EntityManager, FMassEntityHandle Item) const PURE_VIRTUAL(UFaerieItemContainerBase::Proxy, return FFaerieItemProxy(); )
+	[[nodiscard]] virtual FFaerieItemProxy Proxy(FMassEntityManager& EntityManager, FFaerieEntryKey Key) const PURE_VIRTUAL(UFaerieItemContainerBase::Proxy, return FFaerieItemProxy(); )
+	[[nodiscard]] virtual FFaerieItemProxy Proxy(FMassEntityManager& EntityManager, FFaerieAddress Address) const PURE_VIRTUAL(UFaerieItemContainerBase::Proxy, return FFaerieItemProxy(); )
 
 	// Call this function to grant ownership of a FFaerieItemInstance stack. Returns true if ownership was accepted.
 	// It is implied, and is the responsibility of the implementing class, to either accept ownership of the whole stack,
@@ -221,7 +221,7 @@ public:
 protected:
 	virtual bool AckItemCreatedByNetwork(FMassEntityManager& EntityManager, FMassEntityHandle Entity, FFaerieNetItemID NetID) PURE_VIRTUAL(UFaerieItemContainerBase::AckItemCreatedByNetwork, return false; )
 
-	virtual void OnItemDataChanged(const FMassEntityHandle Item, FGameplayTag EditTag);
+	virtual void OnItemDataChanged(FMassEntityManager& EntityManager, const FMassEntityHandle Item, FGameplayTag EditTag);
 
 	// Create an iterator for the entries in this container.
 	virtual TUniquePtr<Faerie::Container::IEntryIterator> CreateEntryIterator() const;

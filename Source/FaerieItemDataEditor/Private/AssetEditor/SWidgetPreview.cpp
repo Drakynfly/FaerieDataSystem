@@ -310,7 +310,7 @@ namespace Faerie::UMGWidgetPreview
 						{
 							// Allow blueprint code to run here.
 							FEditorScriptExecutionGuard ScriptGuard;
-							Card->SetItemData(FFaerieItemProxy(Preview), true);
+							Card->SetItemData(FFaerieItemProxy(nullptr, Preview), true);
 						}
 					}
 

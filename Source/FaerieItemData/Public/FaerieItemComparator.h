@@ -17,7 +17,7 @@ class FAERIEITEMDATA_API UFaerieItemComparator : public UObject
 	GENERATED_BODY()
 
 public:
-	virtual bool Exec(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> ProxyA, Faerie::TValid<const FFaerieItemProxy&> ProxyB) const
+	virtual bool Exec(Faerie::TValid<const FFaerieItemProxy&> ProxyA, Faerie::TValid<const FFaerieItemProxy&> ProxyB) const
 		PURE_VIRTUAL(UFaerieItemDataComparator::Exec, return false; )
 
 protected:
@@ -34,8 +34,7 @@ class UFaerieItemComparator_BlueprintBase final : public UFaerieItemComparator
 	GENERATED_BODY()
 
 public:
-	virtual bool Exec(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> ProxyA,
-					  Faerie::TValid<const FFaerieItemProxy&> ProxyB) const override;
+	virtual bool Exec(Faerie::TValid<const FFaerieItemProxy&> ProxyA, Faerie::TValid<const FFaerieItemProxy&> ProxyB) const override;
 
 protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Faerie|ItemDataComparator")

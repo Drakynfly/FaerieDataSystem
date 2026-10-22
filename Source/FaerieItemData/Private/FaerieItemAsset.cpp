@@ -132,10 +132,10 @@ EDataValidationResult UFaerieItemAsset::IsDataValid(FDataValidationContext& Cont
 		}
 		else
 		{
-			const ItemData::FScopeProxy Proxy(FFaerieItemInstance::FromPointer(Item), 1, nullptr);
+			const ItemData::FScopeProxy Proxy(FFaerieItemInstance::FromPointer(Item), 1);
 
 			if (TArray<FText> TemplateMatchErrors;
-				!Template->TryMatchWithDescriptions(nullptr, FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, &Proxy), TemplateMatchErrors))
+				!Template->MatchesWithErrors(FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, nullptr, &Proxy), TemplateMatchErrors))
 			{
 				Context.AddError(LOCTEXT("PatternMatchFailed", "Item failed to match the pattern of its Template!"));
 

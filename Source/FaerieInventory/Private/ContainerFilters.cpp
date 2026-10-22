@@ -9,9 +9,9 @@ using namespace Faerie;
 
 // ReSharper disable CppBadColonSpaces
 
-bool FFaerieItemFilter_StackLimit::Exec(const FMassEntityManager* EntityManager, const TValid<const FFaerieItemProxy&> Proxy) const
+bool FFaerieItemFilter_StackLimit::Exec(const TValid<const FFaerieItemProxy&> Proxy) const
 {
-	if (const int32 Limit = Container::GetItemStackLimit(EntityManager, ValidGet(Proxy).GetItemInstance().GetValue());
+	if (const int32 Limit = Container::GetItemStackLimit(ValidGet(Proxy).GetEntityManager().Get(), ValidGet(Proxy).GetItemInstance().GetValue());
 		Limit == ItemData::UnlimitedStack)
 	{
 		switch (Operator)

@@ -13,7 +13,7 @@ namespace Faerie::SubObject
 {
 	void GetTemplateContainersInInstanceDirect(const TNotNull<const UFaerieItem*> Item, const TAdderRef<TNotNull<const UFaerieItemContainerBase*>> Containers, const TNotNull<const UClass*> Class)
 	{
-		if (auto&& StacksFragment = ItemData::GetDefaultFragment<FFaerieChildStackFragment>(Item);
+		if (auto&& StacksFragment = Item->GetDefaultFragment<FFaerieChildStackFragment>();
 			StacksFragment.IsValid())
 		{
 			for (auto&& Slot : StacksFragment->Slots)
@@ -25,7 +25,7 @@ namespace Faerie::SubObject
 			}
 		}
 
-		if (auto&& StorageFragment = ItemData::GetDefaultFragment<FFaerieItemStorageFragment>(Item);
+		if (auto&& StorageFragment = Item->GetDefaultFragment<FFaerieItemStorageFragment>();
 			StorageFragment.IsValid())
 		{
 			const TObjectPtr<UFaerieItemStorage>& ItemStorage = StorageFragment->Storage.Storage;
@@ -294,18 +294,18 @@ namespace Faerie::SubObject
 		}
 	}
 
-	void GetChildrenInItem(const FMassEntityManager& EntityManager, const FMassEntityHandle Item, const TAdderRef<FFaerieItemProxy> OutProxies)
+	void GetChildrenInItem(FMassEntityManager& EntityManager, const FMassEntityHandle Item, const TAdderRef<FFaerieItemProxy> OutProxies)
 	{
 		for (UFaerieItemContainerBase* Container : SubObject::Iterate(EntityManager, Item))
 		{
 			for (auto It = Container::ItemRange(Container); It; ++It)
 			{
-				OutProxies.Add(It.GetPersistentProxy());
+				OutProxies.Add(It.GetPersistentProxy(EntityManager));
 			}
 		}
 	}
 
-	void GetChildrenInItemRecursive(const FMassEntityManager& EntityManager, const FMassEntityHandle Item, const TAdderRef<FFaerieItemProxy> OutProxies)
+	void GetChildrenInItemRecursive(FMassEntityManager& EntityManager, const FMassEntityHandle Item, const TAdderRef<FFaerieItemProxy> OutProxies)
 	{
 		TArray<FFaerieItemProxy> Children;
 		GetChildrenInItem(EntityManager, Item, Children);

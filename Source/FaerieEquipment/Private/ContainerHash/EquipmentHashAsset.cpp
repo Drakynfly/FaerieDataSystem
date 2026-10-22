@@ -5,7 +5,6 @@
 #include "UObject/ObjectSaveContext.h"
 
 #if WITH_EDITOR
-#include "EntityManagerHelpers.h"
 #include "FaerieItemAsset.h"
 #include "FaerieItemDataView.h"
 #include "Squirrel.h"
@@ -20,9 +19,6 @@ void UFaerieEquipmentHashAsset::PreSave(FObjectPreSaveContext SaveContext)
 #if WITH_EDITOR
 	CheckHash = 0;
 
-	// @TODO we cannot implement this until we can dump items into the editor's mass subsystem
-	FMassEntityManager* EntityManager = nullptr;
-
 	for (const FFaerieEquipmentHashAssetConfig& Config : Configs)
 	{
 		for (int32 i = 0; i < Config.Slots.Num(); ++i)
@@ -32,8 +28,8 @@ void UFaerieEquipmentHashAsset::PreSave(FObjectPreSaveContext SaveContext)
 			if (Config.Example.IsValidIndex(i) &&
 				IsValid(Config.Example[i]))
 			{
-				const Faerie::ItemData::FScopeProxy StackProxy(Config.Example[i]->GetTemplateInstance(), 1, nullptr);
-				TagHash = Config.Instruction.Hash(EntityManager, FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, &StackProxy));
+				const Faerie::ItemData::FScopeProxy StackProxy(Config.Example[i]->GetTemplateInstance(), 1);
+				TagHash = Config.Instruction.Hash(FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, nullptr, &StackProxy));
 
 				if (Config.MatchType == EGameplayContainerMatchType::Any)
 				{

@@ -103,7 +103,7 @@ void UFaerieVisualizationUpdater::ProcessEvents(FMassExecutionContext& Context)
 			continue;
 		}
 
-		const FFaerieItemProxy Proxy = Container->Proxy(Event.Instance.GetMassEntityHandle());
+		const FFaerieItemProxy Proxy = Container->Proxy(Context.GetEntityManagerChecked(), Event.Item);
 		if (!Proxy.IsValid())
 		{
 			UE_LOGF(LogFaerieEquipment, Warning, "VisualizationUpdater: Failed to create proxy for instance!")

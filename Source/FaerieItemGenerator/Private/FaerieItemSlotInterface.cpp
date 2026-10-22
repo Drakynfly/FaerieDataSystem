@@ -3,6 +3,7 @@
 #include "FaerieItemSlotInterface.h"
 #include "FaerieItemContainerBase.h"
 #include "FaerieItemGenerationLog.h"
+#include "FaerieItemOwnership.h"
 #include "FaerieItemProxy.h"
 #include "FaerieItemTemplate.h"
 #include "ItemContainerEvent.h"
@@ -53,7 +54,7 @@ namespace Faerie::Generation
 						return false;
 					}
 
-					if (!Slot.Template->TryMatch(EntityManager, *ItemProxy))
+					if (!Slot.Template->Matches(*ItemProxy))
 					{
 						if constexpr (LogFailure)
 						{
@@ -157,7 +158,7 @@ namespace Faerie::Generation
 			}
 			else
 			{
-				if (UFaerieItemContainerBase* Owner = Cast<UFaerieItemContainerBase>(SlotPayment.GetItemOwner()))
+				if (UFaerieItemContainerBase* Owner = Container::GetItemOwner(SlotPayment))
 				{
 					(void)Owner->Release(EntityManager, SlotPayment, Slot.Amount, Inventory::Tags::RemovalDeletion);
 				}

@@ -3,7 +3,6 @@
 #include "ActorFactoryFaerieItem.h"
 #include "FaerieItem.h"
 #include "FaerieItemAsset.h"
-#include "FaerieItemStackContainer.h"
 #include "FaerieMeshSettings.h"
 #include "Actors/FaerieItemOwningActorBase.h"
 #include "Fragments/FaerieActorFragment.h"
@@ -32,7 +31,7 @@ UClass* UActorFactoryFaerieItem::GetDefaultActorClass(const FAssetData& AssetDat
 {
 	if (auto&& ItemAsset = Cast<UFaerieItemAsset>(AssetData.GetAsset()))
 	{
-		auto ActorClassFragment = Faerie::ItemData::GetDefaultFragment<FFaerieActorFragment>(ItemAsset->GetAssetTemplateItem());
+		auto ActorClassFragment = ItemAsset->GetAssetTemplateItem()->GetDefaultFragment<FFaerieActorFragment>();
 		if (ActorClassFragment.IsValid())
 		{
 			if (TSubclassOf<AFaerieItemOwningActorBase> OwningActorClass = ActorClassFragment->LoadOwningActorClassSynchronous())

@@ -24,8 +24,8 @@ enum class EFaerieUIActionState : uint8
 
 /**
  * A UI Action is an asynchronous function class that can wrap player "actions" on items stored in inventories,
- * such as Dropping, Equipping, Consuming, Buying/Setting, etc. They usually need to send a request to the server when
- * performed by a client, so they cannot usually run in a single frame.
+ * such as Dropping, Equipping, Consuming, Buying/Selling, etc. As they usually need to send a request to the server when
+ * performed by a client, they cannot usually run in a single frame.
  */
 UCLASS(Abstract, Const, Blueprintable, BlueprintType, EditInlineNew, meta = (ShowWorldContextPin))
 class FAERIEINVENTORYCONTENT_API UFaerieUIActionBase : public UObject
@@ -43,6 +43,7 @@ protected:
 	void Finish();
 
 	// Tries to get the local faerie client from the context.
+	UFUNCTION(BlueprintCallable, Category = "Faerie|UI Action", meta = (WorldContext = "ContextObj", DefaultToSelf = "ContextObj"))
 	static UFaerieInventoryClient* GetFaerieClient(const UObject* ContextObj);
 
 public:
@@ -60,10 +61,10 @@ public:
 	 * when this returns false.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Faerie|UI Action")
-	EFaerieUIActionState CanStart(const FFaerieItemProxy& Proxy) const;
+	EFaerieUIActionState CanStart(UFaerieInventoryClient* Client, const FFaerieItemProxy& Proxy) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|UI Action")
-	bool Start(const FFaerieItemProxy& Proxy);
+	bool Start(UFaerieInventoryClient* Client, const FFaerieItemProxy& Proxy);
 
 protected:
 	/** Text to display on a user-facing button */

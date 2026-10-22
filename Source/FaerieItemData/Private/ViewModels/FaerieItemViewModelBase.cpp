@@ -18,7 +18,7 @@ void UFaerieItemDataViewModelBase::SetItemProxy(const FFaerieItemProxy& Item)
 		ItemProxy = Item;
 		UFaerieViewModelSubsystem* ViewModelSubsystem = GetTypedOuter<UFaerieViewModelSubsystem>();
 		ViewModelSubsystem->UpdateViewModelAssociation(this, OldProxy);
-		OnProxySet(Faerie::ItemData::GetFaerieEntityManagerChecked(Item.ExtractWorld()));
+		OnProxySet(Faerie::ItemData::GetFaerieEntityManagerChecked(ViewModelSubsystem->GetWorld()));
 	}
 }
 

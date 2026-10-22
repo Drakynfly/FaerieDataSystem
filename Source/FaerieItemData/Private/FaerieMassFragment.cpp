@@ -63,17 +63,17 @@ namespace Faerie::ItemData
 		);
 	}
 
-	void IAutoRegisterFragmentTraits::StaticRegisterTraits(const TNotNull<const UScriptStruct*> Type, const FMassTypeTraitsInterface& Interface)
+	void IAutoRegisterMassTraits::StaticRegisterTraits(const TNotNull<const UScriptStruct*> Type, const FMassTypeTraitsInterface& Interface)
 	{
 		FragmentTraitsMap.Add(Type, Interface);
 	}
 
-	void IAutoRegisterFragmentTraits::StaticDeregisterTraits(const TNotNull<const UScriptStruct*> Type)
+	void IAutoRegisterMassTraits::StaticDeregisterTraits(const TNotNull<const UScriptStruct*> Type)
 	{
 		FragmentTraitsMap.Remove(Type);
 	}
 
-	const FMassTypeTraitsInterface* GetFragmentTraitsInterface(const TNotNull<const UScriptStruct*> Type)
+	const FMassTypeTraitsInterface* GetMassTraitsInterface(const TNotNull<const UScriptStruct*> Type)
 	{
 		if (const FMassTypeTraitsInterface* Traits = FragmentTraitsMap.Find(Type))
 		{

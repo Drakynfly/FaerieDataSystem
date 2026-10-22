@@ -120,7 +120,8 @@ UFaerieContainerContentHashView* UFaerieCommonExtensionUtils::GetOrCreateContain
 FFaerieItemProxy UFaerieCommonExtensionUtils::ViewAt(const FFaerieContainerGridReadContext& GridContext,
 	const FIntPoint& Position)
 {
-	return GridContext.ViewAt(Position);
+	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GridContext.GetStorage()->GetWorld());
+	return GridContext.ViewAt(EntityManager, Position);
 }
 
 bool UFaerieCommonExtensionUtils::IsCellOccupied(const FFaerieContainerGridReadContext& GridContext,

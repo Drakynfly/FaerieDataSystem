@@ -304,7 +304,7 @@ void UFaerieItemContainerBase::UnravelExtensionData(FMassEntityManager& EntityMa
 	}
 }
 
-void UFaerieItemContainerBase::OnItemDataChanged(const FMassEntityHandle Item, const FGameplayTag EditTag)
+void UFaerieItemContainerBase::OnItemDataChanged(FMassEntityManager& EntityManager, const FMassEntityHandle Item, const FGameplayTag EditTag)
 {
 }
 

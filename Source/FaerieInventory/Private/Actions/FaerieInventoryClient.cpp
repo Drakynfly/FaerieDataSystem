@@ -198,7 +198,7 @@ void UFaerieInventoryClient::Server_RequestMoveAction(const FFaerieClientAction_
 		return;
 	}
 
-	if (!MoveTo.CanMove(EntityManager, FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, &FromView)))
+	if (!MoveTo.CanMove(EntityManager, FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, EntityManager.AsShared(), &FromView)))
 	{
 		return;
 	}
@@ -209,7 +209,7 @@ void UFaerieInventoryClient::Server_RequestMoveAction(const FFaerieClientAction_
 	{
 		Faerie::ItemData::FScopeProxy ToView(nullptr);
 		MoveTo.View(EntityManager, ToView);
-		if (!MoveFrom.CanMove(EntityManager, FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, &ToView)))
+		if (!MoveFrom.CanMove(EntityManager, FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, EntityManager.AsShared(), &ToView)))
 		{
 			return;
 		}

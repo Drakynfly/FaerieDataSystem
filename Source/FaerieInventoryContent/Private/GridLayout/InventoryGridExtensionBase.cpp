@@ -300,12 +300,12 @@ ItemData::FScopeProxy FFaerieContainerGridReadContext::ViewAt_Native(const FIntP
 	return nullptr;
 }
 
-FFaerieItemProxy FFaerieContainerGridReadContext::ViewAt(const FIntPoint& Position) const
+FFaerieItemProxy FFaerieContainerGridReadContext::ViewAt(FMassEntityManager& EntityManager, const FIntPoint& Position) const
 {
 	if (const TOptional<FFaerieAddress> Address = Data->Logic->GetKeyAt(*this, Position);
 		Address.IsSet())
 	{
-		return Data->Storage->Proxy(Address.GetValue());
+		return Data->Storage->Proxy(EntityManager, Address.GetValue());
 	}
 	return FFaerieItemProxy();
 }

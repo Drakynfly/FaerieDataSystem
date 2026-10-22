@@ -231,7 +231,7 @@ namespace Faerie::Editor
 			.IsEnabled(this, &FItemAssetEditorToolkit::ShouldUpdate);
 
 		// This is the only UObject we have easy access to that inherits from IFaerieItemProxy. Kinda hacky, because it means the widget preview has to exist for the scene preview to function.
-		PreviewScene->SetItemProxy(FFaerieItemProxy(WidgetPreview));
+		PreviewScene->SetItemProxy(FFaerieItemProxy(nullptr, WidgetPreview));
 
 		TArray<FAdvancedPreviewSceneModule::FDetailDelegates> Delegates;
 		//Delegates.Add({ OnPreviewSceneChangedDelegate });
@@ -349,7 +349,7 @@ namespace Faerie::Editor
 		{
 			FPreviewableWidgetVariant WidgetType;
 
-			auto CardFragment = ItemData::GetDefaultFragment<FFaerieItemCardClassFragment>(ItemAsset->GetAssetTemplateItem());
+			auto CardFragment = ItemAsset->GetAssetTemplateItem()->GetDefaultFragment<FFaerieItemCardClassFragment>();
 			if (CardFragment.IsValid())
 			{
 				WidgetType.ObjectPath = CardFragment->GetCardClass(Card::Tags::CardType_Full).ToSoftObjectPath();

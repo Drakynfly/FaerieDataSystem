@@ -73,8 +73,8 @@ namespace Faerie::SubObject
 		}
 	}
 
-	FAERIEINVENTORY_API void GetChildrenInItem(const FMassEntityManager& EntityManager, FMassEntityHandle Item, TAdderRef<FFaerieItemProxy> OutProxies);
-	FAERIEINVENTORY_API void GetChildrenInItemRecursive(const FMassEntityManager& EntityManager, FMassEntityHandle Item, TAdderRef<FFaerieItemProxy> OutProxies);
+	FAERIEINVENTORY_API void GetChildrenInItem(FMassEntityManager& EntityManager, FMassEntityHandle Item, TAdderRef<FFaerieItemProxy> OutProxies);
+	FAERIEINVENTORY_API void GetChildrenInItemRecursive(FMassEntityManager& EntityManager, FMassEntityHandle Item, TAdderRef<FFaerieItemProxy> OutProxies);
 
 	/**
 	 * Iterates over all item containers in a Faerie Item
@@ -269,7 +269,7 @@ namespace Faerie::SubObject
 
 			for (auto It(OutContainer.CreateIterator()); It; ++It)
 			{
-				if (!PredicateTuple.TestAll(&EntityManager, *It))
+				if (!PredicateTuple.TestAll(*It))
 				{
 					It.RemoveCurrent();
 				}

@@ -79,10 +79,6 @@ public:
 	UE_REWRITE FMassEntityHandle GetMassEntityHandle() const { return EntityHandle; }
 
 	bool IsMutable() const;
-	bool CanStack() const;
-
-	// Call on Server Only to destroy the mass entity for this item instance.
-	void DestroyMassEntity(FMassEntityManager& EntityManager);
 
 	/*
 	 * Import mass fragments to this item instance.
@@ -107,11 +103,11 @@ public:
 
 namespace Faerie::ItemData
 {
-	FAE_API [[nodiscard]] FMassEntityHandle InitializeItemEntity(FMassEntityManager& EntityManager, const UFaerieItem* ItemAsset, const FMassTagBitSet& Tags, TConstArrayView<FInstancedStruct> Fragments);
+	[[nodiscard]] FAE_API FMassEntityHandle InitializeItemEntity(FMassEntityManager& EntityManager, const UFaerieItem* ItemAsset, const FMassTagBitSet& Tags, TConstArrayView<FInstancedStruct> Fragments);
 
 	// Utility for getting a view of a faerie fragment type
 	// @Todo move elsewhere
-	FAE_API [[nodiscard]] FConstStructView GetFaerieFragmentView(const FMassEntityManager& EntityManager, FMassEntityHandle Item, TNotNull<const UScriptStruct*> Type);
+	[[nodiscard]] FAE_API FConstStructView GetFaerieFragmentView(const FMassEntityManager& EntityManager, FMassEntityHandle Item, TNotNull<const UScriptStruct*> Type);
 
 	FAE_API bool IsMutable(const FMassEntityManager& EntityManager, FMassEntityHandle Item);
 
@@ -129,6 +125,9 @@ namespace Faerie::ItemData
 	FAE_API void UpdateFragments(FMassEntityManager& EntityManager, FMassEntityHandle Item, TConstArrayView<FInstancedStruct> Fragments, bool ClearOthers);
 
 	FAE_API void OnItemFragmentEdited(FMassEntityManager& EntityManager, FMassEntityHandle Item, TNotNull<const UScriptStruct*> FragmentType, const FFieldChangePayload& FieldChange);
+
+	// Call on Server Only to destroy the mass entity for this item instance.
+	FAE_API void DestroyMassEntity(FMassEntityManager& EntityManager, FMassEntityHandle Item);
 }
 
 #undef FAE_API

@@ -14,5 +14,5 @@ struct FAERIEITEMDATA_API FFaerieItemDataHashInstruction
 	GENERATED_BODY()
 
 	virtual ~FFaerieItemDataHashInstruction() = default;
-	virtual uint32 Hash(const FMassEntityManager* EntityManager, Faerie::TValid<const FFaerieItemProxy&> View) const PURE_VIRTUAL(FFaerieItemDataHashInstruction::Hash, return 0; )
+	virtual uint32 Hash(Faerie::TValid<const FFaerieItemProxy&> Proxy) const PURE_VIRTUAL(FFaerieItemDataHashInstruction::Hash, return 0; )
 };

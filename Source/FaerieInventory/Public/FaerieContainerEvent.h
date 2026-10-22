@@ -22,21 +22,21 @@ namespace Faerie::Container
 
 		FAE_API static FContainerEventPayload MakeNew(const TNotNull<UFaerieItemContainerBase*> Container, const FFaerieEntryKey Entry, const FFaerieInventoryTag Type);
 
-		FAE_API static FContainerEventPayload MakeNewStack(const TNotNull<UFaerieItemContainerBase*> Container, const FFaerieItemInstance& ItemInstance,
+		FAE_API static FContainerEventPayload MakeNewStack(const TNotNull<UFaerieItemContainerBase*> Container, FMassEntityHandle Item,
 			const int32 InCopies, const FFaerieEntryKey Entry, const TConstArrayView<FFaerieAddress> Addresses);
 
-		FAE_API static FContainerEventPayload MakeAddedCopies(const TNotNull<UFaerieItemContainerBase*> Container, const FFaerieItemInstance& ItemInstance,
+		FAE_API static FContainerEventPayload MakeAddedCopies(const TNotNull<UFaerieItemContainerBase*> Container, FMassEntityHandle Item,
 			const int32 InCopies, const FFaerieEntryKey Entry, const TConstArrayView<FFaerieAddress> Addresses);
 
-		FAE_API static FContainerEventPayload MakeRemoval(const TNotNull<UFaerieItemContainerBase*> Container, const FFaerieItemInstance& ItemInstance,
+		FAE_API static FContainerEventPayload MakeRemoval(const TNotNull<UFaerieItemContainerBase*> Container, FMassEntityHandle Item,
 			const int32 InCopies, const FFaerieInventoryTag Reason, const FFaerieEntryKey Entry, const TConstArrayView<FFaerieAddress> Addresses, const bool InEntryRemoved);
 
 		FDateTime Timestamp;
 
 		TWeakObjectPtr<UFaerieItemContainerBase> Container;
 
-		// The item from the modified entry.
-		FFaerieItemInstance Instance;
+		// The item this event pertains to.
+		FMassEntityHandle Item;
 
 		// The number of copies added or removed. May be left as -1 on certain client-side events where the number of copies is unknown.
 		int32 Copies = -1;
