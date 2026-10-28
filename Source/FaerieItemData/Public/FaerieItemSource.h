@@ -2,38 +2,73 @@
 
 #pragma once
 
+#include "FaerieItemDataView.h"
+
 #include "UObject/Interface.h"
 #include "FaerieUnownedItemStack.h"
 
 #include "FaerieItemSource.generated.h"
 
 struct FFaerieItemInstancingContext;
+class UFaerieItem;
 
 namespace Faerie::ItemData
 {
-	struct FAERIEITEMDATA_API FGetInstanceResult
+	/*
+	 * Utility to build item data via a generic API that works for both runtime item instances that live in Mass, and
+	 * item asset editor data.
+	 */
+	USTRUCT()
+	struct FAERIEITEMDATA_API FItemDataBuilder
+#if CPP
+		final : public IViewBase
+#endif
 	{
-		UE_NONCOPYABLE(FGetInstanceResult)
-		FGetInstanceResult(const TOptional<FFaerieUnownedItemStack>& Stack)
-		  : Stack(Stack) {}
-		FGetInstanceResult(FNullOpt) : Stack(NullOpt) {}
+		GENERATED_BODY()
 
+		FItemDataBuilder() = default;
+		FItemDataBuilder(const FMassEntityHandle Item, const int32 Copies)
+			: RuntimeItem(Item), Copies(Copies) {}
+#if WITH_EDITOR
+		FItemDataBuilder(UFaerieItem* ItemAsset, const int32 Copies)
+			: ItemAsset(ItemAsset), Copies(Copies) {}
+#endif
+
+		//~ IViewBase
+#if WITH_EDITOR
+		UE_REWRITE virtual const UFaerieItem* GetItemAsset() const override { return ItemAsset; }
+#endif
+		UE_REWRITE virtual FMassEntityHandle GetEntityHandle() const override { return RuntimeItem; }
+		UE_REWRITE virtual int32 GetCopies() const override { return Copies; }
+		//~ IViewBase
+
+	public:
 		// Initialize the item and return a fully valid item instance.
-		FFaerieUnownedItemStack WithInitialization(FMassEntityManager& EntityManager) const;
+		FFaerieUnownedItemStack GetForRuntime() const;
 
+#if WITH_EDITOR
 		// Extract the item stack without initializing the instance.
-		UE_REWRITE FFaerieUnownedItemStack WithoutInitialization() const
+		UE_REWRITE TPair<UFaerieItem*, int32> GetForEditor() const
 		{
-			return Stack.GetValue();
+			return {ItemAsset, Copies};
 		}
+#endif
 
-		UE_REWRITE bool IsValid() const
+		bool IsValid() const;
+
+		void SetCopies(const int32 InCopies)
 		{
-			return Stack.IsSet();
+			Copies = InCopies;
 		}
 
 	private:
-		TOptional<FFaerieUnownedItemStack> Stack;
+#if WITH_EDITORONLY_DATA
+		UPROPERTY()
+		TObjectPtr<UFaerieItem> ItemAsset;
+#endif
+
+		FMassEntityHandle RuntimeItem;
+		int32 Copies = 0;
 	};
 }
 
@@ -60,8 +95,8 @@ public:
 
 	// Create an item stack from this source.
 	// An InstancingContext may be required to provide contextual data from the requester of the stack, depending on the implementation.
-	virtual Faerie::ItemData::FGetInstanceResult CreateItemStack(const FFaerieItemInstancingContext& Context) const
-		PURE_VIRTUAL(IFaerieItemSource::CreateItemStack, return NullOpt; )
+	virtual Faerie::ItemData::FItemDataBuilder CreateItemStack(const FFaerieItemInstancingContext& Context) const
+		PURE_VIRTUAL(IFaerieItemSource::CreateItemStack, return Faerie::ItemData::FItemDataBuilder(); )
 };
 
 /**

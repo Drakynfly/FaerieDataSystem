@@ -16,7 +16,7 @@ namespace Faerie::Generation
 }
 
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FGenerationActionOnCompleteBinding, EGenerationActionResult, Result,
-								   const FFaerieCraftingActionData&, Data);
+								   const FFaerieCraftingActionResult&, Data);
 
 USTRUCT()
 struct FFaeriePrivate_CapturedCraftingAction

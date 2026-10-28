@@ -26,6 +26,15 @@ struct FFaerieTagFragment : public FFaerieMassFragment
 ____FAERIE_FRAGMENT_DECL(FFaerieTagFragment)
 };
 
+template<>
+struct TMassFragmentTraits<FFaerieTagFragment> final
+{
+	enum
+	{
+		AuthorAcceptsItsNotTriviallyCopyable = true
+	};
+};
+
 template <>
 struct Faerie::ItemData::TMassTypeTraits<FFaerieTagFragment> : TMassTypeTraitsBase<FFaerieTagFragment>
 {

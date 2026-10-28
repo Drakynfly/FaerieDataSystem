@@ -35,7 +35,7 @@ public:
 
 	//~ Begin IFaerieItemDataProxy
 	virtual FMassEntityHandle GetEntityHandle() const override;
-	virtual TOptional<FFaerieItemInstance> GetItemInstance() const override;
+	virtual const UFaerieItem* GetItemAsset() const override;
 	virtual int32 GetCopies() const override { return 1; }
 	//~ End IFaerieItemDataProxy
 

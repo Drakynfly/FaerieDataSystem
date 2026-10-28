@@ -25,12 +25,12 @@ public:
 	// If a caller sets CopiesOverride and expects that a mutable item may be generated, set this to promise that we will duplicate the item.
 	bool EmitStackEvenIfMutableBecauseCallerKnowsToDuplicateItem = false;
 
-	// Create an instance that refers to its defaults through a reference fragment rather than an item asset pointer.
-	bool CreateReferencingInstance = false;
-
 #if WITH_EDITORONLY_DATA
 	// A flag to mark a context as being run by the editor.
 	bool RunningInEditor = false;
+
+	// Enable to create a copy of the item asset, instead of using the existing asset.
+	bool InstanceNewItemAsset = false;
 
 	// The object that will be used as the outer for new item instances.
 	UPROPERTY()

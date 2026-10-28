@@ -521,12 +521,12 @@ void UInventorySpatialGridExtension::RebuildOccupiedCells(const FFaerieContainer
 
 	Context.Unwrap().OccupiedCells.Reset(Context.GetGridSize());
 
-	for (const auto& SpatialEntry : Context.GetGrid())
+	for (const FFaerieGridKeyedStack& SpatialEntry : Context.GetGrid())
 	{
-		if (auto DataView = Context.GetStorage()->ViewAddress(SpatialEntry.Key);
-			DataView.IsValid())
+		if (const FMassEntityHandle Item = Context.GetStorage()->GetItemHandle(SpatialEntry.Key);
+			Item.IsValid())
 		{
-			const FFaerieGridShapeConstView Shape = GetItemShape_Impl(Context.GetManagerChecked(), DataView.Instance.GetMassEntityHandle());
+			const FFaerieGridShapeConstView Shape = GetItemShape_Impl(Context.GetManagerChecked(), Item);
 			const FFaerieGridShape Translated = Extensions::ApplyPlacement(Shape, SpatialEntry.Value);
 			Extensions::MarkShapeCells(Context.Unwrap().OccupiedCells, Translated);
 		}

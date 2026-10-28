@@ -8,7 +8,6 @@
 
 struct FFaerieItemProxy;
 struct FMassEntityHandle;
-struct FFaerieItemInstance;
 struct FMassEntityManager;
 class UFaerieItemContainerBase;
 
@@ -25,10 +24,6 @@ namespace Faerie::Container
 		FBlockTakeOwnershipScope();
 		~FBlockTakeOwnershipScope();
 	};
-
-	// Validate that an item is valid. Used after loading an item from disk/data.
-	// #@Todo move to ItemData module...
-	[[nodiscard]] FAE_API bool ValidateItemData(const FFaerieItemInstance& Instance);
 
 	[[nodiscard]] FAE_API FMassEntityHandle GetContainerOwner(const FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container);
 

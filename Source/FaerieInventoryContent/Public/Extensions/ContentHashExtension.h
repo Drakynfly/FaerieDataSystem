@@ -5,6 +5,7 @@
 #include "FaerieContainerDataViewModelBase.h"
 #include "FaerieHash.h"
 #include "ItemContainerExtensionBase.h"
+#include "MassEntityQuery.h"
 #include "MassProcessor.h"
 
 #include "ContentHashExtension.generated.h"
@@ -20,7 +21,7 @@ struct FFaerieContainerContentHash : public FFaerieItemContainerData
 {
 	GENERATED_BODY()
 
-	void RecalcHash(FMassEntityManager& EntityManager, UFaerieItemContainerBase* InContainer);
+	void RecalcHash(const FMassEntityManager* EntityManager, UFaerieItemContainerBase* InContainer);
 
 	// For clients, this is the last received hash for the serverside equipment state.
 	// For servers, this is identical to LocalChecksum.

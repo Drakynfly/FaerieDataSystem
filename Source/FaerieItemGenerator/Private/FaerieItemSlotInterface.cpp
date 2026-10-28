@@ -3,6 +3,7 @@
 #include "FaerieItemSlotInterface.h"
 #include "FaerieItemContainerBase.h"
 #include "FaerieItemGenerationLog.h"
+#include "FaerieItemInstance.h"
 #include "FaerieItemOwnership.h"
 #include "FaerieItemProxy.h"
 #include "FaerieItemTemplate.h"
@@ -27,12 +28,12 @@ namespace Faerie::Generation
 	}
 
 	template<bool LogFailure>
-	bool ValidateFilledSlots(const FMassEntityManager* EntityManager, const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemCraftingSlots& Slots)
+	bool ValidateFilledSlots(const FMassEntityManager& EntityManager, const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemCraftingSlots& Slots)
 	{
 		// Validation
 		for (auto&& Element : FilledSlots.Slots)
 		{
-			if (!Element.Value.HasValidInstance())
+			if (!Element.Value.HasValidStack())
 			{
 				UE_LOGF(LogItemGeneration, Error, "ValidateFilledSlots: A filled slot '%ls' is invalid!)", *Element.Key.ToString())
 				return false;
@@ -66,7 +67,7 @@ namespace Faerie::Generation
 
 					if (Slot.PayInConsumableUses)
 					{
-						if (!ItemProxy->GetItemInstance().GetValue().IsMutable())
+						if (!ItemProxy->IsMutable())
 						{
 							if constexpr (LogFailure)
 							{
@@ -76,7 +77,7 @@ namespace Faerie::Generation
 							return false;
 						}
 
-						const ItemData::FUsesHelper Uses(*EntityManager, ItemProxy->GetItemInstance().GetValue());
+						const ItemData::FUsesHelper Uses(*ItemProxy);
 
 						if (!Uses.HasUsesRemaining(Slot.Amount))
 						{
@@ -120,8 +121,8 @@ namespace Faerie::Generation
 	}
 
 	// Instantiate this function
-	template FAERIEITEMGENERATOR_API bool ValidateFilledSlots<true>(const FMassEntityManager*, const FFaerieCraftingFilledSlots&, const FFaerieItemCraftingSlots&);
-	template FAERIEITEMGENERATOR_API bool ValidateFilledSlots<false>(const FMassEntityManager*, const FFaerieCraftingFilledSlots&, const FFaerieItemCraftingSlots&);
+	template FAERIEITEMGENERATOR_API bool ValidateFilledSlots<true>(const FMassEntityManager&, const FFaerieCraftingFilledSlots&, const FFaerieItemCraftingSlots&);
+	template FAERIEITEMGENERATOR_API bool ValidateFilledSlots<false>(const FMassEntityManager&, const FFaerieCraftingFilledSlots&, const FFaerieItemCraftingSlots&);
 
 	bool ConsumeSlotCosts(FMassEntityManager& EntityManager, const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemCraftingSlots& Slots)
 	{
@@ -136,15 +137,9 @@ namespace Faerie::Generation
 
 			const FFaerieItemProxy& SlotPayment = *SlotPaymentPtr;
 
-			const TOptional<FFaerieItemInstance> InstanceOpt = SlotPayment.GetItemInstance();
-			if (!ensure(InstanceOpt.IsSet()))
-			{
-				return false;
-			}
-
 			if (Slot.PayInConsumableUses)
 			{
-				ItemData::FUsesHelper Uses(EntityManager, InstanceOpt.GetValue());
+				ItemData::FUsesHelper Uses(SlotPayment);
 
                 // If the item can be used as a resource multiple times.
                 {

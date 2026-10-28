@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "FaerieItem.h"
 #include "FaerieItemTemplate.h"
 #include "FaerieItemFilter.h"
 #include "GameplayTagContainer.h"
@@ -195,9 +196,9 @@ struct FFaerieItemFilter_HasFragments final : public FFaerieItemFilterBase
 		"/Script/FaerieItemData.FaerieMassFragment,/Script/FaerieItemData.FaerieMassSparseFragment,/Script/FaerieItemData.FaerieMassSparseTag"))
 	TArray<FSubScriptStructOfMulti> Fragments;
 
-	// Search for referenced fragments under this tag.
-	UPROPERTY(EditAnywhere, Category = "HasFragments")
-	FGameplayTag ReferenceTag;
+	// Fragment type that holds an item reference that we can recurse into to look for the fragments.
+	UPROPERTY(EditAnywhere, Category = "HasFragments", meta = (ExcludeBaseStruct))
+	TSubScriptStructOf<FFaerieMassItemObject> ReferenceType;
 };
 
 UENUM()

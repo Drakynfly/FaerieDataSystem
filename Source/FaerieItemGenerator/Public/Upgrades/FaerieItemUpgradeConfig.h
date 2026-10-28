@@ -11,7 +11,12 @@
 
 #include "FaerieItemUpgradeConfig.generated.h"
 
-struct FFaerieCraftingActionData;
+namespace Faerie::Generation
+{
+	struct FActionStorage;
+}
+
+struct FFaerieCraftingActionResult;
 
 /**
  *
@@ -24,13 +29,13 @@ class FAERIEITEMGENERATOR_API UFaerieItemUpgradeConfigBase : public UObject
 public:
 	virtual void GetRequiredAssets(TAdderRef<FSoftObjectPath> Array);
 
-	virtual bool CanApplyUpgrade(const FMassEntityManager* EntityManager, const FFaerieItemProxy& Proxy) const { return true; }
+	virtual bool CanApplyUpgrade(const FFaerieItemProxy& Proxy) const { return true; }
 
 	virtual bool CanPayCost(const FMassEntityManager* EntityManager, const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemProxy& Proxy) const { return true; }
 
 	virtual void PayCost(FMassEntityManager* EntityManager, const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemProxy& Proxy) const {}
 
-	virtual bool ApplyUpgrade(FMassEntityManager* EntityManager, FFaerieCraftingActionData& Stacks, USquirrel* Squirrel) const
+	virtual bool ApplyUpgrade(FMassEntityManager* EntityManager, Faerie::Generation::FActionStorage& Stacks, USquirrel* Squirrel) const
 		PURE_VIRTUAL(UFaerieItemUpgradeConfigBase::ApplyUpgrade, return false; )
 };
 
@@ -69,7 +74,7 @@ public:
 
 	virtual void PayCost(FMassEntityManager* EntityManager, const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemProxy& Proxy) const override;
 
-	virtual bool ApplyUpgrade(FMassEntityManager* EntityManager, FFaerieCraftingActionData& Stacks, USquirrel* Squirrel) const override;
+	virtual bool ApplyUpgrade(FMassEntityManager* EntityManager, Faerie::Generation::FActionStorage& Stacks, USquirrel* Squirrel) const override;
 
 	// Mutators groups.
 	UPROPERTY(EditAnywhere, Category = "Upgrade Config")
@@ -89,10 +94,10 @@ class FAERIEITEMGENERATOR_API UFaerieItemUpgradeConfig_BlueprintBase final : pub
 	GENERATED_BODY()
 
 public:
-	virtual bool CanApplyUpgrade(const FMassEntityManager* EntityManager, const FFaerieItemProxy& Proxy) const override;
+	virtual bool CanApplyUpgrade(const FFaerieItemProxy& Proxy) const override;
 	virtual bool CanPayCost(const FMassEntityManager* EntityManager, const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemProxy& Proxy) const override;
 	virtual void PayCost(FMassEntityManager* EntityManager, const FFaerieCraftingFilledSlots& FilledSlots, const FFaerieItemProxy& Proxy) const override;
-	virtual bool ApplyUpgrade(FMassEntityManager* EntityManager, FFaerieCraftingActionData& Stacks, USquirrel* Squirrel) const override;
+	virtual bool ApplyUpgrade(FMassEntityManager* EntityManager, Faerie::Generation::FActionStorage& Stacks, USquirrel* Squirrel) const override;
 
 protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Upgrade Config", meta = (DisplayName = "Can Apply Upgrade"))

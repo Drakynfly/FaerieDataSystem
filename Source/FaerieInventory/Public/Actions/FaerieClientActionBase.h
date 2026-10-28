@@ -41,7 +41,7 @@ struct FAERIEINVENTORY_API FFaerieClientAction_MoveHandlerBase
 		PURE_VIRTUAL(FFaerieClientAction_MoveHandlerBase::View, return false; )
 
 	// Called on any MoveTo. Called on MoveFrom only when attempting a Swap.
-	virtual bool CanMove(const FMassEntityManager& EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const
+	virtual bool CanMove(Faerie::TValid<const FFaerieItemProxy&> Proxy) const
 		PURE_VIRTUAL(FFaerieClientAction_MoveHandlerBase::CanMove, return false; )
 
 	// Called on any MoveTo. Called on MoveFrom only when attempting a Swap.

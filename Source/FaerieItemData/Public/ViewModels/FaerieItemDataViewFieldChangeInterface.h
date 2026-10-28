@@ -29,6 +29,6 @@ public:
 		PURE_VIRTUAL(IFaerieItemDataViewFieldChangeInterface::GetItemHandle, return FMassEntityHandle(); )
 
 protected:
-	virtual void OnFieldChange(const FMassEntityManager& EntityManager, const Faerie::ItemData::FFieldChangePayload& Data)
+	virtual void OnFieldChange(const Faerie::ItemData::FFieldChangePayload& Data)
 		PURE_VIRTUAL(IFaerieItemDataViewFieldChangeInterface::OnFieldChange, )
 };

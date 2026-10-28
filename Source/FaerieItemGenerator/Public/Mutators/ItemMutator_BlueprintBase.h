@@ -19,7 +19,7 @@ struct FFaerieItemMutator_Blueprint final : public FFaerieItemMutator
 	GENERATED_BODY()
 
 	virtual void GetRequiredAssets(TAdderRef<FSoftObjectPath> RequiredAssets) const override;
-	virtual bool Apply(FFaerieItemInstance& Item, const FFaerieItemMutatorContext& Context) const override;
+	virtual bool Apply(Faerie::ItemData::FItemDataBuilder& Builder, const FFaerieItemMutatorContext& Context) const override;
 
 protected:
 	UPROPERTY(EditAnywhere, Category = "Blueprint")

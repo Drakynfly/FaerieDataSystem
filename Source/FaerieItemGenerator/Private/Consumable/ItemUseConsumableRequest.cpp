@@ -14,7 +14,7 @@ bool FFaerieClientAction_UseConsumable::Server_Execute(const TNotNull<const UFae
 	if (!IsValid(ConsumableType)) return false;
 
 	const FFaerieItemProxy Proxy = Handle.Container->Proxy(EntityManager, Handle.Address);
-	if (!Proxy.HasValidInstance()) return false;
+	if (!Proxy.HasValidStack()) return false;
 
-	return Faerie::Generation::TryConsume(EntityManager, Proxy, ConsumableType, Client->GetOwner(), 1);
+	return Faerie::Generation::TryConsume(Proxy, ConsumableType, Client->GetOwner(), 1);
 }

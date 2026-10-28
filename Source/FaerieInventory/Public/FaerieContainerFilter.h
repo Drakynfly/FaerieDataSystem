@@ -56,10 +56,9 @@ namespace Faerie::Container
 		using FieldType = std::conditional_t<View, const Utils::TPredicateTuple<TPredicates...>&, Utils::TPredicateTuple<TPredicates...>>;
 
 	public:
-		explicit TFilteringIterator(InputType PredicateTuple, FMassEntityManager* EntityManager, const TNotNull<const UFaerieItemContainerBase*> Container)
-		  : EntityManager(EntityManager),
-			PredicateTuple(MoveTempIfPossible(PredicateTuple)),
-			Iterator(Container)
+		explicit TFilteringIterator(InputType PredicateTuple, const FMassEntityManager* EntityManager, const TNotNull<const UFaerieItemContainerBase*> Container)
+		  : PredicateTuple(MoveTempIfPossible(PredicateTuple)),
+			Iterator(EntityManager, Container)
 		{
 			SkipInvalid();
 		}
@@ -82,12 +81,12 @@ namespace Faerie::Container
 				if constexpr (EnumHasAnyFlags(Flags, EFilterFlags::Inverted))
 				{
 					// Test for not passing the predicates
-					return !PredicateTuple.TestAll(Iterator.GetSingleFrameProxy(EntityManager));
+					return !PredicateTuple.TestAll(Iterator.GetSingleFrameProxy());
 				}
 				else
 				{
 					// Test for passing the predicates
-					return PredicateTuple.TestAll(Iterator.GetSingleFrameProxy(EntityManager));
+					return PredicateTuple.TestAll(Iterator.GetSingleFrameProxy());
 				}
 			};
 
@@ -108,7 +107,6 @@ namespace Faerie::Container
 		[[nodiscard]] UE_REWRITE Utils::EIteratorType end() const { return Utils::End; }
 
 	private:
-		FMassEntityManager* EntityManager;
 		FieldType PredicateTuple;
 
 		// If MutableOnly has been enabled by a predicate, use the automatic skip feature in TIterator

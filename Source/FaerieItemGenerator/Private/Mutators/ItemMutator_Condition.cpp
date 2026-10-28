@@ -1,8 +1,8 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "Mutators/ItemMutator_Condition.h"
-#include "FaerieItemDataView.h"
 #include "FaerieItemProxy.h"
+#include "FaerieItemSource.h"
 #include "FaerieItemTemplate.h"
 #include "MassEntityManager.h"
 
@@ -15,18 +15,17 @@ void FFaerieItemMutator_TemplateCondition::GetRequiredAssets(const TAdderRef<FSo
 	Mutators.GetRequiredAssets(RequiredAssets);
 }
 
-bool FFaerieItemMutator_TemplateCondition::Apply(FFaerieItemInstance& Item, const FFaerieItemMutatorContext& Context) const
+bool FFaerieItemMutator_TemplateCondition::Apply(Faerie::ItemData::FItemDataBuilder& Builder, const FFaerieItemMutatorContext& Context) const
 {
 	if (IsValid(ItemTemplate))
 	{
-		const Faerie::ItemData::FScopeProxy StackProxy(Item, 1);
 		const TSharedPtr<FMassEntityManager> EntityManagerShared = Context.EntityManager ? Context.EntityManager->AsShared().ToSharedPtr() : nullptr;
-		if (!ItemTemplate->Matches(FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, EntityManagerShared, &StackProxy)))
+		if (!ItemTemplate->Matches(FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, EntityManagerShared, &Builder)))
 		{
 			// Template failed, cannot apply.
 			return false;
 		}
 	}
 
-	return Mutators.Apply(Item, Context);
+	return Mutators.Apply(Builder, Context);
 }

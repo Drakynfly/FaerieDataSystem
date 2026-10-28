@@ -4,9 +4,9 @@
 
 #include "FaerieItem.h"
 #include "FaerieItemDataView.h"
+#include "FaerieItemInstance.h"
 #include "FaerieItemTemplate.h"
 #include "FaerieItemInstancingContext.h"
-#include "Fragments/FaerieReferenceFragment.h"
 
 #include "UObject/AssetRegistryTagsContext.h"
 #include "UObject/ObjectSaveContext.h"
@@ -132,7 +132,7 @@ EDataValidationResult UFaerieItemAsset::IsDataValid(FDataValidationContext& Cont
 		}
 		else
 		{
-			const ItemData::FScopeProxy Proxy(FFaerieItemInstance::FromPointer(Item), 1);
+			const ItemData::FScopeProxy Proxy(Item, 1);
 
 			if (TArray<FText> TemplateMatchErrors;
 				!Template->MatchesWithErrors(FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, nullptr, &Proxy), TemplateMatchErrors))
@@ -166,89 +166,62 @@ bool UFaerieItemAsset::CanBeMutable() const
 	return false;
 }
 
-ItemData::FGetInstanceResult UFaerieItemAsset::CreateItemStack(const FFaerieItemInstancingContext& Context) const
+ItemData::FItemDataBuilder UFaerieItemAsset::CreateItemStack(const FFaerieItemInstancingContext& Context) const
 {
-	if (!IsValidChecked(Item)) return NullOpt;
+	if (!IsValidChecked(Item)) return ItemData::FItemDataBuilder();
 
-	FFaerieUnownedItemStack OutStack;
+	int32 OutCopies = 1;
 
-	OutStack.Copies = 1;
 	if (Context.CopiesOverride.IsSet())
 	{
-		OutStack.Copies = Context.CopiesOverride.GetValue();
+		if (!Item->CanMutate() || Context.EmitStackEvenIfMutableBecauseCallerKnowsToDuplicateItem)
+		{
+			OutCopies = Context.CopiesOverride.GetValue();
+		}
 	}
 
-	if (Context.CreateReferencingInstance)
-	{
 #if WITH_EDITOR
-		if (Context.RunningInEditor)
+	if (Context.RunningInEditor)
+	{
+		if (Context.InstanceNewItemAsset)
 		{
 			check(Context.Editor_ItemInstanceOuter);
-			OutStack.Instance = CreateReferencingInstance_Editor(Context.Editor_ItemInstanceOuter);
+			return ItemData::FItemDataBuilder(CreateReferencingInstance_Editor(Context.Editor_ItemInstanceOuter), OutCopies);
 		}
-		else
-#endif
-		{
-			OutStack.Instance = CreateReferencingInstance_Runtime(*Context.EntityManager);
-		}
+
+		return ItemData::FItemDataBuilder(Item, OutCopies);
 	}
 	else
+#endif
 	{
-		OutStack.Instance = FFaerieItemInstance::FromPointer(Item);
+		check(Context.EntityManager);
+		return ItemData::FItemDataBuilder(CreateReferencingInstance_Runtime(*Context.EntityManager), OutCopies);
 	}
-
-	if (OutStack.Instance.IsMutable() && OutStack.Copies > 1)
-	{
-		if (!Context.EmitStackEvenIfMutableBecauseCallerKnowsToDuplicateItem)
-		{
-			// Reset Copies to 1, because caller doesn't expect to receive a mutable stack.
-			OutStack.Copies = 1;
-		}
-	}
-
-	return ItemData::FGetInstanceResult(OutStack);
 }
 
 #if WITH_EDITOR
-FFaerieItemInstance UFaerieItemAsset::CreateReferencingInstance_Editor(const TNotNull<UObject*> InstanceOuter) const
+UFaerieItem* UFaerieItemAsset::CreateReferencingInstance_Editor(const TNotNull<UObject*> InstanceOuter) const
 {
-	const FFaerieTaggedReference Reference
-	{
-		.Tag = ItemData::Tags::ReferenceDefaults,
-		.Reference = this
-	};
-
-	FFaerieReferenceFragment ReferenceFragment;
-	ReferenceFragment.References[0] = Reference;
-
 	FInstancedStruct FragmentStruct;
-	FragmentStruct.InitializeAs<FFaerieReferenceFragment>(ReferenceFragment);
+	FragmentStruct.InitializeAs<FFaerieItemDataDefaults>();
+
+	FFaerieItemDataDefaults& Default = FragmentStruct.GetMutable<FFaerieItemDataDefaults>();
+	Default.ItemAsset = Item;
 
 	// Create and return a new item instance
-	return FFaerieItemInstance::FromPointer(UFaerieItem::CreateNewInstance(MakeConstArrayView(&FragmentStruct, 1), InstanceOuter, EFaerieItemInstancingMutability::Mutable));
+	return UFaerieItem::CreateNewInstance(MakeConstArrayView(&FragmentStruct, 1), InstanceOuter, EFaerieItemInstancingMutability::Mutable);
 }
 #endif
 
-FFaerieItemInstance UFaerieItemAsset::CreateReferencingInstance_Runtime(FMassEntityManager& EntityManager) const
+FMassEntityHandle UFaerieItemAsset::CreateReferencingInstance_Runtime(FMassEntityManager& EntityManager) const
 {
-	const FFaerieTaggedReference Reference
-	{
-		.Tag = ItemData::Tags::ReferenceDefaults,
-		.Reference = this
-	};
-
-	FFaerieReferenceFragment ReferenceFragment;
-	ReferenceFragment.References[0] = Reference;
-
 	FInstancedStruct FragmentStruct;
-	FragmentStruct.InitializeAs<FFaerieReferenceFragment>(ReferenceFragment);
+	FragmentStruct.InitializeAs<FFaerieItemDataDefaults>();
 
-	return FFaerieItemInstance::FromEntity(ItemData::InitializeItemEntity(EntityManager, nullptr, FMassTagBitSet(), MakeConstArrayView(&FragmentStruct, 1)));
-}
+	FFaerieItemDataDefaults& Default = FragmentStruct.GetMutable<FFaerieItemDataDefaults>();
+	Default.ItemAsset = Item;
 
-FFaerieItemInstance UFaerieItemAsset::GetTemplateInstance() const
-{
-	return FFaerieItemInstance::FromPointer(Item);
+	return ItemData::InitializeItemEntity(EntityManager, nullptr, FMassTagBitSet(), MakeConstArrayView(&FragmentStruct, 1));
 }
 
 #undef LOCTEXT_NAMESPACE

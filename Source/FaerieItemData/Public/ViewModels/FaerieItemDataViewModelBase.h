@@ -34,9 +34,9 @@ protected:
 	virtual UScriptStruct* GetViewModelFragmentType() const { return nullptr; }
 
 	// Called by UFaerieViewModelSubsystem
-	virtual void OnProxySet(FMassEntityManager& EntityManager) {}
+	virtual void OnProxySet() {}
 
-	void SetItemProxyDirect(FMassEntityManager& EntityManager, const FFaerieItemProxy& Item);
+	void SetItemProxyDirect(const FFaerieItemProxy& Item);
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ViewModel")

@@ -8,7 +8,7 @@ using namespace Faerie;
 
 bool UFaerieItemComparator::K2_Exec(const FFaerieItemProxy& A, const FFaerieItemProxy& B) const
 {
-	if (A.HasValidInstance() && B.HasValidInstance())
+	if (A.HasValidStack() && B.HasValidStack())
 	{
 		return Exec(A, B);
 	}

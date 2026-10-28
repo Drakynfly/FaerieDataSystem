@@ -1,15 +1,24 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieItemSource.h"
+#include "FaerieItem.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemSource)
 
-FFaerieUnownedItemStack Faerie::ItemData::FGetInstanceResult::WithInitialization(FMassEntityManager& EntityManager) const
+FFaerieUnownedItemStack Faerie::ItemData::FItemDataBuilder::GetForRuntime() const
 {
-	// Setup new instance for runtime.
-	FFaerieUnownedItemStack ItemStack = Stack.GetValue();
-	ItemStack.Instance.ConvertToRuntimeInPlace(EntityManager);
-	return ItemStack;
+	return FFaerieUnownedItemStack(RuntimeItem, Copies);
+}
+
+bool Faerie::ItemData::FItemDataBuilder::IsValid() const
+{
+#if WITH_EDITOR
+	if (::IsValid(ItemAsset))
+	{
+		return true;
+	}
+#endif
+	return RuntimeItem.IsSet();
 }
 
 const FName IFaerieItemSource::MutableSourceTag(TEXT("MutableSource"));

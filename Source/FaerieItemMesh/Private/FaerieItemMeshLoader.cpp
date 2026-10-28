@@ -49,18 +49,10 @@ namespace Faerie::Mesh
 	}
 }
 
-bool UFaerieItemMeshLoader::LoadMeshFromProxySynchronous(const FMassEntityManager& EntityManager, const FFaerieItemProxy& InProxy, const FGameplayTag Purpose,
+bool UFaerieItemMeshLoader::LoadMeshFromProxySynchronous(const FFaerieItemProxy& InProxy, const FGameplayTag Purpose,
 														 FFaerieItemMesh& Mesh)
 {
-	const TOptional<FFaerieItemInstance> Instance = InProxy.GetItemInstance();
-	if (!Instance.IsSet())
-	{
-		UE_LOGF(LogFaerieItemMesh, Error, "%hs: Invalid proxy/instance!", __FUNCTION__)
-
-		return false;
-	}
-
-	auto MeshFragment = ItemData::GetEntityFragmentOrDefault<FFaerieMeshFragment>(&EntityManager, Instance.GetValue());
+	auto MeshFragment = ItemData::GetItemDataOrDefault<FFaerieMeshFragment>(InProxy);
 	if (!MeshFragment.IsValid())
 	{
 		UE_LOGF(LogFaerieItemMesh, Error, "%hs: Invalid fragment!", __FUNCTION__)
@@ -70,18 +62,17 @@ bool UFaerieItemMeshLoader::LoadMeshFromProxySynchronous(const FMassEntityManage
 	return Mesh::LoadMeshFromFragmentSynchronous(MeshFragment->Container, Purpose, Mesh);
 }
 
-TSharedPtr<FStreamableHandle> UFaerieItemMeshLoader::LoadMeshFromProxyAsynchronous(const FMassEntityManager& EntityManager, const FFaerieItemProxy& InProxy,
+TSharedPtr<FStreamableHandle> UFaerieItemMeshLoader::LoadMeshFromProxyAsynchronous(const FFaerieItemProxy& InProxy,
 	const FGameplayTag Purpose, Mesh::FAsyncLoadResult Callback)
 {
-	const TOptional<FFaerieItemInstance> Instance = InProxy.GetItemInstance();
-	if (!Instance.IsSet())
+	if (!InProxy.HasValidStack())
 	{
 		UE_LOGF(LogFaerieItemMesh, Error, "%hs: Invalid proxy/instance!", __FUNCTION__)
 		(void)Callback.ExecuteIfBound(false, {});
 		return nullptr;
 	}
 
-	auto MeshFragment = ItemData::GetEntityFragmentOrDefault<FFaerieMeshFragment>(&EntityManager, Instance.GetValue());
+	auto MeshFragment = ItemData::GetItemDataOrDefault<FFaerieMeshFragment>(InProxy);
 	if (!MeshFragment.IsValid())
 	{
 		UE_LOGF(LogFaerieItemMesh, Error, "%hs: Invalid fragment!", __FUNCTION__)
@@ -213,7 +204,7 @@ void UFaerieItemMeshLoader::HandleAsyncLoadResult(FFaerieItemMesh&& Mesh, Mesh::
 	(void)Request.Callback.ExecuteIfBound(true, MoveTemp(Mesh));
 }
 
-bool UFaerieItemMeshLoader_Cached::LoadMeshFromProxySynchronous(const FMassEntityManager& EntityManager, const FFaerieItemProxy& InProxy, const FGameplayTag Purpose,
+bool UFaerieItemMeshLoader_Cached::LoadMeshFromProxySynchronous(const FFaerieItemProxy& InProxy, const FGameplayTag Purpose,
 	FFaerieItemMesh& Mesh)
 {
 	const Mesh::FCachedMeshKey Key = {
@@ -228,7 +219,7 @@ bool UFaerieItemMeshLoader_Cached::LoadMeshFromProxySynchronous(const FMassEntit
 		return true;
 	}
 
-	const bool SuperResult = Super::LoadMeshFromProxySynchronous(EntityManager, InProxy, Purpose, Mesh);
+	const bool SuperResult = Super::LoadMeshFromProxySynchronous(InProxy, Purpose, Mesh);
 
 	// If the mesh load succeeded, cache the result.
 	if (SuperResult)

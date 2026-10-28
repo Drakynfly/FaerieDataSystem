@@ -16,6 +16,7 @@ public class FaerieItemCard : ModuleRules
                 "FaerieDataUtils",
                 "FaerieItemData",
                 "GameplayTags",
+                "MassEntity",
                 "ModelViewViewModel",
                 "UMG"
             }

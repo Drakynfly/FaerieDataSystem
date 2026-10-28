@@ -99,14 +99,11 @@ uint32 FISHI_Fragments::Hash(const TValid<const FFaerieItemProxy&> Proxy) const
 
 	uint32 Hash = 0;
 
-	const TOptional<FFaerieItemInstance> Instance = ValidGet(Proxy).GetItemInstance();
-	if (!Instance.IsSet()) return 0;
-
 	for (auto&& FragmentType : FragmentTypes)
 	{
 		if (FragmentType->GetCppStructOps()->HasGetTypeHash())
 		{
-			const FConstStructView FragmentView = ItemData::GetEntityFragmentOrDefault(ValidGet(Proxy).GetEntityManager().Get(), Instance.GetValue(), FragmentType);
+			const FConstStructView FragmentView = ItemData::GetEntityFragmentOrDefault(Proxy, FragmentType);
 			if (FragmentView.IsValid())
 			{
 				Hash = Hash::Combine(Hash, FragmentType->GetCppStructOps()->GetStructTypeHash(FragmentView.GetMemory()));

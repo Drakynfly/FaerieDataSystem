@@ -3,7 +3,6 @@
 #pragma once
 
 #include "FaerieMassFragment.h"
-#include "Mass/ExternalSubsystemTraits.h"
 #include "FaerieMeshStructs.h"
 #include "FaerieMeshFragment.generated.h"
 

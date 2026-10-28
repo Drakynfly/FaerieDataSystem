@@ -34,7 +34,7 @@ void UFaerieSubmitCraftingActionAsync::Activate()
 	Handle = CraftingSubsystem->GetRunner()->SubmitCraftingAction(Action, Faerie::Generation::FActionResult::CreateUObject(this, &ThisClass::HandleResult));
 }
 
-void UFaerieSubmitCraftingActionAsync::HandleResult(const EGenerationActionResult GenerationActionResult, const FFaerieCraftingActionData& FaerieItemStacks)
+void UFaerieSubmitCraftingActionAsync::HandleResult(const EGenerationActionResult GenerationActionResult, const FFaerieCraftingActionResult& FaerieItemStacks)
 {
 	GenerationActionCompleted.Broadcast(GenerationActionResult, FaerieItemStacks);
 }

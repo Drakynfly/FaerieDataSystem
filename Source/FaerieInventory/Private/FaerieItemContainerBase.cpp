@@ -6,6 +6,7 @@
 #include "FaerieContainerEvent.h"
 #include "FaerieContainerFilter.h"
 #include "FaerieItem.h"
+#include "FaerieItemEvent.h"
 #include "FaerieItemExportData.h"
 #include "ItemContainerExtensionBase.h"
 #include "MassCommandBuffer.h"
@@ -252,19 +253,13 @@ FFaerieItemExportData UFaerieItemContainerBase::ExportItemData(const FMassEntity
 	static constexpr ItemData::EMassFragmentExportOptions ExportOptions = ItemData::EMassFragmentExportOptions::OnlyFaerieMassFragments;
 
 	FFaerieItemExportData ExportData;
-	FFaerieItemInstance::ExportFragmentData(EntityManager, Item, ExportData, ExportOptions);
+	ItemData::ExportFragmentData(EntityManager, Item, ExportData, ExportOptions);
 	return ExportData;
 }
 
-FFaerieItemInstance UFaerieItemContainerBase::ImportItemData(FMassEntityManager& EntityManager, const UFaerieItem* Item,
-	const FFaerieItemExportData& ExportData)
+FMassEntityHandle UFaerieItemContainerBase::ImportItemData(FMassEntityManager& EntityManager, const FFaerieItemExportData& ExportData)
 {
-	FFaerieItemInstance Instance = FFaerieItemInstance::FromPointer(Item);
-
-	// Make a copy of the instance data, as the elements are moved into place.
-	FFaerieItemExportData ExportDataCopy = ExportData;
-	Instance.ImportFragmentData(EntityManager, ExportDataCopy);
-	return Instance;
+	return ItemData::ImportFragmentData(EntityManager, ExportData);
 }
 
 #if FAERIE_DEBUG
@@ -450,7 +445,7 @@ bool UFaerieItemContainerBase::AllowsRemoval(const FMassEntityManager& EntityMan
 	}
 
 	// Check the item instance for permission override.
-	if (const TConstStructView<FFaerieContainerMetadataFragment> Metadata = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieContainerMetadataFragment>(&EntityManager, DataView->GetItemInstance().GetValue());
+	if (const TConstStructView<FFaerieContainerMetadataFragment> Metadata = Faerie::ItemData::GetItemDataOrDefault<FFaerieContainerMetadataFragment>(EntityManager, DataView->GetEntityHandle());
 		Metadata.IsValid())
 	{
 		if (Metadata->AllowedActions.HasTag(Reason))

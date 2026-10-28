@@ -45,13 +45,15 @@ void AFaerieItemOwningActorBase::InitStackFromConfig(const bool RegenerateDispla
 		Context.CopiesOverride = StackCopies;
 		Context.RunningInEditor = true;
 		Context.Editor_ItemInstanceOuter = this;
-		Context.CreateReferencingInstance = true;
-		if (const ItemData::FGetInstanceResult Result = SourceAsset->CreateItemStack(Context);
+		if (const ItemData::FItemDataBuilder Result = SourceAsset->CreateItemStack(Context);
 			Result.IsValid())
 		{
-			const FFaerieItemInstance Instance = Result.WithoutInitialization().Instance;
-			PreparedItemData.ItemObject = Instance.GetItemPtr();
-			PreparedItemData.Copies = 1;
+			TPair<UFaerieItem*, int32> ItemAsset = Result.GetForEditor();
+
+			FFaerieItemDataDefaults Default;
+			Default.ItemAsset = ItemAsset.Get<0>();
+			PreparedItemData.ExportData.MassInstances.Add(FInstancedStruct::Make(Default));
+			PreparedItemData.Copies = ItemAsset.Get<1>();
 			// @todo allow for initializing PreparedItemData.ExportData and .ExtensionData with preconfigured instances.
 			(void)MarkPackageDirty();
 		}
@@ -109,12 +111,15 @@ void AFaerieItemOwningActorBase::PostLoad()
 	{
 		if (IsValid(SourceAsset))
 		{
+			// @todo re-add validation of ExportData at some point
+			/*
 			const FFaerieItemInstance Instance = FFaerieItemInstance::FromPointer(PreparedItemData.ItemObject);
 			if (!Container::ValidateItemData(Instance))
 			{
 				UE_LOGF(LogFaerieItemMesh, Warning, "Detected out-of-date or invalid stack in: %ls! Regenerating stack.", *GetPathName())
 				InitStackFromConfig(false);
 			}
+			*/
 		}
 	}
 	else
@@ -152,8 +157,6 @@ void AFaerieItemOwningActorBase::GetLifetimeReplicatedProps(TArray<class FLifeti
 
 void AFaerieItemOwningActorBase::BeginPlay()
 {
-	Super::BeginPlay();
-
 	if (!IsValid(ItemStack))
 	{
 		return;
@@ -170,11 +173,16 @@ void AFaerieItemOwningActorBase::BeginPlay()
 
 	// @todo setup more complex trigger for initializing runtime instance. some actors might want to wait and only
 	// register at a later point.
-	if (HasPreparedItemData())
+	if (GetNetMode() < NM_Client)
 	{
-		Container::FLoadParams Params;
-		ItemStack->LoadSaveData(EntityManager, PreparedItemData, Params);
+		if (HasPreparedItemData())
+		{
+			Container::FLoadParams Params;
+			ItemStack->LoadSaveData(EntityManager, PreparedItemData, Params);
+		}
 	}
+
+	Super::BeginPlay();
 }
 
 void AFaerieItemOwningActorBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -187,14 +195,16 @@ void AFaerieItemOwningActorBase::EndPlay(const EEndPlayReason::Type EndPlayReaso
 	Super::EndPlay(EndPlayReason);
 }
 
+#if WITH_EDITOR
+const UFaerieItem* AFaerieItemOwningActorBase::GetItemAsset() const
+{
+	return SourceAsset ? SourceAsset->GetAssetTemplateItem() : nullptr;
+}
+#endif
+
 FMassEntityHandle AFaerieItemOwningActorBase::GetEntityHandle() const
 {
 	return ItemStack->GetEntityHandle();
-}
-
-TOptional<FFaerieItemInstance> AFaerieItemOwningActorBase::GetItemInstance() const
-{
-	return ItemStack->GetItemInstance();
 }
 
 int32 AFaerieItemOwningActorBase::GetCopies() const
@@ -210,7 +220,7 @@ void AFaerieItemOwningActorBase::OnContainerEventBatch(TNotNull<UFaerieItemConta
 
 bool AFaerieItemOwningActorBase::HasPreparedItemData() const
 {
-	return (PreparedItemData.ItemObject || !PreparedItemData.ExportData.IsEmpty()) && PreparedItemData.Copies > 0;
+	return !PreparedItemData.ExportData.IsEmpty() && PreparedItemData.Copies > 0;
 }
 
 void AFaerieItemOwningActorBase::SetOwnedStack(FMassEntityManager& EntityManager, const FFaerieUnownedItemStack& Stack)
@@ -231,11 +241,14 @@ void AFaerieItemOwningActorBase::SetOwnedStack(const FFaerieUnownedItemStack& St
 #if WITH_EDITOR
 void AFaerieItemOwningActorBase::ViewItemObject()
 {
+	// @todo disabled for now until we can display ExportData
+	/*
 	if (const UFaerieItem* Item = PreparedItemData.ItemObject)
 	{
 		FFaerieDataUtilsModule& DataUtilsModule = FModuleManager::GetModuleChecked<FFaerieDataUtilsModule>("FaerieDataUtils");
 		DataUtilsModule.AskEditorToOpenObjectEditorWindow(const_cast<UFaerieItem*>(Item));
 	}
+	*/
 }
 
 void AFaerieItemOwningActorBase::RegenerateStack()

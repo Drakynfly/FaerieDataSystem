@@ -19,16 +19,6 @@ FMassEntityHandle UFaerieItemEntryProxy::GetEntityHandle() const
 	return GetOuterUFaerieItemStorage()->GetItemHandle(Key);
 }
 
-TOptional<FFaerieItemInstance> UFaerieItemEntryProxy::GetItemInstance() const
-{
-	if (!VerifyStatus())
-	{
-		return NullOpt;
-	}
-
-	return GetOuterUFaerieItemStorage()->ViewInstance(Key);
-}
-
 int32 UFaerieItemEntryProxy::GetCopies() const
 {
 	if (!VerifyStatus())

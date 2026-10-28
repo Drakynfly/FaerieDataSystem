@@ -32,8 +32,9 @@ bool FFaerieClientAction_MoveToGrid::View(const FMassEntityManager& EntityManage
 	return false;
 }
 
-bool FFaerieClientAction_MoveToGrid::CanMove(const FMassEntityManager& EntityManager, const TValid<const FFaerieItemProxy&> Proxy) const
+bool FFaerieClientAction_MoveToGrid::CanMove(const TValid<const FFaerieItemProxy&> Proxy) const
 {
+	const FMassEntityManager& EntityManager = *ValidGet(Proxy).GetEntityManager();
 	if (const FFaerieContainerGridData* GridData = Storage->ReadContainerData<FFaerieContainerGridData>(EntityManager, false))
 	{
 		const FFaerieContainerGridReadContext Context = GridData->GetReadContext(EntityManager);

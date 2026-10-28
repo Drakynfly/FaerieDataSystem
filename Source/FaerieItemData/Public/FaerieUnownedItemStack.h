@@ -2,8 +2,8 @@
 
 #pragma once
 
+#include "Mass/EntityHandle.h"
 #include "FaerieItemDataDefines.h"
-#include "FaerieItemInstance.h"
 #include "FaerieUnownedItemStack.generated.h"
 
 /**
@@ -19,13 +19,12 @@ struct FAERIEITEMDATA_API FFaerieUnownedItemStack
 
 	FFaerieUnownedItemStack() = default;
 
-	FFaerieUnownedItemStack(const FFaerieItemInstance& Instance, const int32 Copies)
-	  : Instance(Instance),
+	FFaerieUnownedItemStack(const FMassEntityHandle Item, const int32 Copies)
+	  : Item(Item),
 		Copies(Copies) {}
 
-	// The item instance
 	UPROPERTY()
-	FFaerieItemInstance Instance;
+	FMassEntityHandle Item;
 
 	// Copies in this stack
 	UPROPERTY()
@@ -33,11 +32,11 @@ struct FAERIEITEMDATA_API FFaerieUnownedItemStack
 
 	[[nodiscard]] UE_REWRITE bool IsValid() const
 	{
-		return !Instance.IsEmpty() && Faerie::ItemData::IsValidStackAmount(Copies);
+		return Item.IsSet() && Faerie::ItemData::IsValidStackAmount(Copies);
 	}
 
 	[[nodiscard]] UE_REWRITE bool UEOpEquals(const FFaerieUnownedItemStack& Other) const
 	{
-		return Instance == Other.Instance && Copies == Other.Copies;
+		return Item == Other.Item && Copies == Other.Copies;
 	}
 };

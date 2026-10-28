@@ -135,13 +135,13 @@ bool UFaerieItemPool::CanBeMutable() const
 #endif
 }
 
-Faerie::ItemData::FGetInstanceResult UFaerieItemPool::CreateItemStack(const FFaerieItemInstancingContext& Context) const
+Faerie::ItemData::FItemDataBuilder UFaerieItemPool::CreateItemStack(const FFaerieItemInstancingContext& Context) const
 {
 	const FFaerieItemInstancingContext_Crafting* CraftingContext = Context.Cast<FFaerieItemInstancingContext_Crafting>();
 	if (!CraftingContext)
 	{
 		UE_LOGF(LogItemGeneration, Error, "UFaerieItemPool requires a Content of type FItemInstancingContext_Crafting!");
-		return NullOpt;
+		return Faerie::ItemData::FItemDataBuilder();
 	}
 
 	const FFaerieTableDrop* Drop = [this, CraftingContext]
@@ -158,7 +158,7 @@ Faerie::ItemData::FGetInstanceResult UFaerieItemPool::CreateItemStack(const FFae
 		return Drop->Resolve(*CraftingContext);
 	}
 
-	return NullOpt;
+	return Faerie::ItemData::FItemDataBuilder();
 }
 
 const FFaerieTableDrop* UFaerieItemPool::GetDrop(const double RanWeight) const

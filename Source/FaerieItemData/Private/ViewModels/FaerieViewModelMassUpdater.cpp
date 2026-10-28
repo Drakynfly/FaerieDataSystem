@@ -3,7 +3,6 @@
 #include "ViewModels/FaerieViewModelMassUpdater.h"
 
 #include "FaerieItem.h"
-#include "FaerieItemDataView.h"
 
 #include "MassExecutionContext.h"
 
@@ -72,7 +71,7 @@ void UFaerieViewModelFieldUpdater::Execute(FMassEntityManager& EntityManager, FM
 
 				if (const ItemData::FFieldChangePayload* Payload = EntitiesChanged.Find(View->GetItemHandle()))
 				{
-					View->OnFieldChange(InContext.GetEntityManagerChecked(), *Payload);
+					View->OnFieldChange(*Payload);
 				}
 			}
 		});

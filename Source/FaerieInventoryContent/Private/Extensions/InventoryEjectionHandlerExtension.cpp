@@ -27,8 +27,8 @@ void FFaerieItemContainerEjectionConfig::HandleNextInQueue(const Content::FEject
 {
 	TSoftClassPtr<AFaerieItemOwningActorBase> ClassToSpawn;
 
-	const FMassEntityManager* EntityManager = ItemData::GetFaerieEntityManager(Ejection.Owner->GetWorld());
-	auto ActorClassFragment = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieActorFragment>(EntityManager, Ejection.Stack.Instance);
+	const FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(Ejection.Owner->GetWorld());
+	auto ActorClassFragment = Faerie::ItemData::GetItemDataOrDefault<FFaerieActorFragment>(EntityManager, Ejection.Stack.Item);
 	if (ActorClassFragment.IsValid())
 	{
 		ClassToSpawn = ActorClassFragment->OwningActorClass;
@@ -119,21 +119,8 @@ void UFaerieContainerEjectionHandler::Execute(FMassEntityManager& EntityManager,
 
 			if (!Event.Item.IsSet()) continue;
 
-#if DO_CHECK
-			if (ItemData::IsMutable(InContext.GetEntityManagerChecked(), Event.Item))
-			{
-				check(Event.Copies == 1);
-			}
-#endif
-
 			UFaerieItemContainerBase* Container = Event.Container.Get();
 			if (!IsValid(Container))
-			{
-				continue;
-			}
-
-			AActor* Actor = Container->GetTypedOuter<AActor>();
-			if (!Actor)
 			{
 				continue;
 			}
@@ -144,10 +131,23 @@ void UFaerieContainerEjectionHandler::Execute(FMassEntityManager& EntityManager,
 				continue;
 			}
 
+#if DO_CHECK
+			if (ItemData::IsMutable(InContext.GetEntityManagerChecked(), Event.Item))
+			{
+				check(Event.Copies == 1);
+			}
+#endif
+
+
+			AActor* Actor = Container->GetTypedOuter<AActor>();
+			if (!Actor)
+			{
+				continue;
+			}
+
 			Content::FEjectionData Ejection;
 			Ejection.Owner = Actor;
-			Ejection.Stack.Instance = FFaerieItemInstance::FromEntity(Event.Item);
-			Ejection.Stack.Copies = Event.Copies;
+			Ejection.Stack = FFaerieUnownedItemStack(Event.Item, Event.Copies);
 
 			Config->HandleNextInQueue(Ejection);
 		}

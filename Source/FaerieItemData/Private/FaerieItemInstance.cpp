@@ -13,140 +13,105 @@
 
 #include "Engine/World.h"
 
-#include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemInstance)
-
-using namespace Faerie;
-
-void FFaerieItemInstance::ConvertToRuntimeInPlace(FMassEntityManager& EntityManager)
+namespace Faerie::ItemData
 {
-	check(!EntityHandle.IsSet())
-	EntityHandle = ItemData::InitializeItemEntity(EntityManager, Item, FMassTagBitSet(), {});
-	Item = nullptr;
-}
-
-bool FFaerieItemInstance::IsMutable() const
-{
-	if (Item)
+	FMassEntityHandle ImportFragmentData(FMassEntityManager& EntityManager, const FFaerieItemExportData& ExportData)
 	{
-		// Always report if the ItemAsset is mutable.
-		return Item->CanMutate();
-	}
+		FFaerieItemExportData CopyToFilter = ExportData;
 
-	// Otherwise MassEntity-based instances with no item asset are always mutable.
-	return HasMassEntity();
-}
-
-bool FFaerieItemInstance::UEOpEquals(const FFaerieItemInstance& Other) const
-{
-	return EntityHandle == Other.EntityHandle && Item == Other.Item;
-}
-
-void FFaerieItemInstance::ImportFragmentData(FMassEntityManager& EntityManager, FFaerieItemExportData& ExportData)
-{
-	if (!IsMutable())
-	{
-		UE_LOGF(LogFaerieItemData, Error, "Attempted importing mass instanced to immutable item instance!")
-		return;
-	}
-
-	// Prevent double-registration!
-	check(!EntityManager.IsEntityValid(EntityHandle));
-
-	for (auto&& It = ExportData.MassTags.CreateIterator(); It; ++It)
-	{
-		if (const ItemData::FMassTypeTraitsInterface* Traits = ItemData::GetMassTraitsInterface(*It))
+		for (auto&& It = CopyToFilter.MassTags.CreateIterator(); It; ++It)
 		{
-			if (!Traits->Serialized)
+			if (const FMassTypeTraitsInterface* Traits = GetMassTraitsInterface(*It))
 			{
-				UE_LOGF(LogFaerieItemData, Warning, "ImportFragmentData: found tag '%ls' that is barred from serialization. Discarding... ", *GetNameSafe(*It))
-				It.RemoveCurrentSwap();
-			}
-		}
-	}
-
-	for (auto&& It = ExportData.MassInstances.CreateIterator(); It; ++It)
-	{
-		if (const ItemData::FMassTypeTraitsInterface* Traits = ItemData::GetMassTraitsInterface(It->GetScriptStruct()))
-		{
-			if (!Traits->Serialized)
-			{
-				UE_LOGF(LogFaerieItemData, Warning, "ImportFragmentData: found fragment '%ls' that is barred from serialization. Discarding... ", *GetNameSafe(It->GetScriptStruct()))
-				It.RemoveCurrentSwap();
-			}
-		}
-	}
-
-	FMassTagBitSet BitSet;
-	Algo::Copy(ExportData.MassTags, BitSet);
-	EntityHandle = ItemData::InitializeItemEntity(EntityManager, Item, BitSet, ExportData.MassInstances);
-}
-
-void FFaerieItemInstance::ExportFragmentData(const FMassEntityManager& EntityManager, const FMassEntityHandle Item,
-	FFaerieItemExportData& ExportData, const ItemData::EMassFragmentExportOptions Options)
-{
-	if (EntityManager.IsEntityValid(Item))
-	{
-		const FMassArchetypeHandle Archetype = EntityManager.GetArchetypeForEntity(Item);
-
-		EntityManager.ForEachArchetypeElementType(Archetype,
-			[Item, &EntityManager, &ExportData, Options](const UScriptStruct* FragmentType)
-			{
-				if (EnumHasAnyFlags(Options, ItemData::OnlyFaerieMassFragments))
+				if (!Traits->Serialized)
 				{
-					if (!ItemData::IsFaerieMassType(FragmentType))
+					UE_LOGF(LogFaerieItemData, Warning, "ImportFragmentData: found tag '%ls' that is barred from serialization. Discarding... ", *GetNameSafe(*It))
+					It.RemoveCurrentSwap();
+				}
+			}
+		}
+
+		for (auto&& It = CopyToFilter.MassInstances.CreateIterator(); It; ++It)
+		{
+			if (const FMassTypeTraitsInterface* Traits = GetMassTraitsInterface(It->GetScriptStruct()))
+			{
+				if (!Traits->Serialized)
+				{
+					UE_LOGF(LogFaerieItemData, Warning, "ImportFragmentData: found fragment '%ls' that is barred from serialization. Discarding... ", *GetNameSafe(It->GetScriptStruct()))
+					It.RemoveCurrentSwap();
+				}
+			}
+		}
+
+		FMassTagBitSet BitSet;
+		Algo::Copy(CopyToFilter.MassTags, BitSet);
+		return InitializeItemEntity(EntityManager, nullptr, BitSet, CopyToFilter.MassInstances);
+	}
+
+	void ExportFragmentData(const FMassEntityManager& EntityManager, const FMassEntityHandle Item,
+		FFaerieItemExportData& ExportData, const EMassFragmentExportOptions Options)
+	{
+		if (EntityManager.IsEntityValid(Item))
+		{
+			const FMassArchetypeHandle Archetype = EntityManager.GetArchetypeForEntity(Item);
+
+			EntityManager.ForEachArchetypeElementType(Archetype,
+				[Item, &EntityManager, &ExportData, Options](const UScriptStruct* ElementType)
+				{
+					if (EnumHasAnyFlags(Options, OnlyFaerieMassFragments))
+					{
+						if (!IsFaerieMassType(ElementType))
+						{
+							return true;
+						}
+					}
+
+					if (IsFaerieMassTag(ElementType))
+					{
+						if (const FMassTypeTraitsInterface* Traits = GetMassTraitsInterface(ElementType))
+						{
+							if (!Traits->Serialized)
+							{
+								// Skip fragments that have serialization disabled by its traits.
+								return true;
+							}
+						}
+
+						ExportData.MassTags.Add(ElementType);
+						return true;
+					}
+
+					FConstStructView Fragment = GetEntityFragment(EntityManager, Item, ElementType);
+					if (!Fragment.IsValid())
 					{
 						return true;
 					}
-				}
 
-				if (ItemData::IsFaerieMassTag(FragmentType))
-				{
-					if (const ItemData::FMassTypeTraitsInterface* Traits = ItemData::GetMassTraitsInterface(FragmentType))
+					// If the fragment type has a custom save data type, convert to it.
+					if (const FMassTypeTraitsInterface* Traits = GetMassTraitsInterface(ElementType))
 					{
 						if (!Traits->Serialized)
 						{
 							// Skip fragments that have serialization disabled by its traits.
 							return true;
 						}
+
+						FInstancedStruct SaveDataFragment; // New blank to write to.
+						if (Traits->HasSaveDataConverter && Traits->SaveDataConverter(const_cast<uint8*>(Fragment.GetMemory()),
+							const_cast<FMassEntityManager&>(EntityManager), SaveDataFragment))
+						{
+							ExportData.MassInstances.Add(SaveDataFragment);
+						}
 					}
-
-					ExportData.MassTags.Add(FragmentType);
-					return true;
-				}
-
-				FConstStructView Fragment = ItemData::GetFaerieFragmentView(EntityManager, Item, FragmentType);
-				if (!Fragment.IsValid())
-				{
-					return true;
-				}
-
-				// If the fragment type has a custom save data type, convert to it.
-				if (const ItemData::FMassTypeTraitsInterface* Traits = ItemData::GetMassTraitsInterface(FragmentType))
-				{
-					if (!Traits->Serialized)
+					else
 					{
-						// Skip fragments that have serialization disabled by its traits.
-						return true;
+						ExportData.MassInstances.Emplace(Fragment);
 					}
-
-					FInstancedStruct SaveDataFragment; // New blank to write to.
-					if (Traits->HasSaveDataConverter && Traits->SaveDataConverter(const_cast<uint8*>(Fragment.GetMemory()),
-						const_cast<FMassEntityManager&>(EntityManager), SaveDataFragment))
-					{
-						ExportData.MassInstances.Add(SaveDataFragment);
-					}
-				}
-				else
-				{
-					ExportData.MassInstances.Emplace(Fragment);
-				}
-				return true;
-			});
+					return true;
+				});
+		}
 	}
-}
 
-namespace Faerie::ItemData
-{
 	FMassEntityHandle InitializeItemEntity(FMassEntityManager& EntityManager, const UFaerieItem* ItemAsset, const FMassTagBitSet& Tags, const TConstArrayView<FInstancedStruct> Fragments)
 	{
 		const FMassEntityTemplate& EntityTemplate = EntityManager.GetWorld()->GetSubsystemChecked<UFaerieMassConfigLoaderSubsystem>()->GetItemDataTemplate();
@@ -220,24 +185,6 @@ namespace Faerie::ItemData
 		return Builder.Commit();
 	}
 
-	FConstStructView GetFaerieFragmentView(const FMassEntityManager& EntityManager, const FMassEntityHandle Item, const TNotNull<const UScriptStruct*> Type)
-	{
-		if (Type->IsChildOf(FFaerieMassFragment::StaticStruct()) ||
-			Type->IsChildOf(FFaerieMassSparseFragment::StaticStruct()))
-		{
-			return EntityManager.GetFragmentDataStruct(Item, Type);
-		}
-		if (Type->IsChildOf(FFaerieMassSharedFragment::StaticStruct()))
-		{
-			return EntityManager.GetSharedFragmentDataStruct(Item, Type);
-		}
-		if (Type->IsChildOf(FFaerieMassConstSharedFragment::StaticStruct()))
-		{
-			return EntityManager.GetConstSharedFragmentDataStruct(Item, Type);
-		}
-		return FConstStructView();
-	}
-
 	bool IsMutable(const FMassEntityManager& EntityManager, const FMassEntityHandle Item)
 	{
 		if (!EntityManager.IsEntityValid(Item)) return false;
@@ -251,6 +198,8 @@ namespace Faerie::ItemData
 			}
 		}
 
+		// If no defaults item is present, assume we are mutable.
+		// @todo we could also add a tag or something if we need to block mutation when an item asset isn't present...
 		return true;
 	}
 

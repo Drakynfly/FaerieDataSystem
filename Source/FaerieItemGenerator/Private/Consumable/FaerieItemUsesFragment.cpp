@@ -3,7 +3,9 @@
 #include "Consumable/FaerieItemUsesFragment.h"
 #include "FaerieItem.h"
 #include "FaerieItemContainerBase.h"
+#include "FaerieItemEvent.h"
 #include "FaerieItemGenerationLog.h"
+#include "FaerieItemInstance.h"
 #include "FaerieItemOwnership.h"
 #include "FaerieItemSource.h"
 #include "FaerieUnownedItemStack.h"
@@ -69,7 +71,7 @@ void FFaerieItemLastUseLogic_Replace::OnLastUse_Replace(const FFaerieItemLastUse
 
 			FFaerieItemInstancingContext Context;
 			Context.EntityManager = &InEntityManager;
-			const ItemData::FGetInstanceResult Result = ItemSource->CreateItemStack(Context);
+			const ItemData::FItemDataBuilder Result = ItemSource->CreateItemStack(Context);
 			if (!Result.IsValid())
 			{
 				UE_LOGF(LogItemGeneration, Error, "Failed to create item instance for FFaerieItemLastUseLogic_Replace on '%ls'", *InProxy.GetProxyObject()->GetName())
@@ -80,7 +82,7 @@ void FFaerieItemLastUseLogic_Replace::OnLastUse_Replace(const FFaerieItemLastUse
 			(void)Container->Release(InEntityManager, InProxy, ItemData::EntireStack, Inventory::Tags::RemovalDeletion);
 
 			// Possess new item
-			if (!Container->Possess(InEntityManager, Result.WithInitialization(InEntityManager)))
+			if (!Container->Possess(InEntityManager, Result.GetForRuntime()))
 			{
 				UE_LOGF(LogItemGeneration, Error, "Container failed to possess new item instance for FFaerieItemLastUseLogic_Replace on '%ls'", *InProxy.GetProxyObject()->GetName())
 			}
@@ -127,22 +129,17 @@ namespace Faerie::ItemData
 	}
 
 	FUsesHelper::FUsesHelper(const FMassEntityManager& EntityManager, const FMassEntityHandle Item)
-	  : EntityManager(&EntityManager), Item(FFaerieItemInstance::FromEntity(Item))
+	  : EntityManager(&EntityManager), EntityHandle(Item)
 	{
-		if (const FFaerieItemUses* CapacityFragment = GetEntityFragment<FFaerieItemUses>(EntityManager, Item))
-		{
-			FragmentPtr = CapacityFragment;
-		}
+		FragmentPtr = GetEntityFragment<FFaerieItemUses>(EntityManager, Item);
+		Defaults_FragmentPtr = ItemData::GetDefaultFragment<FFaerieItemUses>(EntityManager, Item).GetPtr();
 	}
 
-	FUsesHelper::FUsesHelper(const FMassEntityManager& EntityManager, const FFaerieItemInstance& Instance)
-	  : EntityManager(&EntityManager), Item(Instance)
+	FUsesHelper::FUsesHelper(const FFaerieItemProxy& Item)
+	  : EntityManager(Item.GetEntityManager().Get()), EntityHandle(Item.GetEntityHandle())
 	{
-		// Look for a live fragment if we have an entity manager
-		FragmentPtr = GetEntityFragment<FFaerieItemUses>(EntityManager, Item.GetMassEntityHandle());
-
-		// For the default value.
-		Defaults_FragmentPtr = GetDefaultFragmentPtr<FFaerieItemUses>(&EntityManager, Item);
+		FragmentPtr = ItemData::GetEntityFragment<FFaerieItemUses>(Item);
+		Defaults_FragmentPtr = ItemData::GetDefaultFragment<FFaerieItemUses>(Item).GetPtr();
 	}
 
 	void FUsesHelper::CreateFragment(FMassEntityManager& InEntityManager, const TOptional<int32>& MaxUses, const TOptional<int32>& InitialUses)
@@ -178,8 +175,8 @@ namespace Faerie::ItemData
 
 		FInstancedStruct Fragment;
 		Fragment.InitializeAs<FFaerieItemUses>(NewUses);
-		AddFragment(InEntityManager, Item.GetMassEntityHandle(), MoveTemp(Fragment));
-		if (const FFaerieItemUses* UsesStruct = GetEntityFragment<FFaerieItemUses>(*EntityManager, Item.GetMassEntityHandle()))
+		AddFragment(InEntityManager, EntityHandle, MoveTemp(Fragment));
+		if (const FFaerieItemUses* UsesStruct = GetEntityFragment<FFaerieItemUses>(*EntityManager, EntityHandle))
 		{
 			FragmentPtr = UsesStruct;
 		}
@@ -198,7 +195,7 @@ namespace Faerie::ItemData
 		check(HasRuntimeValue())
 
 		EntityManager->Defer().PushCommand<FMassDeferredSetCommand>(
-			[Entity = Item.GetMassEntityHandle(), Amount, ClampToMax](FMassEntityManager& InEntityManager)
+			[Entity = EntityHandle, Amount, ClampToMax](FMassEntityManager& InEntityManager)
 			{
 				if (!InEntityManager.IsEntityValid(Entity))
 				{
@@ -235,12 +232,8 @@ namespace Faerie::ItemData
 		EntityManager->Defer().PushCommand<FMassDeferredSetCommand>(
 			[Proxy_TempForNow, Amount](FMassEntityManager& InEntityManager)
 			{
-				const TOptional<FFaerieItemInstance> ItemInstanceOpt = Proxy_TempForNow.GetItemInstance();
-				if (!ItemInstanceOpt.IsSet()) return;
-
 				// Get fragment
-				const FFaerieItemInstance Instance = ItemInstanceOpt.GetValue();
-				const FMassEntityHandle Entity = Instance.GetMassEntityHandle();
+				const FMassEntityHandle Entity = Proxy_TempForNow.GetEntityHandle();
 				auto& Fragment = InEntityManager.GetFragmentDataChecked<FFaerieItemUses>(Entity);
 
 				// Assign new value
@@ -252,7 +245,7 @@ namespace Faerie::ItemData
 
 				if (Fragment.UsesRemaining <= 0)
 				{
-					auto LastUseLogicFragment = GetEntityFragmentOrDefault<FFaerieItemLastUseLogicBase>(&InEntityManager, Instance);
+					auto LastUseLogicFragment = GetItemDataOrDefault<FFaerieItemLastUseLogicBase>(Proxy_TempForNow);
 					if (LastUseLogicFragment.IsValid())
 					{
 						LastUseLogicFragment->HandleOnLastUse(LastUseLogicFragment.GetPtr<FFaerieItemLastUseLogicBase>(), InEntityManager, Proxy_TempForNow, true);
@@ -276,7 +269,7 @@ namespace Faerie::ItemData
 		}
 
 		EntityManager->Defer().PushCommand<FMassDeferredSetCommand>(
-			[Entity = Item.GetMassEntityHandle(), Amount](FMassEntityManager& InEntityManager)
+			[Entity = EntityHandle, Amount](FMassEntityManager& InEntityManager)
 			{
 				if (!InEntityManager.IsEntityValid(Entity))
 				{
@@ -311,7 +304,7 @@ namespace Faerie::ItemData
 		}
 
 		EntityManager->Defer().PushCommand<FMassDeferredSetCommand>(
-			[Entity = Item.GetMassEntityHandle(), NewValue = Defaults_FragmentPtr->UsesRemaining](FMassEntityManager& InEntityManager)
+			[Entity = EntityHandle, NewValue = Defaults_FragmentPtr->UsesRemaining](FMassEntityManager& InEntityManager)
 			{
 				if (!InEntityManager.IsEntityValid(Entity))
 				{
@@ -344,7 +337,7 @@ namespace Faerie::ItemData
 		}
 
 		EntityManager->Defer().PushCommand<FMassDeferredSetCommand>(
-			[Entity = Item.GetMassEntityHandle(), Value, ClampRemainingIfOverMax](FMassEntityManager& InEntityManager)
+			[Entity = EntityHandle, Value, ClampRemainingIfOverMax](FMassEntityManager& InEntityManager)
 			{
 				if (!InEntityManager.IsEntityValid(Entity))
 				{

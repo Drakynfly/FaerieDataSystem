@@ -46,11 +46,6 @@ namespace Faerie::Container
 		return Content.GetElementAt(EntryIndex).GetEntityHandle();
 	}
 
-	FFaerieItemInstance FIterator_AllEntries::GetInstance() const
-	{
-		return Content.GetElementAt(EntryIndex).GetInstance();
-	}
-
 	int32 FIterator_AllEntries::GetCopies() const
 	{
 		return Content.GetElementAt(EntryIndex).StackSum();
@@ -101,11 +96,6 @@ namespace Faerie::Container
 	FMassEntityHandle FIterator_AllAddresses::GetEntityHandle() const
 	{
 		return Content.GetElementAt(EntryIndex).GetEntityHandle();
-	}
-
-	FFaerieItemInstance FIterator_AllAddresses::GetInstance() const
-	{
-		return Content.GetElementAt(EntryIndex).GetInstance();
 	}
 
 	int32 FIterator_AllAddresses::GetCopies() const
@@ -166,11 +156,6 @@ namespace Faerie::Container
 	FMassEntityHandle FIterator_SingleEntry::GetEntityHandle() const
 	{
 		return Entry.GetEntityHandle();
-	}
-
-	FFaerieItemInstance FIterator_SingleEntry::GetInstance() const
-	{
-		return Entry.GetInstance();
 	}
 
 	int32 FIterator_SingleEntry::GetCopies() const

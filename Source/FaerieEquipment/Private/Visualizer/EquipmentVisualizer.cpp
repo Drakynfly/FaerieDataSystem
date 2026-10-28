@@ -7,6 +7,7 @@
 #include "FaerieEquipmentManager.h"
 #include "FaerieItemStackContainer.h"
 #include "EntityManagerHelpers.h"
+#include "FaerieItemInstance.h"
 #include "FaerieItemOwnership.h"
 
 #include "Actors/FaerieProxyActorBase.h"
@@ -314,7 +315,7 @@ void UEquipmentVisualizer::FlushInvalid(FMassEntityManager& EntityManager)
 
 void UEquipmentVisualizer::RefreshVisual(FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy)
 {
-	if (!Proxy.HasValidInstance())
+	if (!Proxy.HasValidStack())
 	{
 		RemoveVisualImpl(EntityManager, Proxy);
 	}
@@ -386,18 +387,12 @@ void UEquipmentVisualizer::CreateVisualImpl(FMassEntityManager& EntityManager, T
 	}
 
 	// Step 2: What are we creating as a visual.
-	const TOptional<FFaerieItemInstance> InstanceOption = ValidGet(Proxy).GetItemInstance();
-	if (!InstanceOption.IsSet())
-	{
-		return;
-	}
-	const FFaerieItemInstance& Instance = InstanceOption.GetValue();
 
 	// Path 1: A Visual Actor
 	{
 		TSoftClassPtr<AFaerieProxyActorBase> ActorClass = nullptr;
 
-		auto ProxyClassFragment = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieProxyActorFragment>(&EntityManager, Instance);
+		auto ProxyClassFragment = Faerie::ItemData::GetItemDataOrDefault<FFaerieProxyActorFragment>(Proxy);
 		if (ProxyClassFragment.IsValid())
 		{
 			ActorClass = ProxyClassFragment->ProxyActorClass;
@@ -477,9 +472,10 @@ void UEquipmentVisualizer::CreateVisualImpl(FMassEntityManager& EntityManager, T
 	}
 
 	// Step 3: Recurse over children
-	const FMassEntityHandle Entity = Instance.GetMassEntityHandle();
-	if (ItemData::IsMutable(EntityManager, Entity))
+	if (ValidGet(Proxy).IsMutable())
 	{
+		const FMassEntityHandle Entity = ValidGet(Proxy).GetEntityHandle();
+
 		for (auto SubContainer : Equipment::SlotFilter.Iterate(EntityManager, Entity))
 		{
 			const FFaerieEntryKey EntryKey = SubContainer->GetCurrentKey();

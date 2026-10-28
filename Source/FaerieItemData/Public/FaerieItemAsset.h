@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Engine/DataAsset.h"
+#include "FaerieItemDataEnums.h"
 #include "FaerieItemSource.h"
 #include "FaerieItemDataFwd.h"
 
@@ -10,6 +11,7 @@
 
 #include "FaerieItemAsset.generated.h"
 
+struct FMassEntityManager;
 class UFaerieItemTemplate;
 
 /**
@@ -37,23 +39,19 @@ public:
 
 	//~ IFaerieItemSource
 	virtual bool CanBeMutable() const override;
-	virtual Faerie::ItemData::FGetInstanceResult CreateItemStack(const FFaerieItemInstancingContext& Context) const override;
+	virtual Faerie::ItemData::FItemDataBuilder CreateItemStack(const FFaerieItemInstancingContext& Context) const override;
 	//~ IFaerieItemSource
 
 private:
 #if WITH_EDITOR
-	FFaerieItemInstance CreateReferencingInstance_Editor(TNotNull<UObject*> InstanceOuter) const;
+	UFaerieItem* CreateReferencingInstance_Editor(TNotNull<UObject*> InstanceOuter) const;
 #endif
-	FFaerieItemInstance CreateReferencingInstance_Runtime(FMassEntityManager& EntityManager) const;
+	FMassEntityHandle CreateReferencingInstance_Runtime(FMassEntityManager& EntityManager) const;
 
 public:
 	// Get the immutable template item this asset holds.
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemAsset")
 	const UFaerieItem* GetAssetTemplateItem() const { return Item; }
-
-	// Get the item instance this asset represents. By default, this will return the immutable asset if possible.
-	// If the item needs to allow changes, set Mutability to Mutable.
-	FFaerieItemInstance GetTemplateInstance() const;
 
 protected:
 	UPROPERTY(VisibleAnywhere, DuplicateTransient, Category = "ItemAsset")

@@ -9,6 +9,8 @@
 
 #include "Templates/SubclassOf.h"
 
+#define FAE_API FAERIEINVENTORY_API
+
 class UFaerieItemContainerBase;
 class UFaerieItemStackContainer;
 class UFaerieItemStorage;
@@ -17,25 +19,25 @@ class UFaerieItemStorage;
 namespace Faerie::SubObject
 {
 	// Returns immutable default containers.
-	FAERIEINVENTORY_API void GetTemplateContainersInInstanceDirect(TNotNull<const UFaerieItem*> Item, TAdderRef<TNotNull<const UFaerieItemContainerBase*>> Containers, TNotNull<const UClass*> Class = UFaerieItemContainerBase::StaticClass());
-	FAERIEINVENTORY_API void GetTemplateContainersInInstanceRecursive(TNotNull<const UFaerieItem*> Item, TAdderRef<TNotNull<const UFaerieItemContainerBase*>> Containers, TNotNull<const UClass*> Class = UFaerieItemContainerBase::StaticClass());
+	FAE_API void GetTemplateContainersInInstanceDirect(TNotNull<const UFaerieItem*> Item, TAdderRef<TNotNull<const UFaerieItemContainerBase*>> Containers, TNotNull<const UClass*> Class = UFaerieItemContainerBase::StaticClass());
+	FAE_API void GetTemplateContainersInInstanceRecursive(TNotNull<const UFaerieItem*> Item, TAdderRef<TNotNull<const UFaerieItemContainerBase*>> Containers, TNotNull<const UClass*> Class = UFaerieItemContainerBase::StaticClass());
 
 	// Looks for runtime containers only. As such, requires an entity manager.
-	FAERIEINVENTORY_API bool HasContainerInInstanceDirect_Stack(const FMassEntityManager& EntityManager, FMassEntityHandle Item, TNotNull<const UFaerieItemStackContainer*> TestContainer);
-	FAERIEINVENTORY_API bool HasContainerInInstanceDirect_Storage(const FMassEntityManager& EntityManager, FMassEntityHandle Item, TNotNull<const UFaerieItemStorage*> TestContainer);
-	FAERIEINVENTORY_API bool HasContainerInInstanceRecursive_Stack(const FMassEntityManager& EntityManager, FMassEntityHandle Item, TNotNull<const UFaerieItemStackContainer*> TestContainer);
-	FAERIEINVENTORY_API bool HasContainerInInstanceRecursive_Storage(const FMassEntityManager& EntityManager, FMassEntityHandle Item, TNotNull<const UFaerieItemStorage*> TestContainer);
+	FAE_API bool HasContainerInInstanceDirect_Stack(const FMassEntityManager& EntityManager, FMassEntityHandle Item, TNotNull<const UFaerieItemStackContainer*> TestContainer);
+	FAE_API bool HasContainerInInstanceDirect_Storage(const FMassEntityManager& EntityManager, FMassEntityHandle Item, TNotNull<const UFaerieItemStorage*> TestContainer);
+	FAE_API bool HasContainerInInstanceRecursive_Stack(const FMassEntityManager& EntityManager, FMassEntityHandle Item, TNotNull<const UFaerieItemStackContainer*> TestContainer);
+	FAE_API bool HasContainerInInstanceRecursive_Storage(const FMassEntityManager& EntityManager, FMassEntityHandle Item, TNotNull<const UFaerieItemStorage*> TestContainer);
 
 	// Returns runtime containers only. As such, requires an entity manager.
-	FAERIEINVENTORY_API void GetContainersInInstanceDirect_All(const FMassEntityManager& EntityManager, FMassEntityHandle Item, TAdderRef<TNotNull<UFaerieItemContainerBase*>> Containers);
-	FAERIEINVENTORY_API void GetContainersInInstanceDirect_Stack(const FMassEntityManager& EntityManager, FMassEntityHandle Item, TAdderRef<TNotNull<UFaerieItemStackContainer*>> Containers);
-	FAERIEINVENTORY_API void GetContainersInInstanceDirect_Storage(const FMassEntityManager& EntityManager, FMassEntityHandle Item, TAdderRef<TNotNull<UFaerieItemStorage*>> Containers);
-	FAERIEINVENTORY_API void GetContainersInInstanceRecursive_All(const FMassEntityManager& EntityManager, FMassEntityHandle Item, TAdderRef<TNotNull<UFaerieItemContainerBase*>> Containers);
-	FAERIEINVENTORY_API void GetContainersInInstanceRecursive_Stack(const FMassEntityManager& EntityManager, FMassEntityHandle Item, TAdderRef<TNotNull<UFaerieItemStackContainer*>> Containers);
-	FAERIEINVENTORY_API void GetContainersInInstanceRecursive_Storage(const FMassEntityManager& EntityManager, FMassEntityHandle Item, TAdderRef<TNotNull<UFaerieItemStorage*>> Containers);
+	FAE_API void GetContainersInInstanceDirect_All(const FMassEntityManager& EntityManager, FMassEntityHandle Item, TAdderRef<TNotNull<UFaerieItemContainerBase*>> Containers);
+	FAE_API void GetContainersInInstanceDirect_Stack(const FMassEntityManager& EntityManager, FMassEntityHandle Item, TAdderRef<TNotNull<UFaerieItemStackContainer*>> Containers);
+	FAE_API void GetContainersInInstanceDirect_Storage(const FMassEntityManager& EntityManager, FMassEntityHandle Item, TAdderRef<TNotNull<UFaerieItemStorage*>> Containers);
+	FAE_API void GetContainersInInstanceRecursive_All(const FMassEntityManager& EntityManager, FMassEntityHandle Item, TAdderRef<TNotNull<UFaerieItemContainerBase*>> Containers);
+	FAE_API void GetContainersInInstanceRecursive_Stack(const FMassEntityManager& EntityManager, FMassEntityHandle Item, TAdderRef<TNotNull<UFaerieItemStackContainer*>> Containers);
+	FAE_API void GetContainersInInstanceRecursive_Storage(const FMassEntityManager& EntityManager, FMassEntityHandle Item, TAdderRef<TNotNull<UFaerieItemStorage*>> Containers);
 
-	FAERIEINVENTORY_API void GetContainersInInstanceDirect(const FMassEntityManager& EntityManager, FMassEntityHandle Item, TAdderRef<TNotNull<UFaerieItemContainerBase*>> Containers, TNotNull<const UClass*> Class);
-	FAERIEINVENTORY_API void GetContainersInInstanceRecursive(const FMassEntityManager& EntityManager, FMassEntityHandle Item, TAdderRef<TNotNull<UFaerieItemContainerBase*>> Containers, TNotNull<const UClass*> Class);
+	FAE_API void GetContainersInInstanceDirect(const FMassEntityManager& EntityManager, FMassEntityHandle Item, TAdderRef<TNotNull<UFaerieItemContainerBase*>> Containers, TNotNull<const UClass*> Class);
+	FAE_API void GetContainersInInstanceRecursive(const FMassEntityManager& EntityManager, FMassEntityHandle Item, TAdderRef<TNotNull<UFaerieItemContainerBase*>> Containers, TNotNull<const UClass*> Class);
 
 	// Returns runtime containers only. As such, requires an entity manager.
 	template <typename TFaerieItemContainerBase>
@@ -73,8 +75,8 @@ namespace Faerie::SubObject
 		}
 	}
 
-	FAERIEINVENTORY_API void GetChildrenInItem(FMassEntityManager& EntityManager, FMassEntityHandle Item, TAdderRef<FFaerieItemProxy> OutProxies);
-	FAERIEINVENTORY_API void GetChildrenInItemRecursive(FMassEntityManager& EntityManager, FMassEntityHandle Item, TAdderRef<FFaerieItemProxy> OutProxies);
+	FAE_API void GetChildrenInItem(const FMassEntityManager& EntityManager, FMassEntityHandle Item, TAdderRef<FFaerieItemProxy> OutProxies);
+	FAE_API void GetChildrenInItemRecursive(const FMassEntityManager& EntityManager, FMassEntityHandle Item, TAdderRef<FFaerieItemProxy> OutProxies);
 
 	/**
 	 * Iterates over all item containers in a Faerie Item
@@ -85,6 +87,7 @@ namespace Faerie::SubObject
 
 	public:
 		explicit FContainerIterator(const FMassEntityManager& EntityManager, FMassEntityHandle Item);
+		explicit FContainerIterator(const FFaerieItemProxy& Item);
 
 		[[nodiscard]] UE_REWRITE UFaerieItemContainerBase* operator*() const { return Iterator.operator*(); }
 
@@ -115,6 +118,7 @@ namespace Faerie::SubObject
 
 	public:
 		explicit FRecursiveContainerIterator(const FMassEntityManager& EntityManager, FMassEntityHandle Item);
+		explicit FRecursiveContainerIterator(const FFaerieItemProxy& Item);
 
 		[[nodiscard]] UE_REWRITE UFaerieItemContainerBase* operator*() const { return Iterator.operator*(); }
 
@@ -308,10 +312,22 @@ namespace Faerie::SubObject
 		return FContainerIterator(EntityManager, Item);
 	}
 
+	// Iterate over the direct containers in an item.
+	UE_REWRITE FContainerIterator Iterate(const FFaerieItemProxy& Item)
+	{
+		return FContainerIterator(Item);
+	}
+
 	// Iterate over the all containers in an item recursively.
-	UE_REWRITE FRecursiveContainerIterator IterateRecursive(const FMassEntityManager& EntityManager, const FMassEntityHandle Item)
+	UE_REWRITE FRecursiveContainerIterator IterateRecursive(FMassEntityManager& EntityManager, const FMassEntityHandle Item)
 	{
 		return FRecursiveContainerIterator(EntityManager, Item);
+	}
+
+	// Iterate over the all containers in an item recursively.
+	UE_REWRITE FRecursiveContainerIterator IterateRecursive(const FFaerieItemProxy& Item)
+	{
+		return FRecursiveContainerIterator(Item);
 	}
 
 	UE_REWRITE TFilter<UFaerieItemContainerBase> Filter()
@@ -319,3 +335,5 @@ namespace Faerie::SubObject
 		return TFilter<>();
 	}
 }
+
+#undef FAE_API

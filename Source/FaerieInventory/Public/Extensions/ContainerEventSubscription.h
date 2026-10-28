@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "MassEntityQuery.h"
 #include "MassProcessor.h"
 
 #include "UObject/Interface.h"

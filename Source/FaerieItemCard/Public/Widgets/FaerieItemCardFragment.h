@@ -35,3 +35,12 @@ struct FAERIEITEMCARD_API FFaerieItemCardClassFragment : public FFaerieMassFragm
 
 ____FAERIE_FRAGMENT_DECL(FFaerieItemCardClassFragment)
 };
+
+template<>
+struct TMassFragmentTraits<FFaerieItemCardClassFragment> final
+{
+	enum
+	{
+		AuthorAcceptsItsNotTriviallyCopyable = true
+	};
+};

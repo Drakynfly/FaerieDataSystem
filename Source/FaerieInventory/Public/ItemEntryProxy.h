@@ -20,8 +20,11 @@ class UFaerieItemEntryProxy final : public UFaerieProxyViewModelBase, public IFa
 
 public:
 	//~ Faerie::ItemData::IViewBase
+#if WITH_EDITOR
+	// As IFaerieContainerProxy is only implemented by runtime containers, it will never provide an item asset object.
+	virtual const UFaerieItem* GetItemAsset() const override { return nullptr; }
+#endif
 	virtual FMassEntityHandle GetEntityHandle() const override;
-	virtual TOptional<FFaerieItemInstance> GetItemInstance() const override;
 	virtual int32 GetCopies() const override;
 	//~ Faerie::ItemData::IViewBase
 

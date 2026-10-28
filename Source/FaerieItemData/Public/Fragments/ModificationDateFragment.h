@@ -3,6 +3,7 @@
 #pragma once
 
 #include "FaerieMassFragment.h"
+#include "MassEntityQuery.h"
 #include "MassObserverProcessor.h"
 #include "MassProcessor.h"
 

@@ -35,9 +35,6 @@ void AFaerieItemVisualBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
-TOptional<FFaerieItemInstance> AFaerieItemVisualBase::GetItemInstance() const
-	PURE_VIRTUAL(AFaerieItemVisualBase::GetItemInstance, return NullOpt; )
-
 void AFaerieItemVisualBase::ClearDataDisplay_Implementation()
 {
 }
@@ -54,9 +51,5 @@ void AFaerieItemVisualBase::NotifyDisplayDataFinished(const bool Success)
 void AFaerieItemVisualBase::RegenerateDataDisplay()
 {
 	ClearDataDisplay();
-
-	if (GetItemInstance().IsSet())
-	{
-		DisplayData();
-	}
+	DisplayData();
 }

@@ -19,34 +19,6 @@ namespace Faerie::Container
 	FBlockTakeOwnershipScope::FBlockTakeOwnershipScope() { BlockTakeOwnershipScopeCount++; }
 	FBlockTakeOwnershipScope::~FBlockTakeOwnershipScope() { BlockTakeOwnershipScopeCount--; }
 
-	bool ValidateItemData(const FFaerieItemInstance& Instance)
-	{
-		if (Instance.IsEmpty())
-		{
-			return false;
-		}
-
-		if (Instance.HasItemAsset())
-		{
-			const UFaerieItem* Asset = Instance.GetItemPtr();
-			// Check that the item version is correct.
-			if (Asset->GetAssetFormatVersion() < static_cast<int32>(ItemData::EFormatVersion::LatestVersion))
-			{
-				// @todo write conversions handlers to upgrade versions
-				return false;
-			}
-		}
-
-		if (Instance.HasMassEntity())
-		{
-			const FMassEntityHandle Entity = Instance.GetMassEntityHandle();
-			// @Todo entity validation
-		}
-
-		return true;
-	}
-
-
 	FMassEntityHandle GetContainerOwner(const FMassEntityManager& EntityManager, const TNotNull<const UFaerieItemContainerBase*> Container)
 	{
 		if (const FNestedContainer* NestedContainer = Container->ReadContainerData<FNestedContainer>(EntityManager))
@@ -80,7 +52,7 @@ namespace Faerie::Container
 
 	UFaerieItemContainerBase* GetItemOwner(const FFaerieItemProxy& Proxy)
 	{
-		const TSharedPtr<FMassEntityManager> EntityManager = Proxy.GetEntityManager();
+		const TSharedPtr<const FMassEntityManager> EntityManager = Proxy.GetEntityManager();
 		if (!EntityManager.IsValid())
 		{
 			return nullptr;
@@ -110,9 +82,9 @@ namespace Faerie::Container
 				Container->Rename(nullptr, GetTransientPackageAsObject());
 
 				// If the object contains nested items, release ownership recursively.
-				for (auto It = Container::MutableItemRange(Container); It; ++It)
+				for (auto It = Container::MutableItemRange(&EntityManager, Container); It; ++It)
 				{
-					ReleaseOwnership_Impl<true>(EntityManager, RegisteringActor, Owner, It.GetEntityHandle());
+					ReleaseOwnership_Impl<true>(EntityManager, RegisteringActor, Owner, *It);
 				}
 			}
 
@@ -191,9 +163,9 @@ namespace Faerie::Container
 				Container->SetParentExtensions(Owner);
 
 				// If the object contains nested items, take ownership recursively.
-				for (auto It = Container::MutableItemRange(Container); It; ++It)
+				for (auto It = Container::MutableItemRange(&EntityManager, Container); It; ++It)
 				{
-					TakeOwnership_Impl<true>(EntityManager, RegisteringActor, Container, It.GetEntityHandle());
+					TakeOwnership_Impl<true>(EntityManager, RegisteringActor, Container, *It);
 				}
 			}
 		}

@@ -30,10 +30,10 @@ bool FFaerieClientAction_MoveFromStorage::View(const FMassEntityManager& EntityM
 	return true;
 }
 
-bool FFaerieClientAction_MoveFromStorage::CanMove(const FMassEntityManager& EntityManager, const Faerie::TValid<const FFaerieItemProxy&> Proxy) const
+bool FFaerieClientAction_MoveFromStorage::CanMove(const Faerie::TValid<const FFaerieItemProxy&> Proxy) const
 {
 	// @todo we might need to parameterize the StackBehavior
-	return Storage->CanAddStack(EntityManager, Proxy, EFaerieStorageAddStackBehavior::AddToAnyStack);
+	return Storage->CanAddStack(*Faerie::ValidGet(Proxy).GetEntityManager(), Proxy, EFaerieStorageAddStackBehavior::AddToAnyStack);
 }
 
 bool FFaerieClientAction_MoveFromStorage::Release(FMassEntityManager& EntityManager, FFaerieUnownedItemStack& Stack) const
@@ -53,9 +53,9 @@ bool FFaerieClientAction_MoveToStorage::IsValid(const TNotNull<const UFaerieInve
 		Client->CanAccessContainer(EntityManager, Storage, StaticStruct());
 }
 
-bool FFaerieClientAction_MoveToStorage::CanMove(const FMassEntityManager& EntityManager, const Faerie::TValid<const FFaerieItemProxy&> Proxy) const
+bool FFaerieClientAction_MoveToStorage::CanMove(const Faerie::TValid<const FFaerieItemProxy&> Proxy) const
 {
-	return Storage->CanAddStack(EntityManager, Proxy, AddStackBehavior);
+	return Storage->CanAddStack(*Faerie::ValidGet(Proxy).GetEntityManager(), Proxy, AddStackBehavior);
 }
 
 bool FFaerieClientAction_MoveToStorage::Possess(FMassEntityManager& EntityManager, const Faerie::TValid<const FFaerieUnownedItemStack&> Stack) const

@@ -65,7 +65,7 @@ void FFaerieItemUpgradeAction::Execute(const Faerie::Generation::FActionExecutio
 	// @todo batching
 	int32 Copies = 1;
 
-	if (!Config->CanApplyUpgrade(Execution.EntityManager, ItemProxy))
+	if (!Config->CanApplyUpgrade(ItemProxy))
 	{
 		return Fail(Execution, this, CommonErrors::CannotApplyFailure);
 	}
@@ -75,9 +75,9 @@ void FFaerieItemUpgradeAction::Execute(const Faerie::Generation::FActionExecutio
 		return Fail(Execution, this, CommonErrors::CannotPayCost);
 	}
 
-	ActionData.Stacks.Add( FFaerieUnownedItemStack(ItemProxy.GetItemInstance().GetValue(), Copies));
+	Storage.Builders.Emplace(ItemProxy.GetEntityHandle(), Copies);
 
-	if (!Config->ApplyUpgrade(Execution.EntityManager, ActionData, Execution.Squirrel.Get()))
+	if (!Config->ApplyUpgrade(Execution.EntityManager, Storage, Execution.Squirrel.Get()))
 	{
 		return Fail(Execution, this, CommonErrors::ExecutionFailure);
 	}
@@ -129,9 +129,13 @@ void FFaerieItemUpgradeActionBulkNoPayment::Run(const Faerie::Generation::FActio
 void FFaerieItemUpgradeActionBulkNoPayment::Execute(const Faerie::Generation::FActionExecution Execution)
 {
 	// Prepare Stacks
-	ActionData.Stacks = UpgradeTargets;
+	Storage.Builders.Reserve(UpgradeTargets.Num());
+	for (const FFaerieUnownedItemStack& Stack : UpgradeTargets)
+	{
+		Storage.Builders.Add(Faerie::ItemData::FItemDataBuilder(Stack.Item, Stack.Copies));
+	}
 
-	if (!Config->ApplyUpgrade(Execution.EntityManager, ActionData, Execution.Squirrel.Get()))
+	if (!Config->ApplyUpgrade(Execution.EntityManager, Storage, Execution.Squirrel.Get()))
 	{
 		return Fail(Execution, this, CommonErrors::ExecutionFailure);
 	}
@@ -177,9 +181,6 @@ void FFaerieItemUpgradeActionBulk::Run(const Faerie::Generation::FActionExecutio
 
 void FFaerieItemUpgradeActionBulk::Execute(const Faerie::Generation::FActionExecution Execution)
 {
-	// @todo batching
-	int32 Copies = 1;
-
 	for (auto&& UpgradeTarget : UpgradeTargets)
 	{
 		if (!Config->CanPayCost(Execution.EntityManager, UpgradeTarget.Slots, UpgradeTarget.ItemProxy))
@@ -189,12 +190,21 @@ void FFaerieItemUpgradeActionBulk::Execute(const Faerie::Generation::FActionExec
 	}
 
 	// Prepare Stacks
-	for (auto&& UpgradeTarget : UpgradeTargets)
+	for (FFaerieItemBulkUpgradeElement& UpgradeTarget : UpgradeTargets)
 	{
-		ActionData.Stacks.Emplace(UpgradeTarget.ItemProxy.GetItemInstance().GetValue(), Copies);
+#if WITH_EDITOR
+		if (!Execution.IsInGameWorld())
+		{
+			Storage.Builders.Add(Faerie::ItemData::FItemDataBuilder(const_cast<UFaerieItem*>(UpgradeTarget.ItemProxy.GetItemPtr()), UpgradeTarget.ItemProxy.GetCopies()));
+		}
+		else
+#endif
+		{
+			Storage.Builders.Add(Faerie::ItemData::FItemDataBuilder(UpgradeTarget.ItemProxy.GetEntityHandle(), UpgradeTarget.ItemProxy.GetCopies()));
+		}
 	}
 
-	if (!Config->ApplyUpgrade(Execution.EntityManager, ActionData, Execution.Squirrel.Get()))
+	if (!Config->ApplyUpgrade(Execution.EntityManager, Storage, Execution.Squirrel.Get()))
 	{
 		return Fail(Execution, this, CommonErrors::ExecutionFailure);
 	}

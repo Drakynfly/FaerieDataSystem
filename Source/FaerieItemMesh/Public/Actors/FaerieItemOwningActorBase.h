@@ -47,8 +47,10 @@ protected:
 
 public:
 	//~ Faerie::ItemData::IViewBase
+#if WITH_EDITOR
+	virtual const UFaerieItem* GetItemAsset() const override;
+#endif
 	virtual FMassEntityHandle GetEntityHandle() const override;
-	virtual TOptional<FFaerieItemInstance> GetItemInstance() const override;
 	virtual int32 GetCopies() const override;
 	//~ Faerie::ItemData::IViewBase
 

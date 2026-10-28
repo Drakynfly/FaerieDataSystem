@@ -32,7 +32,7 @@ struct FAERIEINVENTORY_API FFaerieItemContainerPath
 	TArray<FFaerieItemContainerPathPair> Containers;
 
 	// Build all paths recursively from a parent (head) container.
-	static void BuildChildrenPaths(FMassEntityManager& EntityManager, const FFaerieItemProxy& Owner, TNotNull<UFaerieItemContainerBase*> Head, TArray<FFaerieItemContainerPath>& OutPaths);
+	static void BuildChildrenPaths(const FMassEntityManager* EntityManager, TNotNull<UFaerieItemContainerBase*> Head, TArray<FFaerieItemContainerPath>& OutPaths);
 
 	UFaerieItemContainerBase* GetHead() const { return Containers.IsEmpty() ? nullptr : Containers[0].Container; }
 	UFaerieItemContainerBase* GetTail() const { return Containers.IsEmpty() ? nullptr : Containers[Containers.Num()-1].Container; }

@@ -94,7 +94,7 @@ namespace Faerie::ItemData
 		friend TFragmentHelperCRTP<FUsesHelper, FFaerieItemUses>;
 
 		FUsesHelper(const FMassEntityManager& EntityManager, FMassEntityHandle Item);
-		FUsesHelper(const FMassEntityManager& EntityManager, const FFaerieItemInstance& Instance);
+		FUsesHelper(const FFaerieItemProxy& Item);
 
 	protected:
 		/*
@@ -123,6 +123,6 @@ namespace Faerie::ItemData
 
 	private:
 		const FMassEntityManager* EntityManager;
-		const FFaerieItemInstance Item;
+		const FMassEntityHandle EntityHandle;
 	};
 }

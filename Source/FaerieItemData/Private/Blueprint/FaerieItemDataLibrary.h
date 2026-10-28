@@ -12,7 +12,6 @@
 
 #include "FaerieItemDataLibrary.generated.h"
 
-struct FFaerieItemInstance;
 struct FMassEntityHandle;
 class UFaerieItemAsset;
 
@@ -35,19 +34,13 @@ public:
 
 	// Get the item instance this asset represents.
 	UFUNCTION(BlueprintPure, Category = "Faerie|ItemData")
-	static FFaerieUnownedItemStack GetTemplateInstance(const UFaerieItemAsset* Asset);
+	static const UFaerieItem* GetTemplateInstance(const UFaerieItemAsset* Asset);
 
 	UFUNCTION(BlueprintPure, Category = "Faerie|ItemData", meta = (AdvancedDisplay = 1, WorldContext = "WorldContextObj", DefaultToSelf = "WorldContextObj"))
 	static FFaerieUnownedItemStack NewItemInstance(const UObject* WorldContextObj, UPARAM(ref) TArray<FInstancedStruct>& Fragments);
 
 	UFUNCTION(BlueprintPure, Category = "Faerie|ItemData")
 	static bool HasItemFragment(const FFaerieItemProxy& Proxy, /*TSubScriptStructOf<FFaerieMassFragment>*/ UScriptStruct* FragmentType);
-
-	//UFUNCTION(BlueprintCallable, Category = "Faerie|ItemData")
-	//static bool AddFragment(FFaerieItemInstance& Instance, FInstancedStruct Fragment);
-
-	//UFUNCTION(BlueprintCallable, Category = "Faerie|ItemData")
-	//static bool RemoveFragment(FFaerieItemInstance& Instance, const UScriptStruct* FragmentType);
 
 	// Gets the fragment of the given type if it exists in the either the asset's defaults or runtime entity.
 	// @Todo replace with a version that auto-cast's the output to Fragment type.

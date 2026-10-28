@@ -50,22 +50,22 @@ void UFaerieItemUpgradeConfig::PayCost(FMassEntityManager* EntityManager, const 
 {
 }
 
-bool UFaerieItemUpgradeConfig::ApplyUpgrade(FMassEntityManager* EntityManager, FFaerieCraftingActionData& Stacks, USquirrel* Squirrel) const
+bool UFaerieItemUpgradeConfig::ApplyUpgrade(FMassEntityManager* EntityManager, Faerie::Generation::FActionStorage& Storage, USquirrel* Squirrel) const
 {
 	FFaerieItemMutatorContext_UpgradeConfig Context;
 	Context.EntityManager = EntityManager;
 	Context.Squirrel = Squirrel;
 	Context.Config = this;
 
-	for (FFaerieUnownedItemStack& OperationStack : Stacks.Stacks)
+	for (Faerie::ItemData::FItemDataBuilder& Builder : Storage.Builders)
 	{
-		if (OperationStack.Copies == 0)
+		if (Builder.GetCopies() == 0)
 		{
 			return false;
 		}
 
 		// Apply the mutator, and fail if it doesn't apply, when RequireMutatorToRun is enabled.
-		if (!Mutators.Apply(OperationStack.Instance, Context) && RequireMutatorToRun)
+		if (!Mutators.Apply(Builder, Context) && RequireMutatorToRun)
 		{
 			return false;
 		}
@@ -73,7 +73,7 @@ bool UFaerieItemUpgradeConfig::ApplyUpgrade(FMassEntityManager* EntityManager, F
 	return true;
 }
 
-bool UFaerieItemUpgradeConfig_BlueprintBase::CanApplyUpgrade(const FMassEntityManager* EntitManager, const FFaerieItemProxy& Proxy) const
+bool UFaerieItemUpgradeConfig_BlueprintBase::CanApplyUpgrade(const FFaerieItemProxy& Proxy) const
 {
 	if (GetClass()->IsFunctionImplementedInScript(GET_FUNCTION_NAME_CHECKED(ThisClass, BP_CanApplyUpgrade)))
 	{
@@ -104,14 +104,13 @@ void UFaerieItemUpgradeConfig_BlueprintBase::PayCost(FMassEntityManager* EntityM
 }
 
 bool UFaerieItemUpgradeConfig_BlueprintBase::ApplyUpgrade(FMassEntityManager* EntityManager,
-														  FFaerieCraftingActionData& Stacks, USquirrel* Squirrel) const
+														  Faerie::Generation::FActionStorage& Storage, USquirrel* Squirrel) const
 {
 	bool Success = true;
-	for (const FFaerieUnownedItemStack& Stack : Stacks.Stacks)
+	for (Faerie::ItemData::FItemDataBuilder& Builder : Storage.Builders)
 	{
-		Faerie::ItemData::FScopeProxy Proxy(Stack.Instance, Stack.Copies);
 		const TSharedPtr<FMassEntityManager> EntityManagerShared = EntityManager ? EntityManager->AsShared().ToSharedPtr() : nullptr;
-		if (!BP_ApplyUpgrade(FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, EntityManagerShared, &Proxy), Squirrel))
+		if (!BP_ApplyUpgrade(FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, EntityManagerShared, &Builder), Squirrel))
 		{
 			Success = false;
 		}

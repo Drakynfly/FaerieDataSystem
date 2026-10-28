@@ -4,11 +4,12 @@
 
 #include "FaerieItemDataView.h"
 #include "FaerieMassFragment.h"
-#include "Mass/ExternalSubsystemTraits.h"
+#include "GameplayTagContainer.h"
 #include "FaerieReferenceFragment.generated.h"
 
 class UFaerieItemAsset;
 
+// DEPRECATED: REMOVE ME
 USTRUCT()
 struct FFaerieTaggedReference
 {
@@ -24,6 +25,7 @@ struct FFaerieTaggedReference
 	TObjectPtr<const UFaerieItemAsset> Reference;
 };
 
+// DEPRECATED: REMOVE ME
 USTRUCT()
 struct FFaerieReferenceFragment : public FFaerieMassFragment
 {
@@ -32,19 +34,7 @@ struct FFaerieReferenceFragment : public FFaerieMassFragment
 	UPROPERTY(EditAnywhere, Category = "ReferenceFragment", meta = (ForceInlineRow))
 	FFaerieTaggedReference References[3];
 
-	UE_REWRITE TConstArrayView<FFaerieTaggedReference> GetReferences() const { return References; }
-
 	const UFaerieItem* GetReferencedItem(FGameplayTag ReferenceTag, bool MatchExact) const;
 
 ____FAERIE_FRAGMENT_DECL(FFaerieReferenceFragment)
-};
-
-// @Todo i guess we need this for TObjectPtr...
-template<>
-struct TMassFragmentTraits<FFaerieReferenceFragment> final
-{
-	enum
-	{
-		AuthorAcceptsItsNotTriviallyCopyable = true
-	};
 };

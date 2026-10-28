@@ -12,7 +12,6 @@ namespace Faerie::ItemData
 	struct FReference;
 }
 
-struct FFaerieItemInstance;
 struct FFaerieItemProxy;
 class UFaerieItem;
 class UFaerieItemMeshLoader;

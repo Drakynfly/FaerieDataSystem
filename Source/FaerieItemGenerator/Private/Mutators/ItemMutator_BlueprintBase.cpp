@@ -1,8 +1,8 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "Mutators/ItemMutator_BlueprintBase.h"
-#include "FaerieItemDataView.h"
 #include "FaerieItemProxy.h"
+#include "FaerieItemSource.h"
 #include "MassEntityManager.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ItemMutator_BlueprintBase)
@@ -22,13 +22,12 @@ void FFaerieItemMutator_Blueprint::GetRequiredAssets(const TAdderRef<FSoftObject
 	}
 }
 
-bool FFaerieItemMutator_Blueprint::Apply(FFaerieItemInstance& Item, const FFaerieItemMutatorContext& Context) const
+bool FFaerieItemMutator_Blueprint::Apply(Faerie::ItemData::FItemDataBuilder& Builder, const FFaerieItemMutatorContext& Context) const
 {
 	if (IsValid(Blueprint))
 	{
-		const Faerie::ItemData::FScopeProxy Proxy(Item, 1);
 		const TSharedPtr<FMassEntityManager> EntityManagerShared = Context.EntityManager ? Context.EntityManager->AsShared().ToSharedPtr() : nullptr;
-		return GetDefault<UFaerieItemMutator_BlueprintBase>(Blueprint)->Apply(FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, EntityManagerShared, &Proxy), Context.Squirrel);
+		return GetDefault<UFaerieItemMutator_BlueprintBase>(Blueprint)->Apply(FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, EntityManagerShared, &Builder), Context.Squirrel);
 	}
 	return false;
 }

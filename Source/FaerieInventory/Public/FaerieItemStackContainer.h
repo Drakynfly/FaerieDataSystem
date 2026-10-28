@@ -20,10 +20,6 @@ struct FFaerieSimpleItemStackSaveData : public FFaerieItemFragmentSaveData
 
 	FAERIEINVENTORY_API virtual const UScriptStruct* GetFragmentType() const override;
 
-	// @Todo remove me, once Prepared data can store this in a fragment in ExportData
-	UPROPERTY()
-	TObjectPtr<const UFaerieItem> ItemObject;
-
 	UPROPERTY()
 	int32 Copies = 0;
 
@@ -79,13 +75,11 @@ private:
 	// ReSharper disable CppOverrideWithDifferentVisibility
 	virtual FMassEntityHandle GetItemHandle(FFaerieEntryKey Key) const override;
 	virtual FMassEntityHandle GetItemHandle(FFaerieAddress Address) const override;
-	virtual TOptional<FFaerieItemInstance> ViewInstance(FFaerieEntryKey Key) const override;
-	virtual TOptional<FFaerieItemInstance> ViewInstance(FFaerieAddress Address) const override;
 	virtual Faerie::ItemData::FScopeProxy ViewEntry(FFaerieEntryKey Key) const override;
 	virtual Faerie::ItemData::FScopeProxy ViewAddress(FFaerieAddress Address) const override;
-	virtual FFaerieItemProxy Proxy(FMassEntityManager& EntityManager, FMassEntityHandle Item) const override;
-	virtual FFaerieItemProxy Proxy(FMassEntityManager& EntityManager, FFaerieEntryKey Key) const override;
-	virtual FFaerieItemProxy Proxy(FMassEntityManager& EntityManager, FFaerieAddress Address) const override;
+	virtual FFaerieItemProxy Proxy(const FMassEntityManager& EntityManager, FMassEntityHandle Item) const override;
+	virtual FFaerieItemProxy Proxy(const FMassEntityManager& EntityManager, FFaerieEntryKey Key) const override;
+	virtual FFaerieItemProxy Proxy(const FMassEntityManager& EntityManager, FFaerieAddress Address) const override;
 	virtual bool Possess(FMassEntityManager& EntityManager, const FFaerieUnownedItemStack& Stack) override;
 	virtual TOptional<FFaerieUnownedItemStack> Release(FMassEntityManager& EntityManager, FFaerieEntryKey Key, int32 Copies, FFaerieInventoryTag Reason) override;
 	virtual TOptional<FFaerieUnownedItemStack> Release(FMassEntityManager& EntityManager, FFaerieAddress Address, int32 Copies, FFaerieInventoryTag Reason) override;
@@ -105,7 +99,6 @@ private:
 public:
 	//~ Faerie::ItemData::IViewBase
 	virtual FMassEntityHandle GetEntityHandle() const override final;
-	virtual TOptional<FFaerieItemInstance> GetItemInstance() const override final;
 	virtual int32 GetCopies() const override final;
 	//~ Faerie::ItemData::IViewBase
 

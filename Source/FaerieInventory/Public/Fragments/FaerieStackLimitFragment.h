@@ -19,5 +19,6 @@ ____FAERIE_FRAGMENT_DECL(FFaerieStackLimitFragment)
 
 namespace Faerie::Container
 {
-	FAERIEINVENTORY_API int32 GetItemStackLimit(const FMassEntityManager* EntityManager, const FFaerieItemInstance& Item);
+	FAERIEINVENTORY_API int32 GetItemStackLimit(const FMassEntityManager& EntityManager, FMassEntityHandle Item);
+	FAERIEINVENTORY_API int32 GetItemStackLimit(const FFaerieItemProxy& Item);
 }

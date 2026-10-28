@@ -10,6 +10,9 @@
 
 #include "FaerieItemProxy.generated.h"
 
+struct FFaerieItemProxy;
+struct FMassEntityManager;
+
 namespace Faerie::ItemData
 {
 	// #todo remove or move this type
@@ -51,13 +54,13 @@ struct FAERIEITEMDATA_API FFaerieItemProxy
 	  : ProxyObject(Other.ProxyObject), EntityManager(Other.EntityManager), InterfacePtr(Other.InterfacePtr), ValidWithoutProxyObject(Other.ValidWithoutProxyObject) {}
 
 	// Construct from a persistable pointer.
-	explicit FFaerieItemProxy(const TSharedPtr<FMassEntityManager>& EntityManager, const TScriptInterface<const IFaerieItemDataProxy>& Interface)
+	explicit FFaerieItemProxy(const TSharedPtr<const FMassEntityManager>& EntityManager, const TScriptInterface<const IFaerieItemDataProxy>& Interface)
 	  : ProxyObject(Interface.GetObject()), EntityManager(EntityManager), InterfacePtr(Interface.GetInterface()), ValidWithoutProxyObject(false) {}
 
 	// Constructor for single frame 'view' proxies that are cheaper than persistent proxies since they don't need a
 	// UObject backing them.
 	enum ECtorOverride { ESingleFrame };
-	explicit FFaerieItemProxy(ECtorOverride, const TSharedPtr<FMassEntityManager>& EntityManager, const TNotNull<const Faerie::ItemData::IViewBase*> View UE_LIFETIMEBOUND)
+	explicit FFaerieItemProxy(ECtorOverride, const TSharedPtr<const FMassEntityManager>& EntityManager, const TNotNull<const Faerie::ItemData::IViewBase*> View UE_LIFETIMEBOUND)
 	  : ProxyObject(nullptr), EntityManager(EntityManager), InterfacePtr(View), ValidWithoutProxyObject(true) {}
 
 private:
@@ -66,7 +69,7 @@ private:
 	TObjectPtr<const UObject> ProxyObject;
 
 	// Entity manager to access item data.
-	TSharedPtr<FMassEntityManager> EntityManager;
+	TSharedPtr<const FMassEntityManager> EntityManager;
 
 	// Pointer to the interface. If ProxyObject is valid, this also will be, but not always the other way around.
 	// For single frame proxies, only this may be set.
@@ -80,10 +83,12 @@ public:
 	// Used by Faerie::TValid
 	bool IsValid() const;
 
-	// Test if this proxy is valid and points to a valid item stack.
-	bool HasValidInstance() const;
+	bool IsMutable() const;
 
-	bool HasEntityManager() const { return EntityManager.IsValid(); }
+	// Test if this proxy is valid and points to a valid item stack.
+	bool HasValidStack() const;
+
+	UE_REWRITE bool HasEntityManager() const { return EntityManager.IsValid(); }
 
 	// Will this proxy safely refer to the same data if kept alive across multiple frame. If this returns false, do not
 	// store this proxy as a member.
@@ -96,16 +101,14 @@ public:
 	template <typename T>
 	UE_REWRITE const T* GetTypedProxyObject() const { return Cast<T>(ProxyObject); }
 
-	const TSharedPtr<FMassEntityManager>& GetEntityManager() const { return EntityManager; }
+	UE_REWRITE const TSharedPtr<const FMassEntityManager>& GetEntityManager() const { return EntityManager; }
 
 	// Get the MassEntityHandle for this proxy. Can return an invalid handle if we proxy an editor/unregistered instance.
 	FMassEntityHandle GetEntityHandle() const;
 
-	// Get the valid item instance or NullOpt from this proxy.
-	TOptional<FFaerieItemInstance> GetItemInstance() const;
-
-	// Get the valid item instance or a blank instance.
-	FFaerieItemInstance GetItemInstanceOrInvalid() const;
+#if WITH_EDITOR
+	const UFaerieItem* GetItemPtr() const;
+#endif
 
 	// Get the number of copies this proxy may access.
 	int32 GetCopies() const;

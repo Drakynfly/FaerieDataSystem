@@ -6,6 +6,8 @@
 #include "FaerieMassFragment.h"
 #include "FaerieItemStackHashInstruction.h"
 
+#include "StructUtils/InstancedStruct.h"
+
 #include "Templates/SubclassOf.h"
 #include "Templates/SubScriptStructOf.h"
 

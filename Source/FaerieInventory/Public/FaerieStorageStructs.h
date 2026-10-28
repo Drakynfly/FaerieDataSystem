@@ -10,6 +10,7 @@
 #include "FaerieItem.h"
 #include "FaerieItemContainerStructs.h"
 #include "FaerieItemExportData.h"
+#include "FaerieItemInstance.h"
 #include "FaerieItemKey.h"
 #include "MassReplication/FaerieItemReplicationTypes.h"
 #include "FaerieStorageStructs.generated.h"
@@ -97,7 +98,6 @@ public:
 	UE_REWRITE FFaerieEntryKey GetKey() const { return Key; }
 	UE_REWRITE FFaerieNetItemID GetNetID() const { return NetID; }
 	UE_REWRITE FMassEntityHandle GetEntityHandle() const { return CachedItemHandle; }
-	UE_REWRITE FFaerieItemInstance GetInstance() const { return FFaerieItemInstance::FromEntity(CachedItemHandle); }
 	UE_REWRITE TConstArrayView<FFaerieKeyedStack> GetStacks() const { return Stacks; }
 
 	UE_REWRITE int32 NumStacks() const { return Stacks.Num(); }
@@ -141,7 +141,6 @@ public:
 
 		//~ ItemData::IViewBase
 		virtual FMassEntityHandle GetEntityHandle() const override { return Entry.CachedItemHandle; }
-		UE_REWRITE virtual TOptional<FFaerieItemInstance> GetItemInstance() const override { return Entry.GetInstance(); }
 		UE_REWRITE virtual int32 GetCopies() const override { return Entry.StackSum(); }
 		//~ ItemData::IViewBase
 
@@ -168,7 +167,6 @@ public:
 
 		//~ ItemData::IViewBase
 		virtual FMassEntityHandle GetEntityHandle() const override { return Entry.CachedItemHandle; }
-		UE_REWRITE virtual TOptional<FFaerieItemInstance> GetItemInstance() const override { return Entry.GetInstance(); }
 		UE_REWRITE virtual int32 GetCopies() const override { return Stack.Stack; }
 		//~ ItemData::IViewBase
 
@@ -370,10 +368,6 @@ USTRUCT()
 struct FFaerieStorageEntryExportData
 {
 	GENERATED_BODY()
-
-	// @todo remove me
-	UPROPERTY()
-	TObjectPtr<const UFaerieItem> ItemObject;
 
 	UPROPERTY()
 	FFaerieItemExportData ExportData;

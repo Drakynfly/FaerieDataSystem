@@ -19,11 +19,11 @@ public:
 
 protected:
 	virtual UScriptStruct* GetViewModelFragmentType() const override;
-	virtual void OnProxySet(FMassEntityManager& EntityManager) override;
+	virtual void OnProxySet() override;
 	//~ UFaerieItemDataViewModelBase
 
 	//~ IFaerieItemDataViewFieldChangeInterface
-	virtual void OnFieldChange(const FMassEntityManager& EntityManager, const Faerie::ItemData::FFieldChangePayload& Data) override;
+	virtual void OnFieldChange(const Faerie::ItemData::FFieldChangePayload& Data) override;
 	//~ IFaerieItemDataViewFieldChangeInterface
 
 protected:

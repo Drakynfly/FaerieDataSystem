@@ -16,15 +16,11 @@ bool FFaerieClientAction_FavoriteItem::Server_Execute(const TNotNull<const UFaer
 	if (!IsValid(Container)) return false;
 	if (!Client->CanAccessContainer(EntityManager, Container, StaticStruct())) return false;
 
-	auto InstanceOpt = Container->ViewInstance(Handle.Address);
-	if (!InstanceOpt.IsSet())
-	{
-		return false;
-	}
+	const FMassEntityHandle Item = Container->GetItemHandle(Handle.Address);
 
-	if (EntityManager.IsEntityValid(InstanceOpt->GetMassEntityHandle()))
+	if (EntityManager.IsEntityValid(Item))
 	{
-		(void)EntityManager.AddSparseElementToEntity(InstanceOpt->GetMassEntityHandle(), FFaerieUserFavoriteFragment::StaticStruct());
+		(void)EntityManager.AddSparseElementToEntity(Item, FFaerieUserFavoriteFragment::StaticStruct());
 		// @Todo we need to broadcast this... UI needs to update on server and client when this runs
 	}
 	else
@@ -41,15 +37,11 @@ bool FFaerieClientAction_UnfavoriteItem::Server_Execute(const TNotNull<const UFa
 	if (!IsValid(Container)) return false;
 	if (!Client->CanAccessContainer(EntityManager, Container, StaticStruct())) return false;
 
-	auto InstanceOpt = Container->ViewInstance(Handle.Address);
-	if (!InstanceOpt.IsSet())
-	{
-		return false;
-	}
+	const FMassEntityHandle Item = Container->GetItemHandle(Handle.Address);
 
-	if (EntityManager.IsEntityValid(InstanceOpt->GetMassEntityHandle()))
+	if (EntityManager.IsEntityValid(Item))
 	{
-		EntityManager.RemoveSparseElementFromEntity(InstanceOpt->GetMassEntityHandle(), FFaerieUserFavoriteFragment::StaticStruct());
+		EntityManager.RemoveSparseElementFromEntity(Item, FFaerieUserFavoriteFragment::StaticStruct());
 		// @Todo we need to broadcast this... UI needs to update on server and client when this runs
 	}
 

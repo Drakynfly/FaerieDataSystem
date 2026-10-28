@@ -13,6 +13,7 @@ public class FaerieItemGenerator : ModuleRules
             {
                 "Core",
                 "GameplayTags",
+                "MassEntity",
                 "ModelViewViewModel"
             }
         );

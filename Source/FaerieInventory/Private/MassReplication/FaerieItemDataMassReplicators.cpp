@@ -6,6 +6,7 @@
 #include "FaerieContainerEvent.h"
 #include "FaerieItem.h"
 #include "FaerieItemContainerBase.h"
+#include "FaerieItemEvent.h"
 #include "FaerieMassFragment.h"
 
 #include "MassExecutionContext.h"
@@ -69,7 +70,7 @@ void UFaerieItemDataCreationReplicator::ProcessEntities(FMassExecutionContext& C
 					}
 				}
 
-				if (const FConstStructView FragmentView = ItemData::GetFaerieFragmentView(Manager, Entity, FragmentType);
+				if (const FConstStructView FragmentView = ItemData::GetEntityFragment(Manager, Entity, FragmentType);
 					FragmentView.IsValid())
 				{
 					FragmentViews.Add(FragmentView);
@@ -179,7 +180,7 @@ void UFaerieItemDataChangeReplicator::ProcessEntities(FMassExecutionContext& Con
 				{
 					const UScriptStruct* FragmentType = ChangeList.ChangeTypes.GetTypeAtIndex(*It);
 
-					const FConstStructView Fragment = ItemData::GetFaerieFragmentView(Manager, Event.ItemHandle, FragmentType);
+					const FConstStructView Fragment = ItemData::GetEntityFragment(Manager, Event.ItemHandle, FragmentType);
 					if (Fragment.IsValid())
 					{
 						FragmentViews.Add(Fragment);
@@ -217,7 +218,7 @@ void UFaerieItemDataChangeReplicator::ProcessEntities(FMassExecutionContext& Con
 			if (Event.EventType == ItemData::Tags::FragmentAdd ||
 				Event.EventType == ItemData::Tags::FragmentGenericPropertyEdit)
 			{
-				const FConstStructView Fragment = ItemData::GetFaerieFragmentView(Manager, Event.ItemHandle, Type);
+				const FConstStructView Fragment = ItemData::GetEntityFragment(Manager, Event.ItemHandle, Type);
 				if (Fragment.IsValid())
 				{
 					ReplicationSubsystem.Server_UpdateFragments(Event.ItemHandle, ItemNetIDPtr->NetID, MakeConstArrayView(&Fragment, 1));

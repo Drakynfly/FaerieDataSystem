@@ -16,7 +16,7 @@ void FFaerieItemContainerCountLimit::InitializeExtension(FMassEntityManager& Ent
 	EntryAmountCache.Reset();
 	CurrentTotalItemCopies = 0;
 
-	for (auto It = Container::KeyRange(Container); It; ++It)
+	for (auto It = Container::KeyRange(&EntityManager, Container); It; ++It)
 	{
 		UpdateCacheForEntry(It.GetKey(), It.GetCopies());
 	}

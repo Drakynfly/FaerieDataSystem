@@ -165,7 +165,7 @@ namespace Faerie::Hash
 
 	uint32 HashItemByName(const TValid<const FFaerieItemProxy&> Item)
 	{
-		auto ItemInfo = Faerie::ItemData::GetEntityFragmentOrDefault<FFaerieAssetInfo>(ValidGet(Item).GetEntityManager().Get(), ValidGet(Item).GetItemInstanceOrInvalid());
+		auto ItemInfo = Faerie::ItemData::GetItemDataOrDefault<FFaerieAssetInfo>(Item);
 		if (ItemInfo.IsValid())
 		{
 			return GetTypeHash(ItemInfo.Get());

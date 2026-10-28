@@ -5,18 +5,18 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieWidgetPreview)
 
-FMassEntityHandle UFaerieWidgetPreview::GetEntityHandle() const
-{
-	return FMassEntityHandle();
-}
-
-TOptional<FFaerieItemInstance> UFaerieWidgetPreview::GetItemInstance() const
+const UFaerieItem* UFaerieWidgetPreview::GetItemAsset() const
 {
 	if (Asset.IsValid())
 	{
-		return Asset->GetTemplateInstance();
+		return Asset->GetAssetTemplateItem();
 	}
-	return NullOpt;
+	return nullptr;
+}
+
+FMassEntityHandle UFaerieWidgetPreview::GetEntityHandle() const
+{
+	return FMassEntityHandle();
 }
 
 void UFaerieWidgetPreview::InitFaerieWidgetPreview(UFaerieItemAsset* InAsset)

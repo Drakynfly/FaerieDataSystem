@@ -14,6 +14,13 @@ namespace Faerie::Container
 	{
 	public:
 		virtual FFaerieEntryKey ResolveKey() const = 0;
+
+	private:
+#if WITH_EDITOR
+		// As IFaerieContainerProxy is only implemented by runtime containers, it will never provide an item asset object.
+		// ReSharper disable once CppOverrideWithDifferentVisibility
+		virtual const UFaerieItem* GetItemAsset() const override final { return nullptr; }
+#endif
 	};
 
 	/*

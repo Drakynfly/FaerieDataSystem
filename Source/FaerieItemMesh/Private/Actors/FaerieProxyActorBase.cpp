@@ -11,14 +11,16 @@ AFaerieProxyActorBase::AFaerieProxyActorBase()
 	bReplicates = true;
 }
 
+#if WITH_EDITOR
+const UFaerieItem* AFaerieProxyActorBase::GetItemAsset() const
+{
+	return DataSource.GetItemPtr();
+}
+#endif
+
 FMassEntityHandle AFaerieProxyActorBase::GetEntityHandle() const
 {
 	return DataSource.GetEntityHandle();
-}
-
-TOptional<FFaerieItemInstance> AFaerieProxyActorBase::GetItemInstance() const
-{
-	return DataSource.GetItemInstance();
 }
 
 int32 AFaerieProxyActorBase::GetCopies() const

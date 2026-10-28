@@ -34,7 +34,7 @@ public:
 public:
 	//~ IFaerieItemSource
 	virtual bool CanBeMutable() const override;
-	virtual Faerie::ItemData::FGetInstanceResult CreateItemStack(const FFaerieItemInstancingContext& Context) const override;
+	virtual Faerie::ItemData::FItemDataBuilder CreateItemStack(const FFaerieItemInstancingContext& Context) const override;
 	//~ IFaerieItemSource
 
 	const FFaerieTableDrop* GetDrop(double RanWeight) const;

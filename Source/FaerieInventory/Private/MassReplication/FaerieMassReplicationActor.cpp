@@ -6,6 +6,7 @@
 #include "EntityManagerHelpers.h"
 #include "FaerieInventoryLog.h"
 #include "FaerieItemContainerBase.h"
+#include "FaerieItemEvent.h"
 #include "FaerieItemOwnership.h"
 #include "MassCommandBuffer.h"
 
@@ -230,6 +231,10 @@ void AFaerieMassReplicationActor::CheckAck(const FFaerieNetItemID NetID, Contain
 		{
 			// Item was successfully bound to owner.
 			Entity.AwaitingContainerAck = false;
+		}
+		else
+		{
+			UE_LOGF(LogFaerieInventory, Warning, "CheckAck found owning container '%ls', but it didn't accept netID. Trying again next frame!", *GetNameSafe(Container))
 		}
 	}
 }

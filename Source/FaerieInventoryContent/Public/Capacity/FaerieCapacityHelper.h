@@ -4,6 +4,7 @@
 
 #include "CapacityStructs.h"
 #include "FaerieItemDataView.h"
+#include "FaerieItemEvent.h"
 
 namespace Faerie::ItemData
 {
@@ -16,8 +17,7 @@ namespace Faerie::ItemData
 		friend TFragmentHelperCRTP<FCapacityHelper, FFaerieItemCapacity>;
 
 		FCapacityHelper(const FMassEntityManager& EntityManager, FMassEntityHandle Item);
-		FCapacityHelper(const FMassEntityManager& EntityManager, const FFaerieItemInstance& Instance);
-		FCapacityHelper(const FMassEntityManager* EntityManager, const FFaerieItemInstance& Instance);
+		FCapacityHelper(const FFaerieItemProxy& Item);
 
 	protected:
 		/*
@@ -51,6 +51,6 @@ namespace Faerie::ItemData
 
 	private:
 		const FMassEntityManager* EntityManager;
-		const FFaerieItemInstance Item;
+		const FMassEntityHandle EntityHandle;
 	};
 }

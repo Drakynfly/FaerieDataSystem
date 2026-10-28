@@ -2,7 +2,7 @@
 
 #include "BasicItemFilters.h"
 #include "FaerieItem.h"
-#include "FaerieItemDataView.h"
+#include "FaerieItemInstance.h"
 
 #include "Fragments/FaerieTagFragment.h"
 
@@ -175,7 +175,7 @@ EFaerieItemFilterMutabilityStatus FFaerieItemFilter_Ternary::GetMutabilityStatus
 
 bool FFaerieItemFilter_Mutability::Exec(const TValid<const FFaerieItemProxy&> Proxy) const
 {
-	return ValidGet(Proxy).GetItemInstanceOrInvalid().IsMutable() == RequireMutable;
+	return ValidGet(Proxy).IsMutable();
 }
 
 #if WITH_EDITOR
@@ -217,13 +217,11 @@ EFaerieItemFilterMutabilityStatus FFaerieItemFilter_MatchTemplate::GetMutability
 
 FFaerieItemFilter_HasFragments::FFaerieItemFilter_HasFragments()
 {
-	ReferenceTag= ItemData::Tags::ReferenceDefaults;
+	ReferenceType = FFaerieItemDataDefaults::StaticStruct();
 }
 
 bool FFaerieItemFilter_HasFragments::Exec(const TValid<const FFaerieItemProxy&> Proxy) const
 {
-	const FFaerieItemInstance Instance = ValidGet(Proxy).GetItemInstanceOrInvalid();
-
 	// @todo cache the bitset?
 	FMassElementBitSet BitSet;
 	for (auto&& FragmentType : FragmentTypes)
@@ -244,7 +242,7 @@ bool FFaerieItemFilter_HasFragments::Exec(const TValid<const FFaerieItemProxy&> 
 	for (auto&& It = BitSet.GetIndexIterator(); It; ++It)
 	{
 		const UScriptStruct* FragmentType = BitSet.GetTypeAtIndex(*It);
-		if (ItemData::HasEntityFragmentOrDefault(ValidGet(Proxy).GetEntityManager().Get(), Instance, FragmentType, ReferenceTag))
+		if (ItemData::HasEntityFragmentOrDefault(Proxy, FragmentType, ReferenceType))
 		{
 			BitSet.RemoveAtIndex(*It);
 		}
@@ -259,8 +257,6 @@ bool FFaerieItemFilter_HasFragments::ExecWithLog(const TValid<const FFaerieItemP
 {
 	static const FTextFormat MissingStructErrorFormat = LOCTEXT("HasFragments_MissingClassError", "Missing required fragment of type: '{0}'");
 	static const FTextFormat InvalidTypeErrorFormat = LOCTEXT("HasFragments_InvalidType", "Invalid fragment type at index '{0}'");
-
-	const FFaerieItemInstance Instance = ValidGet(Proxy).GetItemInstanceOrInvalid();
 
 	FMassElementBitSet BitSet;
 	for (int32 i = 0; i < FragmentTypes.Num(); ++i)
@@ -290,7 +286,7 @@ bool FFaerieItemFilter_HasFragments::ExecWithLog(const TValid<const FFaerieItemP
 	{
 		const UScriptStruct* FragmentType = BitSet.GetTypeAtIndex(*It);
 
-		if (ItemData::HasEntityFragmentOrDefault(ValidGet(Proxy).GetEntityManager().Get(), Instance, FragmentType, ReferenceTag))
+		if (ItemData::HasEntityFragmentOrDefault(Proxy, FragmentType, ReferenceType))
 		{
 			BitSet.RemoveAtIndex(*It);
 		}
@@ -356,8 +352,7 @@ EFaerieItemFilterMutabilityStatus FFaerieItemFilter_Copies::GetMutabilityStatus(
 
 bool FFaerieItemFilter_CompareName::Exec(const TValid<const FFaerieItemProxy&> Proxy) const
 {
-	auto AssetInfo = ItemData::GetEntityFragmentOrDefault<FFaerieAssetInfo>(
-		ValidGet(Proxy).GetEntityManager().Get(), ValidGet(Proxy).GetItemInstanceOrInvalid());
+	auto AssetInfo = ItemData::GetItemDataOrDefault<FFaerieAssetInfo>(Proxy);
 	if (AssetInfo.IsValid())
 	{
 		return AssetInfo->ObjectName.CompareTo(CompareText, ComparisonType) == 0;
@@ -367,8 +362,7 @@ bool FFaerieItemFilter_CompareName::Exec(const TValid<const FFaerieItemProxy&> P
 
 bool FFaerieItemFilter_GameplayTagAny::Exec(const TValid<const FFaerieItemProxy&> Proxy) const
 {
-	auto TagFragment = ItemData::GetEntityFragmentOrDefault<FFaerieTagFragment>(
-		ValidGet(Proxy).GetEntityManager().Get(), ValidGet(Proxy).GetItemInstanceOrInvalid());
+	auto TagFragment = ItemData::GetItemDataOrDefault<FFaerieTagFragment>(Proxy);
 	if (TagFragment.IsValid())
 	{
 		if (Exact)
@@ -382,8 +376,7 @@ bool FFaerieItemFilter_GameplayTagAny::Exec(const TValid<const FFaerieItemProxy&
 
 bool FFaerieItemFilter_GameplayTagAll::Exec(const TValid<const FFaerieItemProxy&> Proxy) const
 {
-	auto TagFragment = ItemData::GetEntityFragmentOrDefault<FFaerieTagFragment>(
-		ValidGet(Proxy).GetEntityManager().Get(), ValidGet(Proxy).GetItemInstanceOrInvalid());
+	auto TagFragment = ItemData::GetItemDataOrDefault<FFaerieTagFragment>(Proxy);
 	if (TagFragment.IsValid())
 	{
 		if (Exact)
@@ -397,8 +390,7 @@ bool FFaerieItemFilter_GameplayTagAll::Exec(const TValid<const FFaerieItemProxy&
 
 bool FFaerieItemFilter_GameplayTagQuery::Exec(const TValid<const FFaerieItemProxy&> Proxy) const
 {
-	auto TagFragment = ItemData::GetEntityFragmentOrDefault<FFaerieTagFragment>(
-		ValidGet(Proxy).GetEntityManager().Get(), ValidGet(Proxy).GetItemInstanceOrInvalid());
+	auto TagFragment = ItemData::GetItemDataOrDefault<FFaerieTagFragment>(Proxy);
 	if (TagFragment.IsValid())
 	{
 		return Query.Matches(TagFragment->Tags);

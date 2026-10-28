@@ -9,6 +9,7 @@
 #include "NetSupportedObject.h"
 #include "FaerieItemContainerStructs.h"
 #include "FaerieItemDataView.h"
+#include "FaerieItemExportData.h"
 #include "FaerieItemProxy.h"
 #include "FaerieUnownedItemStack.h"
 #include "ItemContainerExtensionBase.h"
@@ -168,7 +169,7 @@ public:
 	/**------------------------------*/
 
 	[[nodiscard]] FFaerieItemExportData ExportItemData(const FMassEntityManager& EntityManager, const FMassEntityHandle Item) const;
-	[[nodiscard]] FFaerieItemInstance ImportItemData(FMassEntityManager& EntityManager, const UFaerieItem* Item, const FFaerieItemExportData& ExportData);
+	[[nodiscard]] FMassEntityHandle ImportItemData(FMassEntityManager& EntityManager, const FFaerieItemExportData& ExportData);
 
 	virtual FInstancedStruct MakeSaveData(const FMassEntityManager& EntityManager, Faerie::Container::FSaveParams Params) const PURE_VIRTUAL(UFaerieItemContainerBase::MakeSaveData, return {}; )
 	virtual bool LoadSaveData(FMassEntityManager& EntityManager, FConstStructView ItemData, Faerie::Container::FLoadParams Params) PURE_VIRTUAL(UFaerieItemContainerBase::SaveData, return false; )
@@ -188,20 +189,16 @@ public:
 	virtual FMassEntityHandle GetItemHandle(FFaerieEntryKey Key) const PURE_VIRTUAL(UFaerieItemContainerBase::GetItemHandle, return FMassEntityHandle(); )
 	virtual FMassEntityHandle GetItemHandle(FFaerieAddress Key) const PURE_VIRTUAL(UFaerieItemContainerBase::GetItemHandle, return FMassEntityHandle(); )
 
-	// Get the instance data of an item.
-	virtual TOptional<FFaerieItemInstance> ViewInstance(FFaerieEntryKey Key) const PURE_VIRTUAL(UFaerieItemContainerBase::ViewInstance, return NullOpt; )
-	virtual TOptional<FFaerieItemInstance> ViewInstance(FFaerieAddress Address) const PURE_VIRTUAL(UFaerieItemContainerBase::ViewInstance, return NullOpt; )
-
 	// Get a view of a stack
 	[[nodiscard]] virtual Faerie::ItemData::FScopeProxy ViewEntry(FFaerieEntryKey Key) const PURE_VIRTUAL(UFaerieItemContainerBase::ViewEntry, return nullptr; )
 	[[nodiscard]] virtual Faerie::ItemData::FScopeProxy ViewAddress(FFaerieAddress Address) const PURE_VIRTUAL(UFaerieItemContainerBase::ViewAddress, return nullptr; )
 
 	// Creates or retrieves a proxy for an entry
-	[[nodiscard]] virtual FFaerieItemProxy Proxy(FMassEntityManager& EntityManager, FMassEntityHandle Item) const PURE_VIRTUAL(UFaerieItemContainerBase::Proxy, return FFaerieItemProxy(); )
-	[[nodiscard]] virtual FFaerieItemProxy Proxy(FMassEntityManager& EntityManager, FFaerieEntryKey Key) const PURE_VIRTUAL(UFaerieItemContainerBase::Proxy, return FFaerieItemProxy(); )
-	[[nodiscard]] virtual FFaerieItemProxy Proxy(FMassEntityManager& EntityManager, FFaerieAddress Address) const PURE_VIRTUAL(UFaerieItemContainerBase::Proxy, return FFaerieItemProxy(); )
+	[[nodiscard]] virtual FFaerieItemProxy Proxy(const FMassEntityManager& EntityManager, FMassEntityHandle Item) const PURE_VIRTUAL(UFaerieItemContainerBase::Proxy, return FFaerieItemProxy(); )
+	[[nodiscard]] virtual FFaerieItemProxy Proxy(const FMassEntityManager& EntityManager, FFaerieEntryKey Key) const PURE_VIRTUAL(UFaerieItemContainerBase::Proxy, return FFaerieItemProxy(); )
+	[[nodiscard]] virtual FFaerieItemProxy Proxy(const FMassEntityManager& EntityManager, FFaerieAddress Address) const PURE_VIRTUAL(UFaerieItemContainerBase::Proxy, return FFaerieItemProxy(); )
 
-	// Call this function to grant ownership of a FFaerieItemInstance stack. Returns true if ownership was accepted.
+	// Call this function to grant ownership of an item stack. Returns true if ownership was accepted.
 	// It is implied, and is the responsibility of the implementing class, to either accept ownership of the whole stack,
 	// or none. Partial possession is not allowed.
 	[[nodiscard]] virtual bool Possess(FMassEntityManager& EntityManager, const FFaerieUnownedItemStack& Stack) PURE_VIRTUAL(UFaerieItemContainerBase::Possess, return false; )

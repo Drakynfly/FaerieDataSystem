@@ -11,7 +11,7 @@ using namespace Faerie;
 
 namespace Faerie::Container
 {
-	static void BuildPath_Recurse(FMassEntityManager& EntityManager, const FFaerieItemProxy& Owner,
+	static void BuildPath_Recurse(const FMassEntityManager* EntityManager, const FFaerieItemProxy& Owner,
 	   const TNotNull<UFaerieItemContainerBase*> Container, const FFaerieItemContainerPath& BasePath, TArray<FFaerieItemContainerPath>& OutPaths)
 	{
 		FFaerieItemContainerPath& NewPath = OutPaths.Emplace_GetRef(BasePath);
@@ -21,12 +21,13 @@ namespace Faerie::Container
 		});
 
 		// For each item in this container...
-		for (auto It = MutableItemRange(Container); It; ++It)
+		for (auto It = MutableItemRange(EntityManager, Container); It; ++It)
 		{
-			const FFaerieItemProxy Proxy = It.GetPersistentProxy(EntityManager);
+			// Since we emit this proxy in the container path, we need a persistent one.
+			const FFaerieItemProxy Proxy = It.GetPersistentProxy();
 
 			// Iterate sub-containers in that item, and build another path from it.
-			for (UFaerieItemContainerBase* SubContainer : SubObject::Iterate(EntityManager, Proxy.GetEntityHandle()))
+			for (UFaerieItemContainerBase* SubContainer : SubObject::Iterate(Proxy))
 			{
 				BuildPath_Recurse(EntityManager, Proxy, SubContainer, NewPath, OutPaths);
 			}
@@ -34,8 +35,8 @@ namespace Faerie::Container
 	}
 }
 
-void FFaerieItemContainerPath::BuildChildrenPaths(FMassEntityManager& EntityManager,
-	const FFaerieItemProxy& Owner, const TNotNull<UFaerieItemContainerBase*> Head, TArray<FFaerieItemContainerPath>& OutPaths)
+void FFaerieItemContainerPath::BuildChildrenPaths(const FMassEntityManager* EntityManager,
+	const TNotNull<UFaerieItemContainerBase*> Head, TArray<FFaerieItemContainerPath>& OutPaths)
 {
-	Container::BuildPath_Recurse(EntityManager, Owner, Head, FFaerieItemContainerPath(), OutPaths);
+	Container::BuildPath_Recurse(EntityManager, FFaerieItemProxy(), Head, FFaerieItemContainerPath(), OutPaths);
 }

@@ -7,6 +7,7 @@
 #include "FaerieContainerDataViewModelBase.h"
 #include "FaerieItemContainerStructs.h"
 #include "FaerieItemProxy.h"
+#include "MassEntityQuery.h"
 #include "MassProcessor.h"
 #include "InventoryCapacityExtension.generated.h"
 
@@ -100,7 +101,7 @@ struct FFaerieItemContainerCapacityData : public FFaerieItemContainerExtensionBa
     const FFaerieCapacityExtensionState& GetState() const { return State; }
 
 private:
-    bool HandleEvent(const FMassEntityManager& EntityManager, const Faerie::Container::FContainerEventPayload& Event);
+    bool HandleEvent(FMassEntityManager& EntityManager, const Faerie::Container::FContainerEventPayload& Event);
 
     // Tests if the capacity of a stack can fit in this container.
     bool CanContain(const FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container, Faerie::TValid<const FFaerieItemProxy&> Proxy) const;

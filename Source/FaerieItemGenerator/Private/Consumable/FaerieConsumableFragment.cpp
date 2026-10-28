@@ -3,7 +3,6 @@
 #include "Consumable/FaerieConsumableFragment.h"
 #include "Consumable/FaerieItemUsesFragment.h"
 #include "FaerieItem.h"
-#include "FaerieItemProxy.h"
 
 #include "GameFramework/Actor.h"
 
@@ -11,17 +10,17 @@
 
 namespace Faerie::Generation
 {
-	bool CanConsume(const FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy, const TNotNull<const UScriptStruct*> FragmentType,
+	bool CanConsume(const FFaerieItemProxy& Proxy, const TNotNull<const UScriptStruct*> FragmentType,
 		const TNotNull<const AActor*> Consumer, const int32 Cost)
 	{
-		const FConstStructView Fragment = ItemData::GetEntityFragmentOrDefault(&EntityManager, Proxy.GetItemInstanceOrInvalid(), FragmentType);
+		const FConstStructView Fragment = ItemData::GetEntityFragmentOrDefault(Proxy, FragmentType);
 		if (Fragment.IsValid())
 		{
 			if (const FFaerieConsumableFragment* ConsumableFragment = Fragment.GetPtr<FFaerieConsumableFragment>())
 			{
 				if (const UFaerieConsumableLogicBase* Logic = ConsumableFragment->GetConsumableLogic())
 				{
-					return Logic->TestConsumable(EntityManager, Fragment, Proxy, Consumer, Cost);
+					return Logic->TestConsumable(Fragment, Proxy, Consumer, Cost);
 				}
 			}
 		}
@@ -29,16 +28,16 @@ namespace Faerie::Generation
 		return false;
 	}
 
-	bool TryConsume(FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy, const TNotNull<const UScriptStruct*> FragmentType, const TNotNull<AActor*> Consumer, const int32 Cost)
+	bool TryConsume(const FFaerieItemProxy& Proxy, const TNotNull<const UScriptStruct*> FragmentType, const TNotNull<AActor*> Consumer, const int32 Cost)
 	{
-		const FConstStructView Fragment = ItemData::GetEntityFragmentOrDefault(&EntityManager, Proxy.GetItemInstanceOrInvalid(), FragmentType);
+		const FConstStructView Fragment = ItemData::GetEntityFragmentOrDefault(Proxy, FragmentType);
 		if (Fragment.IsValid())
 		{
 			if (const FFaerieConsumableFragment* ConsumableFragment = Fragment.GetPtr<FFaerieConsumableFragment>())
 			{
 				if (const UFaerieConsumableLogicBase* Logic = ConsumableFragment->GetConsumableLogic())
 				{
-					Logic->OnConsumed(EntityManager, Fragment, Proxy, Consumer, Cost);
+					Logic->OnConsumed(Fragment, Proxy, Consumer, Cost);
 					return true;
 				}
 			}
@@ -46,11 +45,10 @@ namespace Faerie::Generation
 		return false;
 	}
 
-	bool CanRemoveUses(const FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy, const int32 Cost,
+	bool CanRemoveUses(const FFaerieItemProxy& Proxy, const int32 Cost,
 		const bool ResultIfNoUsesFragment)
 	{
-		const TOptional<FFaerieItemInstance> Item = Proxy.GetItemInstance();
-		ItemData::FUsesHelper Uses(EntityManager, Item.GetValue());
+		const ItemData::FUsesHelper Uses(Proxy);
 		if (Uses.HasFragmentValue())
 		{
 			return Uses.HasUsesRemaining(Cost);
@@ -59,10 +57,9 @@ namespace Faerie::Generation
 		return ResultIfNoUsesFragment;
 	}
 
-	void RemoveUses(FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy, const int32 Cost)
+	void RemoveUses(const FFaerieItemProxy& Proxy, const int32 Cost)
 	{
-		const TOptional<FFaerieItemInstance> Item = Proxy.GetItemInstance();
-		ItemData::FUsesHelper Uses(EntityManager, Item.GetValue());
+		ItemData::FUsesHelper Uses(Proxy);
 		if (Uses.HasFragmentValue())
 		{
 			// Remove a usage.
@@ -73,8 +70,8 @@ namespace Faerie::Generation
 
 using namespace Faerie;
 
-bool UFaerieConsumableLogicBase::TestConsumable(const FMassEntityManager& EntityManager, const FConstStructView& Fragment,
-	const FFaerieItemProxy& Proxy, const TNotNull<const AActor*> Consumer, const int32 Cost) const
+bool UFaerieConsumableLogicBase::TestConsumable(const FConstStructView& Fragment, const FFaerieItemProxy& Proxy,
+	const TNotNull<const AActor*> Consumer, const int32 Cost) const
 {
-	return Generation::CanRemoveUses(EntityManager, Proxy, Cost, true);
+	return Generation::CanRemoveUses(Proxy, Cost, true);
 }

@@ -12,15 +12,13 @@
 
 #include "Capacity/FaerieCapacityHelper.h"
 
-#include "Net/UnrealNetwork.h"
-
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventoryCapacityExtension)
 
 using namespace Faerie;
 
 void FFaerieItemContainerCapacityData::InitializeExtension(FMassEntityManager& EntityManager, const TNotNull<const UFaerieItemContainerBase*> Container)
 {
-	for (auto It = Container::KeyRange(Container); It; ++It)
+	for (auto It = Container::KeyRange(&EntityManager, Container); It; ++It)
 	{
 		UpdateCacheForEntry(EntityManager, Container, *It);
 	}
@@ -35,12 +33,10 @@ EFaerieExtensionResponse FFaerieItemContainerCapacityData::AllowsAddition(const 
 
 	if (Proxies.Num() == 1)
 	{
-		if (const FFaerieItemProxy Proxy0 = Proxies[0];
+		if (const FFaerieItemProxy& Proxy0 = Proxies[0];
 			!CanContain(EntityManager, Container, Proxy0))
 		{
-			const UFaerieItem* Item = Proxy0.GetItemInstanceOrInvalid().GetItemPtr();
-			UE_LOGF(LogFaerieInventoryContent, Verbose, "AllowsAddition: Cannot add Stack (Item: '%ls' Copies: %i)",
-				Item ? *Item->GetName() : TEXT("null"), Proxy0.GetCopies());
+			UE_LOGF(LogFaerieInventoryContent, Verbose, "AllowsAddition: Cannot add Stack");
 			return EFaerieExtensionResponse::Disallowed;
 		}
 		return EFaerieExtensionResponse::Allowed;
@@ -55,7 +51,7 @@ EFaerieExtensionResponse FFaerieItemContainerCapacityData::AllowsAddition(const 
 	return EFaerieExtensionResponse::Allowed;
 }
 
-bool FFaerieItemContainerCapacityData::HandleEvent(const FMassEntityManager& EntityManager, const Container::FContainerEventPayload& Event)
+bool FFaerieItemContainerCapacityData::HandleEvent(FMassEntityManager& EntityManager, const Container::FContainerEventPayload& Event)
 {
 	if (Event.EntryRemoved)
 	{
@@ -71,7 +67,7 @@ bool FFaerieItemContainerCapacityData::CanContain(const FMassEntityManager& Enti
 {
 	// @todo this does not account for the idea that if we add to an existing stack, the Efficiency would reduce the weight.
 
-	const ItemData::FCapacityHelper Capacity(EntityManager, ValidGet(Proxy).GetItemInstanceOrInvalid());
+	const ItemData::FCapacityHelper Capacity(Proxy);
 
 	// If the fragment is invalid, return true if we don't require one.
 	if (!Capacity.HasFragmentValue())
@@ -130,14 +126,8 @@ bool FFaerieItemContainerCapacityData::CanContain_Multi(const FMassEntityManager
 	Capacities.Reserve(Proxies.Num());
 	for (int32 i = 0; i < Proxies.Num(); ++i)
 	{
-		const TOptional<FFaerieItemInstance> ItemInstanceOpt = Proxies[i].GetItemInstance();
-		if (!ItemInstanceOpt.IsSet())
-		{
-			return false;
-		}
-
 		TUniquePtr<ItemData::FCapacityHelper>& HelperPtr = Capacities.Add_GetRef(
-			MakeUnique<ItemData::FCapacityHelper>(EntityManager, ItemInstanceOpt.GetValue()));
+			MakeUnique<ItemData::FCapacityHelper>(Proxies[i]));
 		if (!HelperPtr->HasFragmentValue())
 		{
 			// If the fragment is invalid, return false if we require one.
@@ -252,14 +242,15 @@ bool FFaerieItemContainerCapacityData::UpdateCacheForEntry(const FMassEntityMana
 	FFaerieWeightAndVolume Total;
 
 	// @todo we need to calculate the recursive capacity, not just the direct capacity.
-	const ItemData::FCapacityHelper Capacity(EntityManager, View.Instance);
+	const FFaerieItemProxy Proxy(FFaerieItemProxy::ESingleFrame, EntityManager.AsShared(), &View);
+	const ItemData::FCapacityHelper Capacity(Proxy);
 	if (Capacity.HasFragmentValue())
 	{
 		// Get the weight of the sum of all stacks.
 		Total.GramWeight = Capacity.GetWeightOfStack(View.Copies);
 
 		// Calculate and add up the volumes of each stack.
-		for (auto It = Container::SingleKeyRange(Container, Key); It; ++It)
+		for (auto It = Container::SingleKeyRange(&EntityManager, Container, Key); It; ++It)
 		{
 			Total.Volume += Capacity.GetVolumeOfStack(It.GetCopies());
 		}

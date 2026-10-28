@@ -19,7 +19,7 @@ void FFaerieCraftRecipeAction::Run(const Faerie::Generation::FActionExecution& E
 
 	if (const FFaerieItemCraftingSlots* SlotsPtr = Config->Recipe->GetCraftingSlots())
 	{
-		if (!Faerie::Generation::ValidateFilledSlots<true>(Execution.EntityManager, Slots, *SlotsPtr))
+		if (!Faerie::Generation::ValidateFilledSlots<true>(*Execution.EntityManager, Slots, *SlotsPtr))
 		{
 			return Fail(Execution, this, INVTEXT("Validation of input slots failed"));
 		}
@@ -37,13 +37,13 @@ void FFaerieCraftRecipeAction::Run(const Faerie::Generation::FActionExecution& E
 	Context.Squirrel = Execution.Squirrel.Get();
 	Context.InputEntryData = Slots;
 
-	const Faerie::ItemData::FGetInstanceResult Result = Config->Recipe->GetItemSource()->CreateItemStack(Context);
+	const Faerie::ItemData::FItemDataBuilder Result = Config->Recipe->GetItemSource()->CreateItemStack(Context);
 	if (!Result.IsValid())
 	{
 		return Fail(Execution, this, INVTEXT("Item Instancing failed for Craft Item!"));
 	}
 
-	ActionData.Stacks.Add(Result.WithInitialization(*Execution.EntityManager));
+	Storage.Builders.Add(Result);
 
 	if (RunConsumeStep)
 	{

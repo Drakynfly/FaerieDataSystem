@@ -2,9 +2,6 @@
 
 #include "Generation/FaerieItemGenerationAction.h"
 #include "Generation/FaerieItemGenerationConfig.h"
-
-#include "EntityManagerHelpers.h"
-
 #include "FaerieItemGenerationLog.h"
 #include "FaerieItemPool.h"
 #include "ItemCraftingRunner.h"
@@ -21,7 +18,7 @@ using namespace Faerie;
 
 namespace Faerie::Generation
 {
-	void ResolveGeneration(const FPendingTableDrop& PendingDrop, const FFaerieItemInstancingContext_Crafting& Context, FFaerieCraftingActionData& Data)
+	void ResolveGeneration(const FPendingTableDrop& PendingDrop, const FFaerieItemInstancingContext_Crafting& Context, FActionStorage& Data)
 	{
 		const UObject* AssetObject = PendingDrop.Drop->Asset.Object.Get();
 		if (!AssetObject)
@@ -39,7 +36,7 @@ namespace Faerie::Generation
 				if (auto NewStack = PendingDrop.Drop->Resolve(Context);
 					NewStack.IsValid())
 				{
-					Data.Stacks.Emplace(NewStack.WithInitialization(*Context.EntityManager));
+					Data.Builders.Emplace(NewStack);
 				}
 				else
 				{
@@ -50,12 +47,11 @@ namespace Faerie::Generation
 		// Generate a single entry stack when immutable, as there is no chance of uniqueness.
 		else
 		{
-			if (const ItemData::FGetInstanceResult NewStack = PendingDrop.Drop->Resolve(Context);
+			if (ItemData::FItemDataBuilder NewStack = PendingDrop.Drop->Resolve(Context);
 				NewStack.IsValid())
 			{
-				FFaerieUnownedItemStack Value = NewStack.WithInitialization(*Context.EntityManager);
-				Value.Copies *= PendingDrop.Count;
-				Data.Stacks.Emplace(Value);
+				NewStack.SetCopies(NewStack.GetCopies() * PendingDrop.Count);
+				Data.Builders.Emplace(NewStack);
 			}
 		}
 	}
@@ -100,7 +96,7 @@ void FFaerieItemGenerationActionSingle::LoadCheck(const TSharedPtr<FStreamableHa
 	{
 		const FFaerieTableDrop& SlotSource = ResourceSlot.Value.Get();
 
-		auto&& ResourceObj = Source.Asset.Object;
+		TSoftObjectPtr<const UObject>& ResourceObj = Source.Asset.Object;
 		if (ResourceObj.IsValid())
 		{
 			if (const UFaerieItemPool* Pool = Cast<UFaerieItemPool>(ResourceObj.Get()))
@@ -155,32 +151,15 @@ void FFaerieItemGenerationActionSingle::Generate(const Generation::FActionExecut
 		return Fail(Execution, this, INVTEXT("PendingDrop is invalid. Nothing will be returned"));
 	}
 
-	Generation::ResolveGeneration({.Drop = &Source, .Count = 1}, Context, ActionData);
-
-
-	if (Execution.IsInGameWorld())
-	{
-		check(Execution.EntityManager)
-
-		// Initialize all generated instances for runtime.
-		for (auto&& Stack : ActionData.Stacks)
-		{
-			Stack.Instance.ConvertToRuntimeInPlace(*Execution.EntityManager);
-		}
-
-		for (auto&& GeneratedChild : Context.GeneratedChildren)
-		{
-			GeneratedChild.Value.Instance.ConvertToRuntimeInPlace(*Execution.EntityManager);
-		}
-	}
+	Generation::ResolveGeneration({.Drop = &Source, .Count = 1}, Context, Storage);
 
 	// Step 4: Report result.
 
-	if (!ActionData.Stacks.IsEmpty())
+	if (!Storage.Builders.IsEmpty())
 	{
 		FText OutMessage;
 #if WITH_EDITOR
-		OutMessage = FText::AsCultureInvariant(FString::Printf(TEXT("Generation success. Created '%i' stack(s)."), ActionData.Stacks.Num()));
+		OutMessage = FText::AsCultureInvariant(FString::Printf(TEXT("Generation success. Created '%i' stack(s)."), Storage.Builders.Num()));
 #endif
 		return Complete(Execution, this, OutMessage);
 	}
@@ -362,35 +341,35 @@ void FFaerieItemGenerationAction::Generate(const Generation::FActionExecution& E
 			continue;
 		}
 
-		Generation::ResolveGeneration(Generation, Context, ActionData);
+		Generation::ResolveGeneration(Generation, Context, Storage);
 	}
 
 	if (Execution.IsInGameWorld())
 	{
 		// Ensure all generated instances are initialized for runtime.
 
-        for (auto&& Stack : ActionData.Stacks)
+        for (auto&& Builder : Storage.Builders)
         {
-        	ensure(Stack.Instance.HasMassEntity());
+        	ensure(Builder.IsValid());
         }
 
         for (auto&& GeneratedChild : Context.GeneratedChildren)
         {
-        	ensure(GeneratedChild.Value.Instance.HasMassEntity());
+        	ensure(GeneratedChild.Value.IsValid());
         }
 	}
 
 
 	// Step 4: Report result.
 
-	if (ActionData.Stacks.IsEmpty())
+	if (Storage.Builders.IsEmpty())
 	{
 		return Fail(Execution, this, INVTEXT("Generation failed to create any entries. Nothing will be returned."));
 	}
 
 	FText OutMessage;
 #if WITH_EDITOR
-	OutMessage = FText::AsCultureInvariant(FString::Printf(TEXT("Generation success. Created '%i' stack(s)."), ActionData.Stacks.Num()));
+	OutMessage = FText::AsCultureInvariant(FString::Printf(TEXT("Generation success. Created '%i' stack(s)."), Storage.Builders.Num()));
 #endif
 	return Complete(Execution, this, OutMessage);
 }

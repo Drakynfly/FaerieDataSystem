@@ -22,28 +22,28 @@ namespace Faerie::Container
 		}
 	}
 
-	FKeyIterator KeyRange(const TNotNull<const UFaerieItemContainerBase*> Container)
+	FKeyIterator KeyRange(const FMassEntityManager* EntityManager, const TNotNull<const UFaerieItemContainerBase*> Container)
 	{
-		return FKeyIterator(Private::FIteratorAccess::CreateEntryIteratorImpl(Container));
+		return FKeyIterator(EntityManager, Private::FIteratorAccess::CreateEntryIteratorImpl(Container));
 	}
 
-	FAddressIterator AddressRange(const TNotNull<const UFaerieItemContainerBase*> Container)
+	FAddressIterator AddressRange(const FMassEntityManager* EntityManager, const TNotNull<const UFaerieItemContainerBase*> Container)
 	{
-		return FAddressIterator(Private::FIteratorAccess::CreateAddressIteratorImpl(Container));
+		return FAddressIterator(EntityManager, Private::FIteratorAccess::CreateAddressIteratorImpl(Container));
 	}
 
-	FAddressIterator SingleKeyRange(const TNotNull<const UFaerieItemContainerBase*> Container, const FFaerieEntryKey Key)
+	FAddressIterator SingleKeyRange(const FMassEntityManager* EntityManager, const TNotNull<const UFaerieItemContainerBase*> Container, const FFaerieEntryKey Key)
 	{
-		return FAddressIterator(Private::FIteratorAccess::CreateSingleEntryIteratorImpl(Container, Key));
+		return FAddressIterator(EntityManager, Private::FIteratorAccess::CreateSingleEntryIteratorImpl(Container, Key));
 	}
 
-	FItemIterator ItemRange(const TNotNull<const UFaerieItemContainerBase*> Container)
+	FItemIterator ItemRange(const FMassEntityManager* EntityManager, const TNotNull<const UFaerieItemContainerBase*> Container)
 	{
-		return FItemIterator(Private::FIteratorAccess::CreateEntryIteratorImpl(Container));
+		return FItemIterator(EntityManager, Private::FIteratorAccess::CreateEntryIteratorImpl(Container));
 	}
 
-	FMutableItemIterator MutableItemRange(const TNotNull<const UFaerieItemContainerBase*> Container)
+	FMutableItemIterator MutableItemRange(const FMassEntityManager* EntityManager, const TNotNull<const UFaerieItemContainerBase*> Container)
 	{
-		return FMutableItemIterator(Private::FIteratorAccess::CreateEntryIteratorImpl(Container));
+		return FMutableItemIterator(EntityManager, Private::FIteratorAccess::CreateEntryIteratorImpl(Container));
 	}
 }

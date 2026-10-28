@@ -18,15 +18,15 @@ UScriptStruct* UFaerieCapacityViewModel::GetViewModelFragmentType() const
 	return Content::FCapacityViewFragment::StaticStruct();
 }
 
-void UFaerieCapacityViewModel::OnProxySet(FMassEntityManager& EntityManager)
+void UFaerieCapacityViewModel::OnProxySet()
 {
 	int32 NewWeight = 0;
 	FIntVector NewBounds = FIntVector::ZeroValue;
 	float NewEfficiency = 0.f;
 
-	if (ItemProxy.HasValidInstance())
+	if (ItemProxy.HasValidStack())
 	{
-		const ItemData::FCapacityHelper Helper(EntityManager, ItemProxy.GetItemInstanceOrInvalid());
+		const ItemData::FCapacityHelper Helper(ItemProxy);
 
 		UE_MVVM_SET_PROPERTY_VALUE(HasCapacity, Helper.HasFragmentValue());
 
@@ -48,9 +48,9 @@ void UFaerieCapacityViewModel::OnProxySet(FMassEntityManager& EntityManager)
 	UE_MVVM_SET_PROPERTY_VALUE(Efficiency, NewEfficiency);
 }
 
-void UFaerieCapacityViewModel::OnFieldChange(const FMassEntityManager& EntityManager, const ItemData::FFieldChangePayload& Data)
+void UFaerieCapacityViewModel::OnFieldChange(const ItemData::FFieldChangePayload& Data)
 {
-	const ItemData::FCapacityHelper Helper(EntityManager, ItemProxy.GetItemInstanceOrInvalid());
+	const ItemData::FCapacityHelper Helper(ItemProxy);
 
 	if (Data.HasFlag(FFaerieItemCapacity::EFieldFlags::Weight))
 	{

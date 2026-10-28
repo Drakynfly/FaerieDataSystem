@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "FaerieUnownedItemStack.h"
+#include "FaerieItemSource.h"
 #include "FaerieItemSlotInterface.h"
 #include "FaerieItemInstancingContext.h"
 #include "ItemInstancingContext_Crafting.generated.h"
@@ -20,7 +20,7 @@ struct FAERIEITEMGENERATOR_API FFaerieItemInstancingContext_Crafting : public FF
 
 	// Used to fill Required & Optional Slots (generated instances)
 	UPROPERTY()
-	TMap<FFaerieItemSlotHandle, FFaerieUnownedItemStack> GeneratedChildren;
+	TMap<FFaerieItemSlotHandle, Faerie::ItemData::FItemDataBuilder> GeneratedChildren;
 
 	// When valid, this context can generate seeded output, otherwise implementations may choose to either fail or
 	// resolve to non-seeded output.

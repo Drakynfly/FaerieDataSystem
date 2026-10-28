@@ -10,7 +10,11 @@
 
 #include "FaerieItemMutator.generated.h"
 
-struct FFaerieItemInstance;
+namespace Faerie::ItemData
+{
+	struct FItemDataBuilder;
+}
+
 struct FMassEntityManager;
 class USquirrel;
 
@@ -76,7 +80,7 @@ struct FAERIEITEMGENERATOR_API FFaerieItemMutator
 	virtual void GetRequiredAssets(TAdderRef<FSoftObjectPath> RequiredAssets) const {}
 
 	// Try to run this mutator on a stack.
-	virtual bool Apply(FFaerieItemInstance& Item, const FFaerieItemMutatorContext& Context) const PURE_VIRTUAL(FFaerieItemMutator::Apply, return false; )
+	virtual bool Apply(Faerie::ItemData::FItemDataBuilder& Builder, const FFaerieItemMutatorContext& Context) const PURE_VIRTUAL(FFaerieItemMutator::Apply, return false; )
 };
 
 template<>

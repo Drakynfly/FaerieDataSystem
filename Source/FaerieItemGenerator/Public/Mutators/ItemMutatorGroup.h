@@ -28,7 +28,7 @@ struct FAERIEITEMGENERATOR_API FFaerieItemMutatorGroup final : public FFaerieIte
 #endif
 
 	virtual void GetRequiredAssets(TAdderRef<FSoftObjectPath> RequiredAssets) const override;
-	virtual bool Apply(FFaerieItemInstance& Item, const FFaerieItemMutatorContext& Context) const override;
+	virtual bool Apply(Faerie::ItemData::FItemDataBuilder& Builder, const FFaerieItemMutatorContext& Context) const override;
 
 	[[nodiscard]] UE_REWRITE bool IsEmpty() const { return Children.IsEmpty(); }
 

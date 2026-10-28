@@ -11,7 +11,7 @@ using namespace Faerie;
 
 bool FFaerieItemFilter_StackLimit::Exec(const TValid<const FFaerieItemProxy&> Proxy) const
 {
-	if (const int32 Limit = Container::GetItemStackLimit(ValidGet(Proxy).GetEntityManager().Get(), ValidGet(Proxy).GetItemInstance().GetValue());
+	if (const int32 Limit = Container::GetItemStackLimit(Proxy);
 		Limit == ItemData::UnlimitedStack)
 	{
 		switch (Operator)

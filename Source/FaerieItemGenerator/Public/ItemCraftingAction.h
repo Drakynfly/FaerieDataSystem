@@ -2,12 +2,14 @@
 
 #pragma once
 
+#include "FaerieItemSource.h"
 #include "FaerieUnownedItemStack.h"
 #include "Engine/TimerHandle.h"
 #include "Misc/DateTime.h"
 #include "StructUtils/StructView.h"
 #include "ItemCraftingAction.generated.h"
 
+struct FMassEntityManager;
 struct FStreamableHandle;
 class UFaerieItemCraftingRunner;
 class USquirrel;
@@ -42,7 +44,7 @@ struct FFaerieCraftingActionHandle
 
 // The results of a crafting action
 USTRUCT(BlueprintType)
-struct FFaerieCraftingActionData
+struct FFaerieCraftingActionResult
 {
 	GENERATED_BODY()
 
@@ -52,6 +54,16 @@ struct FFaerieCraftingActionData
 
 namespace Faerie::Generation
 {
+	USTRUCT()
+	struct FActionStorage
+	{
+		GENERATED_BODY()
+
+		// Items being built.
+		UPROPERTY()
+		TArray<ItemData::FItemDataBuilder> Builders;
+	};
+
 	struct FActionExecution
 	{
 		// The object that is running this execution.
@@ -66,7 +78,7 @@ namespace Faerie::Generation
 		bool IsInGameWorld() const;
 	};
 
-	using FActionResult = TDelegate<void(EGenerationActionResult Success, const FFaerieCraftingActionData&)>;
+	using FActionResult = TDelegate<void(EGenerationActionResult Success, const FFaerieCraftingActionResult&)>;
 }
 
 USTRUCT(BlueprintType)
@@ -103,9 +115,9 @@ protected:
 		CompleteWithResult(TStructView<FFaerieCraftingActionBase>(*Action), Execution, EGenerationActionResult::Cancelled, Message);
 	}
 
-	// Storage for result data.
+	// Storage for items being processed.
 	UPROPERTY()
-	FFaerieCraftingActionData ActionData;
+	Faerie::Generation::FActionStorage Storage;
 
 	// Handle to an async stream of assets we need.
 	TSharedPtr<FStreamableHandle> RunningStreamHandle;

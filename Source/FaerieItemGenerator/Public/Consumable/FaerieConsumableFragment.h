@@ -9,11 +9,11 @@
 
 namespace Faerie::Generation
 {
-	FAERIEITEMGENERATOR_API bool CanConsume(const FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy, TNotNull<const UScriptStruct*> FragmentType, const TNotNull<const AActor*> Consumer, const int32 Cost);
-	FAERIEITEMGENERATOR_API bool TryConsume(FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy, TNotNull<const UScriptStruct*> FragmentType, const TNotNull<AActor*> Consumer, const int32 Cost);
+	FAERIEITEMGENERATOR_API bool CanConsume(const FFaerieItemProxy& Proxy, TNotNull<const UScriptStruct*> FragmentType, const TNotNull<const AActor*> Consumer, const int32 Cost);
+	FAERIEITEMGENERATOR_API bool TryConsume(const FFaerieItemProxy& Proxy, TNotNull<const UScriptStruct*> FragmentType, const TNotNull<AActor*> Consumer, const int32 Cost);
 
-	FAERIEITEMGENERATOR_API bool CanRemoveUses(const FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy, int32 Cost, bool ResultIfNoUsesFragment);
-	FAERIEITEMGENERATOR_API void RemoveUses(FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy, int32 Cost);
+	FAERIEITEMGENERATOR_API bool CanRemoveUses(const FFaerieItemProxy& Proxy, int32 Cost, bool ResultIfNoUsesFragment);
+	FAERIEITEMGENERATOR_API void RemoveUses(const FFaerieItemProxy& Proxy, int32 Cost);
 }
 
 // Extension point for implementation of consumption logic.
@@ -23,9 +23,9 @@ class FAERIEITEMGENERATOR_API UFaerieConsumableLogicBase : public UObject
 	GENERATED_BODY()
 
 public:
-	virtual bool TestConsumable(const FMassEntityManager& EntityManager, const FConstStructView& Fragment, const FFaerieItemProxy& Proxy, TNotNull<const AActor*> Consumer, int32 Cost) const;
+	virtual bool TestConsumable(const FConstStructView& Fragment, const FFaerieItemProxy& Proxy, TNotNull<const AActor*> Consumer, int32 Cost) const;
 
-	virtual void OnConsumed(FMassEntityManager& EntityManager, const FConstStructView& Fragment, const FFaerieItemProxy& Proxy, TNotNull<AActor*> Consumer, int32 Cost) const
+	virtual void OnConsumed(const FConstStructView& Fragment, const FFaerieItemProxy& Proxy, TNotNull<AActor*> Consumer, int32 Cost) const
 		PURE_VIRTUAL(UFaerieConsumableLogicBase::OnConsumed, )
 };
 

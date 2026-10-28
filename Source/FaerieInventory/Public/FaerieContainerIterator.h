@@ -11,6 +11,8 @@
 #include "FaerieItemProxy.h"
 #include "MassEntityManager.h"
 
+#define FAE_API FAERIEINVENTORY_API
+
 namespace Faerie::Container
 {
 #if FAERIE_DEBUG
@@ -53,9 +55,9 @@ namespace Faerie::Container
 		class FIteratorAccess
 		{
 		public:
-			FAERIEINVENTORY_API static TUniquePtr<IEntryIterator> CreateEntryIteratorImpl(const TNotNull<const UFaerieItemContainerBase*> Container);
-			FAERIEINVENTORY_API static TUniquePtr<IAddressIterator> CreateAddressIteratorImpl(const TNotNull<const UFaerieItemContainerBase*> Container);
-			FAERIEINVENTORY_API static TUniquePtr<IAddressIterator> CreateSingleEntryIteratorImpl(const TNotNull<const UFaerieItemContainerBase*> Container, const FFaerieEntryKey Key);
+			FAE_API static TUniquePtr<IEntryIterator> CreateEntryIteratorImpl(const TNotNull<const UFaerieItemContainerBase*> Container);
+			FAE_API static TUniquePtr<IAddressIterator> CreateAddressIteratorImpl(const TNotNull<const UFaerieItemContainerBase*> Container);
+			FAE_API static TUniquePtr<IAddressIterator> CreateSingleEntryIteratorImpl(const TNotNull<const UFaerieItemContainerBase*> Container, const FFaerieEntryKey Key);
 		};
 
 		template <bool IterateAddresses>
@@ -82,8 +84,8 @@ namespace Faerie::Container
 	class TIterator
 	{
 	public:
-		UE_REWRITE explicit TIterator(const TNotNull<const UFaerieItemContainerBase*> Container)
-		  : IteratorPtr(Private::CreateIteratorImpl<std::is_same_v<ResolveType, FFaerieAddress>>(Container))
+		UE_REWRITE explicit TIterator(const FMassEntityManager* EntityManager, const TNotNull<const UFaerieItemContainerBase*> Container)
+		  : EntityManager(EntityManager), IteratorPtr(Private::CreateIteratorImpl<std::is_same_v<ResolveType, FFaerieAddress>>(Container))
 		{
 			LOG_ITERATOR_MESSAGE("TIterator::Ctor from Container")
 
@@ -94,8 +96,8 @@ namespace Faerie::Container
 			}
 		}
 
-		UE_REWRITE explicit TIterator(TIterator&& Other)
-		  : IteratorPtr(MoveTemp(Other.IteratorPtr))
+		UE_REWRITE explicit TIterator(const FMassEntityManager* EntityManager, TIterator&& Other)
+		  : EntityManager(EntityManager), IteratorPtr(MoveTemp(Other.IteratorPtr))
 		{
 			LOG_ITERATOR_MESSAGE("TIterator::Move Ctor");
 
@@ -106,8 +108,8 @@ namespace Faerie::Container
 			}
 		}
 
-		UE_REWRITE explicit TIterator(TUniquePtr<ViewInterface>&& Iterator)
-		  : IteratorPtr(MoveTemp(Iterator))
+		UE_REWRITE explicit TIterator(const FMassEntityManager* EntityManager, TUniquePtr<ViewInterface>&& Iterator)
+		  : EntityManager(EntityManager), IteratorPtr(MoveTemp(Iterator))
 		{
 			LOG_ITERATOR_MESSAGE("TIterator::Move Ctor");
 
@@ -130,9 +132,9 @@ namespace Faerie::Container
 			{
 				return IteratorPtr->ResolveAddress();
 			}
-			else if constexpr (std::is_same_v<ResolveType, FFaerieItemInstance>)
+			else if constexpr (std::is_same_v<ResolveType, FMassEntityHandle>)
 			{
-				return IteratorPtr->GetItemInstance().GetValue();
+				return IteratorPtr->GetEntityHandle();
 			}
 			else
 			{
@@ -142,7 +144,7 @@ namespace Faerie::Container
 
 		void AdvanceWhileImmutable()
 		{
-			while (static_cast<bool>(*this) && !IteratorPtr->GetItemInstance().GetValue().IsMutable())
+			while (static_cast<bool>(*this) && !GetSingleFrameProxy().IsMutable())
 			{
 				IteratorPtr->Advance();
 			}
@@ -152,25 +154,25 @@ namespace Faerie::Container
 		[[nodiscard]] UE_REWRITE FFaerieAddress GetAddress() const { return IteratorPtr->ResolveAddress(); }
 		[[nodiscard]] UE_REWRITE int32 GetCopies() const { return IteratorPtr->GetCopies(); }
 		[[nodiscard]] UE_REWRITE FMassEntityHandle GetEntityHandle() const { return IteratorPtr->GetEntityHandle(); }
-		[[nodiscard]] UE_REWRITE const UFaerieItemContainerBase* GetOwner(const FMassEntityManager& EntityManager) const
+		[[nodiscard]] UE_REWRITE const UFaerieItemContainerBase* GetOwner() const
 		{
-			return GetItemOwner(EntityManager, GetEntityHandle());
+			return GetItemOwner(*EntityManager, GetEntityHandle());
 		}
 
-		[[nodiscard]] FFaerieItemProxy GetSingleFrameProxy(FMassEntityManager* EntityManager) const UE_LIFETIMEBOUND
+		[[nodiscard]] FFaerieItemProxy GetSingleFrameProxy() const UE_LIFETIMEBOUND
 		{
 			return FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, EntityManager ? EntityManager->AsShared().ToSharedPtr() : nullptr, IteratorPtr.Get());
 		}
 
-		[[nodiscard]] UE_REWRITE FFaerieItemProxy GetPersistentProxy(FMassEntityManager& EntityManager) const
+		[[nodiscard]] UE_REWRITE FFaerieItemProxy GetPersistentProxy() const
 		{
 			if constexpr (std::is_same_v<ResolveType, FFaerieAddress>)
 			{
-				return GetOwner(EntityManager)->Proxy(EntityManager, GetAddress());
+				return GetOwner()->Proxy(*EntityManager, GetAddress());
 			}
 			else
 			{
-				return GetOwner(EntityManager)->Proxy(EntityManager, GetKey());
+				return GetOwner()->Proxy(*EntityManager, GetKey());
 			}
 		}
 
@@ -205,26 +207,29 @@ namespace Faerie::Container
 		[[nodiscard]] UE_REWRITE Utils::EIteratorType end() const { return Utils::End; }
 
 	private:
+		const FMassEntityManager* EntityManager;
 		TUniquePtr<ViewInterface> IteratorPtr;
 	};
 
 	using FKeyIterator = TIterator<FFaerieEntryKey, AllInstances, IEntryIterator>;
 	using FAddressIterator = TIterator<FFaerieAddress, AllInstances, IAddressIterator>;
-	using FItemIterator = TIterator<FFaerieItemInstance, AllInstances, IEntryIterator>;
-	using FMutableItemIterator = TIterator<FFaerieItemInstance, OnlyMutableInstances, IEntryIterator>;
+	using FItemIterator = TIterator<FMassEntityHandle, AllInstances, IEntryIterator>;
+	using FMutableItemIterator = TIterator<FMassEntityHandle, OnlyMutableInstances, IEntryIterator>;
 
 	// Enables ranged for-loops through each key in the container. Simple range with no filtering.
-	FAERIEINVENTORY_API FKeyIterator KeyRange(TNotNull<const UFaerieItemContainerBase*> Container);
+	FAE_API FKeyIterator KeyRange(const FMassEntityManager* EntityManager, TNotNull<const UFaerieItemContainerBase*> Container);
 
 	// Enables ranged for-loops through each address in the container. Simple range with no filtering.
-	FAERIEINVENTORY_API FAddressIterator AddressRange(TNotNull<const UFaerieItemContainerBase*> Container);
+	FAE_API FAddressIterator AddressRange(const FMassEntityManager* EntityManager, TNotNull<const UFaerieItemContainerBase*> Container);
 
 	// Enables ranged for-loops through each address in one entry. Simple range with no filtering.
-	FAERIEINVENTORY_API FAddressIterator SingleKeyRange(TNotNull<const UFaerieItemContainerBase*> Container, FFaerieEntryKey Key);
+	FAE_API FAddressIterator SingleKeyRange(const FMassEntityManager* EntityManager, TNotNull<const UFaerieItemContainerBase*> Container, FFaerieEntryKey Key);
 
 	// Enables ranged for-loops through each item in the container. Simple range with no filtering.
-	FAERIEINVENTORY_API FItemIterator ItemRange(TNotNull<const UFaerieItemContainerBase*> Container);
+	FAE_API FItemIterator ItemRange(const FMassEntityManager* EntityManager, TNotNull<const UFaerieItemContainerBase*> Container);
 
 	// Enables ranged for-loops through each mutable item in the container. Automatically filtered to only return mutable instances.
-	FAERIEINVENTORY_API FMutableItemIterator MutableItemRange(TNotNull<const UFaerieItemContainerBase*> Container);
+	FAE_API FMutableItemIterator MutableItemRange(const FMassEntityManager* EntityManager, TNotNull<const UFaerieItemContainerBase*> Container);
 }
+
+#undef FAE_API

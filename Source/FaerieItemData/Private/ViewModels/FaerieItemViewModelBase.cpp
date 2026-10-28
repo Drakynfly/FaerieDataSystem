@@ -18,7 +18,7 @@ void UFaerieItemDataViewModelBase::SetItemProxy(const FFaerieItemProxy& Item)
 		ItemProxy = Item;
 		UFaerieViewModelSubsystem* ViewModelSubsystem = GetTypedOuter<UFaerieViewModelSubsystem>();
 		ViewModelSubsystem->UpdateViewModelAssociation(this, OldProxy);
-		OnProxySet(Faerie::ItemData::GetFaerieEntityManagerChecked(ViewModelSubsystem->GetWorld()));
+		OnProxySet();
 	}
 }
 
@@ -30,9 +30,9 @@ void UFaerieItemDataViewModelBase::Return()
 	}
 }
 
-void UFaerieItemDataViewModelBase::SetItemProxyDirect(FMassEntityManager& EntityManager, const FFaerieItemProxy& Item)
+void UFaerieItemDataViewModelBase::SetItemProxyDirect(const FFaerieItemProxy& Item)
 {
 	// This is called by the ViewModelSubsystem so we skip updating it, just set and call child impl.
 	ItemProxy = Item;
-	OnProxySet(EntityManager);
+	OnProxySet();
 }

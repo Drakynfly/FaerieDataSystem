@@ -2,6 +2,9 @@
 
 #include "FaerieItem.h"
 #include "FaerieItemAsset.h"
+#include "FaerieItemProxy.h"
+#include "MassEntityView.h"
+
 #include "Fragments/FaerieReferenceFragment.h"
 #include "UObject/ObjectSaveContext.h"
 
@@ -12,8 +15,6 @@ namespace Faerie::ItemData::Tags
 	UE_DEFINE_GAMEPLAY_TAG(FragmentAdd, "Fae.Token.Add")
 	UE_DEFINE_GAMEPLAY_TAG(FragmentRemove, "Fae.Token.Remove")
 	UE_DEFINE_GAMEPLAY_TAG(FragmentGenericPropertyEdit, "Fae.Token.GenericPropertyEdit")
-
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ReferenceDefaults, "Fae.Reference.Defaults", "The default slot for tagged reference assets. Used by default unless overridden.")
 }
 
 using namespace Faerie;
@@ -80,7 +81,7 @@ EDataValidationResult UFaerieItem::IsDataValid(FDataValidationContext& Context) 
 #endif
 
 #if WITH_EDITOR
-TNotNull<const UFaerieItem*> UFaerieItem::CreateNewInstance(const TConstArrayView<FInstancedStruct> Fragments,
+TNotNull<UFaerieItem*> UFaerieItem::CreateNewInstance(const TConstArrayView<FInstancedStruct> Fragments,
 													const TNotNull<UObject*> InstanceOuter,
 													const EFaerieItemInstancingMutability Mutability)
 {
@@ -139,7 +140,7 @@ TNotNull<const UFaerieItem*> UFaerieItem::CreateDuplicate(const TNotNull<UObject
 }
 #endif
 
-bool UFaerieItem::HasDefaultFragment(const TNotNull<const UScriptStruct*> StructType, const FGameplayTag ReferenceTag) const
+bool UFaerieItem::HasDefaultFragment(const TNotNull<const UScriptStruct*> StructType, const UScriptStruct* ReferenceType) const
 {
 	for (auto&& DefaultFragment : FragmentDefaults)
 	{
@@ -149,18 +150,23 @@ bool UFaerieItem::HasDefaultFragment(const TNotNull<const UScriptStruct*> Struct
 		}
 	}
 
-	// Fallback to retrieving a default value via reference.
-	// Iterate in reverse for now (since static references are usually placed at the end.
-	// @todo control with a cvar or replace with order sorted fragments...
-	for (int32 i = FragmentDefaults.Num() - 1; i >= 0; --i)
+	if (ReferenceType)
 	{
-		if (FragmentDefaults[i].GetScriptStruct() == FFaerieReferenceFragment::StaticStruct())
+		// Fallback to retrieving a default value via reference.
+		// Iterate in reverse for now (since static references are usually placed at the end.
+		// @todo control with a cvar or replace with order sorted fragments...
+		for (int32 i = FragmentDefaults.Num() - 1; i >= 0; --i)
 		{
-			auto&& ReferenceFragment = FragmentDefaults[i].Get<FFaerieReferenceFragment>();
-			if (auto&& Reference = ReferenceFragment.GetReferencedItem(ReferenceTag, false))
+			if (FragmentDefaults[i].GetScriptStruct() == ReferenceType)
 			{
-				// Recurse our search into the referenced asset.
-				return Reference->HasDefaultFragment(StructType, ReferenceTag);
+				if (const FFaerieMassItemObject* ReferenceFragment = FragmentDefaults[i].GetPtr<FFaerieMassItemObject>())
+				{
+					// Recurse our search into the referenced asset.
+					if (ReferenceFragment->ItemAsset->HasDefaultFragment(StructType, ReferenceType))
+					{
+						return true;
+					}
+				}
 			}
 		}
 	}
@@ -168,7 +174,7 @@ bool UFaerieItem::HasDefaultFragment(const TNotNull<const UScriptStruct*> Struct
 	return false;
 }
 
-FConstStructView UFaerieItem::GetDefaultFragment(const TNotNull<const UScriptStruct*> StructType, const FGameplayTag ReferenceTag) const
+FConstStructView UFaerieItem::GetDefaultFragment(const TNotNull<const UScriptStruct*> StructType, const UScriptStruct* ReferenceType) const
 {
 	for (auto&& DefaultFragment : FragmentDefaults)
 	{
@@ -183,13 +189,12 @@ FConstStructView UFaerieItem::GetDefaultFragment(const TNotNull<const UScriptStr
 	// @todo control with a cvar or replace with order sorted fragments...
 	for (int32 i = FragmentDefaults.Num() - 1; i >= 0; --i)
 	{
-		if (FragmentDefaults[i].GetScriptStruct() == FFaerieReferenceFragment::StaticStruct())
+		if (FragmentDefaults[i].GetScriptStruct() == ReferenceType)
 		{
-			auto&& ReferenceFragment = FragmentDefaults[i].Get<FFaerieReferenceFragment>();
-			if (auto&& Reference = ReferenceFragment.GetReferencedItem(ReferenceTag, false))
+			if (const FFaerieMassItemObject* ReferenceFragment = FragmentDefaults[i].GetPtr<FFaerieMassItemObject>())
 			{
 				// Recurse our search into the referenced asset.
-				return Reference->GetDefaultFragment(StructType, ReferenceTag);
+				return ReferenceFragment->ItemAsset->GetDefaultFragment(StructType, ReferenceType);
 			}
 		}
 	}
@@ -240,12 +245,35 @@ bool UFaerieItem::DetermineFragmentMutability() const
 
 namespace Faerie::ItemData
 {
-	bool HasEntityFragment(const FMassEntityManager& EntityManager, const FMassEntityHandle ItemHandle,
-		const TNotNull<const UScriptStruct*> FragmentType)
+	bool HasDefaultFragment(const FFaerieItemProxy& Item, const TNotNull<const UScriptStruct*> FragmentType,
+		const UScriptStruct* ReferenceType)
 	{
-		if (EntityManager.IsEntityValid(ItemHandle))
+		if (Item.HasEntityManager() && Item.GetEntityManager()->IsEntityValid(Item.GetEntityHandle()))
 		{
-			if (const FMassEntityView View = FMassEntityView::TryMakeView(EntityManager, ItemHandle);
+			if (auto&& ItemAssetFragment = Item.GetEntityManager()->GetConstSharedFragmentDataPtr<FFaerieItemDataDefaults>(Item.GetEntityHandle()))
+			{
+				if (ItemAssetFragment->ItemAsset->HasDefaultFragment(FragmentType))
+				{
+					return true;
+				}
+			}
+		}
+
+#if WITH_EDITOR
+		if (const UFaerieItem* ItemAsset = Item.GetItemPtr())
+		{
+			return ItemAsset->HasDefaultFragment(FragmentType, ReferenceType);
+		}
+#endif
+
+		return false;
+	}
+
+	bool HasItemElement(const FFaerieItemProxy& Item, const TNotNull<const UScriptStruct*> FragmentType)
+	{
+		if (Item.HasEntityManager() && Item.GetEntityManager()->IsEntityValid(Item.GetEntityHandle()))
+		{
+			if (const FMassEntityView View = FMassEntityView::TryMakeView(*Item.GetEntityManager(), Item.GetEntityHandle());
 				View.IsValid())
 			{
 				return View.HasElement(FragmentType, UE::Mass::EIncludeSparseElements::Yes);
@@ -255,53 +283,41 @@ namespace Faerie::ItemData
 		return false;
 	}
 
-	bool HasEntityFragmentOrDefault(const FMassEntityManager* EntityManager, const FFaerieItemInstance& Instance,
-		const TNotNull<const UScriptStruct*> FragmentType, const FGameplayTag ReferenceTag)
+	bool HasEntityFragmentOrDefault(const FFaerieItemProxy& Item, const TNotNull<const UScriptStruct*> FragmentType,
+		const UScriptStruct* ReferenceType)
 	{
-		if (EntityManager)
+		// Look for a live fragment of the given type.
+		if (HasItemElement(Item, FragmentType))
 		{
-			// Look for a live fragment of the given type.
-			if (HasEntityFragment(*EntityManager, Instance.GetMassEntityHandle(), FragmentType))
-			{
-				return true;
-			}
+			return true;
 		}
 
-		return HasDefaultFragment(EntityManager, Instance, FragmentType, ReferenceTag);
+		return HasDefaultFragment(Item, FragmentType, ReferenceType);
 	}
 
-	bool HasDefaultFragment(const FMassEntityManager* EntityManager, const FFaerieItemInstance& Instance, const TNotNull<const UScriptStruct*> FragmentType,
-		const FGameplayTag ReferenceTag)
+	FConstStructView GetDefaultFragment(const FMassEntityManager& EntityManager, const FMassEntityHandle Item,
+		const TNotNull<const UScriptStruct*> FragmentType, const UScriptStruct* ReferenceType)
 	{
-		if (EntityManager)
+		if (auto&& ItemAssetFragment = EntityManager.GetConstSharedFragmentDataPtr<FFaerieItemDataDefaults>(Item))
 		{
-			if (auto&& ReferenceFragment = EntityManager->GetFragmentDataPtr<FFaerieReferenceFragment>(Instance.GetMassEntityHandle()))
+			if (const FConstStructView Fragment = ItemAssetFragment->ItemAsset->GetDefaultFragment(FragmentType, ReferenceType);
+				Fragment.IsValid())
 			{
-				if (const UFaerieItem* ReferencedAsset = ReferenceFragment->GetReferencedItem(ReferenceTag, false))
-				{
-					// Recurse our search into the referenced asset.
-					if (ReferencedAsset->HasDefaultFragment(FragmentType, ReferenceTag))
-					{
-						return true;
-					}
-				}
-			}
-
-			if (auto&& ItemAssetFragment = EntityManager->GetConstSharedFragmentDataPtr<FFaerieItemDataDefaults>(Instance.GetMassEntityHandle()))
-			{
-				if (ItemAssetFragment->ItemAsset->HasDefaultFragment(FragmentType))
-				{
-					return true;
-				}
+				return Fragment;
 			}
 		}
 
-		if (const UFaerieItem* ItemAsset = Instance.GetItemPtr())
-		{
-			return ItemAsset->HasDefaultFragment(FragmentType, ReferenceTag);
-		}
+		return FConstStructView();
+	}
 
-		return false;
+	FConstStructView GetDefaultFragment(const FFaerieItemProxy& Item, const TNotNull<const UScriptStruct*> FragmentType,
+		const UScriptStruct* ReferenceType)
+	{
+		if (Item.HasEntityManager())
+		{
+			return GetDefaultFragment(*Item.GetEntityManager(), Item.GetEntityHandle(), FragmentType, ReferenceType);
+		}
+		return FConstStructView();
 	}
 
 	FConstStructView GetEntityFragment(const FMassEntityManager& EntityManager, const FMassEntityHandle ItemHandle,
@@ -326,91 +342,32 @@ namespace Faerie::ItemData
 		return FConstStructView();
 	}
 
-	FConstStructView GetEntityFragmentOrDefault(const FMassEntityManager* EntityManager,
-		const FFaerieItemInstance& Instance, const TNotNull<const UScriptStruct*> FragmentType, const FGameplayTag ReferenceTag)
+	FConstStructView GetEntityFragment(const FFaerieItemProxy& Item, const TNotNull<const UScriptStruct*> FragmentType)
 	{
-		if (EntityManager && EntityManager->IsEntityValid(Instance.GetMassEntityHandle()))
+		if (Item.HasEntityManager())
 		{
-			// Look for a live fragment of the given type.
-			if (const FConstStructView View = EntityManager->GetFragmentDataStruct(Instance.GetMassEntityHandle(), FragmentType);
-				View.IsValid())
-			{
-				return View;
-			}
+			return GetEntityFragment(*Item.GetEntityManager(), Item.GetEntityHandle(), FragmentType);
 		}
-
-		return GetDefaultFragment(EntityManager, Instance, FragmentType, ReferenceTag);
-	}
-
-	FConstStructView GetEntitySharedFragmentOrDefault(const FMassEntityManager* EntityManager,
-		const FFaerieItemInstance& Instance, const TNotNull<const UScriptStruct*> FragmentType, const FGameplayTag ReferenceTag)
-	{
-		if (EntityManager && EntityManager->IsEntityValid(Instance.GetMassEntityHandle()))
-		{
-			// Look for a live fragment of the given type.
-			if (const FConstStructView View = EntityManager->GetSharedFragmentDataStruct(Instance.GetMassEntityHandle(), FragmentType);
-				View.IsValid())
-			{
-				return View;
-			}
-		}
-
-		return GetDefaultFragment(EntityManager, Instance, FragmentType, ReferenceTag);
-	}
-
-	FConstStructView GetEntityConstSharedFragmentOrDefault(const FMassEntityManager* EntityManager,
-		const FFaerieItemInstance& Instance, const TNotNull<const UScriptStruct*> FragmentType, const FGameplayTag ReferenceTag)
-	{
-		if (EntityManager && EntityManager->IsEntityValid(Instance.GetMassEntityHandle()))
-		{
-			// Look for a live fragment of the given type.
-			if (const FConstStructView View = EntityManager->GetConstSharedFragmentDataStruct(Instance.GetMassEntityHandle(), FragmentType);
-				View.IsValid())
-			{
-				return View;
-			}
-		}
-
-		return GetDefaultFragment(EntityManager, Instance, FragmentType, ReferenceTag);
-	}
-
-	FConstStructView GetDefaultFragment(const FMassEntityManager* EntityManager, const FFaerieItemInstance& Instance,
-		const TNotNull<const UScriptStruct*> FragmentType, const FGameplayTag ReferenceTag)
-	{
-		if (EntityManager)
-		{
-			if (auto&& ReferenceFragment = GetEntityFragment<FFaerieReferenceFragment>(*EntityManager, Instance.GetMassEntityHandle()))
-			{
-				if (const UFaerieItem* ReferencedAsset = ReferenceFragment->GetReferencedItem(ReferenceTag, false))
-				{
-					// Recurse our search into the referenced asset.
-					if (const FConstStructView Default = ReferencedAsset->GetDefaultFragment(FragmentType, ReferenceTag);
-						Default.IsValid())
-					{
-						return Default;
-					}
-				}
-			}
-
-			if (auto&& ItemAssetFragment = EntityManager->GetConstSharedFragmentDataPtr<FFaerieItemDataDefaults>(Instance.GetMassEntityHandle()))
-			{
-				if (const FConstStructView Fragment = ItemAssetFragment->ItemAsset->GetDefaultFragment(FragmentType, ReferenceTag);
-					Fragment.IsValid())
-				{
-					return Fragment;
-				}
-			}
-		}
-
-		if (const UFaerieItem* ItemAsset = Instance.GetItemPtr())
-		{
-			if (const FConstStructView& DefaultFragment = ItemAsset->GetDefaultFragment(FragmentType, ReferenceTag);
-				DefaultFragment.IsValid())
-			{
-				return DefaultFragment;
-			}
-		}
-
 		return FConstStructView();
+	}
+
+	FConstStructView GetEntityFragmentOrDefault(const FMassEntityManager& EntityManager, const FMassEntityHandle Item, const TNotNull<const UScriptStruct*> FragmentType, const UScriptStruct* ReferenceType)
+	{
+		if (EntityManager.IsEntityValid(Item))
+		{
+			// Look for a live fragment of the given type.
+			if (const FConstStructView View = GetEntityFragment(EntityManager, Item, FragmentType);
+				View.IsValid())
+			{
+				return View;
+			}
+		}
+
+		return GetDefaultFragment(EntityManager, Item, FragmentType, ReferenceType);
+	}
+
+	FConstStructView GetEntityFragmentOrDefault(const FFaerieItemProxy& Item, const TNotNull<const UScriptStruct*> FragmentType, const UScriptStruct* ReferenceType)
+	{
+		return GetEntityFragmentOrDefault(*Item.GetEntityManager(), Item.GetEntityHandle(), FragmentType, ReferenceType);
 	}
 }

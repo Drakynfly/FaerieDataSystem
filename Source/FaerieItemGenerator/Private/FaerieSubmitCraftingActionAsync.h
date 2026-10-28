@@ -9,10 +9,10 @@
 #include "FaerieSubmitCraftingActionAsync.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FFaerieAsyncCraftingActionCompleted, EGenerationActionResult, Result,
-											 const FFaerieCraftingActionData&, Items);
+											 const FFaerieCraftingActionResult&, Items);
 
 /**
- * 
+ *
  */
 UCLASS()
 class FAERIEITEMGENERATOR_API UFaerieSubmitCraftingActionAsync : public UBlueprintAsyncActionBase
@@ -28,7 +28,7 @@ public:
 	virtual void Activate() override;
 
 private:
-	void HandleResult(EGenerationActionResult GenerationActionResult, const FFaerieCraftingActionData& FaerieItemStacks);
+	void HandleResult(EGenerationActionResult GenerationActionResult, const FFaerieCraftingActionResult& FaerieItemStacks);
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|CraftingAction")
 	void Cancel();

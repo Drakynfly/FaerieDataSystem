@@ -94,7 +94,7 @@ void UFaerieItemMeshComponent::OnSourceProxyDataChanged(const FFaerieItemProxy& 
 
 void UFaerieItemMeshComponent::LoadMeshFromSource(const bool Async, const bool ClearExistingDataDuringAsync)
 {
-	if (!SourceProxy.HasValidInstance())
+	if (!SourceProxy.HasValidStack())
 	{
 		return;
 	}
@@ -111,7 +111,7 @@ void UFaerieItemMeshComponent::LoadMeshFromSource(const bool Async, const bool C
 #if WITH_EDITOR
 		// @todo: this is a hack to allow the editor to load meshes when world subsystems aren't available...
 		auto Loader = GetMutableDefault<UFaerieItemMeshLoader>();
-		Loader->LoadMeshFromAssetSynchronous(SourceProxy.GetItemInstance()->GetItemPtr(), PreferredTag, MeshData);
+		Loader->LoadMeshFromAssetSynchronous(SourceProxy.GetItemPtr(), PreferredTag, MeshData);
 		RebuildMesh();
 #endif
 		return;
@@ -365,14 +365,14 @@ void UFaerieItemMeshComponent::SetItemMeshFromProxy(const FFaerieItemProxy& InPr
 {
 	//if (SourceProxy != InProxy)
 	{
-		if (SourceProxy.HasValidInstance())
+		if (SourceProxy.HasValidStack())
 		{
 			// @todo unsubscribe from data change events
 		}
 
 		SourceProxy = InProxy;
 
-		if (SourceProxy.HasValidInstance())
+		if (SourceProxy.HasValidStack())
 		{
 			// @todo subscribe to data change events
 		}
@@ -417,7 +417,7 @@ void UFaerieItemMeshComponent::ClearItemMesh()
 	ActualType = EItemMeshType::None;
 	MeshData = FFaerieItemMesh();
 
-	if (SourceProxy.HasValidInstance())
+	if (SourceProxy.HasValidStack())
 	{
 		// @todo unsubscribe from data change events
 	}

@@ -6,19 +6,19 @@
 
 namespace Faerie::Hash
 {
-	FFaerieHash HashContainer(const TNotNull<const UFaerieItemContainerBase*> Container, FMassEntityManager* EntityManager, const FItemHashFunction& Function)
+	FFaerieHash HashContainer(const TNotNull<const UFaerieItemContainerBase*> Container, const FMassEntityManager* EntityManager, const FItemHashFunction& Function)
 	{
 		TArray<uint32> Hashes;
 
-		for (auto It = Container::ItemRange(Container); It; ++It)
+		for (auto It = Container::ItemRange(EntityManager, Container); It; ++It)
 		{
-			Hashes.Add(Function(It.GetSingleFrameProxy(EntityManager)));
+			Hashes.Add(Function(It.GetSingleFrameProxy()));
 		}
 
 		return CombineHashes(Hashes);
 	}
 
-	FFaerieHash HashContainers(const TConstArrayView<UFaerieItemContainerBase*> Containers, FMassEntityManager* EntityManager, const FItemHashFunction& Function)
+	FFaerieHash HashContainers(const TConstArrayView<UFaerieItemContainerBase*> Containers, const FMassEntityManager* EntityManager, const FItemHashFunction& Function)
 	{
 		if (!Containers.IsEmpty())
 		{
@@ -27,11 +27,11 @@ namespace Faerie::Hash
 
 		TArray<uint32> Hashes;
 
-		for (auto&& Container : Containers)
+		for (UFaerieItemContainerBase* Container : Containers)
 		{
-			for (auto It = Container::ItemRange(Container); It; ++It)
+			for (auto It = Container::ItemRange(EntityManager, Container); It; ++It)
 			{
-				Hashes.Add(Function(It.GetSingleFrameProxy(EntityManager)));
+				Hashes.Add(Function(It.GetSingleFrameProxy()));
 			}
 		}
 

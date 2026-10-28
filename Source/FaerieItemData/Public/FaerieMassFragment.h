@@ -5,6 +5,7 @@
 #include "FaerieItemDataConcepts.h"
 #include "Mass/EntityHandle.h"
 #include "StructImplementationMacros.h"
+#include "Mass/ExternalSubsystemTraits.h"
 
 #include "UObject/ObjectMacros.h"
 #include "FaerieMassFragment.generated.h"

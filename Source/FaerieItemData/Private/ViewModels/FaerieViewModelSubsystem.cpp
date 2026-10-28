@@ -74,7 +74,7 @@ UFaerieItemDataViewModelBase* UFaerieViewModelSubsystem::GetOrCreateViewModel(co
 	const TNotNull<UScriptStruct*> Struct = ViewClass->GetDefaultObject<UFaerieItemDataViewModelBase>()->GetFragmentType();
 	FFaerieViewModelStorage& Storage = PerTypeViewStorage.FindOrAdd(Struct);
 
-	if (Proxy.HasValidInstance())
+	if (Proxy.HasValidStack())
 	{
 		// Re-use existing view if there is already one set to this item.
         if (auto&& ExistingView = Storage.InUseViews.Find(Proxy.GetProxyObject());
@@ -103,13 +103,13 @@ UFaerieItemDataViewModelBase* UFaerieViewModelSubsystem::GetOrCreateViewModel(co
 		check(ViewModelToUse->ViewModelUsageCount == 0)
 	}
 
-	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
-	ViewModelToUse->SetItemProxyDirect(EntityManager, Proxy);
+	ViewModelToUse->SetItemProxyDirect(Proxy);
 	ViewModelToUse->ViewModelUsageCount++;
 
-	if (Proxy.HasValidInstance())
+	if (Proxy.HasValidStack())
 	{
 		// If we have a proxy we can associate it with an item here, if not it will fix itself by calling UpdateViewModelAssociation
+		FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
 		ViewModelToUse->CreateViewModelEntity(EntityManager, ViewModelToUse->GetViewModelFragmentType());
 		Storage.InUseViews.Add(Proxy.GetProxyObject(), ViewModelToUse);
 	}
@@ -147,8 +147,8 @@ void UFaerieViewModelSubsystem::ReturnViewModel(UFaerieItemDataViewModelBase* Vi
 			}
 		}
 
+		ViewModel->SetItemProxyDirect(FFaerieItemProxy());
 		FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
-		ViewModel->SetItemProxyDirect(EntityManager, FFaerieItemProxy());
 		ViewModel->DestroyViewModelEntity(EntityManager);
 		Storage.UnusedViews.Add(ViewModel);
 	}
@@ -160,8 +160,8 @@ void UFaerieViewModelSubsystem::UpdateViewModelAssociation(const TNotNull<UFaeri
 	{
 		const FFaerieItemProxy& NewProxy = ViewModel->GetItemProxy();
 
-		const bool WasOldProxyValid = OldProxy.HasValidInstance();
-		const bool IsNewProxyValid = NewProxy.HasValidInstance();
+		const bool WasOldProxyValid = OldProxy.HasValidStack();
+		const bool IsNewProxyValid = NewProxy.HasValidStack();
 
 		if (WasOldProxyValid)
 		{

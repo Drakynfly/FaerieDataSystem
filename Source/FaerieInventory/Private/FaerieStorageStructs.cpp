@@ -74,7 +74,7 @@ const FFaerieKeyedStack* FFaerieStorageEntry::GetStackPtr(const FFaerieStackKey 
 
 void FFaerieStorageEntry::UpdateCachedStackLimit(const FMassEntityManager& EntityManager)
 {
-	CachedLimit = Faerie::Container::GetItemStackLimit(&EntityManager, GetInstance());
+	CachedLimit = Faerie::Container::GetItemStackLimit(EntityManager, GetEntityHandle());
 }
 
 bool FFaerieStorageEntry::Contains(const FFaerieStackKey InKey) const

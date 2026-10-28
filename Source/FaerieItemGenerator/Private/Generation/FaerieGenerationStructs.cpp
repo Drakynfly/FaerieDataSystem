@@ -9,7 +9,7 @@
 
 using namespace Faerie;
 
-ItemData::FGetInstanceResult FFaerieTableDrop::Resolve(const FFaerieItemInstancingContext_Crafting& Context) const
+ItemData::FItemDataBuilder FFaerieTableDrop::Resolve(const FFaerieItemInstancingContext_Crafting& Context) const
 {
 	const UObject* DropObject = Asset.Object.Get();
 	if (!/*ensure*/(::IsValid(DropObject)))
@@ -20,7 +20,7 @@ ItemData::FGetInstanceResult FFaerieTableDrop::Resolve(const FFaerieItemInstanci
 
 	if (!DropObject || !ensure(DropObject->Implements<UFaerieItemSource>()))
 	{
-		return NullOpt;
+		return ItemData::FItemDataBuilder();
 	}
 
 	const IFaerieItemSource* ItemSource = Cast<IFaerieItemSource>(DropObject);
@@ -46,11 +46,11 @@ ItemData::FGetInstanceResult FFaerieTableDrop::Resolve(const FFaerieItemInstanci
 		ChildContext.RunningInEditor = Context.RunningInEditor;
 #endif
 
-		if (ItemData::FGetInstanceResult StaticInstanceItem = ChildDrop.Resolve(ChildContext);
+		if (ItemData::FItemDataBuilder StaticInstanceItem = ChildDrop.Resolve(ChildContext);
 			StaticInstanceItem.IsValid())
 		{
 			// We have to initialize these instanced immediately as their data could be needed by the source they are being generated as context of.
-			TempContext.GeneratedChildren.Add(StaticResourceSlot.Key, StaticInstanceItem.WithInitialization(*ChildContext.EntityManager));
+			TempContext.GeneratedChildren.Add(StaticResourceSlot.Key, StaticInstanceItem);
 		}
 	}
 

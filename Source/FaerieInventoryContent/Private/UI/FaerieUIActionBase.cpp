@@ -77,7 +77,7 @@ TSoftObjectPtr<UTexture2D> UFaerieUIActionBase::GetDisplayIcon_Implementation(co
 
 EFaerieUIActionState UFaerieUIActionBase::CanStart(UFaerieInventoryClient* Client, const FFaerieItemProxy& Proxy) const
 {
-	if (IsValid(Client))
+	if (!IsValid(Client))
 	{
 		// Client doesn't exist. Hide all actions.
 		return EFaerieUIActionState::Hidden;

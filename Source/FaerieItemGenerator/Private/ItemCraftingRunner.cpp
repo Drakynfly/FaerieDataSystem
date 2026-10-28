@@ -33,7 +33,7 @@ FFaerieCraftingActionHandle UFaerieItemCraftingRunner::SubmitCraftingRequest(
 	}
 
 	const auto CallbackWrapper = Generation::FActionResult::CreateWeakLambda(this,
-		[Callback](const EGenerationActionResult Success, const FFaerieCraftingActionData& Stacks)
+		[Callback](const EGenerationActionResult Success, const FFaerieCraftingActionResult& Stacks)
 		{
 			Callback.Execute(Success, Stacks);
 		});
@@ -177,14 +177,20 @@ void UFaerieItemCraftingRunner::FinishActionImpl(FFaerieCraftingActionBase& Acti
 		World->GetTimerManager().ClearTimer(Action.TimerHandle);
 	}
 
-	if (Action.ActionData.Stacks.IsEmpty())
+	if (Action.Storage.Builders.IsEmpty())
 	{
 		// If the output is invalid, we finished without crafting anything... so report a failure instead of intended result.
 		Action.OnCompletedCallback.ExecuteIfBound(EGenerationActionResult::Failed, {});
 	}
 	else if (Result == EGenerationActionResult::Succeeded)
 	{
-		Action.OnCompletedCallback.ExecuteIfBound(Result, Action.ActionData);
+		FFaerieCraftingActionResult ResultData;
+		for (auto&& Builder : Action.Storage.Builders)
+		{
+			ResultData.Stacks.Add(Builder.GetForRuntime());
+		}
+
+		Action.OnCompletedCallback.ExecuteIfBound(Result, ResultData);
 	}
 	else
 	{

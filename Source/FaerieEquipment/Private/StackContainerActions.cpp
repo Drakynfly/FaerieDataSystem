@@ -25,9 +25,9 @@ bool FFaerieClientAction_MoveFromStackContainer::View(const FMassEntityManager& 
 	return false;
 }
 
-bool FFaerieClientAction_MoveFromStackContainer::CanMove(const FMassEntityManager& EntityManager, const Faerie::TValid<const FFaerieItemProxy&> Proxy) const
+bool FFaerieClientAction_MoveFromStackContainer::CanMove(const Faerie::TValid<const FFaerieItemProxy&> Proxy) const
 {
-	return Stack->CouldSetInSlot(EntityManager, Proxy);
+	return Stack->CouldSetInSlot(*Faerie::ValidGet(Proxy).GetEntityManager(), Proxy);
 }
 
 bool FFaerieClientAction_MoveFromStackContainer::Release(FMassEntityManager& EntityManager, FFaerieUnownedItemStack& OutStack) const
@@ -57,9 +57,9 @@ bool FFaerieClientAction_MoveToStackContainer::View(const FMassEntityManager& En
 	return false;
 }
 
-bool FFaerieClientAction_MoveToStackContainer::CanMove(const FMassEntityManager& EntityManager, const Faerie::TValid<const FFaerieItemProxy&> Proxy) const
+bool FFaerieClientAction_MoveToStackContainer::CanMove(const Faerie::TValid<const FFaerieItemProxy&> Proxy) const
 {
-	return Stack->CouldSetInSlot(EntityManager, Proxy);
+	return Stack->CouldSetInSlot(*Faerie::ValidGet(Proxy).GetEntityManager(), Proxy);
 }
 
 bool FFaerieClientAction_MoveToStackContainer::Release(FMassEntityManager& EntityManager, FFaerieUnownedItemStack& OutStack) const

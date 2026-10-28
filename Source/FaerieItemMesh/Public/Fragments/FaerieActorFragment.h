@@ -24,6 +24,15 @@ struct FAERIEITEMMESH_API FFaerieActorFragment : public FFaerieMassFragment
 ____FAERIE_FRAGMENT_DECL(FFaerieActorFragment)
 };
 
+template<>
+struct TMassFragmentTraits<FFaerieActorFragment> final
+{
+	enum
+	{
+		AuthorAcceptsItsNotTriviallyCopyable = true
+	};
+};
+
 // Actor class to use when spawning proxy visualizations of this item (e.g. equipment)
 USTRUCT(BlueprintType)
 struct FAERIEITEMMESH_API FFaerieProxyActorFragment : public FFaerieMassFragment
@@ -36,4 +45,13 @@ struct FAERIEITEMMESH_API FFaerieProxyActorFragment : public FFaerieMassFragment
 	TSubclassOf<AFaerieProxyActorBase> LoadProxyActorClassSynchronous() const;
 
 ____FAERIE_FRAGMENT_DECL(FFaerieProxyActorFragment)
+};
+
+template<>
+struct TMassFragmentTraits<FFaerieProxyActorFragment> final
+{
+	enum
+	{
+		AuthorAcceptsItsNotTriviallyCopyable = true
+	};
 };

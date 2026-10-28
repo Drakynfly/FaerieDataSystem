@@ -24,14 +24,14 @@ bool FaerieContainerFilterTests::RunTest(const FString& Parameters)
 	TestInfoInstance.InitializeAs<FFaerieAssetInfo>(TestInfo);
 
 	// Create an immutable item
-	FFaerieItemInstance TestItem1 = FFaerieItemInstance::FromPointer(
-		UFaerieItem::CreateNewInstance(MakeConstArrayView(&TestInfoInstance, 1), GetTransientPackageAsObject(), EFaerieItemInstancingMutability::Immutable));
+	TNotNull<UFaerieItem*> TestItem1 =
+		UFaerieItem::CreateNewInstance(MakeConstArrayView(&TestInfoInstance, 1), GetTransientPackageAsObject(), EFaerieItemInstancingMutability::Immutable);
 
 	// Create a mutable item
-	FFaerieItemInstance TestItem2 = FFaerieItemInstance::FromPointer(
-		UFaerieItem::CreateNewInstance(MakeConstArrayView(&TestInfoInstance, 1), GetTransientPackageAsObject(), EFaerieItemInstancingMutability::Mutable));
+	TNotNull<UFaerieItem*> TestItem2 =
+		UFaerieItem::CreateNewInstance(MakeConstArrayView(&TestInfoInstance, 1), GetTransientPackageAsObject(), EFaerieItemInstancingMutability::Mutable);
 
-	auto TestItem1Info = TestItem1.GetItemPtr()->GetDefaultFragment<FFaerieAssetInfo>();
+	auto TestItem1Info = TestItem1->GetDefaultFragment<FFaerieAssetInfo>();
 
 	TestTrue("GetDefaultFragment", TestItem1Info.IsValid());
 	TestTrue("GetDefaultFragment equals TestInfo", TestItem1Info->ObjectName.EqualTo(TestInfo.ObjectName));
@@ -57,7 +57,7 @@ bool FaerieContainerFilterTests::RunTest(const FString& Parameters)
 
 	TestTrue("NumAfter4Adds", Storage->GetEntryCount() == ExpectedEntries);
 
-	FObjectKey TestItem1Key(TestItem1.GetItemPtr());
+	FObjectKey TestItem1Key(TestItem1);
 
 	AddInfo("Running Interface Tests...");
 

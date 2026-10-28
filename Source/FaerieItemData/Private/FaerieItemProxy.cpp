@@ -1,17 +1,37 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieItemProxy.h"
+#include "FaerieItem.h"
 #include "FaerieItemDataView.h"
-#include "MassEntityManager.h"
+#include "FaerieItemInstance.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemProxy)
 
+using namespace Faerie;
+
 bool FFaerieItemProxy::IsValid() const
 {
-	return HasValidInstance();
+	return HasValidStack();
 }
 
-bool FFaerieItemProxy::HasValidInstance() const
+bool FFaerieItemProxy::IsMutable() const
+{
+	if (EntityManager.IsValid())
+	{
+		return ItemData::IsMutable(*EntityManager.Get(), GetEntityHandle());
+	}
+
+#if WITH_EDITOR
+	if (const UFaerieItem* ItemAsset = GetItemPtr())
+	{
+		return ItemAsset->CanMutate();
+	}
+#endif
+
+	return false;
+}
+
+bool FFaerieItemProxy::HasValidStack() const
 {
 	if (!ProxyObject && !ValidWithoutProxyObject)
 	{
@@ -20,7 +40,16 @@ bool FFaerieItemProxy::HasValidInstance() const
 
 	if (InterfacePtr)
 	{
-		return InterfacePtr->GetItemInstance().IsSet() && Faerie::ItemData::IsValidStackAmount(InterfacePtr->GetCopies());
+		if (!ItemData::IsValidStackAmount(InterfacePtr->GetCopies()))
+		{
+			return false;
+		}
+
+		return InterfacePtr->GetEntityHandle().IsSet()
+#if WITH_EDITOR
+			|| ::IsValid(InterfacePtr->GetItemAsset())
+#endif
+			;
 	}
 	return false;
 }
@@ -39,37 +68,24 @@ FMassEntityHandle FFaerieItemProxy::GetEntityHandle() const
 	return FMassEntityHandle();
 }
 
-TOptional<FFaerieItemInstance> FFaerieItemProxy::GetItemInstance() const
+#if WITH_EDITOR
+const UFaerieItem* FFaerieItemProxy::GetItemPtr() const
 {
 	if (!ProxyObject && !ValidWithoutProxyObject)
 	{
-		return NullOpt;
+		return nullptr;
 	}
 
 	if (InterfacePtr)
 	{
-		return InterfacePtr->GetItemInstance();
-	}
-	return NullOpt;
-}
-
-FFaerieItemInstance FFaerieItemProxy::GetItemInstanceOrInvalid() const
-{
-	if (!ProxyObject && !ValidWithoutProxyObject)
-	{
-		return FFaerieItemInstance();
-	}
-
-	if (InterfacePtr)
-	{
-		const TOptional<FFaerieItemInstance> Option = InterfacePtr->GetItemInstance();
-		if (Option.IsSet())
+		if (const UFaerieItem* ItemAsset = InterfacePtr->GetItemAsset())
 		{
-			return Option.GetValue();
+			return ItemAsset;
 		}
 	}
-	return FFaerieItemInstance();
+	return nullptr;
 }
+#endif
 
 int32 FFaerieItemProxy::GetCopies() const
 {

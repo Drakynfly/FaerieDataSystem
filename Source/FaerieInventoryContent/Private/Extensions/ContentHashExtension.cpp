@@ -4,7 +4,6 @@
 #include "FaerieInventoryHashStatics.h"
 #include "FaerieItemContainerBase.h"
 #include "GameFramework/Actor.h"
-#include "Net/UnrealNetwork.h"
 #include "FaerieContainerEvent.h"
 #include "MassExecutionContext.h"
 
@@ -12,15 +11,15 @@
 
 using namespace Faerie;
 
-void FFaerieContainerContentHash::RecalcHash(FMassEntityManager& EntityManager, UFaerieItemContainerBase* InContainer)
+void FFaerieContainerContentHash::RecalcHash(const FMassEntityManager* EntityManager, UFaerieItemContainerBase* InContainer)
 {
 	// Everyone updates their local checksum.
 	// @todo we need to check items recursively, not only top level.
 	// @todo expose hashing algo to config
-	LocalChecksum = Hash::HashContainer(InContainer, &EntityManager, &Hash::HashItemByName);
+	LocalChecksum = Hash::HashContainer(InContainer, EntityManager, &Hash::HashItemByName);
 
 	// Clients do not update server checksum, they only receive it from the server.
-	if (EntityManager.GetWorld()->GetNetMode() != ENetMode::NM_Client)
+	if (EntityManager && EntityManager->GetWorld()->GetNetMode() != ENetMode::NM_Client)
 	{
 		ServerChecksum = LocalChecksum;
 	}
@@ -89,7 +88,7 @@ void UFaerieContainerContentHashUpdater::Execute(FMassEntityManager& EntityManag
 				Container->WriteContainerData(InContext.GetEntityManagerChecked(), FFaerieContainerContentHash::StaticStruct(), [Container, &InContext](const FStructView Element)
 				{
 					auto& ContentHash = Element.Get<FFaerieContainerContentHash>();
-					ContentHash.RecalcHash(InContext.GetEntityManagerChecked(), Container);
+					ContentHash.RecalcHash(&InContext.GetEntityManagerChecked(), Container);
 				}, false);
 
 				ContainersUpdated.Add(Container);

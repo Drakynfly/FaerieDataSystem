@@ -55,7 +55,7 @@ bool UFaerieGenerationLibrary::TestCraftingSlots(UObject* WorldContextObj, const
     {
         if (const FFaerieItemCraftingSlots* SlotsPtr = InterfacePtr->GetCraftingSlots())
         {
-            auto* EntityManager = ItemData::GetFaerieEntityManager(WorldContextObj->GetWorld());
+            const FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(WorldContextObj->GetWorld());
             return Generation::ValidateFilledSlots<false>(EntityManager, FilledSlots, *SlotsPtr);
         }
     }
@@ -132,7 +132,7 @@ bool UFaerieGenerationLibrary::FindSlot(const TScriptInterface<IFaerieItemSlotIn
 bool UFaerieGenerationLibrary::CanConsume(const FFaerieItemProxy& Proxy, UScriptStruct* ConsumableType,
     const AActor* Consumer, const int32 Cost)
 {
-    if (!Proxy.HasValidInstance())
+    if (!Proxy.HasValidStack())
     {
         FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieGenerationLibrary::CanConsume"), ELogVerbosity::Error);
         return false;
@@ -157,13 +157,13 @@ bool UFaerieGenerationLibrary::CanConsume(const FFaerieItemProxy& Proxy, UScript
         return false;
     }
 
-    return Generation::CanConsume(ItemData::GetFaerieEntityManagerChecked(World), Proxy, ConsumableType, Consumer, Cost);
+    return Generation::CanConsume(Proxy, ConsumableType, Consumer, Cost);
 }
 
 bool UFaerieGenerationLibrary::TryConsume(const FFaerieItemProxy& Proxy, UScriptStruct* ConsumableType,
     AActor* Consumer, const int32 Cost)
 {
-    if (!Proxy.HasValidInstance())
+    if (!Proxy.HasValidStack())
     {
         FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieGenerationLibrary::TryConsume"), ELogVerbosity::Error);
         return false;
@@ -181,12 +181,5 @@ bool UFaerieGenerationLibrary::TryConsume(const FFaerieItemProxy& Proxy, UScript
         return false;
     }
 
-    const UWorld* World = Consumer->GetWorld();
-    if (!ItemData::HasFaerieEntityManagerBeenAssigned(World))
-    {
-        FFrame::KismetExecutionMessage(TEXT("No Entity Manager assigned to handle UFaerieGenerationLibrary::TryConsume"), ELogVerbosity::Error);
-        return false;
-    }
-
-    return Generation::TryConsume(ItemData::GetFaerieEntityManagerChecked(World), Proxy, ConsumableType, Consumer, Cost);
+    return Generation::TryConsume(Proxy, ConsumableType, Consumer, Cost);
 }

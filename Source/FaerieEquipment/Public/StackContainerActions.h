@@ -16,7 +16,7 @@ struct FFaerieClientAction_MoveFromStackContainer final : public FFaerieClientAc
 
 	virtual bool IsValid(TNotNull<const UFaerieInventoryClient*> Client, const FMassEntityManager& EntityManager) const override;
 	virtual bool View(const FMassEntityManager& EntityManager, Faerie::ItemData::FScopeProxy& Proxy) const override;
-	virtual bool CanMove(const FMassEntityManager& EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
+	virtual bool CanMove(Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
 	virtual bool Release(FMassEntityManager& EntityManager, FFaerieUnownedItemStack& OutStack) const override;
 	virtual bool Possess(FMassEntityManager& EntityManager, Faerie::TValid<const FFaerieUnownedItemStack&> InStack) const override;
 
@@ -31,7 +31,7 @@ struct FFaerieClientAction_MoveToStackContainer final : public FFaerieClientActi
 
 	virtual bool IsValid(TNotNull<const UFaerieInventoryClient*> Client, const FMassEntityManager& EntityManager) const override;
 	virtual bool View(const FMassEntityManager& EntityManager, Faerie::ItemData::FScopeProxy& Proxy) const override;
-	virtual bool CanMove(const FMassEntityManager& EntityManager, Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
+	virtual bool CanMove(Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
 	virtual bool Release(FMassEntityManager& EntityManager, FFaerieUnownedItemStack& OutStack) const override;
 	virtual bool Possess(FMassEntityManager& EntityManager, Faerie::TValid<const FFaerieUnownedItemStack&> InStack) const override;
 	virtual bool IsSwap(const FMassEntityManager& EntityManager) const override;

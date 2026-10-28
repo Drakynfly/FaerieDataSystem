@@ -3,7 +3,6 @@
 #pragma once
 
 #include "FaerieMassFragment.h"
-#include "Mass/ExternalSubsystemTraits.h"
 #include "SpatialTypes.h"
 #include "FaerieShapeFragment.generated.h"
 

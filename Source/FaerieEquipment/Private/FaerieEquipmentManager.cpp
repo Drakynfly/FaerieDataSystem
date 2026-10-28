@@ -407,7 +407,7 @@ TArray<FFaerieItemContainerPath> UFaerieEquipmentManager::GetAllContainerPaths()
 		return {};
 	}
 
-	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(World);
+	const FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(World);
 
 	TArray<FFaerieItemContainerPath> OutPaths;
 	OutPaths.Reserve(Slots.Num());
@@ -415,10 +415,10 @@ TArray<FFaerieItemContainerPath> UFaerieEquipmentManager::GetAllContainerPaths()
 	{
 		if (Slot->IsFilled())
 		{
-			const FMassEntityHandle Item = Slot->GetEntityHandle();
-			if (ItemData::IsMutable(EntityManager, Item))
+			const FFaerieItemProxy Proxy(EntityManager.AsShared(), Slot);
+			if (Proxy.IsMutable())
 			{
-				FFaerieItemContainerPath::BuildChildrenPaths(EntityManager, FFaerieItemProxy(), Slot, OutPaths);
+				FFaerieItemContainerPath::BuildChildrenPaths(&EntityManager, Slot, OutPaths);
 			}
 		}
 	}

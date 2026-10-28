@@ -4,7 +4,6 @@
 
 #include "FaerieMassFragment.h"
 #include "Templates/SubclassOf.h"
-#include "Mass/ExternalSubsystemTraits.h"
 #include "FaerieUIActionFragment.generated.h"
 
 class UFaerieUIActionBase;

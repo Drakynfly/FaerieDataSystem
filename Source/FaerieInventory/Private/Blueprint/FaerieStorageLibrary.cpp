@@ -25,19 +25,18 @@ FString UFaerieStorageLibrary::ToString_Address(const FFaerieAddress Address)
 
 int32 UFaerieStorageLibrary::GetItemStackLimit(const FFaerieItemProxy& Proxy)
 {
-	const TOptional<FFaerieItemInstance> InstanceOpt = Proxy.GetItemInstance();
-	if (!InstanceOpt.IsSet())
+	if (!Proxy.HasValidStack())
 	{
 		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieStorageLibrary::GetItemStackLimit"), ELogVerbosity::Error);
 		return 0;
 	}
 
-	return Container::GetItemStackLimit(Proxy.GetEntityManager().Get(), InstanceOpt.GetValue());
+	return Container::GetItemStackLimit(Proxy);
 }
 
 bool UFaerieStorageLibrary::GetNetworkHandleFromProxy(const FFaerieItemProxy& Proxy, FFaerieItemNetworkHandle& OutHandle)
 {
-	if (Proxy.HasValidInstance())
+	if (Proxy.HasValidStack())
 	{
 		OutHandle = FFaerieItemNetworkHandle::FromProxy(Proxy);
 	}
@@ -98,26 +97,24 @@ UFaerieItemContainerBase* UFaerieStorageLibrary::GetOwningContainer(const FFaeri
 bool UFaerieStorageLibrary::FindSubobject(const FFaerieItemProxy& Proxy, const TSubclassOf<UFaerieItemContainerBase> Class,
 										  UFaerieItemContainerBase*& FoundContainer, const bool Recursive)
 {
-	const TOptional<FFaerieItemInstance> InstanceOpt = Proxy.GetItemInstance();
-	if (!InstanceOpt.IsSet())
+	if (!Proxy.HasValidStack())
 	{
 		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieStorageLibrary::FindSubobject"), ELogVerbosity::Error);
 		return false;
 	}
 
-	const FFaerieItemInstance Instance = InstanceOpt.GetValue();
-	if (!Instance.IsMutable()) return false;
+	if (!Proxy.IsMutable()) return false;
 
-	if (const TSharedPtr<FMassEntityManager>& EntityManager = Proxy.GetEntityManager())
+	if (const TSharedPtr<const FMassEntityManager>& EntityManager = Proxy.GetEntityManager())
 	{
 		TArray<TNotNull<UFaerieItemContainerBase*>> Containers;
 		if (Recursive)
 		{
-			SubObject::GetContainersInInstanceRecursive(*EntityManager.Get(), Instance.GetMassEntityHandle(), Containers, Class);
+			SubObject::GetContainersInInstanceRecursive(*EntityManager.Get(), Proxy.GetEntityHandle(), Containers, Class);
 		}
 		else
 		{
-			SubObject::GetContainersInInstanceDirect(*EntityManager.Get(), Instance.GetMassEntityHandle(), Containers, Class);
+			SubObject::GetContainersInInstanceDirect(*EntityManager.Get(), Proxy.GetEntityHandle(), Containers, Class);
 		}
 
 		// Return first
@@ -127,10 +124,11 @@ bool UFaerieStorageLibrary::FindSubobject(const FFaerieItemProxy& Proxy, const T
 			return true;
 		}
 	}
+#if WITH_EDITOR
 	else
 	{
 		TArray<TNotNull<const UFaerieItemContainerBase*>> Containers;
-		if (const UFaerieItem* ItemAsset = Instance.GetItemPtr())
+		if (const UFaerieItem* ItemAsset = Proxy.GetItemPtr())
 		{
 			if (Recursive)
 			{
@@ -149,6 +147,7 @@ bool UFaerieStorageLibrary::FindSubobject(const FFaerieItemProxy& Proxy, const T
 			return true;
 		}
 	}
+#endif
 
 	return false;
 }
@@ -156,30 +155,29 @@ bool UFaerieStorageLibrary::FindSubobject(const FFaerieItemProxy& Proxy, const T
 void UFaerieStorageLibrary::FindSubObjectsByClass(const FFaerieItemProxy& Proxy, const TSubclassOf<UFaerieItemContainerBase> Class,
 	TArray<UFaerieItemContainerBase*>& FoundContainers, const bool Recursive)
 {
-	const TOptional<FFaerieItemInstance> InstanceOpt = Proxy.GetItemInstance();
-	if (!InstanceOpt.IsSet())
+	if (!Proxy.HasValidStack())
 	{
 		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieStorageLibrary::FindSubObjectsByClass"), ELogVerbosity::Error);
 		return;
 	}
 
-	const FFaerieItemInstance Instance = InstanceOpt.GetValue();
-	if (!Instance.IsMutable()) return;
+	if (!Proxy.IsMutable()) return;
 
-	if (const TSharedPtr<FMassEntityManager>& EntityManager = Proxy.GetEntityManager())
+	if (const TSharedPtr<const FMassEntityManager>& EntityManager = Proxy.GetEntityManager())
 	{
 		if (Recursive)
 		{
-			SubObject::GetContainersInInstanceRecursive(*EntityManager.Get(), Instance.GetMassEntityHandle(), FoundContainers, Class);
+			SubObject::GetContainersInInstanceRecursive(*EntityManager.Get(), Proxy.GetEntityHandle(), FoundContainers, Class);
 		}
 		else
 		{
-			SubObject::GetContainersInInstanceDirect(*EntityManager.Get(), Instance.GetMassEntityHandle(), FoundContainers, Class);
+			SubObject::GetContainersInInstanceDirect(*EntityManager.Get(), Proxy.GetEntityHandle(), FoundContainers, Class);
 		}
 	}
+#if WITH_EDITOR
 	else
 	{
-		if (const UFaerieItem* ItemAsset = Instance.GetItemPtr())
+		if (const UFaerieItem* ItemAsset = Proxy.GetItemPtr())
 		{
 			if (Recursive)
 			{
@@ -191,34 +189,34 @@ void UFaerieStorageLibrary::FindSubObjectsByClass(const FFaerieItemProxy& Proxy,
 			}
 		}
 	}
+#endif
 }
 
 void UFaerieStorageLibrary::GetAllContainersInItem(const FFaerieItemProxy& Proxy, TArray<UFaerieItemContainerBase*>& FoundContainers, const bool Recursive)
 {
-	TOptional<FFaerieItemInstance> InstanceOpt = Proxy.GetItemInstance();
-	if (!InstanceOpt.IsSet())
+	if (!Proxy.HasValidStack())
 	{
 		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieStorageLibrary::GetAllContainersInItem"), ELogVerbosity::Error);
 		return;
 	}
 
-	const FFaerieItemInstance Instance = InstanceOpt.GetValue();
-	if (!Instance.IsMutable()) return;
+	if (!Proxy.IsMutable()) return;
 
-	if (const TSharedPtr<FMassEntityManager>& EntityManager = Proxy.GetEntityManager())
+	if (const TSharedPtr<const FMassEntityManager>& EntityManager = Proxy.GetEntityManager())
 	{
 		if (Recursive)
 		{
-			SubObject::GetContainersInInstanceRecursive<UFaerieItemContainerBase>(*EntityManager.Get(), Instance.GetMassEntityHandle(), FoundContainers);
+			SubObject::GetContainersInInstanceRecursive<UFaerieItemContainerBase>(*EntityManager.Get(), Proxy.GetEntityHandle(), FoundContainers);
 		}
 		else
 		{
-			SubObject::GetContainersInInstanceDirect<UFaerieItemContainerBase>(*EntityManager.Get(), Instance.GetMassEntityHandle(), FoundContainers);
+			SubObject::GetContainersInInstanceDirect<UFaerieItemContainerBase>(*EntityManager.Get(), Proxy.GetEntityHandle(), FoundContainers);
 		}
 	}
+#if WITH_EDITOR
 	else
 	{
-		if (const UFaerieItem* ItemAsset = Instance.GetItemPtr())
+		if (const UFaerieItem* ItemAsset = Proxy.GetItemPtr())
 		{
 			// Blueprint should normally not get access to read-only containers... but only the editor can run this code anyway so its *fine*
 			TArray<const UFaerieItemContainerBase*>& ConstContainerArray = reinterpret_cast<TArray<const UFaerieItemContainerBase*>&>(FoundContainers);
@@ -232,23 +230,21 @@ void UFaerieStorageLibrary::GetAllContainersInItem(const FFaerieItemProxy& Proxy
 			}
 		}
 	}
+#endif
 }
 
 void UFaerieStorageLibrary::GetItemChildren(const FFaerieItemProxy& Proxy, TArray<FFaerieItemProxy>& FoundChildren, const bool Recursive)
 {
-	const TOptional<FFaerieItemInstance> InstanceOpt = Proxy.GetItemInstance();
-	if (!InstanceOpt.IsSet())
+	if (!Proxy.HasValidStack())
 	{
 		FFrame::KismetExecutionMessage(TEXT("Invalid Proxy passed to UFaerieStorageLibrary::GetItemChildren"), ELogVerbosity::Error);
 		return;
 	}
 
-	const FFaerieItemInstance Instance = InstanceOpt.GetValue();
+	// Only mutable instances have children, so we can early-out if it's not.
+	if (!Proxy.IsMutable()) return;
 
-	// Only mutable instances have children, so we can early-out it it's not.
-	if (!Instance.IsMutable()) return;
-
-	const TSharedPtr<FMassEntityManager>& EntityManager = Proxy.GetEntityManager();
+	const TSharedPtr<const FMassEntityManager>& EntityManager = Proxy.GetEntityManager();
 	if (!EntityManager)
 	{
 		FFrame::KismetExecutionMessage(TEXT("No Entity Manager assigned to handle UFaerieStorageLibrary::GetItemChildren"), ELogVerbosity::Error);
@@ -257,11 +253,11 @@ void UFaerieStorageLibrary::GetItemChildren(const FFaerieItemProxy& Proxy, TArra
 
 	if (Recursive)
 	{
-		SubObject::GetChildrenInItemRecursive(*EntityManager.Get(), Instance.GetMassEntityHandle(), FoundChildren);
+		SubObject::GetChildrenInItemRecursive(*EntityManager.Get(), Proxy.GetEntityHandle(), FoundChildren);
 	}
 	else
 	{
-		SubObject::GetChildrenInItem(*EntityManager.Get(), Instance.GetMassEntityHandle(), FoundChildren);
+		SubObject::GetChildrenInItem(*EntityManager.Get(), Proxy.GetEntityHandle(), FoundChildren);
 	}
 }
 

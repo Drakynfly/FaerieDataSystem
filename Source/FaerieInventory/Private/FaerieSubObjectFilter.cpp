@@ -54,10 +54,11 @@ namespace Faerie::SubObject
 		for (auto&& Child : Children)
 		{
 			Containers.Add(Child);
-			for (auto It = Container::ItemRange(Child); It; ++It)
-			{
-				GetTemplateContainersInInstanceRecursive((*It).GetItemPtr(), Containers, Class);
-			}
+			// @Todo implement accessing items in default container fragments
+			//for (auto It = Container::ItemRange(EntityManager, Child); It; ++It)
+			//{
+			//	GetTemplateContainersInInstanceRecursive((*It).GetItemPtr(), Containers, Class);
+			//}
 		}
 	}
 
@@ -110,9 +111,9 @@ namespace Faerie::SubObject
 					return true;
 				}
 
-				for (auto It = Container::MutableItemRange(Slot.Stack); It; ++It)
+				for (auto It = Container::MutableItemRange(&EntityManager, Slot.Stack); It; ++It)
 				{
-					if (HasContainerInInstanceRecursive_Stack(EntityManager, (*It).GetMassEntityHandle(), TestContainer))
+					if (HasContainerInInstanceRecursive_Stack(EntityManager, *It, TestContainer))
 					{
 						return true;
 					}
@@ -139,9 +140,9 @@ namespace Faerie::SubObject
 					return true;
 				}
 
-				for (auto It = Container::MutableItemRange(ItemStorage); It; ++It)
+				for (auto It = Container::MutableItemRange(&EntityManager, ItemStorage); It; ++It)
 				{
-					if (HasContainerInInstanceRecursive_Storage(EntityManager, (*It).GetMassEntityHandle(), TestContainer))
+					if (HasContainerInInstanceRecursive_Storage(EntityManager, *It, TestContainer))
 					{
 						return true;
 					}
@@ -220,9 +221,9 @@ namespace Faerie::SubObject
 		for (auto&& Child : Children)
 		{
 			Containers.Add(Child);
-			for (auto It = Container::ItemRange(Child); It; ++It)
+			for (auto It = Container::ItemRange(&EntityManager, Child); It; ++It)
 			{
-				GetContainersInInstanceRecursive_Stack(EntityManager, (*It).GetMassEntityHandle(), Containers);
+				GetContainersInInstanceRecursive_Stack(EntityManager, *It, Containers);
 			}
 		}
 	}
@@ -237,9 +238,9 @@ namespace Faerie::SubObject
 		for (auto&& Child : Children)
 		{
 			Containers.Add(Child);
-			for (auto It = Container::ItemRange(Child); It; ++It)
+			for (auto It = Container::ItemRange(&EntityManager, Child); It; ++It)
 			{
-				GetContainersInInstanceRecursive_Stack(EntityManager, (*It).GetMassEntityHandle(), Containers);
+				GetContainersInInstanceRecursive_Stack(EntityManager, *It, Containers);
 			}
 		}
 	}
@@ -254,9 +255,9 @@ namespace Faerie::SubObject
 		for (auto&& Child : Children)
 		{
 			Containers.Add(Child);
-			for (auto It = Container::ItemRange(Child); It; ++It)
+			for (auto It = Container::ItemRange(&EntityManager, Child); It; ++It)
 			{
-				GetContainersInInstanceRecursive_Storage(EntityManager, (*It).GetMassEntityHandle(), Containers);
+				GetContainersInInstanceRecursive_Storage(EntityManager, *It, Containers);
 			}
 		}
 	}
@@ -294,18 +295,18 @@ namespace Faerie::SubObject
 		}
 	}
 
-	void GetChildrenInItem(FMassEntityManager& EntityManager, const FMassEntityHandle Item, const TAdderRef<FFaerieItemProxy> OutProxies)
+	void GetChildrenInItem(const FMassEntityManager& EntityManager, const FMassEntityHandle Item, const TAdderRef<FFaerieItemProxy> OutProxies)
 	{
 		for (UFaerieItemContainerBase* Container : SubObject::Iterate(EntityManager, Item))
 		{
-			for (auto It = Container::ItemRange(Container); It; ++It)
+			for (auto It = Container::ItemRange(&EntityManager, Container); It; ++It)
 			{
-				OutProxies.Add(It.GetPersistentProxy(EntityManager));
+				OutProxies.Add(It.GetPersistentProxy());
 			}
 		}
 	}
 
-	void GetChildrenInItemRecursive(FMassEntityManager& EntityManager, const FMassEntityHandle Item, const TAdderRef<FFaerieItemProxy> OutProxies)
+	void GetChildrenInItemRecursive(const FMassEntityManager& EntityManager, const FMassEntityHandle Item, const TAdderRef<FFaerieItemProxy> OutProxies)
 	{
 		TArray<FFaerieItemProxy> Children;
 		GetChildrenInItem(EntityManager, Item, Children);
@@ -318,9 +319,9 @@ namespace Faerie::SubObject
 			{
 				for (UFaerieItemContainerBase* Container : SubObject::Iterate(EntityManager, ChildItem))
 				{
-					for (auto It = Container::MutableItemRange(Container); It; ++It)
+					for (auto It = Container::MutableItemRange(&EntityManager, Container); It; ++It)
 					{
-						GetChildrenInItemRecursive(EntityManager, (*It).GetMassEntityHandle(), OutProxies);
+						GetChildrenInItemRecursive(EntityManager, *It, OutProxies);
 					}
 				}
 			}
@@ -341,8 +342,40 @@ namespace Faerie::SubObject
 		return Containers;
 	}
 
+	static TArray<TNotNull<UFaerieItemContainerBase*>> GetAllContainersInItem_Inline(const FFaerieItemProxy& Item)
+	{
+		TArray<TNotNull<UFaerieItemContainerBase*>> Containers;
+		if (Item.HasEntityManager())
+		{
+			GetContainersInInstanceDirect<UFaerieItemContainerBase>(*Item.GetEntityManager(), Item.GetEntityHandle(), Containers);
+		}
+		else
+		{
+			//GetTemplateContainersInInstanceDirect(Item.GetItemPtr(), Containers);
+		}
+		return Containers;
+	}
+
+	static TArray<TNotNull<UFaerieItemContainerBase*>> GetAllContainersInItemRecursive_Inline(const FFaerieItemProxy& Item)
+	{
+		TArray<TNotNull<UFaerieItemContainerBase*>> Containers;
+		if (Item.HasEntityManager())
+		{
+			GetContainersInInstanceRecursive<UFaerieItemContainerBase>(*Item.GetEntityManager(), Item.GetEntityHandle(), Containers);
+		}
+		else
+		{
+			//GetTemplateContainersInInstanceRecursive(Item.GetItemPtr(), Containers);
+		}
+		return Containers;
+	}
+
 	FContainerIterator::FContainerIterator(const FMassEntityManager& EntityManager, const FMassEntityHandle Item)
 	  : Containers(GetAllContainersInItem_Inline(EntityManager, Item)),
+		Iterator(Containers.CreateIterator()) {}
+
+	FContainerIterator::FContainerIterator(const FFaerieItemProxy& Item)
+	  : Containers(GetAllContainersInItem_Inline(Item)),
 		Iterator(Containers.CreateIterator()) {}
 
 	void FContainerIterator::operator++()
@@ -357,4 +390,8 @@ namespace Faerie::SubObject
 	FRecursiveContainerIterator::FRecursiveContainerIterator(const FMassEntityManager& EntityManager, const FMassEntityHandle Item)
 	  : Containers(GetAllContainersInItemRecursive_Inline(EntityManager, Item)),
 		Iterator(Containers.CreateIterator()) {}
+
+	FRecursiveContainerIterator::FRecursiveContainerIterator(const FFaerieItemProxy& Item)
+	: Containers(GetAllContainersInItemRecursive_Inline(Item)),
+	  Iterator(Containers.CreateIterator()) {}
 }

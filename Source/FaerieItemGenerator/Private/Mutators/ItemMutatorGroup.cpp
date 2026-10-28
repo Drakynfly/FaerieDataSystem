@@ -1,11 +1,15 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "Mutators/ItemMutatorGroup.h"
-#include "FaerieItemDataView.h"
+#include "FaerieItemSource.h"
 
+#if WITH_EDITOR
 #include "Misc/DataValidation.h"
+#endif
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ItemMutatorGroup)
+
+using namespace Faerie;
 
 #if WITH_EDITOR
 
@@ -47,7 +51,7 @@ void FFaerieItemMutatorGroup::GetRequiredAssets(const TAdderRef<FSoftObjectPath>
 	}
 }
 
-bool FFaerieItemMutatorGroup::Apply(FFaerieItemInstance& Item, const FFaerieItemMutatorContext& Context) const
+bool FFaerieItemMutatorGroup::Apply(ItemData::FItemDataBuilder& Builder, const FFaerieItemMutatorContext& Context) const
 {
 	if (Children.IsEmpty())
 	{
@@ -61,7 +65,7 @@ bool FFaerieItemMutatorGroup::Apply(FFaerieItemInstance& Item, const FFaerieItem
 			for (auto&& Child : Children)
 			{
 				if (!Child.IsValid()) continue;
-				if (Child->Apply(Item, Context))
+				if (Child->Apply(Builder, Context))
 				{
 					return true;
 				}
@@ -73,7 +77,7 @@ bool FFaerieItemMutatorGroup::Apply(FFaerieItemInstance& Item, const FFaerieItem
 			for (auto&& Child : Children)
 			{
 				if (!Child.IsValid()) continue;
-				(void)Child->Apply(Item, Context);
+				(void)Child->Apply(Builder, Context);
 			}
 			return true;
 		}

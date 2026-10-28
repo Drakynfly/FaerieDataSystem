@@ -31,7 +31,7 @@ bool UFaerieMeshSubsystem::LoadMeshFromProxySynchronous(const FFaerieItemProxy& 
 	// The result without this line, is that a mesh value put into Mesh in one call will persist for successive calls.
 	Mesh = FFaerieItemMesh();
 
-	if (!Proxy.HasValidInstance())
+	if (!Proxy.HasValidStack())
 	{
 		UE_LOGF(LogFaerieItemMesh, Warning, "Invalid Proxy passed to UFaerieMeshSubsystem::LoadMeshFromProxySynchronous!")
 		return false;
@@ -42,14 +42,13 @@ bool UFaerieMeshSubsystem::LoadMeshFromProxySynchronous(const FFaerieItemProxy& 
 		Purpose = GetDefault<UFaerieMeshSettings>()->FallbackPurpose;
 	}
 
-	FMassEntityManager& EntityManager = Faerie::ItemData::GetFaerieEntityManagerChecked(GetWorld());
-	return Loader->LoadMeshFromProxySynchronous(EntityManager, Proxy, Purpose, Mesh);
+	return Loader->LoadMeshFromProxySynchronous(Proxy, Purpose, Mesh);
 }
 
 void UFaerieMeshSubsystem::LoadMeshFromProxyAsynchronous(const FFaerieItemProxy& Proxy, FGameplayTag Purpose,
 														 const FFaerieItemMeshAsyncLoadResult& Callback)
 {
-	if (!Proxy.HasValidInstance())
+	if (!Proxy.HasValidStack())
 	{
 		UE_LOGF(LogFaerieItemMesh, Warning, "Invalid Proxy passed to UFaerieMeshSubsystem::LoadMeshFromProxyAsynchronous!")
 		Callback.Execute(false, FFaerieItemMesh());
@@ -61,8 +60,7 @@ void UFaerieMeshSubsystem::LoadMeshFromProxyAsynchronous(const FFaerieItemProxy&
 		Purpose = GetDefault<UFaerieMeshSettings>()->FallbackPurpose;
 	}
 
-	FMassEntityManager& EntityManager = Faerie::ItemData::GetFaerieEntityManagerChecked(GetWorld());
-	(void)Loader->LoadMeshFromProxyAsynchronous(EntityManager, Proxy, Purpose,
+	(void)Loader->LoadMeshFromProxyAsynchronous(Proxy, Purpose,
 		Faerie::Mesh::FAsyncLoadResult::CreateLambda(
 			[Callback](const bool Success, FFaerieItemMesh&& Mesh)
 			{
@@ -78,8 +76,7 @@ TSharedPtr<FStreamableHandle> UFaerieMeshSubsystem::LoadMeshFromProxyAsynchronou
 		Purpose = GetDefault<UFaerieMeshSettings>()->FallbackPurpose;
 	}
 
-	FMassEntityManager& EntityManager = Faerie::ItemData::GetFaerieEntityManagerChecked(GetWorld());
-	return Loader->LoadMeshFromProxyAsynchronous(EntityManager, Proxy, Purpose, Callback);
+	return Loader->LoadMeshFromProxyAsynchronous(Proxy, Purpose, Callback);
 }
 
 #if WITH_EDITOR

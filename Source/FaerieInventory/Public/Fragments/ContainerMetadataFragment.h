@@ -19,3 +19,12 @@ struct FAERIEINVENTORY_API FFaerieContainerMetadataFragment : public FFaerieMass
 
 ____FAERIE_FRAGMENT_DECL(FFaerieContainerMetadataFragment)
 };
+
+template<>
+struct TMassFragmentTraits<FFaerieContainerMetadataFragment> final
+{
+	enum
+	{
+		AuthorAcceptsItsNotTriviallyCopyable = true
+	};
+};
