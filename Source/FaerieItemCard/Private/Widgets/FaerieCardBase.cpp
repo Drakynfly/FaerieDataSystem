@@ -10,7 +10,7 @@ void UFaerieCardBase::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	if (RefreshOnConstruct)
+	if (RefreshOnConstruct && ItemProxy.HasValidStack())
 	{
 		Refresh();
 	}

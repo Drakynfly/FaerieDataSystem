@@ -23,6 +23,7 @@
 #include "Framework/Application/SlateApplication.h"
 #include "Modules/ModuleManager.h"
 
+#include "Widgets/FaerieCardBase.h"
 #include "Widgets/Docking/SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "FaerieItemAssetEditor"
@@ -114,7 +115,8 @@ namespace Faerie::Editor
 			OnBlueprintPrecompileHandle = GEditor->OnBlueprintPreCompile().AddRaw(this, &FItemAssetEditorToolkit::OnBlueprintPrecompile);
 		}
 
-		OnWidgetChangedHandle = WidgetPreview->OnWidgetChanged().AddSP(this, &FItemAssetEditorToolkit::OnWidgetChanged);
+		// Note: this is where FWidgetPreviewToolkit binds, but we do earlier, so we can feed the proxy into the preview widget as soon as it's created.
+		//OnWidgetChangedHandle = WidgetPreview->OnWidgetChanged().AddSP(this, &FItemAssetEditorToolkit::OnWidgetChanged);
 
 		if (FSlateApplication::IsInitialized())
 		{
@@ -371,6 +373,7 @@ namespace Faerie::Editor
 			WidgetPreview = NewObject<UFaerieWidgetPreview>();
 			WidgetPreview->InitFaerieWidgetPreview(ItemAsset);
 			WidgetPreview->SetWidgetType(WidgetType);
+			OnWidgetChangedHandle = WidgetPreview->OnWidgetChanged().AddSP(this, &FItemAssetEditorToolkit::OnWidgetChanged);
 		}
 
 		if (WidgetPreview)
@@ -490,6 +493,7 @@ namespace Faerie::Editor
 
 	void FItemAssetEditorToolkit::OnWidgetChanged(const EWidgetPreviewWidgetChangeType InChangeType)
 	{
+		ResetPreview();
 		ResolveState();
 	}
 
@@ -554,8 +558,15 @@ namespace Faerie::Editor
 	{
 		if (WidgetPreview)
 		{
-			// Don't need the returned instance, just need to have it rebuild
-			WidgetPreview->GetOrCreateWidgetInstance(GetPreviewWorld(), true);
+			UWorld* World = GetPreviewWorld();
+
+			UUserWidget* PreviewWidget = WidgetPreview->GetOrCreateWidgetInstance(World, false);
+			if (UFaerieCardBase* Card = Cast<UFaerieCardBase>(PreviewWidget))
+			{
+				// Allow blueprint code to run here.
+				FEditorScriptExecutionGuard ScriptGuard;
+				Card->SetItemData(FFaerieItemProxy(nullptr, WidgetPreview), true);
+			}
 		}
 	}
 

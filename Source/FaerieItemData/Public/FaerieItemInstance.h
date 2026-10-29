@@ -55,9 +55,6 @@ namespace Faerie::ItemData
 	FAE_API void UpdateFragments(FMassEntityManager& EntityManager, FMassEntityHandle Item, TConstArrayView<FInstancedStruct> Fragments, bool ClearOthers);
 
 	FAE_API void OnItemFragmentEdited(FMassEntityManager& EntityManager, FMassEntityHandle Item, TNotNull<const UScriptStruct*> FragmentType, const FFieldChangePayload& FieldChange);
-
-	// Call on Server Only to destroy the mass entity for this item instance.
-	FAE_API void DestroyMassEntity(FMassEntityManager& EntityManager, FMassEntityHandle Item);
 }
 
 #undef FAE_API

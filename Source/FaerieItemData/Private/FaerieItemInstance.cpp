@@ -399,12 +399,4 @@ namespace Faerie::ItemData
 		const FMutationEvent Payload(Item, Tags::FragmentGenericPropertyEdit, FragmentType);
 		PostMutationEventWithFieldChange(EntityManager, Payload, FieldChange);
 	}
-
-	void DestroyMassEntity(FMassEntityManager& EntityManager, const FMassEntityHandle Item)
-	{
-		if (EntityManager.IsEntityValid(Item))
-		{
-			EntityManager.DestroyEntity(Item);
-		}
-	}
 }

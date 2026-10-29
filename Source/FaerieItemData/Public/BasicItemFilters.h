@@ -259,6 +259,10 @@ struct FFaerieItemFilter_GameplayTagAny final : public FFaerieItemFilterBase
 
 	virtual bool Exec(Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
 
+#if WITH_EDITOR
+	virtual bool ExecWithLog(Faerie::TValid<const FFaerieItemProxy&> Proxy, Faerie::ItemData::FFilterLogger& Logger) const override;
+#endif
+
 	UPROPERTY(EditAnywhere, Category = "GameplayTagAny")
 	FGameplayTagContainer Tags;
 
@@ -276,6 +280,10 @@ struct FFaerieItemFilter_GameplayTagAll final : public FFaerieItemFilterBase
 
 	virtual bool Exec(Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
 
+#if WITH_EDITOR
+	virtual bool ExecWithLog(Faerie::TValid<const FFaerieItemProxy&> Proxy, Faerie::ItemData::FFilterLogger& Logger) const override;
+#endif
+
 	UPROPERTY(EditAnywhere, Category = "GameplayTagAll")
 	FGameplayTagContainer Tags;
 
@@ -292,6 +300,10 @@ struct FFaerieItemFilter_GameplayTagQuery final : public FFaerieItemFilterBase
 	GENERATED_BODY()
 
 	virtual bool Exec(Faerie::TValid<const FFaerieItemProxy&> Proxy) const override;
+
+#if WITH_EDITOR
+	virtual bool ExecWithLog(Faerie::TValid<const FFaerieItemProxy&> Proxy, Faerie::ItemData::FFilterLogger& Logger) const override;
+#endif
 
 	UPROPERTY(EditAnywhere, Category = "GameplayTagAll")
 	FGameplayTagQuery Query;

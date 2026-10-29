@@ -7,6 +7,7 @@
 #include "FaerieContainerIterator.h"
 #include "FaerieInventoryLog.h"
 #include "FaerieItem.h"
+#include "FaerieItemDestructionProcessor.h"
 #include "FaerieItemOwnership.h"
 #include "FaerieStorageEnums.h"
 #include "FaerieUnownedItemStack.h"
@@ -436,7 +437,7 @@ void UFaerieItemStackContainer::SetStoredItem_Impl(FMassEntityManager& EntityMan
 			FInstancedStruct NetID;
 			NetID.InitializeAs<FFaerieNetIDFragment>(FFaerieNetIDFragment{.NetID = ItemStack.NetID});
 			EntityManager.AddFragmentInstanceListToEntity(ItemEntity, MakeConstArrayView(&NetID, 1));
-			EntityManager.AddSparseElementToEntity<FFaerieNeedsReplicationInit>(ItemEntity);
+			EntityManager.AddSparseElementToEntity<Container::FNeedsReplicationInit>(ItemEntity);
 		}
 
 		const FFaerieAddress Address = GetCurrentAddress();
@@ -585,7 +586,7 @@ FFaerieUnownedItemStack UFaerieItemStackContainer::TakeItemFromSlot(FMassEntityM
 	// Destroy the mass entity, if this stack is being deleted.
 	if (Reason == Inventory::Tags::RemovalDeletion && Event.EntryRemoved)
 	{
-		ItemData::DestroyMassEntity(EntityManager, Event.Item);
+		ItemData::MarkItemAsGarbage(EntityManager, Event.Item);
 		return FFaerieUnownedItemStack();
 	}
 

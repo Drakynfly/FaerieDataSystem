@@ -4,7 +4,7 @@
 #include "FaerieItem.h"
 #include "FaerieItemInstance.h"
 
-#include "Fragments/FaerieTagFragment.h"
+#include "Fragments/FaerieGameplayTagFragment.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(BasicItemFilters)
 
@@ -362,7 +362,7 @@ bool FFaerieItemFilter_CompareName::Exec(const TValid<const FFaerieItemProxy&> P
 
 bool FFaerieItemFilter_GameplayTagAny::Exec(const TValid<const FFaerieItemProxy&> Proxy) const
 {
-	auto TagFragment = ItemData::GetItemDataOrDefault<FFaerieTagFragment>(Proxy);
+	auto TagFragment = ItemData::GetItemDataOrDefault<FFaerieGameplayTagFragment>(Proxy);
 	if (TagFragment.IsValid())
 	{
 		if (Exact)
@@ -374,9 +374,42 @@ bool FFaerieItemFilter_GameplayTagAny::Exec(const TValid<const FFaerieItemProxy&
 	return false;
 }
 
+#if WITH_EDITOR
+bool FFaerieItemFilter_GameplayTagAny::ExecWithLog(const TValid<const FFaerieItemProxy&> Proxy,
+	ItemData::FFilterLogger& Logger) const
+{
+	auto TagFragment = ItemData::GetItemDataOrDefault<FFaerieGameplayTagFragment>(Proxy);
+	if (TagFragment.IsValid())
+	{
+		if (Exact)
+		{
+			if (!TagFragment->Tags.HasAnyExact(Tags))
+			{
+				Logger.Errors.Add(FText::Format(LOCTEXT("GameplayTagAnyExactMismatch", "Tags '{0}' does not contain all any exactly '{1}'"),
+				   FText::FromString(TagFragment->Tags.ToStringSimple()),
+				   FText::FromString(Tags.ToStringSimple())));
+				return false;
+			}
+			return true;
+		}
+
+		if (!TagFragment->Tags.HasAny(Tags))
+		{
+			Logger.Errors.Add(FText::Format(LOCTEXT("GameplayTagAnyMismatch", "Tags '{0}' does not contain any tags '{1}'"),
+			   FText::FromString(TagFragment->Tags.ToStringSimple()),
+			   FText::FromString(Tags.ToStringSimple())));
+			return false;
+		}
+		return true;
+	}
+	Logger.Errors.Add(LOCTEXT("MissingGameplayTagFragment", "Missing fragment 'FaerieGameplayTagFragment'"));
+	return false;
+}
+#endif
+
 bool FFaerieItemFilter_GameplayTagAll::Exec(const TValid<const FFaerieItemProxy&> Proxy) const
 {
-	auto TagFragment = ItemData::GetItemDataOrDefault<FFaerieTagFragment>(Proxy);
+	auto TagFragment = ItemData::GetItemDataOrDefault<FFaerieGameplayTagFragment>(Proxy);
 	if (TagFragment.IsValid())
 	{
 		if (Exact)
@@ -388,14 +421,69 @@ bool FFaerieItemFilter_GameplayTagAll::Exec(const TValid<const FFaerieItemProxy&
 	return false;
 }
 
+#if WITH_EDITOR
+bool FFaerieItemFilter_GameplayTagAll::ExecWithLog(const TValid<const FFaerieItemProxy&> Proxy,
+	ItemData::FFilterLogger& Logger) const
+{
+	auto TagFragment = ItemData::GetItemDataOrDefault<FFaerieGameplayTagFragment>(Proxy);
+	if (TagFragment.IsValid())
+	{
+		if (Exact)
+		{
+			if (!TagFragment->Tags.HasAllExact(Tags))
+			{
+				Logger.Errors.Add(FText::Format(LOCTEXT("GameplayTagAllExactMismatch", "Tags '{0}' does not contain all tags exactly '{1}'"),
+				   FText::FromString(TagFragment->Tags.ToStringSimple()),
+				   FText::FromString(Tags.ToStringSimple())));
+				return false;
+			}
+			return true;
+		}
+
+		if (!TagFragment->Tags.HasAll(Tags))
+		{
+			Logger.Errors.Add(FText::Format(LOCTEXT("GameplayTagAllMismatch", "Tags '{0}' does not contain all tags '{1}'"),
+			   FText::FromString(TagFragment->Tags.ToStringSimple()),
+			   FText::FromString(Tags.ToStringSimple())));
+			return false;
+		}
+		return true;
+	}
+	Logger.Errors.Add(LOCTEXT("MissingGameplayTagFragment", "Missing fragment 'FaerieGameplayTagFragment'"));
+	return false;
+}
+#endif
+
 bool FFaerieItemFilter_GameplayTagQuery::Exec(const TValid<const FFaerieItemProxy&> Proxy) const
 {
-	auto TagFragment = ItemData::GetItemDataOrDefault<FFaerieTagFragment>(Proxy);
+	auto TagFragment = ItemData::GetItemDataOrDefault<FFaerieGameplayTagFragment>(Proxy);
 	if (TagFragment.IsValid())
 	{
 		return Query.Matches(TagFragment->Tags);
 	}
 	return false;
 }
+
+
+#if WITH_EDITOR
+bool FFaerieItemFilter_GameplayTagQuery::ExecWithLog(const TValid<const FFaerieItemProxy&> Proxy,
+	ItemData::FFilterLogger& Logger) const
+{
+	auto TagFragment = ItemData::GetItemDataOrDefault<FFaerieGameplayTagFragment>(Proxy);
+	if (TagFragment.IsValid())
+	{
+		if (!Query.Matches(TagFragment->Tags))
+		{
+			Logger.Errors.Add(FText::Format(LOCTEXT("GameplayTagQueryMismatch", "Tags '{0}' does not match query '{1}'"),
+			   FText::FromString(TagFragment->Tags.ToStringSimple()),
+			   FText::FromString(Query.GetDescription())));
+			return false;
+		}
+		return true;
+	}
+	Logger.Errors.Add(LOCTEXT("MissingGameplayTagFragment", "Missing fragment 'FaerieGameplayTagFragment'"));
+	return false;
+}
+#endif
 
 #undef LOCTEXT_NAMESPACE

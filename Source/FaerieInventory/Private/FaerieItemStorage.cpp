@@ -4,6 +4,7 @@
 #include "FaerieContainerEvent.h"
 #include "FaerieInventoryLog.h"
 #include "FaerieItem.h"
+#include "FaerieItemDestructionProcessor.h"
 #include "FaerieItemStorageIterators.h"
 #include "FaerieItemOwnership.h"
 #include "FaerieSubObjectFilter.h"
@@ -656,7 +657,7 @@ Container::FContainerEventPayload UFaerieItemStorage::RemoveFromEntryImpl(FMassE
 	// Destroy the mass entity, if this stack is being deleted.
 	if (Reason == Inventory::Tags::RemovalDeletion && Event.EntryRemoved)
 	{
-		ItemData::DestroyMassEntity(EntityManager, Event.Item);
+		ItemData::MarkItemAsGarbage(EntityManager, Event.Item);
 	}
 
 	return Event;
@@ -678,7 +679,7 @@ Container::FContainerEventPayload UFaerieItemStorage::RemoveFromStackImpl(FMassE
 	// Destroy the mass entity, if this stack is being deleted.
 	if (Reason == Inventory::Tags::RemovalDeletion && Event.EntryRemoved)
 	{
-		ItemData::DestroyMassEntity(EntityManager, Event.Item);
+		ItemData::MarkItemAsGarbage(EntityManager, Event.Item);
 	}
 
 	return Event;
@@ -1716,7 +1717,7 @@ void UFaerieItemStorage::Clear(FMassEntityManager& EntityManager, FFaerieInvento
 	{
 		for (const Container::FContainerEventPayload& Event : Events)
 		{
-			ItemData::DestroyMassEntity(EntityManager, Event.Item);
+			ItemData::MarkItemAsGarbage(EntityManager, Event.Item);
 		}
 	}
 

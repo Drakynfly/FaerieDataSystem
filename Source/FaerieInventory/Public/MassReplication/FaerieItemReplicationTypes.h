@@ -47,9 +47,12 @@ struct Faerie::ItemData::TMassTypeTraits<FFaerieNetIDFragment> : TMassTypeTraits
 	};
 };
 
-USTRUCT()
-struct FFaerieNeedsReplicationInit : public FFaerieMassSparseTag
+namespace Faerie::Container
 {
-	GENERATED_BODY()
-	____FAERIE_FRAGMENT_DECL(FFaerieNeedsReplicationInit)
-};
+	// This is not a Faerie fragment type, because it needs neither replication nor serialization. It's a runtime only flag.
+	USTRUCT()
+	struct FNeedsReplicationInit : public FMassSparseTag
+	{
+		GENERATED_BODY()
+	};
+}

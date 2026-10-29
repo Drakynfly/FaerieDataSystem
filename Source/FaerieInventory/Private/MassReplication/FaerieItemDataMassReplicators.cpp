@@ -27,7 +27,7 @@ UFaerieItemDataCreationReplicator::UFaerieItemDataCreationReplicator()
 
 void UFaerieItemDataCreationReplicator::ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager)
 {
-	EntityQuery.AddSparseRequirement<FFaerieNeedsReplicationInit>(EMassFragmentPresence::All);
+	EntityQuery.AddSparseRequirement<Container::FNeedsReplicationInit>(EMassFragmentPresence::All);
 	EntityQuery.AddRequirement<FFaerieNetIDFragment>(EMassFragmentAccess::ReadOnly, EMassFragmentPresence::All);
 	ProcessorRequirements.AddSubsystemRequirement<UFaerieMassReplicationSubsystem>(EMassFragmentAccess::ReadWrite);
 }
@@ -82,7 +82,7 @@ void UFaerieItemDataCreationReplicator::ProcessEntities(FMassExecutionContext& C
 		ReplicationSubsystem.Server_UpdateFragments(Entity, NetID.NetID, FragmentViews);
 
 		// Replication init handled, remove tag.
-		Context.Defer().RemoveTag<FFaerieNeedsReplicationInit>(Entity);
+		Context.Defer().RemoveTag<Container::FNeedsReplicationInit>(Entity);
 	}
 }
 

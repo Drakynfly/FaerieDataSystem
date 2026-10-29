@@ -317,6 +317,14 @@ namespace Faerie::ItemData
 		{
 			return GetDefaultFragment(*Item.GetEntityManager(), Item.GetEntityHandle(), FragmentType, ReferenceType);
 		}
+
+#if WITH_EDITOR
+		if (const UFaerieItem* ItemAsset = Item.GetItemPtr())
+		{
+			return ItemAsset->GetDefaultFragment(FragmentType, ReferenceType);
+		}
+#endif
+
 		return FConstStructView();
 	}
 
@@ -368,6 +376,14 @@ namespace Faerie::ItemData
 
 	FConstStructView GetEntityFragmentOrDefault(const FFaerieItemProxy& Item, const TNotNull<const UScriptStruct*> FragmentType, const UScriptStruct* ReferenceType)
 	{
-		return GetEntityFragmentOrDefault(*Item.GetEntityManager(), Item.GetEntityHandle(), FragmentType, ReferenceType);
+		if (Item.HasEntityManager())
+		{
+			if (const FConstStructView View = GetEntityFragment(*Item.GetEntityManager(), Item.GetEntityHandle(), FragmentType);
+				View.IsValid())
+			{
+				return View;
+			}
+		}
+		return GetDefaultFragment(Item, FragmentType, ReferenceType);
 	}
 }

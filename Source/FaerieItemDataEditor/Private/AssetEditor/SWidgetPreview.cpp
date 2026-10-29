@@ -304,16 +304,6 @@ namespace Faerie::UMGWidgetPreview
 				{
 					UWorld* World = GetWorld();
 
-					if (UUserWidget* PreviewWidget = Preview->GetOrCreateWidgetInstance(World))
-					{
-						if (UFaerieCardBase* Card = Cast<UFaerieCardBase>(PreviewWidget))
-						{
-							// Allow blueprint code to run here.
-							FEditorScriptExecutionGuard ScriptGuard;
-							Card->SetItemData(FFaerieItemProxy(nullptr, Preview), true);
-						}
-					}
-
 					if (const TSharedPtr<SWidget> PreviewSlateWidget = Preview->GetSlateWidgetInstance())
 					{
 						CreatedSlateWidget = PreviewSlateWidget;
