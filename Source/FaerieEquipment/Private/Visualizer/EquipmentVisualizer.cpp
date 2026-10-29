@@ -43,11 +43,12 @@ namespace Faerie::Equipment
 		{
 			Visual->AttachToComponent(Metadata.Parent.Get(), TempTransformRules, Metadata.ParentSocket);
 
-			const USceneComponent* SelfComponent = Visual->GetDefaultAttachComponent();
+			USceneComponent* SelfComponent = Visual->GetDefaultAttachComponent();
 			if (SelfComponent->DoesSocketExist(Metadata.ChildSocket))
 			{
 				const FVector Offset = -SelfComponent->GetSocketTransform(Metadata.ChildSocket, RTS_Component).GetTranslation();
-				Visual->AddActorLocalOffset(Offset);
+				SelfComponent->SetRelativeLocation(FVector::Zero()); // Reset offset before adding so it doesn't drift from re-runs.
+				SelfComponent->AddLocalOffset(Offset);
 			}
 
 			Visual->SetActorHiddenInGame(Metadata.Hidden);
@@ -63,11 +64,14 @@ namespace Faerie::Equipment
 		if (IsValid(Metadata.Parent.Get()))
 		{
 			Visual->AttachToComponent(Metadata.Parent.Get(), TempTransformRules, Metadata.ParentSocket);
+
 			if (Visual->DoesSocketExist(Metadata.ChildSocket))
 			{
 				const FVector Offset = -Visual->GetSocketTransform(Metadata.ChildSocket, RTS_Component).GetTranslation();
+				Visual->SetRelativeLocation(FVector::Zero()); // Reset offset before adding so it doesn't drift from re-runs.
 				Visual->AddLocalOffset(Offset);
 			}
+
 			Visual->SetVisibility(!Metadata.Hidden, true);
 		}
 		else
