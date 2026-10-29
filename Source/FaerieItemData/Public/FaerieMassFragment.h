@@ -12,6 +12,11 @@
 
 #define FAE_API FAERIEITEMDATA_API
 
+namespace UE::Mass
+{
+	struct FEntityBuilder;
+}
+
 struct FInstancedStruct;
 
 /*
@@ -134,9 +139,9 @@ namespace Faerie::ItemData
 
 	// Concept to look for InitializeRuntime function on fragments types.
 	template<typename T>
-	concept CHasInitializeRuntime = requires(T& Value, FMassEntityManager& EntityManager, FMassEntityHandle Item)
+	concept CHasInitializeRuntime = requires(T& Value, UE::Mass::FEntityBuilder& Builder)
 	{
-		{ Value.InitializeRuntime(EntityManager, Item) } -> UE::CSameAs<bool>;
+		{ Value.InitializeRuntime(Builder) } -> UE::CSameAs<bool>;
 	};
 
 	// Concept to look for SaveDataConverter function on fragments types.
@@ -158,11 +163,11 @@ namespace Faerie::ItemData
 	namespace Private
 	{
 		template <CDataImpl TFragment>
-		bool ExInitializeRuntime(TNotNull<void*> Value, FMassEntityManager& EntityManager, FMassEntityHandle Item)
+		bool ExInitializeRuntime(TNotNull<void*> Value, UE::Mass::FEntityBuilder& Builder)
 		{
 			if constexpr (CHasInitializeRuntime<TFragment>)
 			{
-				return static_cast<TFragment*>(NotNullGet(Value))->InitializeRuntime(EntityManager, Item);
+				return static_cast<TFragment*>(NotNullGet(Value))->InitializeRuntime(Builder);
 			}
 			else
 			{
@@ -213,7 +218,7 @@ namespace Faerie::ItemData
 		// This requires template magic I don't feel like writing currently.
 		struct ITraitOps
 		{
-			bool (*InitializeRuntimePtr)(TNotNull<void*>, FMassEntityManager&, FMassEntityHandle) = nullptr;
+			bool (*InitializeRuntimePtr)(TNotNull<void*>, UE::Mass::FEntityBuilder&) = nullptr;
 			bool (*SaveDataConverterPtr)(TNotNull<void*>, FMassEntityManager&, FInstancedStruct&) = nullptr;
 #if WITH_EDITOR
 			EDataValidationResult (*IsDataValidPtr)(const TNotNull<const void*>, class FDataValidationContext& Context) = nullptr;
@@ -244,11 +249,11 @@ namespace Faerie::ItemData
 #endif
 		const ITraitOps* Ops;
 
-		bool InitializeRuntime(TNotNull<void*> Value, FMassEntityManager& EntityManager, FMassEntityHandle Item) const
+		bool InitializeRuntime(TNotNull<void*> Value, UE::Mass::FEntityBuilder& Builder) const
 		{
 			if (HasInitializeRuntime)
 			{
-				return Ops->InitializeRuntimePtr(Value, EntityManager, Item);
+				return Ops->InitializeRuntimePtr(Value, Builder);
 			}
 			return false;
 		}

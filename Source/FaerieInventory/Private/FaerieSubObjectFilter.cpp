@@ -4,6 +4,7 @@
 #include "FaerieContainerIterator.h"
 #include "FaerieInventoryLog.h"
 #include "FaerieItem.h"
+#include "FaerieItemAsset.h"
 #include "FaerieItemStackContainer.h"
 #include "FaerieItemStorage.h"
 
@@ -11,7 +12,7 @@
 
 namespace Faerie::SubObject
 {
-	void GetTemplateContainersInInstanceDirect(const TNotNull<const UFaerieItem*> Item, const TAdderRef<TNotNull<const UFaerieItemContainerBase*>> Containers, const TNotNull<const UClass*> Class)
+	void GetTemplateContainersInInstanceDirect(const TNotNull<const UFaerieItemAsset*> Item, const TAdderRef<TNotNull<const UFaerieItemContainerBase*>> Containers, const TNotNull<const UClass*> Class)
 	{
 		if (auto&& StacksFragment = Item->GetDefaultFragment<FFaerieChildStackFragment>();
 			StacksFragment.IsValid())
@@ -43,7 +44,7 @@ namespace Faerie::SubObject
 		}
 	}
 
-	void GetTemplateContainersInInstanceRecursive(const TNotNull<const UFaerieItem*> Item, const TAdderRef<TNotNull<const UFaerieItemContainerBase*>> Containers, const TNotNull<const UClass*> Class)
+	void GetTemplateContainersInInstanceRecursive(const TNotNull<const UFaerieItemAsset*> Item, const TAdderRef<TNotNull<const UFaerieItemContainerBase*>> Containers, const TNotNull<const UClass*> Class)
 	{
 		/*
 		 * Most item instances will not contain more than 3 containers. That allows 1 storage and 2 slots or 3 slots,

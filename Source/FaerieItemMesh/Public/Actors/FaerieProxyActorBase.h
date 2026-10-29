@@ -19,7 +19,7 @@ public:
 
 	//~ Faerie::ItemData::IViewBase
 #if WITH_EDITOR
-	virtual const UFaerieItem* GetItemAsset() const override;
+	virtual const UFaerieItemAsset* GetItemAsset() const override;
 #endif
 	virtual FMassEntityHandle GetEntityHandle() const override;
 	virtual int32 GetCopies() const override;

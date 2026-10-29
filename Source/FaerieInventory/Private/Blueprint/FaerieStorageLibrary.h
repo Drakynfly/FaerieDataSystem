@@ -7,7 +7,6 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "FaerieStorageLibrary.generated.h"
 
-class UFaerieItem;
 class UFaerieItemStackProxy;
 class UFaerieItemStorage;
 

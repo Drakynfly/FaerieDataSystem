@@ -383,7 +383,7 @@ void UFaerieItemMeshComponent::SetItemMeshFromProxy(const FFaerieItemProxy& InPr
 }
 
 #if WITH_EDITOR
-void UFaerieItemMeshComponent::SetItemMeshFromAsset(const TNotNull<const UFaerieItem*> ItemAsset)
+void UFaerieItemMeshComponent::SetItemMeshFromAsset(const TNotNull<const UFaerieItemAsset*> ItemAsset)
 {
 	UFaerieMeshSubsystem* MeshSubsystem = GetWorld()->GetSubsystem<UFaerieMeshSubsystem>();
 	if (IsValid(MeshSubsystem))

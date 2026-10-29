@@ -34,17 +34,6 @@ FDateTime UFaerieItemDataLibrary::GetItemLastModified(const FFaerieItemProxy& Pr
 	return FDateTime();
 }
 
-const UFaerieItem* UFaerieItemDataLibrary::GetTemplateInstance(const UFaerieItemAsset* Asset)
-{
-	if (!Asset)
-	{
-		FFrame::KismetExecutionMessage(TEXT("Invalid Asset passed to UFaerieItemDataLibrary::GetTemplateInstance"), ELogVerbosity::Error);
-		return nullptr;
-	}
-
-	return Asset->GetAssetTemplateItem();
-}
-
 FFaerieUnownedItemStack UFaerieItemDataLibrary::NewItemInstance(const UObject* WorldContextObj, TArray<FInstancedStruct>& Fragments)
 {
 	for (int32 i = 0; i < Fragments.Num(); ++i)
@@ -67,7 +56,7 @@ FFaerieUnownedItemStack UFaerieItemDataLibrary::NewItemInstance(const UObject* W
 
 	FFaerieUnownedItemStack OutStack
 	{
-		ItemData::InitializeItemEntity(EntityManager, nullptr, FMassTagBitSet(), Fragments),
+		ItemData::InitializeItemEntity(EntityManager, FMassTagBitSet(), MoveTemp(Fragments)),
 		1
 	};
 	return OutStack;

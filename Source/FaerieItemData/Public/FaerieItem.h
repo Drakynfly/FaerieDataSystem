@@ -5,18 +5,14 @@
 #include "FaerieItemDataConcepts.h"
 #include "FaerieItemDataDefines.h"
 #include "FaerieItemDataFwd.h"
-#include "FaerieItemDataEnums.h"
 #include "FaerieItemProxy.h"
-#include "FaerieMassFragment.h"
+#include "Fragments/FaerieItemAssetFragment.h"
 
 #include "MassEntityManager.h"
 #include "Mass/EntityHandle.h"
 
 #include "NativeGameplayTags.h"
-
 #include "StructUtils/StructView.h"
-
-#include "FaerieItem.generated.h"
 
 #define FAE_API FAERIEITEMDATA_API
 
@@ -28,127 +24,7 @@ namespace Faerie::ItemData
 		FAE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(FragmentRemove)
 		FAE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(FragmentGenericPropertyEdit)
 	}
-}
 
-/*
- * Const Shared fragment to keep a reference to a faerie item object.
- */
-USTRUCT()
-struct FFaerieMassItemObject : public FFaerieMassConstSharedFragment
-{
-	GENERATED_BODY()
-
-	FFaerieMassItemObject() = default;
-	FFaerieMassItemObject(const UFaerieItem* Item) : ItemAsset(Item) {}
-
-	UPROPERTY(VisibleAnywhere, Category = "MassItemObject")
-	TObjectPtr<const UFaerieItem> ItemAsset;
-
-____FAERIE_FRAGMENT_DECL(FFaerieMassItemObject)
-};
-
-// Item Asset used for "default" values.
-USTRUCT()
-struct FFaerieItemDataDefaults : public FFaerieMassItemObject
-{
-	GENERATED_BODY()
-	using FFaerieMassItemObject::FFaerieMassItemObject;
-____FAERIE_FRAGMENT_DECL(FFaerieItemDataDefaults)
-};
-
-
-/**
- * A runtime instance of an item.
- */
-UCLASS(DefaultToInstanced, EditInlineNew, BlueprintType)
-class FAE_API UFaerieItem : public UObject
-{
-	GENERATED_BODY()
-
-	friend class UFaerieItemAsset;
-
-public:
-	//~ Begin UObject interface
-	virtual void PostInitProperties() override;
-	virtual void PreSave(FObjectPreSaveContext SaveContext) override;
-	virtual void PostLoad() override;
-
-#if WITH_EDITOR
-	virtual EDataValidationResult IsDataValid(FDataValidationContext& Context) const override;
-#endif
-	//~ End UObject interface
-
-private:
-	// Hide GetWorld from API.
-	// ReSharper disable once CppOverrideWithDifferentVisibility
-	UE_REWRITE virtual class UWorld* GetWorld() const override { return Super::GetWorld(); }
-
-public:
-#if WITH_EDITOR
-	// Creates a new faerie item object with the given fragments. These are instance-mutable by default.
-	static TNotNull<UFaerieItem*> CreateNewInstance(TConstArrayView<FInstancedStruct> Fragments, TNotNull<UObject*> InstanceOuter, EFaerieItemInstancingMutability Mutability = EFaerieItemInstancingMutability::Automatic);
-
-	// Creates a new faerie item object using this instance as a template. Duplicates are instance-mutable by default.
-	TNotNull<const UFaerieItem*> CreateDuplicate(TNotNull<UObject*> InstanceOuter, EFaerieItemInstancingMutability Mutability = EFaerieItemInstancingMutability::Automatic) const;
-#endif
-
-	UE_REWRITE TConstArrayView<FInstancedStruct> GetFragmentDefaults() const { return FragmentDefaults; }
-
-	UE_REWRITE int32 GetAssetFormatVersion() const { return FormatVersion; }
-
-	bool HasDefaultFragment(TNotNull<const UScriptStruct*> StructType, const UScriptStruct* ReferenceType = FFaerieItemDataDefaults::StaticStruct()) const;
-
-	template <Faerie::ItemData::CElementImpl T>
-	UE_REWRITE bool HasDefaultFragment(const UScriptStruct* ReferenceType = FFaerieItemDataDefaults::StaticStruct()) const
-	{
-		return HasDefaultFragment(const_cast<UScriptStruct*>(T::StaticStruct()), ReferenceType);
-	}
-
-	// Look for a default fragment value in an item asset.
-	FConstStructView GetDefaultFragment(TNotNull<const UScriptStruct*> StructType, const UScriptStruct* ReferenceType = FFaerieItemDataDefaults::StaticStruct()) const;
-
-	template <Faerie::ItemData::CDataImpl T>
-	UE_REWRITE TConstStructView<T> GetDefaultFragment(const UScriptStruct* ReferenceType = FFaerieItemDataDefaults::StaticStruct()) const
-	{
-		FConstStructView FragmentView = GetDefaultFragment(const_cast<UScriptStruct*>(T::StaticStruct()), ReferenceType);
-		return *reinterpret_cast<TConstStructView<T>*>(&FragmentView);
-	}
-
-#if WITH_EDITORONLY_DATA
-	// Only the Editor can set the defaults for fragment data. It should always be treated as immutable during runtime.
-
-	void SetDefaultFragment(FConstStructView DefaultStructValue);
-
-	template <Faerie::ItemData::CDataImpl T>
-	void SetDefaultFragment(const T& DefaultStructValue)
-	{
-		return SetDefaultFragment(FConstStructView::Make(DefaultStructValue));
-	}
-#endif
-
-	// Does this item instance expect to mutate during runtime. This disables stacking.
-	bool CanMutate() const;
-
-protected:
-	bool DetermineFragmentMutability() const;
-
-	// Mass fragments for this item instance that are not registered to the mass subsystem. Used to hold default values
-	// for instances generated in the editor.
-	UPROPERTY(VisibleInstanceOnly, Category = "FaerieItem")
-	TArray<FInstancedStruct /* TInstancedStruct<FFaerieMassFragment> */> FragmentDefaults;
-
-	// In order for an item instance to be changed at runtime, it must be mutable. This disables stacking.
-	UPROPERTY(VisibleInstanceOnly, Category = "FaerieItem")
-	bool InstancesCanMutate = false;
-
-	// Version number for validation of instances created from an item asset.
-	// Stored as int32, but interpreted as Faerie::ItemData::EFormatVersion.
-	UPROPERTY(VisibleInstanceOnly, Category = "FaerieItem")
-	int32 FormatVersion = INDEX_NONE;
-};
-
-namespace Faerie::ItemData
-{
 	//~							~//
 	//~		FRAGMENT CHECKS		~//
 	//~							~//
@@ -234,8 +110,7 @@ namespace Faerie::ItemData
 
 	/// TEMPLATE DEFINITIONS
 
-	template <CDataImpl T> const T* GetEntityFragment(const FMassEntityManager& EntityManager,
-		const FMassEntityHandle ItemHandle)
+	template <CDataImpl T> const T* GetEntityFragment(const FMassEntityManager& EntityManager, const FMassEntityHandle ItemHandle)
 	{
 		if (EntityManager.IsEntityValid(ItemHandle))
 		{

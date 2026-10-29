@@ -3,17 +3,11 @@
 #pragma once
 
 #include "GameplayTagContainer.h"
+#include "FaerieItemDataFwd.h"
 #include "FaerieMeshStructs.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "FaerieMeshSubsystem.generated.h"
 
-namespace Faerie::ItemData
-{
-	struct FReference;
-}
-
-struct FFaerieItemProxy;
-class UFaerieItem;
 class UFaerieItemMeshLoader;
 
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FFaerieItemMeshAsyncLoadResult, bool, Success, const FFaerieItemMesh&, Mesh);
@@ -45,7 +39,7 @@ public:
 	[[nodiscard]] TSharedPtr<FStreamableHandle> LoadMeshFromProxyAsynchronous(const FFaerieItemProxy& Proxy, FGameplayTag Purpose, const TDelegate<void(bool, FFaerieItemMesh&&)>& Callback);
 
 #if WITH_EDITOR
-	bool LoadMeshFromAssetSynchronous(TNotNull<const UFaerieItem*> ItemAsset, FGameplayTag Purpose, FFaerieItemMesh& Mesh);
+	bool LoadMeshFromAssetSynchronous(TNotNull<const UFaerieItemAsset*> ItemAsset, FGameplayTag Purpose, FFaerieItemMesh& Mesh);
 #endif
 
 protected:

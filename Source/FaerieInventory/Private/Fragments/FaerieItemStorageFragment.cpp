@@ -7,6 +7,7 @@
 #include "FaerieInventoryLog.h"
 #include "FaerieItemOwnership.h"
 #include "FaerieItemStackContainer.h"
+#include "MassEntityBuilder.h"
 
 #if WITH_EDITOR
 #include "Misc/DataValidation.h"
@@ -36,17 +37,17 @@ EDataValidationResult FFaerieItemStorageFragment::IsDataValid(FDataValidationCon
 
 #endif
 
-bool FFaerieItemStorageFragment::InitializeRuntime(FMassEntityManager& EntityManager, const FMassEntityHandle Item)
+bool FFaerieItemStorageFragment::InitializeRuntime(UE::Mass::FEntityBuilder& Builder)
 {
-	check(EntityManager.IsEntityValid(Item));
+	TSharedRef<FMassEntityManager> EntityManager = Builder.GetEntityManager();
+	const FMassEntityHandle Item = Builder.GetEntityHandle();
 	if (IsValid(Storage.Storage))
 	{
-		UObject* OwnerObj = GetTransientPackageAsObject();
-
 		// Only fully built items will already have an owner set.
-		if (EntityManager.IsEntityBuilt(Item))
+		UObject* OwnerObj = GetTransientPackageAsObject();
+		if (EntityManager->IsEntityBuilt(Item))
 		{
-			OwnerObj = Container::GetItemOwner(EntityManager, Item);
+			OwnerObj = Container::GetItemOwner(*EntityManager, Item);
 		}
 
 		if (Utils::HasLoadFlag(Storage.Storage))
@@ -54,7 +55,7 @@ bool FFaerieItemStorageFragment::InitializeRuntime(FMassEntityManager& EntityMan
 			Storage.Storage = Utils::DuplicateObjectFromDiskForReplication(Storage.Storage.Get(), OwnerObj);
 		}
 
-		Storage.Storage->WriteContainerData(EntityManager, Container::FNestedContainer::StaticStruct(),
+		Storage.Storage->WriteContainerData(*EntityManager, Container::FNestedContainer::StaticStruct(),
 			[this, Item](const FStructView Element)
 			{
 				check(Item.IsValid())
@@ -114,15 +115,16 @@ EDataValidationResult FFaerieChildStackFragment::IsDataValid(FDataValidationCont
 
 #endif
 
-bool FFaerieChildStackFragment::InitializeRuntime(FMassEntityManager& EntityManager, const FMassEntityHandle Item)
+bool FFaerieChildStackFragment::InitializeRuntime(UE::Mass::FEntityBuilder& Builder)
 {
-	check(EntityManager.IsEntityValid(Item));
-	UObject* OwnerObj = GetTransientPackageAsObject();
+	TSharedRef<FMassEntityManager> EntityManager = Builder.GetEntityManager();
+	const FMassEntityHandle Item = Builder.GetEntityHandle();
 
 	// Only fully built items will already have an owner set.
-	if (EntityManager.IsEntityBuilt(Item))
+	UObject* OwnerObj = GetTransientPackageAsObject();
+	if (EntityManager->IsEntityBuilt(Item))
 	{
-		OwnerObj = Container::GetItemOwner(EntityManager, Item);
+		OwnerObj = Container::GetItemOwner(*EntityManager, Item);
 	}
 
 	for (FFaerieInlineStackContainer& InlineStack : Slots)
@@ -134,7 +136,7 @@ bool FFaerieChildStackFragment::InitializeRuntime(FMassEntityManager& EntityMana
 				InlineStack.Stack = Utils::DuplicateObjectFromDiskForReplication(InlineStack.Stack.Get(), OwnerObj);
 			}
 
-			InlineStack.Stack->WriteContainerData(EntityManager, Container::FNestedContainer::StaticStruct(),
+			InlineStack.Stack->WriteContainerData(*EntityManager, Container::FNestedContainer::StaticStruct(),
 				[&, Item](const FStructView Element)
 				{
 					check(Item.IsValid())

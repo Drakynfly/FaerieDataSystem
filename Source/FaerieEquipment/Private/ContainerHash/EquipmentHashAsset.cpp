@@ -28,7 +28,7 @@ void UFaerieEquipmentHashAsset::PreSave(FObjectPreSaveContext SaveContext)
 			if (Config.Example.IsValidIndex(i) &&
 				IsValid(Config.Example[i]))
 			{
-				const Faerie::ItemData::FScopeProxy StackProxy(Config.Example[i]->GetAssetTemplateItem(), 1);
+				const Faerie::ItemData::FScopeProxy StackProxy(Config.Example[i], 1);
 				TagHash = Config.Instruction.Hash(FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, nullptr, &StackProxy));
 
 				if (Config.MatchType == EGameplayContainerMatchType::Any)

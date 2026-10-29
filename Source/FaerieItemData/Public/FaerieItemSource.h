@@ -10,7 +10,6 @@
 #include "FaerieItemSource.generated.h"
 
 struct FFaerieItemInstancingContext;
-class UFaerieItem;
 
 namespace Faerie::ItemData
 {
@@ -30,13 +29,13 @@ namespace Faerie::ItemData
 		FItemDataBuilder(const FMassEntityHandle Item, const int32 Copies)
 			: RuntimeItem(Item), Copies(Copies) {}
 #if WITH_EDITOR
-		FItemDataBuilder(UFaerieItem* ItemAsset, const int32 Copies)
+		FItemDataBuilder(UFaerieItemAsset* ItemAsset, const int32 Copies)
 			: ItemAsset(ItemAsset), Copies(Copies) {}
 #endif
 
 		//~ IViewBase
 #if WITH_EDITOR
-		UE_REWRITE virtual const UFaerieItem* GetItemAsset() const override { return ItemAsset; }
+		UE_REWRITE virtual const UFaerieItemAsset* GetItemAsset() const override { return ItemAsset; }
 #endif
 		UE_REWRITE virtual FMassEntityHandle GetEntityHandle() const override { return RuntimeItem; }
 		UE_REWRITE virtual int32 GetCopies() const override { return Copies; }
@@ -48,7 +47,7 @@ namespace Faerie::ItemData
 
 #if WITH_EDITOR
 		// Extract the item stack without initializing the instance.
-		UE_REWRITE TPair<UFaerieItem*, int32> GetForEditor() const
+		UE_REWRITE TPair<UFaerieItemAsset*, int32> GetForEditor() const
 		{
 			return {ItemAsset, Copies};
 		}
@@ -64,7 +63,7 @@ namespace Faerie::ItemData
 	private:
 #if WITH_EDITORONLY_DATA
 		UPROPERTY()
-		TObjectPtr<UFaerieItem> ItemAsset;
+		TObjectPtr<UFaerieItemAsset> ItemAsset;
 #endif
 
 		FMassEntityHandle RuntimeItem;

@@ -71,7 +71,7 @@ public:
 	void SetItemMeshFromProxy(const FFaerieItemProxy& InProxy);
 
 #if WITH_EDITOR
-	void SetItemMeshFromAsset(TNotNull<const UFaerieItem*> ItemAsset);
+	void SetItemMeshFromAsset(TNotNull<const UFaerieItemAsset*> ItemAsset);
 #endif
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|ItemDataMesh")

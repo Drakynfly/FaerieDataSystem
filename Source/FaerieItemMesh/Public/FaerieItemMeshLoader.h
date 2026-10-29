@@ -44,7 +44,7 @@ public:
 #if WITH_EDITOR
 	// Temporary way to load a mesh from an item asset in the editor.
 	// WARNING: This can cause a hitch if the mesh is not cached, and it requires a lengthy load or assembly.
-	virtual bool LoadMeshFromAssetSynchronous(TNotNull<const UFaerieItem*> InItem, FGameplayTag Purpose, FFaerieItemMesh& Mesh);
+	virtual bool LoadMeshFromAssetSynchronous(TNotNull<const UFaerieItemAsset*> InItem, FGameplayTag Purpose, FFaerieItemMesh& Mesh);
 #endif
 
 protected:

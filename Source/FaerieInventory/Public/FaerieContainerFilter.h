@@ -6,7 +6,6 @@
 #include "LoopUtils.h"
 #include "PredicateTuple.h"
 
-class UFaerieItem;
 class UFaerieItemContainerBase;
 
 namespace Faerie::Container
@@ -241,6 +240,6 @@ namespace Faerie::Container
 
 	using FKeyFilter = TFilter<EFilterFlags::None, FFaerieEntryKey, IEntryIterator>;
 	using FAddressFilter = TFilter<EFilterFlags::None, FFaerieAddress, IAddressIterator>;
-	using FItemFilter = TFilter<EFilterFlags::None, const UFaerieItem*, IEntryIterator>;
-	using FMutableItemFilter = TFilter<EFilterFlags::MutableOnly, UFaerieItem*, IEntryIterator>;
+	using FItemFilter = TFilter<EFilterFlags::None, FMassEntityHandle, IEntryIterator>;
+	using FMutableItemFilter = TFilter<EFilterFlags::MutableOnly, FMassEntityHandle, IEntryIterator>;
 }

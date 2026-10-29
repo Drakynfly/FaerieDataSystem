@@ -34,7 +34,7 @@ struct FFaerieItemStorageFragment : public FFaerieMassConstSharedFragment
 	EDataValidationResult IsDataValid(FDataValidationContext& Context) const;
 #endif
 
-	bool InitializeRuntime(FMassEntityManager& EntityManager, FMassEntityHandle Item);
+	bool InitializeRuntime(UE::Mass::FEntityBuilder& Builder);
 	bool SaveDataConverter(FMassEntityManager& EntityManager, FInstancedStruct& SaveData);
 
 ____FAERIE_FRAGMENT_DECL(FFaerieItemStorageFragment)
@@ -87,7 +87,7 @@ struct FFaerieChildStackFragment : public FFaerieMassConstSharedFragment
 	EDataValidationResult IsDataValid(FDataValidationContext& Context) const;
 #endif
 
-	bool InitializeRuntime(FMassEntityManager& EntityManager, FMassEntityHandle Item);
+	bool InitializeRuntime(UE::Mass::FEntityBuilder& Builder);
 	bool SaveDataConverter(FMassEntityManager& EntityManager, FInstancedStruct& SaveData);
 
 ____FAERIE_FRAGMENT_DECL(FFaerieChildStackFragment)

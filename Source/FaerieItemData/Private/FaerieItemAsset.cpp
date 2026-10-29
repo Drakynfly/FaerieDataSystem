@@ -58,39 +58,7 @@ void UFaerieItemAsset::GetAssetRegistryTags(FAssetRegistryTagsContext Context) c
 void UFaerieItemAsset::PreSave(FObjectPreSaveContext SaveContext)
 {
 #if WITH_EDITOR
-	static const FName ItemInstanceName = TEXT("AssetInstance");
-	if (!IsValid(Item) || (Item->GetName() != ItemInstanceName))
-	{
-		Item = NewObject<UFaerieItem>(this, ItemInstanceName);
-
-		// We call this manually, to update the LastModified.
-		Item->PreSave(SaveContext);
-	}
-
-	// Setting RF_Public suppresses "Illegal reference to private object" warnings when referenced by a Level.
-	Item->SetFlags(RF_Public);
-
-	switch (InstanceMutability)
-	{
-	case EFaerieItemInstancingMutability::Automatic:
-		Item->InstancesCanMutate = Item->DetermineFragmentMutability();
-		break;
-	case EFaerieItemInstancingMutability::Mutable:
-		Item->InstancesCanMutate = true;
-		break;
-	case EFaerieItemInstancingMutability::Immutable:
-		Item->InstancesCanMutate = false;
-		break;
-	}
-
-	Item->FragmentDefaults.Empty();
-	for (const TInstancedStruct<FFaerieMassFragment>& Fragment : Fragments)
-	{
-		Item->FragmentDefaults.Add(FInstancedStruct(FConstStructView(Fragment.GetScriptStruct(), Fragment.GetMemory())));
-	}
-
-	// Bring item version up to date on re-save.
-	Item->FormatVersion = static_cast<int32>(ItemData::EFormatVersion::LatestVersion);
+	CachedMutability = DetermineFragmentMutability();
 #endif
 
 	Super::PreSave(SaveContext);
@@ -101,6 +69,14 @@ void UFaerieItemAsset::PostLoad()
 	Super::PostLoad();
 
 #if WITH_EDITOR
+	// Items loaded from disk in shipping builds don't need to re-cache this.
+	const bool DeterminedMutability = DetermineFragmentMutability();
+	if (DeterminedMutability != CachedMutability)
+	{
+		CachedMutability = DeterminedMutability;
+		(void)MarkPackageDirty();
+	}
+
 	// Make sure thumbnail info exists
 	if (!IsValid(ThumbnailInfo))
 	{
@@ -117,35 +93,34 @@ EDataValidationResult UFaerieItemAsset::IsDataValid(FDataValidationContext& Cont
 {
 	EDataValidationResult Result = CombineDataValidationResults(Super::IsDataValid(Context), EDataValidationResult::Valid);
 
-	if (!IsValid(Item))
+	for (const FInstancedStruct& Fragment : MassFragments)
 	{
-		Context.AddError(LOCTEXT("InvalidItemObject", "Item is invalid! Please try making sure asset is correctly configured and resave this asset."));
-		Result = EDataValidationResult::Invalid;
+		if (const ItemData::FMassTypeTraitsInterface* Traits = ItemData::GetMassTraitsInterface(Fragment.GetScriptStruct()))
+		{
+			Result = CombineDataValidationResults(Result, Traits->IsDataValid(Fragment.GetMemory(), Context));
+		}
+	}
+
+	if (!IsValid(Template))
+	{
+		Context.AddWarning(LOCTEXT("InvalidTemplateObject", "Template is invalid! Unable to check Item for pattern-correctness."));
 	}
 	else
 	{
-		Result = CombineDataValidationResults(Result, Item.Get()->IsDataValid(Context));
+		const ItemData::FScopeProxy Proxy(this, 1);
 
-		if (!IsValid(Template))
+		if (TArray<FText> TemplateMatchErrors;
+			!Template->MatchesWithErrors(FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, nullptr, &Proxy), TemplateMatchErrors))
 		{
-			Context.AddWarning(LOCTEXT("InvalidTemplateObject", "Template is invalid! Unable to check Item for pattern-correctness."));
-		}
-		else
-		{
-			const ItemData::FScopeProxy Proxy(Item, 1);
+			Context.AddError(LOCTEXT("PatternMatchFailed", "Item failed to match the pattern of its Template!"));
 
-			if (TArray<FText> TemplateMatchErrors;
-				!Template->MatchesWithErrors(FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, nullptr, &Proxy), TemplateMatchErrors))
+			for (auto&& TemplateMatchError : TemplateMatchErrors)
 			{
-				Context.AddError(LOCTEXT("PatternMatchFailed", "Item failed to match the pattern of its Template!"));
-
-				for (auto&& TemplateMatchError : TemplateMatchErrors)
-				{
-					Context.AddError(TemplateMatchError);
-				}
+				Context.AddError(TemplateMatchError);
 			}
 		}
 	}
+
 
 	return Result;
 }
@@ -156,25 +131,16 @@ EDataValidationResult UFaerieItemAsset::IsDataValid(FDataValidationContext& Cont
 
 bool UFaerieItemAsset::CanBeMutable() const
 {
-	if (IsValid(Item))
-	{
-		// Item is part of this asset, which will cannot have InstanceMutable set. Assets are never InstanceMutable, as
-		// they are non-instanced templates that get duplicates made from them if they are supposed to be modifiable.
-		// Checking for DataMutable lets us know if this item has fragments that can mutate.
-		return Item->CanMutate();
-	}
-	return false;
+	return CachedMutability;
 }
 
 ItemData::FItemDataBuilder UFaerieItemAsset::CreateItemStack(const FFaerieItemInstancingContext& Context) const
 {
-	if (!IsValidChecked(Item)) return ItemData::FItemDataBuilder();
-
 	int32 OutCopies = 1;
 
 	if (Context.CopiesOverride.IsSet())
 	{
-		if (!Item->CanMutate() || Context.EmitStackEvenIfMutableBecauseCallerKnowsToDuplicateItem)
+		if (!CachedMutability || Context.EmitStackEvenIfMutableBecauseCallerKnowsToDuplicateItem)
 		{
 			OutCopies = Context.CopiesOverride.GetValue();
 		}
@@ -189,7 +155,7 @@ ItemData::FItemDataBuilder UFaerieItemAsset::CreateItemStack(const FFaerieItemIn
 			return ItemData::FItemDataBuilder(CreateReferencingInstance_Editor(Context.Editor_ItemInstanceOuter), OutCopies);
 		}
 
-		return ItemData::FItemDataBuilder(Item, OutCopies);
+		return ItemData::FItemDataBuilder(const_cast<ThisClass*>(this), OutCopies);
 	}
 	else
 #endif
@@ -200,16 +166,10 @@ ItemData::FItemDataBuilder UFaerieItemAsset::CreateItemStack(const FFaerieItemIn
 }
 
 #if WITH_EDITOR
-UFaerieItem* UFaerieItemAsset::CreateReferencingInstance_Editor(const TNotNull<UObject*> InstanceOuter) const
+UFaerieItemAsset* UFaerieItemAsset::CreateReferencingInstance_Editor(const TNotNull<UObject*> InstanceOuter) const
 {
-	FInstancedStruct FragmentStruct;
-	FragmentStruct.InitializeAs<FFaerieItemDataDefaults>();
-
-	FFaerieItemDataDefaults& Default = FragmentStruct.GetMutable<FFaerieItemDataDefaults>();
-	Default.ItemAsset = Item;
-
-	// Create and return a new item instance
-	return UFaerieItem::CreateNewInstance(MakeConstArrayView(&FragmentStruct, 1), InstanceOuter, EFaerieItemInstancingMutability::Mutable);
+	// Create and return a new item asset instance
+	return DuplicateObject(this, InstanceOuter);
 }
 #endif
 
@@ -219,9 +179,114 @@ FMassEntityHandle UFaerieItemAsset::CreateReferencingInstance_Runtime(FMassEntit
 	FragmentStruct.InitializeAs<FFaerieItemDataDefaults>();
 
 	FFaerieItemDataDefaults& Default = FragmentStruct.GetMutable<FFaerieItemDataDefaults>();
-	Default.ItemAsset = Item;
+	Default.ItemAsset = this;
 
-	return ItemData::InitializeItemEntity(EntityManager, nullptr, FMassTagBitSet(), MakeConstArrayView(&FragmentStruct, 1));
+	return ItemData::InitializeItemEntity(EntityManager, FMassTagBitSet(), MakeConstArrayView(&FragmentStruct, 1));
 }
+
+bool UFaerieItemAsset::HasDefaultFragment(const TNotNull<const UScriptStruct*> StructType, const UScriptStruct* ReferenceType) const
+{
+	for (auto&& DefaultFragment : MassFragments)
+	{
+		if (DefaultFragment.GetScriptStruct()->IsChildOf(StructType))
+		{
+			return true;
+		}
+	}
+
+	if (ReferenceType)
+	{
+		// Fallback to retrieving a default value via reference.
+		// Iterate in reverse for now (since static references are usually placed at the end.
+		// @todo control with a cvar or replace with order sorted fragments...
+		for (int32 i = MassFragments.Num() - 1; i >= 0; --i)
+		{
+			if (MassFragments[i].GetScriptStruct() == ReferenceType)
+			{
+				if (const FFaerieMassItemObject* ReferenceFragment = MassFragments[i].GetPtr<FFaerieMassItemObject>())
+				{
+					// Recurse our search into the referenced asset.
+					if (ReferenceFragment->ItemAsset->HasDefaultFragment(StructType, ReferenceType))
+					{
+						return true;
+					}
+				}
+			}
+		}
+	}
+
+	return false;
+}
+
+FConstStructView UFaerieItemAsset::GetDefaultFragment(const TNotNull<const UScriptStruct*> StructType, const UScriptStruct* ReferenceType) const
+{
+	for (auto&& DefaultFragment : MassFragments)
+	{
+		if (DefaultFragment.GetScriptStruct()->IsChildOf(StructType))
+		{
+			return DefaultFragment;
+		}
+	}
+
+	// Fallback to retrieving a default value via reference.
+	// Iterate in reverse for now (since static references are usually placed at the end.
+	// @todo control with a cvar or replace with order sorted fragments...
+	for (int32 i = MassFragments.Num() - 1; i >= 0; --i)
+	{
+		if (MassFragments[i].GetScriptStruct() == ReferenceType)
+		{
+			if (const FFaerieMassItemObject* ReferenceFragment = MassFragments[i].GetPtr<FFaerieMassItemObject>())
+			{
+				// Recurse our search into the referenced asset.
+				return ReferenceFragment->ItemAsset->GetDefaultFragment(StructType, ReferenceType);
+			}
+		}
+	}
+
+	return FConstStructView();
+}
+
+#if WITH_EDITORONLY_DATA
+bool UFaerieItemAsset::DetermineFragmentMutability()
+{
+	for (const FInstancedStruct& Fragment : MassFragments)
+	{
+		if (!Fragment.IsValid()) continue;
+
+		// Some fragments force mutability on.
+		if (const ItemData::FMassTypeTraitsInterface* Traits = ItemData::GetMassTraitsInterface(Fragment.GetScriptStruct()))
+		{
+			if (Traits->RequiresMutable)
+			{
+				return true;
+			}
+		}
+	}
+
+	// No fragment needs mutability, so without a flag to say otherwise, assume mutability as false.
+	return false;
+}
+
+void UFaerieItemAsset::SetDefaultFragment(const FConstStructView DefaultStructValue)
+{
+	if (!DefaultStructValue.GetScriptStruct()->IsChildOf<FFaerieMassFragment>())
+	{
+		// Temporary guard
+		unimplemented()
+		return;
+	}
+
+	for (auto&& DefaultFragment : MassFragments)
+	{
+		if (DefaultFragment.GetScriptStruct() == DefaultStructValue.GetScriptStruct())
+		{
+			DefaultFragment = DefaultStructValue;
+			return;
+		}
+	}
+
+	MassFragments.Add(FInstancedStruct(DefaultStructValue));
+}
+#endif
 
 #undef LOCTEXT_NAMESPACE

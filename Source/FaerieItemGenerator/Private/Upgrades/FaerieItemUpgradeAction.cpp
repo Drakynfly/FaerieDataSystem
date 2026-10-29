@@ -195,7 +195,7 @@ void FFaerieItemUpgradeActionBulk::Execute(const Faerie::Generation::FActionExec
 #if WITH_EDITOR
 		if (!Execution.IsInGameWorld())
 		{
-			Storage.Builders.Add(Faerie::ItemData::FItemDataBuilder(const_cast<UFaerieItem*>(UpgradeTarget.ItemProxy.GetItemPtr()), UpgradeTarget.ItemProxy.GetCopies()));
+			Storage.Builders.Add(Faerie::ItemData::FItemDataBuilder(const_cast<UFaerieItemAsset*>(UpgradeTarget.ItemProxy.GetItemPtr()), UpgradeTarget.ItemProxy.GetCopies()));
 		}
 		else
 #endif

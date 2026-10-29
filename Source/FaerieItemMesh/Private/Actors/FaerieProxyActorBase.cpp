@@ -12,7 +12,7 @@ AFaerieProxyActorBase::AFaerieProxyActorBase()
 }
 
 #if WITH_EDITOR
-const UFaerieItem* AFaerieProxyActorBase::GetItemAsset() const
+const UFaerieItemAsset* AFaerieProxyActorBase::GetItemAsset() const
 {
 	return DataSource.GetItemPtr();
 }

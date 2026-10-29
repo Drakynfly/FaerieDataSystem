@@ -28,6 +28,6 @@ private:
 #if WITH_EDITOR
 	// As IFaerieContainerProxy is only implemented by runtime containers, it will never provide an item asset object.
 	// ReSharper disable once CppOverrideWithDifferentVisibility
-	virtual const UFaerieItem* GetItemAsset() const override final { return nullptr; }
+	virtual const UFaerieItemAsset* GetItemAsset() const override final { return nullptr; }
 #endif
 };

@@ -107,7 +107,7 @@ public:
 	FMassEntityHandle GetEntityHandle() const;
 
 #if WITH_EDITOR
-	const UFaerieItem* GetItemPtr() const;
+	const UFaerieItemAsset* GetItemPtr() const;
 #endif
 
 	// Get the number of copies this proxy may access.

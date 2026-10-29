@@ -1,8 +1,7 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieMeshSubsystem.h"
-#include "EntityManagerHelpers.h"
-#include "FaerieItem.h"
+#include "FaerieItemAsset.h"
 #include "FaerieItemMeshLoader.h"
 #include "FaerieItemMeshLog.h"
 #include "FaerieItemProxy.h"
@@ -80,7 +79,7 @@ TSharedPtr<FStreamableHandle> UFaerieMeshSubsystem::LoadMeshFromProxyAsynchronou
 }
 
 #if WITH_EDITOR
-bool UFaerieMeshSubsystem::LoadMeshFromAssetSynchronous(const TNotNull<const UFaerieItem*> ItemAsset, FGameplayTag Purpose,
+bool UFaerieMeshSubsystem::LoadMeshFromAssetSynchronous(const TNotNull<const UFaerieItemAsset*> ItemAsset, FGameplayTag Purpose,
 	FFaerieItemMesh& Mesh)
 {
 	Mesh = FFaerieItemMesh();

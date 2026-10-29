@@ -19,8 +19,8 @@ class UFaerieItemStorage;
 namespace Faerie::SubObject
 {
 	// Returns immutable default containers.
-	FAE_API void GetTemplateContainersInInstanceDirect(TNotNull<const UFaerieItem*> Item, TAdderRef<TNotNull<const UFaerieItemContainerBase*>> Containers, TNotNull<const UClass*> Class = UFaerieItemContainerBase::StaticClass());
-	FAE_API void GetTemplateContainersInInstanceRecursive(TNotNull<const UFaerieItem*> Item, TAdderRef<TNotNull<const UFaerieItemContainerBase*>> Containers, TNotNull<const UClass*> Class = UFaerieItemContainerBase::StaticClass());
+	FAE_API void GetTemplateContainersInInstanceDirect(TNotNull<const UFaerieItemAsset*> Item, TAdderRef<TNotNull<const UFaerieItemContainerBase*>> Containers, TNotNull<const UClass*> Class = UFaerieItemContainerBase::StaticClass());
+	FAE_API void GetTemplateContainersInInstanceRecursive(TNotNull<const UFaerieItemAsset*> Item, TAdderRef<TNotNull<const UFaerieItemContainerBase*>> Containers, TNotNull<const UClass*> Class = UFaerieItemContainerBase::StaticClass());
 
 	// Looks for runtime containers only. As such, requires an entity manager.
 	FAE_API bool HasContainerInInstanceDirect_Stack(const FMassEntityManager& EntityManager, FMassEntityHandle Item, TNotNull<const UFaerieItemStackContainer*> TestContainer);

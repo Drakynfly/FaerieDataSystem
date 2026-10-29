@@ -4,7 +4,7 @@
 
 class IFaerieItemDataProxy;
 class IFaerieItemSource;
-class UFaerieItem;
+class UFaerieItemAsset;
 struct FFaerieItemProxy;
 struct FFaerieMassFragment;
 struct FFaerieMassSparseFragment;

@@ -64,11 +64,11 @@ FMassEntityHandle UFaerieItemAssetThumbnailRenderer::GetEntityHandle() const
 	return FMassEntityHandle();
 }
 
-const UFaerieItem* UFaerieItemAssetThumbnailRenderer::GetItemAsset() const
+const UFaerieItemAsset* UFaerieItemAssetThumbnailRenderer::GetItemAsset() const
 {
 	if (IsValid(ItemAsset))
 	{
-		return ItemAsset->GetAssetTemplateItem();
+		return ItemAsset;
 	}
 	return nullptr;
 }

@@ -168,7 +168,7 @@ void AFaerieMassReplicationActor::Client_AddEntity(FFaerieMassReplicatedEntity& 
 
 	FMassEntityManager& EntityManager = GetEntityManager();
 
-	const FMassEntityHandle EntityHandle = ItemData::InitializeItemEntity(EntityManager, nullptr, FMassTagBitSet(), Entity.Fragments);
+	const FMassEntityHandle EntityHandle = ItemData::InitializeItemEntity(EntityManager, FMassTagBitSet(), Entity.Fragments);
 	check(EntityManager.IsEntityBuilt(EntityHandle));
 
 	Container::FReplicatedItemMetadata& Element = Metadata.FindOrAdd(Entity.NetID);

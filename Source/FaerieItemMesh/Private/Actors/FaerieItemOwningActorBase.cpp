@@ -48,7 +48,7 @@ void AFaerieItemOwningActorBase::InitStackFromConfig(const bool RegenerateDispla
 		if (const ItemData::FItemDataBuilder Result = SourceAsset->CreateItemStack(Context);
 			Result.IsValid())
 		{
-			TPair<UFaerieItem*, int32> ItemAsset = Result.GetForEditor();
+			TPair<UFaerieItemAsset*, int32> ItemAsset = Result.GetForEditor();
 
 			FFaerieItemDataDefaults Default;
 			Default.ItemAsset = ItemAsset.Get<0>();
@@ -196,9 +196,9 @@ void AFaerieItemOwningActorBase::EndPlay(const EEndPlayReason::Type EndPlayReaso
 }
 
 #if WITH_EDITOR
-const UFaerieItem* AFaerieItemOwningActorBase::GetItemAsset() const
+const UFaerieItemAsset* AFaerieItemOwningActorBase::GetItemAsset() const
 {
-	return SourceAsset ? SourceAsset->GetAssetTemplateItem() : nullptr;
+	return SourceAsset;
 }
 #endif
 

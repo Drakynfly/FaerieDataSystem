@@ -351,7 +351,7 @@ namespace Faerie::Editor
 		{
 			FPreviewableWidgetVariant WidgetType;
 
-			auto CardFragment = ItemAsset->GetAssetTemplateItem()->GetDefaultFragment<FFaerieItemCardClassFragment>();
+			auto CardFragment = ItemAsset->GetDefaultFragment<FFaerieItemCardClassFragment>();
 			if (CardFragment.IsValid())
 			{
 				WidgetType.ObjectPath = CardFragment->GetCardClass(Card::Tags::CardType_Full).ToSoftObjectPath();

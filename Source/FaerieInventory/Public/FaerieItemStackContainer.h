@@ -10,7 +10,6 @@
 #include "TypedGameplayTags.h"
 #include "FaerieItemStackContainer.generated.h"
 
-class UFaerieItem;
 class UFaerieItemStackContainer;
 
 USTRUCT()

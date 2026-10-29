@@ -3,6 +3,7 @@
 #include "AssetEditor/FaerieItemAssetPreviewScene.h"
 #include "Editor.h"
 #include "FaerieItem.h"
+#include "FaerieItemAsset.h"
 
 #include "Actors/FaerieProxyActorBase.h"
 
@@ -130,7 +131,7 @@ namespace Faerie::Editor
 			ItemMeshComponent->ClearItemMesh();
 		}
 
-		const UFaerieItem* FaerieItem = ItemProxy.GetItemPtr();
+		const UFaerieItemAsset* FaerieItem = ItemProxy.GetItemPtr();
 		if (!IsValid(FaerieItem)) return;
 
 		auto ProxyClassFragment = FaerieItem->GetDefaultFragment<FFaerieProxyActorFragment>();

@@ -75,10 +75,17 @@ namespace Faerie::ItemData
 
 	const FMassTypeTraitsInterface* GetMassTraitsInterface(const TNotNull<const UScriptStruct*> Type)
 	{
-		if (const FMassTypeTraitsInterface* Traits = FragmentTraitsMap.Find(Type))
+		for (const UStruct* SuperStruct : Type->GetSuperStructIterator())
 		{
-			return Traits;
+			if (const UScriptStruct* ScriptStruct = Cast<UScriptStruct>(SuperStruct))
+			{
+				if (const FMassTypeTraitsInterface* Traits = FragmentTraitsMap.Find(ScriptStruct))
+				{
+					return Traits;
+				}
+			}
 		}
+
 		return nullptr;
 	}
 }

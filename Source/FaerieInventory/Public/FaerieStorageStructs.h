@@ -46,7 +46,6 @@ struct FFaerieKeyedStack
 };
 
 struct FFaerieStorageContent;
-class UFaerieItem;
 
 /**
  * The struct for containing one inventory entry.

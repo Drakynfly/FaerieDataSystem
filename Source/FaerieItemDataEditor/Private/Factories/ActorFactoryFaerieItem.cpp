@@ -31,7 +31,7 @@ UClass* UActorFactoryFaerieItem::GetDefaultActorClass(const FAssetData& AssetDat
 {
 	if (auto&& ItemAsset = Cast<UFaerieItemAsset>(AssetData.GetAsset()))
 	{
-		auto ActorClassFragment = ItemAsset->GetAssetTemplateItem()->GetDefaultFragment<FFaerieActorFragment>();
+		auto ActorClassFragment = ItemAsset->GetDefaultFragment<FFaerieActorFragment>();
 		if (ActorClassFragment.IsValid())
 		{
 			if (TSubclassOf<AFaerieItemOwningActorBase> OwningActorClass = ActorClassFragment->LoadOwningActorClassSynchronous())

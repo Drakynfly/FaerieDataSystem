@@ -20,7 +20,7 @@ struct FFaerieGuidFragment : public FFaerieMassFragment
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GuidFragment")
 	FGuid Guid;
 
-	bool InitializeRuntime(FMassEntityManager& EntityManager, const FMassEntityHandle Item);
+	bool InitializeRuntime(UE::Mass::FEntityBuilder& Builder);
 
 	[[nodiscard]] UE_REWRITE friend uint32 GetTypeHash(const FFaerieGuidFragment& Value)
 	{

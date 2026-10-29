@@ -2,6 +2,7 @@
 
 #include "FaerieItemProxy.h"
 #include "FaerieItem.h"
+#include "FaerieItemAsset.h"
 #include "FaerieItemDataView.h"
 #include "FaerieItemInstance.h"
 
@@ -22,9 +23,9 @@ bool FFaerieItemProxy::IsMutable() const
 	}
 
 #if WITH_EDITOR
-	if (const UFaerieItem* ItemAsset = GetItemPtr())
+	if (const UFaerieItemAsset* ItemAsset = GetItemPtr())
 	{
-		return ItemAsset->CanMutate();
+		return ItemAsset->GetCanMutate();
 	}
 #endif
 
@@ -69,7 +70,7 @@ FMassEntityHandle FFaerieItemProxy::GetEntityHandle() const
 }
 
 #if WITH_EDITOR
-const UFaerieItem* FFaerieItemProxy::GetItemPtr() const
+const UFaerieItemAsset* FFaerieItemProxy::GetItemPtr() const
 {
 	if (!ProxyObject && !ValidWithoutProxyObject)
 	{
@@ -78,7 +79,7 @@ const UFaerieItem* FFaerieItemProxy::GetItemPtr() const
 
 	if (InterfacePtr)
 	{
-		if (const UFaerieItem* ItemAsset = InterfacePtr->GetItemAsset())
+		if (const UFaerieItemAsset* ItemAsset = InterfacePtr->GetItemAsset())
 		{
 			return ItemAsset;
 		}

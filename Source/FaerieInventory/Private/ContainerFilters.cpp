@@ -1,6 +1,8 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "ContainerFilters.h"
+#include "FaerieItemStackContainer.h"
+
 #include "Fragments/FaerieStackLimitFragment.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ContainerFilters)

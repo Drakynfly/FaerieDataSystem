@@ -3,7 +3,6 @@
 #pragma once
 
 #include "FaerieItemDataEnums.h"
-#include "FaerieItemDataFwd.h"
 #include "FaerieMassFragment.h"
 #include "MassElement.h"
 
@@ -37,7 +36,8 @@ namespace Faerie::ItemData
 	FAE_API void ExportFragmentData(const FMassEntityManager& EntityManager, FMassEntityHandle Item, FFaerieItemExportData& ExportData, EMassFragmentExportOptions Options);
 
 
-	[[nodiscard]] FAE_API FMassEntityHandle InitializeItemEntity(FMassEntityManager& EntityManager, const UFaerieItem* ItemAsset, const FMassTagBitSet& Tags, TConstArrayView<FInstancedStruct> Fragments);
+	[[nodiscard]] FAE_API FMassEntityHandle InitializeItemEntity(FMassEntityManager& EntityManager, const FMassTagBitSet& Tags, TArray<FInstancedStruct>&& Fragments);
+	[[nodiscard]] FAE_API FMassEntityHandle InitializeItemEntity(FMassEntityManager& EntityManager, const FMassTagBitSet& Tags, TConstArrayView<FInstancedStruct> Fragments);
 
 	FAE_API bool IsMutable(const FMassEntityManager& EntityManager, FMassEntityHandle Item);
 

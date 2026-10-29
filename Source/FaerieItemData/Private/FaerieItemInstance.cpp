@@ -2,6 +2,7 @@
 
 #include "FaerieItemInstance.h"
 #include "FaerieItem.h"
+#include "FaerieItemAsset.h"
 #include "FaerieItemDataLog.h"
 #include "FaerieItemEvent.h"
 #include "FaerieItemExportData.h"
@@ -45,7 +46,7 @@ namespace Faerie::ItemData
 
 		FMassTagBitSet BitSet;
 		Algo::Copy(CopyToFilter.MassTags, BitSet);
-		return InitializeItemEntity(EntityManager, nullptr, BitSet, CopyToFilter.MassInstances);
+		return InitializeItemEntity(EntityManager, BitSet, MoveTemp(CopyToFilter.MassInstances));
 	}
 
 	void ExportFragmentData(const FMassEntityManager& EntityManager, const FMassEntityHandle Item,
@@ -102,9 +103,14 @@ namespace Faerie::ItemData
 						{
 							ExportData.MassInstances.Add(SaveDataFragment);
 						}
+						else
+						{
+							ExportData.MassInstances.Emplace(Fragment);
+						}
 					}
 					else
 					{
+						// By default, export fragments that don't implement any traits overrides.
 						ExportData.MassInstances.Emplace(Fragment);
 					}
 					return true;
@@ -112,7 +118,7 @@ namespace Faerie::ItemData
 		}
 	}
 
-	FMassEntityHandle InitializeItemEntity(FMassEntityManager& EntityManager, const UFaerieItem* ItemAsset, const FMassTagBitSet& Tags, const TConstArrayView<FInstancedStruct> Fragments)
+	FMassEntityHandle InitializeItemEntity(FMassEntityManager& EntityManager, const FMassTagBitSet& Tags, TArray<FInstancedStruct>&& Fragments)
 	{
 		const FMassEntityTemplate& EntityTemplate = EntityManager.GetWorld()->GetSubsystemChecked<UFaerieMassConfigLoaderSubsystem>()->GetItemDataTemplate();
 
@@ -130,53 +136,44 @@ namespace Faerie::ItemData
 
 		ensureMsgf(EntityTemplate.GetObjectFragmentInitializers().Num() == 0, TEXT("%hs: EntityBuilder doesn't support object initializers (yet)."), __FUNCTION__);
 
-		if (ItemAsset)
-		{
-			Builder.Add<FFaerieItemDataDefaults>(FFaerieItemDataDefaults(ItemAsset));
-		}
-
-		// Look for fragments that need to always be moved into the runtime entity on creation
-		if (IsValid(ItemAsset))
-		{
-			for (const FInstancedStruct& DefaultFragment : ItemAsset->GetFragmentDefaults())
-			{
-				const FMassTypeTraitsInterface* Traits = GetMassTraitsInterface(DefaultFragment.GetScriptStruct());
-				if (Traits && Traits->HasInitializeRuntime)
-				{
-					FInstancedStruct FragmentCopy = DefaultFragment;
-					if (Traits->InitializeRuntime(FragmentCopy.GetMutableMemory(), EntityManager, Builder.GetEntityHandle()))
-					{
-						Builder.Add(MoveTemp(FragmentCopy));
-					}
-				}
-			}
-		}
-
 		// Add any initial fragments to the builder, running init code as needed
-		for (FInstancedStruct Fragment : Fragments)
+		for (FInstancedStruct& Fragment : Fragments)
 		{
 			// If the fragment type has a custom save data type, convert from it.
 			if (Fragment.GetScriptStruct()->IsChildOf<FFaerieItemFragmentSaveData>())
 			{
 				TNotNull<const UScriptStruct*> RealFragmentType = Fragment.Get<FFaerieItemFragmentSaveData>().GetFragmentType();
-				if (const FMassTypeTraitsInterface* Traits = GetMassTraitsInterface(RealFragmentType))
+				const FMassTypeTraitsInterface* Traits = GetMassTraitsInterface(RealFragmentType);
+				if (!Traits)
 				{
-					FInstancedStruct NewFragment; // New blank to write to.
-					NewFragment.InitializeAs(RealFragmentType);
+					UE_LOGF(LogFaerieItemData, Error, "Fragment '%ls' must implement SaveDataConverter in order to convert from '%ls'!", *GetNameSafe(RealFragmentType), *GetNameSafe(Fragment.GetScriptStruct()))
+				}
 
-					// Load in save data...
-					if (Traits->SaveDataConverter(NewFragment.GetMutableMemory(), EntityManager, Fragment))
-					{
-						Fragment = NewFragment;
-					}
+				FInstancedStruct NewFragment; // New blank to write to.
+				NewFragment.InitializeAs(RealFragmentType);
 
-					// ... then initialize it. Order is important, because init'ing data that gets overwritten by loading doesn't do any good.
-					Traits->InitializeRuntime(NewFragment.GetMutableMemory(), EntityManager, Builder.GetEntityHandle());
+				// Load in save data...
+				if (Traits->SaveDataConverter(NewFragment.GetMutableMemory(), EntityManager, Fragment))
+				{
+					Fragment = NewFragment;
+				}
+				else
+				{
+					UE_LOGF(LogFaerieItemData, Error, "Fragment '%ls' failed SaveDataConverter. Converted from '%ls'!", *GetNameSafe(RealFragmentType), *GetNameSafe(Fragment.GetScriptStruct()))
+				}
+
+				// ... then initialize it. Order is important, because init'ing data that gets overwritten by loading doesn't do any good.
+				if (!Traits->InitializeRuntime(NewFragment.GetMutableMemory(), Builder))
+				{
+					UE_LOGF(LogFaerieItemData, Error, "Fragment '%ls' failed InitializeRuntime. Converted from '%ls'!", *GetNameSafe(RealFragmentType), *GetNameSafe(Fragment.GetScriptStruct()))
 				}
 			}
 			else if (const FMassTypeTraitsInterface* Traits = GetMassTraitsInterface(Fragment.GetScriptStruct()))
 			{
-				Traits->InitializeRuntime(Fragment.GetMutableMemory(), EntityManager, Builder.GetEntityHandle());
+				if (!Traits->InitializeRuntime(Fragment.GetMutableMemory(), Builder))
+				{
+					UE_LOGF(LogFaerieItemData, Error, "Fragment '%ls' failed InitializeRuntime!", *GetNameSafe(Fragment.GetScriptStruct()))
+				}
 			}
 
 			Builder.Add(MoveTemp(Fragment));
@@ -185,16 +182,22 @@ namespace Faerie::ItemData
 		return Builder.Commit();
 	}
 
+	FMassEntityHandle InitializeItemEntity(FMassEntityManager& EntityManager, const FMassTagBitSet& Tags, const TConstArrayView<FInstancedStruct> Fragments)
+	{
+		TArray<FInstancedStruct> Copy(Fragments);
+		return InitializeItemEntity(EntityManager, Tags, MoveTemp(Copy));
+	}
+
 	bool IsMutable(const FMassEntityManager& EntityManager, const FMassEntityHandle Item)
 	{
 		if (!EntityManager.IsEntityValid(Item)) return false;
 
 		if (const FFaerieItemDataDefaults* ItemDefaults = EntityManager.GetConstSharedFragmentDataPtr<FFaerieItemDataDefaults>(Item))
 		{
-			if (const UFaerieItem* ItemAsset = ItemDefaults->ItemAsset)
+			if (const UFaerieItemAsset* ItemAsset = ItemDefaults->ItemAsset)
 			{
 				// Always report if the ItemAsset is mutable.
-				return ItemAsset->CanMutate();
+				return ItemAsset->GetCanMutate();
 			}
 		}
 

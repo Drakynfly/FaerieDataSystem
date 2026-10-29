@@ -32,10 +32,6 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Faerie|ItemData")
 	static FDateTime GetItemLastModified(const FFaerieItemProxy& Proxy);
 
-	// Get the item instance this asset represents.
-	UFUNCTION(BlueprintPure, Category = "Faerie|ItemData")
-	static const UFaerieItem* GetTemplateInstance(const UFaerieItemAsset* Asset);
-
 	UFUNCTION(BlueprintPure, Category = "Faerie|ItemData", meta = (AdvancedDisplay = 1, WorldContext = "WorldContextObj", DefaultToSelf = "WorldContextObj"))
 	static FFaerieUnownedItemStack NewItemInstance(const UObject* WorldContextObj, UPARAM(ref) TArray<FInstancedStruct>& Fragments);
 

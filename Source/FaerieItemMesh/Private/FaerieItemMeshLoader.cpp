@@ -2,6 +2,7 @@
 
 #include "FaerieItemMeshLoader.h"
 #include "FaerieItem.h"
+#include "FaerieItemAsset.h"
 
 #include "FaerieItemMeshLog.h"
 #include "FaerieItemProxy.h"
@@ -165,7 +166,7 @@ TSharedPtr<FStreamableHandle> UFaerieItemMeshLoader::LoadMeshFromProxyAsynchrono
 }
 
 #if WITH_EDITOR
-bool UFaerieItemMeshLoader::LoadMeshFromAssetSynchronous(const TNotNull<const UFaerieItem*> InItem, const FGameplayTag Purpose,
+bool UFaerieItemMeshLoader::LoadMeshFromAssetSynchronous(const TNotNull<const UFaerieItemAsset*> InItem, const FGameplayTag Purpose,
 	FFaerieItemMesh& Mesh)
 {
 	if (!IsValid(InItem))

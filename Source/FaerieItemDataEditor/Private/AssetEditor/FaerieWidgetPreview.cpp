@@ -5,11 +5,11 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieWidgetPreview)
 
-const UFaerieItem* UFaerieWidgetPreview::GetItemAsset() const
+const UFaerieItemAsset* UFaerieWidgetPreview::GetItemAsset() const
 {
 	if (Asset.IsValid())
 	{
-		return Asset->GetAssetTemplateItem();
+		return Asset.Get();
 	}
 	return nullptr;
 }

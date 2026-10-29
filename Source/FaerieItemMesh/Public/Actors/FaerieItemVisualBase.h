@@ -34,7 +34,7 @@ public:
 	// As this class is abstract it doesn't implement the Faerie::ItemData::IViewBase / IFaerieItemDataProxy interfaces, it just requires that it's children will.
 	//~ Faerie::ItemData::IViewBase
 #if WITH_EDITOR
-	virtual const UFaerieItem* GetItemAsset() const override PURE_VIRTUAL(AFaerieItemVisualBase::GetItemAsset, return nullptr; )
+	virtual const UFaerieItemAsset* GetItemAsset() const override PURE_VIRTUAL(AFaerieItemVisualBase::GetItemAsset, return nullptr; )
 #endif
 	virtual FMassEntityHandle GetEntityHandle() const override PURE_VIRTUAL(AFaerieItemVisualBase::GetEntityHandle, return FMassEntityHandle(); )
 	virtual int32 GetCopies() const override PURE_VIRTUAL(AFaerieItemVisualBase::GetCopies, return -1; )

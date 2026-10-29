@@ -22,7 +22,7 @@ public:
 	//~ Faerie::ItemData::IViewBase
 #if WITH_EDITOR
 	// As IFaerieContainerProxy is only implemented by runtime containers, it will never provide an item asset object.
-	virtual const UFaerieItem* GetItemAsset() const override { return nullptr; }
+	virtual const UFaerieItemAsset* GetItemAsset() const override { return nullptr; }
 #endif
 	virtual FMassEntityHandle GetEntityHandle() const override;
 	virtual int32 GetCopies() const override;

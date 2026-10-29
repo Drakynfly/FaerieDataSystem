@@ -5,6 +5,7 @@
 #include "EntityManagerHelpers.h"
 #include "FaerieContainerFilter.h"
 #include "FaerieContainerFilterTypes.h"
+#include "FaerieItemAsset.h"
 #include "FaerieItemStorage.h"
 #include "FaerieItemStorageIterators.h"
 #include "FaerieSubObjectFilter.h"
@@ -128,7 +129,7 @@ bool UFaerieStorageLibrary::FindSubobject(const FFaerieItemProxy& Proxy, const T
 	else
 	{
 		TArray<TNotNull<const UFaerieItemContainerBase*>> Containers;
-		if (const UFaerieItem* ItemAsset = Proxy.GetItemPtr())
+		if (const UFaerieItemAsset* ItemAsset = Proxy.GetItemPtr())
 		{
 			if (Recursive)
 			{
@@ -177,7 +178,7 @@ void UFaerieStorageLibrary::FindSubObjectsByClass(const FFaerieItemProxy& Proxy,
 #if WITH_EDITOR
 	else
 	{
-		if (const UFaerieItem* ItemAsset = Proxy.GetItemPtr())
+		if (const UFaerieItemAsset* ItemAsset = Proxy.GetItemPtr())
 		{
 			if (Recursive)
 			{
@@ -216,7 +217,7 @@ void UFaerieStorageLibrary::GetAllContainersInItem(const FFaerieItemProxy& Proxy
 #if WITH_EDITOR
 	else
 	{
-		if (const UFaerieItem* ItemAsset = Proxy.GetItemPtr())
+		if (const UFaerieItemAsset* ItemAsset = Proxy.GetItemPtr())
 		{
 			// Blueprint should normally not get access to read-only containers... but only the editor can run this code anyway so its *fine*
 			TArray<const UFaerieItemContainerBase*>& ConstContainerArray = reinterpret_cast<TArray<const UFaerieItemContainerBase*>&>(FoundContainers);

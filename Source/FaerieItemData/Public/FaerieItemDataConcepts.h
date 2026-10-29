@@ -45,7 +45,7 @@ namespace Faerie::ItemData
 	template <typename T>
 	concept CSharedImpl = TIsDerivedFrom<Clean<T>, FFaerieMassSharedFragment>::Value && !UE::CSameAs<Clean<T>, FFaerieMassSharedFragment>;
 
-	// Concept for an implementation of a faerie shared type.
+	// Concept for an implementation of a faerie const shared type.
 	template <typename T>
 	concept CConstSharedImpl = TIsDerivedFrom<Clean<T>, FFaerieMassConstSharedFragment>::Value && !UE::CSameAs<Clean<T>, FFaerieMassConstSharedFragment>;
 
