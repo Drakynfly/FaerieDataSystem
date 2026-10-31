@@ -149,6 +149,7 @@ namespace Faerie::ItemData
 				{
 					UE_LOGF(LogFaerieItemData, Error, "Fragment '%ls' must implement SaveDataConverter in order to convert from '%ls'!", *GetNameSafe(RealFragmentType), *GetNameSafe(Fragment.GetScriptStruct()))
 				}
+				checkf(Traits->HasSaveDataConverter, TEXT("Traits must implement SaveDataConverter if its returned as the fragment type of an ItemFragmentSaveData type!"))
 
 				FInstancedStruct NewFragment; // New blank to write to.
 				NewFragment.InitializeAs(RealFragmentType);

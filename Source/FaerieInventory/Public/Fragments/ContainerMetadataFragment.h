@@ -6,6 +6,7 @@
 #include "GameplayTagContainer.h"
 #include "ContainerMetadataFragment.generated.h"
 
+// Enables items to allow/disallow certain actions from being performed on it while stored in a container.
 USTRUCT()
 struct FAERIEINVENTORY_API FFaerieContainerMetadataFragment : public FFaerieMassFragment
 {

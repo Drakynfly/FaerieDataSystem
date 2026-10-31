@@ -1,19 +1,16 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "MassReplication/FaerieMassReplicationActor.h"
+#include "MassReplication/FaerieMassReplicationSubsystem.h"
 
-#include "FaerieMassFragmentAccessors.h"
 #include "EntityManagerHelpers.h"
+#include "FaerieMassFragmentAccessors.h"
 #include "FaerieInventoryLog.h"
 #include "FaerieItemContainerBase.h"
 #include "FaerieItemEvent.h"
 #include "FaerieItemOwnership.h"
-#include "MassCommandBuffer.h"
 
 #include "Engine/Engine.h"
-
-#include "MassReplication/FaerieMassReplicationSubsystem.h"
-
 #include "Net/UnrealNetwork.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieMassReplicationActor)
@@ -40,7 +37,7 @@ void FFaerieMassReplicatedEntity::PostReplicatedChange(const FFaerieMassReplicat
 
 AFaerieMassReplicationActor::AFaerieMassReplicationActor()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
 	ReplicatedEntities.Owner = this;
 }
@@ -60,19 +57,6 @@ void AFaerieMassReplicationActor::BeginPlay()
 
 	UFaerieMassReplicationSubsystem* Replication = GetWorld()->GetSubsystem<UFaerieMassReplicationSubsystem>();
 	Replication->ConfirmReplicationActor(this);
-}
-
-void AFaerieMassReplicationActor::Tick(const float DeltaSeconds)
-{
-	Super::Tick(DeltaSeconds);
-
-	for (auto&& Entity : Metadata)
-	{
-		if (Entity.Value.AwaitingContainerAck)
-		{
-			CheckAck(Entity.Key, Entity.Value);
-		}
-	}
 }
 
 TOptional<FMassEntityHandle> AFaerieMassReplicationActor::ResolveNetId(const FFaerieNetItemID NetID) const
@@ -173,7 +157,6 @@ void AFaerieMassReplicationActor::Client_AddEntity(FFaerieMassReplicatedEntity& 
 
 	Container::FReplicatedItemMetadata& Element = Metadata.FindOrAdd(Entity.NetID);
 	Element.EntityHandle = EntityHandle;
-	Element.AwaitingContainerAck = true;
 
 	// @todo do we really event need to emit events when adding a new entity? are there ever view models already made? technically storages can emit proxies before the entries replicate, so maybe.
 	for (FInstancedStruct& Fragment : Entity.Fragments)
@@ -218,7 +201,7 @@ FMassEntityManager& AFaerieMassReplicationActor::GetEntityManager()
 	return *EntityManagerPtr.Get();
 }
 
-void AFaerieMassReplicationActor::CheckAck(const FFaerieNetItemID NetID, Container::FReplicatedItemMetadata& Entity)
+void AFaerieMassReplicationActor::CheckAck(const FFaerieNetItemID NetID, const Container::FReplicatedItemMetadata& Entity)
 {
 	FMassEntityManager& EntityManager = GetEntityManager();
 
@@ -230,11 +213,10 @@ void AFaerieMassReplicationActor::CheckAck(const FFaerieNetItemID NetID, Contain
 		if (Container->AckItemCreatedByNetwork(EntityManager, Entity.EntityHandle, NetID))
 		{
 			// Item was successfully bound to owner.
-			Entity.AwaitingContainerAck = false;
 		}
 		else
 		{
-			UE_LOGF(LogFaerieInventory, Warning, "CheckAck found owning container '%ls', but it didn't accept netID. Trying again next frame!", *GetNameSafe(Container))
+			UE_LOGF(LogFaerieInventory, Warning, "CheckAck found owning container '%ls', but it didn't accept netID. Will wait for container to request NetID!", *GetNameSafe(Container))
 		}
 	}
 }

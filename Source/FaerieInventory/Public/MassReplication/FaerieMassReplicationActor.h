@@ -61,9 +61,6 @@ namespace Faerie::Container
 
 		// Locally cached entity handle.
 		FMassEntityHandle EntityHandle;
-
-		// Is this item awaiting its owning container to replicate before being linked up to its local entity handle.
-		bool AwaitingContainerAck = false;
 	};
 }
 
@@ -90,7 +87,6 @@ public:
 protected:
 	virtual void BeginPlay() override;
 public:
-	virtual void Tick(float DeltaSeconds) override;
 	//~ AActor
 
 	TOptional<FMassEntityHandle> ResolveNetId(FFaerieNetItemID NetID) const;
@@ -105,7 +101,7 @@ public:
 
 private:
 	FMassEntityManager& GetEntityManager();
-	void CheckAck(FFaerieNetItemID NetID, Faerie::Container::FReplicatedItemMetadata& Entity);
+	void CheckAck(FFaerieNetItemID NetID, const Faerie::Container::FReplicatedItemMetadata& Entity);
 
 protected:
 	UPROPERTY(Replicated)

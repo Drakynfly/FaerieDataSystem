@@ -1282,16 +1282,16 @@ bool UFaerieItemStorage::CanAddStacks(const FMassEntityManager& EntityManager, c
 }
 
 bool UFaerieItemStorage::CanAddStacks(const FMassEntityManager& EntityManager,
-	const Utils::TArrayAdapter<FFaerieItemProxy>& Stacks, const FFaerieExtensionAllowsAdditionArgs Args) const
+	const Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, const FFaerieExtensionAllowsAdditionArgs Args) const
 {
-	if (Stacks.Num() == 0)
+	if (Proxies.Num() == 0)
 	{
 		return false;
 	}
 
-	for (int32 i = 0; i < Stacks.Num(); ++i)
+	for (int32 i = 0; i < Proxies.Num(); ++i)
 	{
-		const FFaerieItemProxy Proxy = Stacks[i];
+		const FFaerieItemProxy Proxy = Proxies[i];
 
 		const FMassEntityHandle Item = Proxy.GetEntityHandle();
 		if (!Item.IsSet())
@@ -1306,7 +1306,7 @@ bool UFaerieItemStorage::CanAddStacks(const FMassEntityManager& EntityManager,
 		}
 	}
 
-	return AllowsAddition(EntityManager, Stacks, Args, true);
+	return AllowsAddition(EntityManager, Proxies, Args, true);
 }
 
 bool UFaerieItemStorage::CanEditStack(const FMassEntityManager& EntityManager, const FFaerieAddress Address, const FFaerieInventoryTag EditTag) const

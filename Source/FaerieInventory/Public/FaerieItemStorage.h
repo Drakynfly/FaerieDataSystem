@@ -193,7 +193,7 @@ public:
 
 	// Check if several stacks can be added to this storage. This is only a physical check not a permissions check.
 	bool CanAddStacks(const FMassEntityManager& EntityManager, const TArray<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args) const;
-	bool CanAddStacks(const FMassEntityManager& EntityManager, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Stacks, FFaerieExtensionAllowsAdditionArgs Args) const;
+	bool CanAddStacks(const FMassEntityManager& EntityManager, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args) const;
 
 	// Check if an edit may be performed on stack in this storage. This is only a physical check not a permissions check.
 	bool CanEditStack(const FMassEntityManager& EntityManager, FFaerieAddress Address, FFaerieInventoryTag EditTag) const;

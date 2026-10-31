@@ -454,7 +454,8 @@ bool UFaerieItemContainerBase::AllowsRemoval(const FMassEntityManager& EntityMan
 		}
 		if (Metadata->DisallowedActions.HasTag(Reason))
 		{
-			AllowedByStructs = false;
+			// Exit immediately, no need to check extension data.
+			return false;
 		}
 	}
 

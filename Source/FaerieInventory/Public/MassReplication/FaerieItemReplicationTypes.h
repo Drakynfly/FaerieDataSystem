@@ -35,7 +35,7 @@ struct FFaerieNetIDFragment : public FFaerieMassFragment
 	UPROPERTY()
 	FFaerieNetItemID NetID;
 
-	____FAERIE_FRAGMENT_DECL(FFaerieNetIDFragment)
+____FAERIE_FRAGMENT_DECL(FFaerieNetIDFragment)
 };
 
 template <>

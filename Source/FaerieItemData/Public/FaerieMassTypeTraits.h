@@ -153,7 +153,8 @@ namespace Faerie::ItemData
 			{
 				return Ops->InitializeRuntimePtr(Value, Builder);
 			}
-			return false;
+			// If there is no InitializeRuntime impl'd then it's fine, the struct just doesn't need anything handled here, so return true.
+			return true;
 		}
 
 		bool SaveDataConverter(TNotNull<void*> Value, FMassEntityManager& EntityManager, FInstancedStruct& SaveData) const
@@ -162,6 +163,7 @@ namespace Faerie::ItemData
 			{
 				return Ops->SaveDataConverterPtr(Value, EntityManager, SaveData);
 			}
+			// If there is no SaveDataConverter impl'd then it's not safe to use SaveData, thus return false, as conversion was not performed.
 			return false;
 		}
 
