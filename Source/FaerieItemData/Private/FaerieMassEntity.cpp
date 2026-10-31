@@ -1,12 +1,13 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
-#include "FaerieItemInstance.h"
-#include "FaerieItem.h"
+#include "FaerieMassEntity.h"
+#include "FaerieMassFragmentAccessors.h"
 #include "FaerieItemAsset.h"
 #include "FaerieItemDataLog.h"
 #include "FaerieItemEvent.h"
 #include "FaerieItemExportData.h"
 #include "FaerieMassFragment.h"
+#include "FaerieMassTypeTraits.h"
 #include "MassEntityBuilder.h"
 #include "MassEntityTemplate.h"
 
@@ -82,7 +83,7 @@ namespace Faerie::ItemData
 						return true;
 					}
 
-					FConstStructView Fragment = GetEntityFragment(EntityManager, Item, ElementType);
+					FConstStructView Fragment = GetItemFragment(EntityManager, Item, ElementType);
 					if (!Fragment.IsValid())
 					{
 						return true;
@@ -192,6 +193,8 @@ namespace Faerie::ItemData
 	{
 		if (!EntityManager.IsEntityValid(Item)) return false;
 
+		// We check the Defaults asset for mutability.
+		// @Todo should we check all FFaerieMassItemObject fragments?
 		if (const FFaerieItemDataDefaults* ItemDefaults = EntityManager.GetConstSharedFragmentDataPtr<FFaerieItemDataDefaults>(Item))
 		{
 			if (const UFaerieItemAsset* ItemAsset = ItemDefaults->ItemAsset)

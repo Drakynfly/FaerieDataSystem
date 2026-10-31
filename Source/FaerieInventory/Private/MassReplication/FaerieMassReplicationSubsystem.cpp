@@ -29,6 +29,7 @@ void UFaerieMassReplicationSubsystem::Server_UpdateFragments(const FMassEntityHa
 {
 	if (ensure(IsValid(ReplicationActor)))
 	{
+		ensure(ReplicationActor->HasAuthority());
 		ReplicationActor->Server_UpdateFragments(Item, NetID, FragmentViews);
 	}
 }
@@ -38,6 +39,7 @@ void UFaerieMassReplicationSubsystem::Server_RemoveFragments(const FFaerieNetIte
 {
 	if (ensure(IsValid(ReplicationActor)))
 	{
+		ensure(ReplicationActor->HasAuthority());
 		ReplicationActor->Server_RemoveFragments(NetID, ScriptStruct);
 	}
 }
@@ -46,6 +48,7 @@ void UFaerieMassReplicationSubsystem::Server_RemoveEntities(const TConstArrayVie
 {
 	if (ensure(IsValid(ReplicationActor)))
 	{
+		ensure(ReplicationActor->HasAuthority());
 		ReplicationActor->Server_RemoveEntities(NetIDs);
 	}
 }

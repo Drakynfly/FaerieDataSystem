@@ -3,7 +3,7 @@
 #include "FaerieSubObjectFilter.h"
 #include "FaerieContainerIterator.h"
 #include "FaerieInventoryLog.h"
-#include "FaerieItem.h"
+#include "FaerieMassFragmentAccessors.h"
 #include "FaerieItemAsset.h"
 #include "FaerieItemStackContainer.h"
 #include "FaerieItemStorage.h"
@@ -47,7 +47,7 @@ namespace Faerie::SubObject
 	void GetTemplateContainersInInstanceRecursive(const TNotNull<const UFaerieItemAsset*> Item, const TAdderRef<TNotNull<const UFaerieItemContainerBase*>> Containers, const TNotNull<const UClass*> Class)
 	{
 		/*
-		 * Most item instances will not contain more than 3 containers. That allows 1 storage and 2 slots or 3 slots,
+		 * Most items will not contain more than 3 containers. That allows 1 storage and 2 slots or 3 slots,
 		 * which is more than most will have.
 		 */
 		TArray<TNotNull<const UFaerieItemContainerBase*>, TInlineAllocator<3>> Children;
@@ -65,7 +65,7 @@ namespace Faerie::SubObject
 
 	bool HasContainerInInstanceDirect_Stack(const FMassEntityManager& EntityManager, const FMassEntityHandle Item, const TNotNull<const UFaerieItemStackContainer*> TestContainer)
 	{
-		if (auto* StacksFragment = ItemData::GetEntityFragment<FFaerieChildStackFragment>(EntityManager, Item))
+		if (auto* StacksFragment = ItemData::GetItemFragment<FFaerieChildStackFragment>(EntityManager, Item))
 		{
 			for (auto&& Slot : StacksFragment->Slots)
 			{
@@ -81,7 +81,7 @@ namespace Faerie::SubObject
 
 	bool HasContainerInInstanceDirect_Storage(const FMassEntityManager& EntityManager, const FMassEntityHandle Item, const TNotNull<const UFaerieItemStorage*> TestContainer)
 	{
-		if (auto* StorageFragment = ItemData::GetEntityFragment<FFaerieItemStorageFragment>(EntityManager, Item))
+		if (auto* StorageFragment = ItemData::GetItemFragment<FFaerieItemStorageFragment>(EntityManager, Item))
 		{
 			const TObjectPtr<UFaerieItemStorage>& ItemStorage = StorageFragment->Storage.Storage;
 			if (!IsValid(ItemStorage))
@@ -103,7 +103,7 @@ namespace Faerie::SubObject
 	bool HasContainerInInstanceRecursive_Stack(const FMassEntityManager& EntityManager,
 		const FMassEntityHandle Item, const TNotNull<const UFaerieItemStackContainer*> TestContainer)
 	{
-		if (auto* StacksFragment = ItemData::GetEntityFragment<FFaerieChildStackFragment>(EntityManager, Item))
+		if (auto* StacksFragment = ItemData::GetItemFragment<FFaerieChildStackFragment>(EntityManager, Item))
 		{
 			for (auto&& Slot : StacksFragment->Slots)
 			{
@@ -127,7 +127,7 @@ namespace Faerie::SubObject
 	bool HasContainerInInstanceRecursive_Storage(const FMassEntityManager& EntityManager,
 		const FMassEntityHandle Item, const TNotNull<const UFaerieItemStorage*> TestContainer)
 	{
-		if (auto* StorageFragment = ItemData::GetEntityFragment<FFaerieItemStorageFragment>(EntityManager, Item))
+		if (auto* StorageFragment = ItemData::GetItemFragment<FFaerieItemStorageFragment>(EntityManager, Item))
 		{
 			const TObjectPtr<UFaerieItemStorage>& ItemStorage = StorageFragment->Storage.Storage;
 			if (!IsValid(ItemStorage))
@@ -156,7 +156,7 @@ namespace Faerie::SubObject
 
 	void GetContainersInInstanceDirect_All(const FMassEntityManager& EntityManager, const FMassEntityHandle Item, const TAdderRef<TNotNull<UFaerieItemContainerBase*>> Containers)
 	{
-		if (auto* StacksFragment = ItemData::GetEntityFragment<FFaerieChildStackFragment>(EntityManager, Item))
+		if (auto* StacksFragment = ItemData::GetItemFragment<FFaerieChildStackFragment>(EntityManager, Item))
 		{
 			for (auto&& Slot : StacksFragment->Slots)
 			{
@@ -167,7 +167,7 @@ namespace Faerie::SubObject
 			}
 		}
 
-		if (auto* StorageFragment = ItemData::GetEntityFragment<FFaerieItemStorageFragment>(EntityManager, Item))
+		if (auto* StorageFragment = ItemData::GetItemFragment<FFaerieItemStorageFragment>(EntityManager, Item))
 		{
 			const TObjectPtr<UFaerieItemStorage>& ItemStorage = StorageFragment->Storage.Storage;
 			if (!IsValid(ItemStorage))
@@ -183,7 +183,7 @@ namespace Faerie::SubObject
 
 	void GetContainersInInstanceDirect_Stack(const FMassEntityManager& EntityManager, const FMassEntityHandle Item, const TAdderRef<TNotNull<UFaerieItemStackContainer*>> Containers)
 	{
-		if (auto* StacksFragment = ItemData::GetEntityFragment<FFaerieChildStackFragment>(EntityManager, Item))
+		if (auto* StacksFragment = ItemData::GetItemFragment<FFaerieChildStackFragment>(EntityManager, Item))
 		{
 			for (auto&& Slot : StacksFragment->Slots)
 			{
@@ -197,7 +197,7 @@ namespace Faerie::SubObject
 
 	void GetContainersInInstanceDirect_Storage(const FMassEntityManager& EntityManager, const FMassEntityHandle Item, const TAdderRef<TNotNull<UFaerieItemStorage*>> Containers)
 	{
-		if (auto* StorageFragment = ItemData::GetEntityFragment<FFaerieItemStorageFragment>(EntityManager, Item))
+		if (auto* StorageFragment = ItemData::GetItemFragment<FFaerieItemStorageFragment>(EntityManager, Item))
 		{
 			const TObjectPtr<UFaerieItemStorage>& ItemStorage = StorageFragment->Storage.Storage;
 			if (!IsValid(ItemStorage))
@@ -214,7 +214,7 @@ namespace Faerie::SubObject
 	void GetContainersInInstanceRecursive_All(const FMassEntityManager& EntityManager, const FMassEntityHandle Item, TAdderRef<TNotNull<UFaerieItemContainerBase*>> Containers)
 	{
 		/*
-		 * Most item instances will not contain more than 3 containers. That allows 1 storage and 2 slots or 3 slots,
+		 * Most items will not contain more than 3 containers. That allows 1 storage and 2 slots or 3 slots,
 		 * which is more than most will have.
 		 */
 		TArray<TNotNull<UFaerieItemContainerBase*>, TInlineAllocator<3>> Children;
@@ -232,7 +232,7 @@ namespace Faerie::SubObject
 	void GetContainersInInstanceRecursive_Stack(const FMassEntityManager& EntityManager, const FMassEntityHandle Item, const TAdderRef<TNotNull<UFaerieItemStackContainer*>> Containers)
 	{
 		/*
-		 * Most item instances will not contain more than 3 containers.
+		 * Most items will not contain more than 3 containers.
 		 */
 		TArray<TNotNull<UFaerieItemStackContainer*>, TInlineAllocator<3>> Children;
 		GetContainersInInstanceDirect_Stack(EntityManager, Item, Children);
@@ -249,7 +249,7 @@ namespace Faerie::SubObject
 	void GetContainersInInstanceRecursive_Storage(const FMassEntityManager& EntityManager, const FMassEntityHandle Item, const TAdderRef<TNotNull<UFaerieItemStorage*>> Containers)
 	{
 		/*
-		 * Most item instances will not contain more than 1 storage.
+		 * Most items will not contain more than 1 storage.
 		 */
 		TArray<TNotNull<UFaerieItemStorage*>, TInlineAllocator<1>> Children;
 		GetContainersInInstanceDirect_Storage(EntityManager, Item, Children);

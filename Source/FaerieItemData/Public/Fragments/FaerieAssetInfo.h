@@ -3,6 +3,8 @@
 #pragma once
 
 #include "FaerieMassFragment.h"
+#include "FaerieMassTypeTraits.h"
+
 #include "Internationalization/Text.h"
 #include "FaerieAssetInfo.generated.h"
 

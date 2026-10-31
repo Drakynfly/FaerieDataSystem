@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "FaerieItem.h"
+#include "FaerieMassFragmentAccessors.h"
 #include "FaerieItemTemplate.h"
 #include "FaerieItemFilter.h"
 #include "GameplayTagContainer.h"

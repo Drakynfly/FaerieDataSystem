@@ -6,7 +6,7 @@
 
 #include "FaerieContainerIterator.h"
 #include "FaerieInventoryContentLog.h"
-#include "FaerieItem.h"
+#include "FaerieMassFragmentAccessors.h"
 
 #include "MassExecutionContext.h"
 

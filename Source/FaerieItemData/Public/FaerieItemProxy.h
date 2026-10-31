@@ -103,7 +103,7 @@ public:
 
 	UE_REWRITE const TSharedPtr<const FMassEntityManager>& GetEntityManager() const { return EntityManager; }
 
-	// Get the MassEntityHandle for this proxy. Can return an invalid handle if we proxy an editor/unregistered instance.
+	// Get the MassEntityHandle for this proxy. Can return an invalid handle if we proxy an editor/unregistered item.
 	FMassEntityHandle GetEntityHandle() const;
 
 #if WITH_EDITOR

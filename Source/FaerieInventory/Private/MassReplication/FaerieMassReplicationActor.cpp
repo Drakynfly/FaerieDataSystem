@@ -2,7 +2,7 @@
 
 #include "MassReplication/FaerieMassReplicationActor.h"
 
-#include "FaerieItem.h"
+#include "FaerieMassFragmentAccessors.h"
 #include "EntityManagerHelpers.h"
 #include "FaerieInventoryLog.h"
 #include "FaerieItemContainerBase.h"

@@ -4,7 +4,7 @@
 #include "AdvancedPreviewSceneModule.h"
 #include "FaerieAssetEditorCommands.h"
 #include "FaerieCardSettings.h"
-#include "FaerieItem.h"
+#include "FaerieMassFragmentAccessors.h"
 #include "FaerieItemAsset.h"
 #include "FaerieItemCardTags.h"
 #include "FaerieItemDataEditorModule.h"

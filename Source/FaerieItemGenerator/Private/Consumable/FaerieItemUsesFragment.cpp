@@ -1,11 +1,11 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "Consumable/FaerieItemUsesFragment.h"
-#include "FaerieItem.h"
+#include "FaerieMassFragmentAccessors.h"
 #include "FaerieItemContainerBase.h"
 #include "FaerieItemEvent.h"
 #include "FaerieItemGenerationLog.h"
-#include "FaerieItemInstance.h"
+#include "FaerieMassEntity.h"
 #include "FaerieItemOwnership.h"
 #include "FaerieItemSource.h"
 #include "FaerieUnownedItemStack.h"
@@ -65,7 +65,7 @@ void FFaerieItemLastUseLogic_Replace::OnLastUse_Replace(const FFaerieItemLastUse
 			UFaerieItemContainerBase* Container = Container::GetItemOwner(InProxy);
 			if (!IsValid(Container))
 			{
-				UE_LOGF(LogItemGeneration, Error, "Invalid Container (no item instance owner) for FFaerieItemLastUseLogic_Replace on '%ls'", *InProxy.GetProxyObject()->GetName())
+				UE_LOGF(LogItemGeneration, Error, "Invalid Container (no item owner) for FFaerieItemLastUseLogic_Replace on '%ls'", *InProxy.GetProxyObject()->GetName())
 				return;
 			}
 
@@ -74,7 +74,7 @@ void FFaerieItemLastUseLogic_Replace::OnLastUse_Replace(const FFaerieItemLastUse
 			const ItemData::FItemDataBuilder Result = ItemSource->CreateItemStack(Context);
 			if (!Result.IsValid())
 			{
-				UE_LOGF(LogItemGeneration, Error, "Failed to create item instance for FFaerieItemLastUseLogic_Replace on '%ls'", *InProxy.GetProxyObject()->GetName())
+				UE_LOGF(LogItemGeneration, Error, "Failed to create item stack for FFaerieItemLastUseLogic_Replace on '%ls'", *InProxy.GetProxyObject()->GetName())
 				return;
 			}
 
@@ -82,9 +82,9 @@ void FFaerieItemLastUseLogic_Replace::OnLastUse_Replace(const FFaerieItemLastUse
 			(void)Container->Release(InEntityManager, InProxy, ItemData::EntireStack, Inventory::Tags::RemovalDeletion);
 
 			// Possess new item
-			if (!Container->Possess(InEntityManager, Result.GetForRuntime()))
+			if (!Container->Possess(InEntityManager, Result.GetItemStack()))
 			{
-				UE_LOGF(LogItemGeneration, Error, "Container failed to possess new item instance for FFaerieItemLastUseLogic_Replace on '%ls'", *InProxy.GetProxyObject()->GetName())
+				UE_LOGF(LogItemGeneration, Error, "Container failed to possess new item stacj for FFaerieItemLastUseLogic_Replace on '%ls'", *InProxy.GetProxyObject()->GetName())
 			}
 		}
 	};
@@ -131,14 +131,14 @@ namespace Faerie::ItemData
 	FUsesHelper::FUsesHelper(const FMassEntityManager& EntityManager, const FMassEntityHandle Item)
 	  : EntityManager(&EntityManager), EntityHandle(Item)
 	{
-		FragmentPtr = GetEntityFragment<FFaerieItemUses>(EntityManager, Item);
+		FragmentPtr = GetItemFragment<FFaerieItemUses>(EntityManager, Item);
 		Defaults_FragmentPtr = ItemData::GetDefaultFragment<FFaerieItemUses>(EntityManager, Item).GetPtr();
 	}
 
 	FUsesHelper::FUsesHelper(const FFaerieItemProxy& Item)
 	  : EntityManager(Item.GetEntityManager().Get()), EntityHandle(Item.GetEntityHandle())
 	{
-		FragmentPtr = ItemData::GetEntityFragment<FFaerieItemUses>(Item);
+		FragmentPtr = ItemData::GetItemFragment<FFaerieItemUses>(Item);
 		Defaults_FragmentPtr = ItemData::GetDefaultFragment<FFaerieItemUses>(Item).GetPtr();
 	}
 
@@ -176,7 +176,7 @@ namespace Faerie::ItemData
 		FInstancedStruct Fragment;
 		Fragment.InitializeAs<FFaerieItemUses>(NewUses);
 		AddFragment(InEntityManager, EntityHandle, MoveTemp(Fragment));
-		if (const FFaerieItemUses* UsesStruct = GetEntityFragment<FFaerieItemUses>(*EntityManager, EntityHandle))
+		if (const FFaerieItemUses* UsesStruct = GetItemFragment<FFaerieItemUses>(*EntityManager, EntityHandle))
 		{
 			FragmentPtr = UsesStruct;
 		}
@@ -289,7 +289,7 @@ namespace Faerie::ItemData
 
 	void FUsesHelper::ResetUses()
 	{
-		if (!ensureMsgf(HasDefaultValue(), TEXT("ResetUses should not be called for an instance that does not have defaults!")))
+		if (!ensureMsgf(HasDefaultValue(), TEXT("ResetUses should not be called for an item that does not have defaults!")))
 		{
 			return;
 		}

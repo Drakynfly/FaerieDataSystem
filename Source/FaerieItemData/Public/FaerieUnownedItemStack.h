@@ -9,7 +9,7 @@
 /**
  * A stack of items unowned by any container.
  * The contained item is not replicated and only marked as UPROP to prevent GC. This struct is used to temporarily hold
- * onto item instances while asynchronous logic is running, or occasionally for passing free items through Blueprint.
+ * onto items while asynchronous logic is running, or occasionally for passing free items through Blueprint.
  * Do not try to replicate this struct!
  */
 USTRUCT(BlueprintType)

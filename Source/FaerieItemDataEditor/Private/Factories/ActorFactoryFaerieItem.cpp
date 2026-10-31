@@ -1,7 +1,7 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "ActorFactoryFaerieItem.h"
-#include "FaerieItem.h"
+#include "FaerieMassFragmentAccessors.h"
 #include "FaerieItemAsset.h"
 #include "FaerieMeshSettings.h"
 #include "Actors/FaerieItemOwningActorBase.h"

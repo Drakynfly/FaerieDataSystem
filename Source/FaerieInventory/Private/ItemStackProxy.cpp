@@ -1,7 +1,7 @@
 // Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "ItemStackProxy.h"
-#include "FaerieItem.h"
+#include "FaerieMassFragmentAccessors.h"
 #include "FaerieItemStorage.h"
 #include "FaerieInventoryLog.h"
 

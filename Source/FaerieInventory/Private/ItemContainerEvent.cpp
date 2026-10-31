@@ -9,7 +9,7 @@
 namespace Faerie::Inventory::Tags
 {
 	UE_DEFINE_GAMEPLAY_TAG_TYPED_COMMENT(FFaerieInventoryTag, NewStack,
-		"Fae.Inventory.Addition", "The item instance was set to a new item, and the copies may have also changed.")
+		"Fae.Inventory.Addition", "The stored stack was changed, either the item, number of copies, or both.")
 	UE_DEFINE_GAMEPLAY_TAG_TYPED_COMMENT(FFaerieInventoryTag, RemovalBase,
 		"Fae.Inventory.Removal", "Base item data removed event tag. Actual events should always use a child tag.")
 	UE_DEFINE_GAMEPLAY_TAG_TYPED_COMMENT(FFaerieInventoryTag, RemovalDeletion,

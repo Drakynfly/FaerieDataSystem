@@ -346,7 +346,7 @@ void FFaerieItemGenerationAction::Generate(const Generation::FActionExecution& E
 
 	if (Execution.IsInGameWorld())
 	{
-		// Ensure all generated instances are initialized for runtime.
+		// Ensure all generated items are initialized for runtime.
 
         for (auto&& Builder : Storage.Builders)
         {

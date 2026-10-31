@@ -1,6 +1,7 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "Fragments/FaerieMeshFragment.h"
+#include "FaerieMassTypeTraits.h"
 
 #if WITH_EDITOR
 #include "Misc/DataValidation.h"

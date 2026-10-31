@@ -5,7 +5,7 @@
 #include "EntityManagerHelpers.h"
 #include "FaerieContainerEvent.h"
 #include "FaerieContainerFilter.h"
-#include "FaerieItem.h"
+#include "FaerieMassFragmentAccessors.h"
 #include "FaerieItemEvent.h"
 #include "FaerieItemExportData.h"
 #include "ItemContainerExtensionBase.h"
@@ -444,7 +444,7 @@ bool UFaerieItemContainerBase::AllowsRemoval(const FMassEntityManager& EntityMan
 		}
 	}
 
-	// Check the item instance for permission override.
+	// Check the item for permission overrides.
 	if (const TConstStructView<FFaerieContainerMetadataFragment> Metadata = Faerie::ItemData::GetItemDataOrDefault<FFaerieContainerMetadataFragment>(EntityManager, DataView->GetEntityHandle());
 		Metadata.IsValid())
 	{

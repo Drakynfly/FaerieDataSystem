@@ -3,7 +3,7 @@
 #include "FaerieItemSlotInterface.h"
 #include "FaerieItemContainerBase.h"
 #include "FaerieItemGenerationLog.h"
-#include "FaerieItemInstance.h"
+#include "FaerieMassEntity.h"
 #include "FaerieItemOwnership.h"
 #include "FaerieItemProxy.h"
 #include "FaerieItemTemplate.h"

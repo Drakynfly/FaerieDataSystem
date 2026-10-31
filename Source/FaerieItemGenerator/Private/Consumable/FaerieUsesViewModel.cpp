@@ -2,7 +2,7 @@
 
 #include "Consumable/FaerieUsesViewModel.h"
 #include "Consumable/FaerieItemUsesFragment.h"
-#include "FaerieItem.h"
+#include "FaerieMassFragmentAccessors.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieUsesViewModel)
 

@@ -2,7 +2,7 @@
 
 #include "FaerieCardGenerator.h"
 
-#include "FaerieItem.h"
+#include "FaerieMassFragmentAccessors.h"
 #include "FaerieItemCardLog.h"
 
 #include "Widgets/FaerieItemCardFragment.h"

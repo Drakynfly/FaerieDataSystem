@@ -187,7 +187,7 @@ void UFaerieItemCraftingRunner::FinishActionImpl(FFaerieCraftingActionBase& Acti
 		FFaerieCraftingActionResult ResultData;
 		for (auto&& Builder : Action.Storage.Builders)
 		{
-			ResultData.Stacks.Add(Builder.GetForRuntime());
+			ResultData.Stacks.Add(Builder.GetItemStack());
 		}
 
 		Action.OnCompletedCallback.ExecuteIfBound(Result, ResultData);

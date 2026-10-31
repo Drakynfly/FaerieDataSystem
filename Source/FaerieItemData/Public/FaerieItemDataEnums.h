@@ -5,7 +5,7 @@
 #include "Misc/EnumClassFlags.h"
 #include "FaerieItemDataEnums.generated.h"
 
-// Options to enable Mutability flags on newly instanced items
+// Options to enable Mutability flags on new items
 UENUM(BlueprintType)
 enum class EFaerieItemInstancingMutability : uint8
 {

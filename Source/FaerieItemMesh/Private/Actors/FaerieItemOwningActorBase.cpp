@@ -3,11 +3,9 @@
 #include "Actors/FaerieItemOwningActorBase.h"
 #include "AssetLoadFlagFixer.h"
 #include "EntityManagerHelpers.h"
-#include "FaerieDataUtilsModule.h"
 #include "FaerieItemAsset.h"
 #include "FaerieItemInstancingContext.h"
 #include "FaerieItemMeshLog.h"
-#include "FaerieItemOwnership.h"
 #include "FaerieItemStackContainer.h"
 #include "ItemContainerEvent.h"
 #include "Modules/ModuleManager.h"
@@ -48,13 +46,13 @@ void AFaerieItemOwningActorBase::InitStackFromConfig(const bool RegenerateDispla
 		if (const ItemData::FItemDataBuilder Result = SourceAsset->CreateItemStack(Context);
 			Result.IsValid())
 		{
-			TPair<UFaerieItemAsset*, int32> ItemAsset = Result.GetForEditor();
+			TPair<UFaerieItemAsset*, int32> ItemAsset = Result.GetItemStack_Editor();
 
 			FFaerieItemDataDefaults Default;
 			Default.ItemAsset = ItemAsset.Get<0>();
 			PreparedItemData.ExportData.MassInstances.Add(FInstancedStruct::Make(Default));
 			PreparedItemData.Copies = ItemAsset.Get<1>();
-			// @todo allow for initializing PreparedItemData.ExportData and .ExtensionData with preconfigured instances.
+			// @todo allow for initializing PreparedItemData.ExportData and .ExtensionData with preconfigured fragments.
 			(void)MarkPackageDirty();
 		}
 	}
@@ -95,17 +93,7 @@ void AFaerieItemOwningActorBase::PostLoad()
 
 #if WITH_EDITOR
 	// Purse existing data from old editor stacks with existing data. We no longer store editor data in the stack.
-	if (ItemStack->IsFilled())
-	{
-		ItemStack = NewObject<UFaerieItemStackContainer>(this);
-	}
-
-	if (const UFaerieItemAsset* ItemAsset = Cast<UFaerieItemAsset>(ItemSourceAsset.GetObject()))
-	{
-		SourceAsset = ItemAsset;
-		ItemSourceAsset = nullptr;
-		(void)MarkPackageDirty();
-	}
+	ItemStack->Editor_ClearData();
 
 	if (HasPreparedItemData())
 	{
@@ -171,7 +159,7 @@ void AFaerieItemOwningActorBase::BeginPlay()
 
 	Content::SubscribeToContainerEvents(EntityManager, ItemStack, this);
 
-	// @todo setup more complex trigger for initializing runtime instance. some actors might want to wait and only
+	// @todo setup more complex trigger for initializing runtime item. some actors might want to wait and only
 	// register at a later point.
 	if (GetNetMode() < NM_Client)
 	{
@@ -209,6 +197,12 @@ FMassEntityHandle AFaerieItemOwningActorBase::GetEntityHandle() const
 
 int32 AFaerieItemOwningActorBase::GetCopies() const
 {
+#if WITH_EDITOR
+	if (!ItemStack->IsFilled())
+	{
+		return PreparedItemData.Copies;
+	}
+#endif
 	return ItemStack->GetCopies();
 }
 

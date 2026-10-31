@@ -2,7 +2,7 @@
 
 #include "AssetEditor/FaerieItemAssetPreviewScene.h"
 #include "Editor.h"
-#include "FaerieItem.h"
+#include "FaerieMassFragmentAccessors.h"
 #include "FaerieItemAsset.h"
 
 #include "Actors/FaerieProxyActorBase.h"

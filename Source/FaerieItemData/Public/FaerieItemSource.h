@@ -14,8 +14,8 @@ struct FFaerieItemInstancingContext;
 namespace Faerie::ItemData
 {
 	/*
-	 * Utility to build item data via a generic API that works for both runtime item instances that live in Mass, and
-	 * item asset editor data.
+	 * Utility to build item data via a generic API that works for both runtime items that live in Mass, and item asset
+	 * editor data.
 	 */
 	USTRUCT()
 	struct FAERIEITEMDATA_API FItemDataBuilder
@@ -42,12 +42,10 @@ namespace Faerie::ItemData
 		//~ IViewBase
 
 	public:
-		// Initialize the item and return a fully valid item instance.
-		FFaerieUnownedItemStack GetForRuntime() const;
+		FFaerieUnownedItemStack GetItemStack() const;
 
 #if WITH_EDITOR
-		// Extract the item stack without initializing the instance.
-		UE_REWRITE TPair<UFaerieItemAsset*, int32> GetForEditor() const
+		UE_REWRITE TPair<UFaerieItemAsset*, int32> GetItemStack_Editor() const
 		{
 			return {ItemAsset, Copies};
 		}
@@ -78,14 +76,14 @@ class FAERIEITEMDATA_API UFaerieItemSource : public UInterface
 };
 
 /**
- * Interface added to classes that can author a faerie item instance
+ * Interface added to classes that can author a faerie item stack.
  */
 class FAERIEITEMDATA_API IFaerieItemSource
 {
 	GENERATED_BODY()
 
 public:
-	// AssetData tag to add in GetAssetRegistryTags in implementing classes that generate mutable instances.
+	// AssetData tag to add in GetAssetRegistryTags in implementing classes that generate mutable items.
 	static const FName MutableSourceTag;
 
 	// Can this source create mutable items? If this can return true in an implementing class, you must also override

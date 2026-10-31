@@ -8,7 +8,7 @@
 #include "UserFavoriteFragment.generated.h"
 
 /*
- * Sparse tag fragment to mark an instance as a user favorite. UI can filter by this tag's presence.
+ * Sparse tag fragment to mark an item as a user favorite. UI can filter by this tag's presence.
  * Blueprint can look for this with HasItemFragment.
  */
 USTRUCT()

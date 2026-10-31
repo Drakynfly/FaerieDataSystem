@@ -3,6 +3,7 @@
 #pragma once
 
 #include "FaerieMassFragment.h"
+#include "FaerieMassTypeTraits.h"
 #include "FaerieGuidFragment.generated.h"
 
 /**

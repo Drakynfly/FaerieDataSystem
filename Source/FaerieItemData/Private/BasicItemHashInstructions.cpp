@@ -2,7 +2,7 @@
 
 #include "BasicItemHashInstructions.h"
 #include "FaerieHashStatics.h"
-#include "FaerieItem.h"
+#include "FaerieMassFragmentAccessors.h"
 #include "FaerieItemDataView.h"
 #include "FaerieItemTemplate.h"
 #include "Squirrel.h"
@@ -103,7 +103,7 @@ uint32 FISHI_Fragments::Hash(const TValid<const FFaerieItemProxy&> Proxy) const
 	{
 		if (FragmentType->GetCppStructOps()->HasGetTypeHash())
 		{
-			const FConstStructView FragmentView = ItemData::GetEntityFragmentOrDefault(Proxy, FragmentType);
+			const FConstStructView FragmentView = ItemData::GetItemFragmentOrDefault(Proxy, FragmentType);
 			if (FragmentView.IsValid())
 			{
 				Hash = Hash::Combine(Hash, FragmentType->GetCppStructOps()->GetStructTypeHash(FragmentView.GetMemory()));

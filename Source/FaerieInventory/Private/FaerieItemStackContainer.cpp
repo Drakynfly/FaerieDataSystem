@@ -6,7 +6,7 @@
 
 #include "FaerieContainerIterator.h"
 #include "FaerieInventoryLog.h"
-#include "FaerieItem.h"
+#include "FaerieMassFragmentAccessors.h"
 #include "FaerieItemDestructionProcessor.h"
 #include "FaerieItemOwnership.h"
 #include "FaerieStorageEnums.h"
@@ -255,6 +255,8 @@ bool UFaerieItemStackContainer::AckItemCreatedByNetwork(FMassEntityManager& Enti
 
 	if (ItemStack.NetID != NetID)
 	{
+		// We cannot accept a new entity from the server, until we have got our own ItemStack replication up to date.
+		// This is to prevent broadcasting an event, while the StoredKey is invalid, or copies is 0.
 		UE_LOGF(LogFaerieInventory, Warning, "Ack failed: mismatch from current NetID. Could be waiting for replication to catch up.")
 		return false;
 	}
@@ -355,7 +357,7 @@ void UFaerieItemStackContainer::LoadSaveData(FMassEntityManager& EntityManager, 
 
 	if (SaveData.Copies > 0)
 	{
-		// Rebuild instance from save data
+		// Rebuild item from save data
 		FMassEntityHandle Item;
 		{
 			Container::FBlockTakeOwnershipScope BlockTakeOwnershipDuringImport;
@@ -461,6 +463,14 @@ void UFaerieItemStackContainer::SetStoredItem_Impl(FMassEntityManager& EntityMan
 		BroadcastChange(EntityManager, Inventory::Tags::AddedCopies);
 	}
 }
+
+#if WITH_EDITOR
+void UFaerieItemStackContainer::Editor_ClearData()
+{
+	ItemStack = FFaerieStackContainerContent();
+	ItemEntity.Reset();
+}
+#endif
 
 ItemData::FScopeProxy UFaerieItemStackContainer::GetView() const
 {
@@ -652,7 +662,10 @@ FFaerieUnownedItemStack UFaerieItemStackContainer::TakeItemFromSlot(const int32 
 
 void UFaerieItemStackContainer::OnRep_ItemStack(const FFaerieStackContainerContent& OldValue)
 {
-	UE_LOGF(LogFaerieInventory, Log, "UFaerieItemStackContainer::OnRep_ItemStack")
+	UE_LOGF(LogFaerieInventory, Log, "UFaerieItemStackContainer::OnRep_ItemStack for %ls.%ls. OldValue: (Key: %ls, ID: %llu, Copies: %i). NewValue (Key: %ls, ID: %llu, Copies: %i).",
+		*GetNameSafe(GetTypedOuter<AActor>()), *GetNameSafe(this),
+		*OldValue.StoredKey.ToString(), OldValue.NetID.ID, OldValue.Copies,
+		*ItemStack.StoredKey.ToString(), ItemStack.NetID.ID, ItemStack.Copies)
 
 	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
 
@@ -689,6 +702,8 @@ void UFaerieItemStackContainer::OnRep_ItemStack(const FFaerieStackContainerConte
 			{
 				UE_LOGF(LogFaerieInventory, Error, "Server replicated item stack with empty stack! This should not happen!")
 			}
+			ensure(ItemStack.NetID.IsSet());
+			ensure(ItemStack.StoredKey.IsValid());
 
 			UFaerieMassReplicationSubsystem* Replication = GetWorld()->GetSubsystem<UFaerieMassReplicationSubsystem>();
 			if (TOptional<FMassEntityHandle> Item = Replication->ResolveNetId(ItemStack.NetID);

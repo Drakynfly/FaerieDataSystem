@@ -4,6 +4,7 @@
 
 #include "GameplayTagContainer.h"
 #include "MassElement.h"
+#include "NativeGameplayTags.h"
 
 #include "Mass/EntityHandle.h"
 #include "Mass/EntityElementTypes.h"
@@ -14,6 +15,15 @@
 
 namespace Faerie::ItemData
 {
+	// Tags for the types of mutations events.
+	namespace Tags
+	{
+		FAE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(FragmentAdd)
+		FAE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(FragmentRemove)
+		FAE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(FragmentGenericPropertyEdit)
+	}
+
+
 	/*
 	 * Info packet for an item data mutation event. Carries the item handle that changed, the type of event, and the
 	 * relevant struct type.

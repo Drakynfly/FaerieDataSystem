@@ -88,12 +88,8 @@ protected:
 	FFaerieSimpleItemStackSaveData PreparedItemData;
 
 #if WITH_EDITORONLY_DATA
-private:
-	// If set, fill the ItemStack with an instance from this source.
-	UPROPERTY()
-	TScriptInterface<const class IFaerieItemSource> ItemSourceAsset;
-
 public:
+	// If set, fills the prepared item data with this item asset.
 	UPROPERTY(EditInstanceOnly, Category = "Stack Editor", meta = (NoResetToDefault))
 	TObjectPtr<const UFaerieItemAsset> SourceAsset;
 

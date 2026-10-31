@@ -1,8 +1,8 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "BasicItemFilters.h"
-#include "FaerieItem.h"
-#include "FaerieItemInstance.h"
+#include "FaerieMassFragmentAccessors.h"
+#include "FaerieMassEntity.h"
 
 #include "Fragments/FaerieGameplayTagFragment.h"
 
@@ -242,7 +242,7 @@ bool FFaerieItemFilter_HasFragments::Exec(const TValid<const FFaerieItemProxy&> 
 	for (auto&& It = BitSet.GetIndexIterator(); It; ++It)
 	{
 		const UScriptStruct* FragmentType = BitSet.GetTypeAtIndex(*It);
-		if (ItemData::HasEntityFragmentOrDefault(Proxy, FragmentType, ReferenceType))
+		if (ItemData::HasItemFragmentOrDefault(Proxy, FragmentType, ReferenceType))
 		{
 			BitSet.RemoveAtIndex(*It);
 		}
@@ -286,7 +286,7 @@ bool FFaerieItemFilter_HasFragments::ExecWithLog(const TValid<const FFaerieItemP
 	{
 		const UScriptStruct* FragmentType = BitSet.GetTypeAtIndex(*It);
 
-		if (ItemData::HasEntityFragmentOrDefault(Proxy, FragmentType, ReferenceType))
+		if (ItemData::HasItemFragmentOrDefault(Proxy, FragmentType, ReferenceType))
 		{
 			BitSet.RemoveAtIndex(*It);
 		}

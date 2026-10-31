@@ -42,7 +42,7 @@ namespace Faerie::Container
 		GENERATED_BODY()
 	};
 
-	// Data for nested containers that are owned by a live item instance.
+	// Data for nested containers that are owned by a live item.
 	USTRUCT()
 	struct FNestedContainer : public FNoExport
 	{

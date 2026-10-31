@@ -5,6 +5,11 @@
 #include "FaerieMassFragment.h"
 #include "FaerieItemAssetFragment.generated.h"
 
+namespace UE::Mass
+{
+	struct FEntityBuilder;
+}
+
 /*
  * Const Shared fragment to keep a reference to a faerie item object.
  */

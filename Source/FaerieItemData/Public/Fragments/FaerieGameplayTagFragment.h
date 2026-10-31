@@ -3,6 +3,7 @@
 #pragma once
 
 #include "FaerieMassFragment.h"
+#include "FaerieMassTypeTraits.h"
 #include "GameplayTagContainer.h"
 #include "FaerieGameplayTagFragment.generated.h"
 

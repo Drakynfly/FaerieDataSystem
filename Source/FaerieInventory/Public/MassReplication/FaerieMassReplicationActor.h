@@ -3,7 +3,7 @@
 #pragma once
 
 #include "FaerieItemDataFwd.h"
-#include "FaerieItemInstance.h"
+#include "FaerieMassEntity.h"
 #include "FaerieItemReplicationTypes.h"
 #include "MassEntityManager.h"
 

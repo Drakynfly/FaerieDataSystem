@@ -10,6 +10,7 @@
 
 #include "EquipmentVisualizer.generated.h"
 
+class UFaerieItemContainerBase;
 class AFaerieProxyActorBase;
 class UFaerieItemMeshComponent;
 struct FFaerieVisualSlotElement;
@@ -186,9 +187,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentVisualizer")
 	FFaerieVisualAttachment FindAttachment(const FFaerieItemProxy& Proxy) const;
 
-	static TOptional<FFaerieVisualSlotElement> FindVisualSlotDataFromProxy(const FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy);
+	static TOptional<FFaerieVisualSlotElement> FindVisualSlotData(const FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container);
 
-	USceneComponent* GetComponentToAttachTo(FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy, const FName& ComponentTag, bool& WantsToWaitForParentVisual) const;
+	USceneComponent* GetComponentToAttachTo(const FMassEntityManager& EntityManager, const TNotNull<const UFaerieItemContainerBase*> Container, const FName& ComponentTag, bool& WantsToWaitForParentVisual) const;
 	static FFaerieVisualAttachment BuildAttachmentData(USceneComponent* AttachTo, const FFaerieVisualSlotElement& SlotData);
 
 	UFUNCTION(BlueprintCallable, Category = "Faerie|EquipmentVisualizer")

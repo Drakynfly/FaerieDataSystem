@@ -3,6 +3,7 @@
 #pragma once
 
 #include "FaerieMassFragment.h"
+#include "FaerieMassTypeTraits.h"
 #include "FaerieItemOwningContainer.generated.h"
 
 class UFaerieItemContainerBase;

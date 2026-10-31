@@ -69,7 +69,7 @@ struct FAERIEINVENTORYCONTENT_API FFaerieItemCapacity : public FFaerieMassFragme
 {
     GENERATED_BODY()
 
-    // The weight in grams for a single instance of this entry.
+    // The weight in grams.
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Capacity", meta = (ClampMin = 0, UIMax = 5000))
     FFaerieWeightEditor Weight = 100;
 

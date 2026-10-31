@@ -19,7 +19,7 @@ public:
 	// Number of copies to generate. If unset, will default to 1.
 	TOptional<int32> CopiesOverride;
 
-	// Mutability of the instanced item
+	// Mutability of the item
 	EFaerieItemInstancingMutability Mutability = EFaerieItemInstancingMutability::Automatic;
 
 	// If a caller sets CopiesOverride and expects that a mutable item may be generated, set this to promise that we will duplicate the item.
@@ -32,7 +32,7 @@ public:
 	// Enable to create a copy of the item asset, instead of using the existing asset.
 	bool InstanceNewItemAsset = false;
 
-	// The object that will be used as the outer for new item instances.
+	// The object that will be used as the outer for new item asset instances.
 	UPROPERTY()
 	TObjectPtr<UObject> Editor_ItemInstanceOuter;
 #endif

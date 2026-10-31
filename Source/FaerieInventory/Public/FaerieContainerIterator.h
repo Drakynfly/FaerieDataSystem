@@ -228,7 +228,7 @@ namespace Faerie::Container
 	// Enables ranged for-loops through each item in the container. Simple range with no filtering.
 	FAE_API FItemIterator ItemRange(const FMassEntityManager* EntityManager, TNotNull<const UFaerieItemContainerBase*> Container);
 
-	// Enables ranged for-loops through each mutable item in the container. Automatically filtered to only return mutable instances.
+	// Enables ranged for-loops through each mutable item in the container. Automatically filtered to only return mutable items.
 	FAE_API FMutableItemIterator MutableItemRange(const FMassEntityManager* EntityManager, TNotNull<const UFaerieItemContainerBase*> Container);
 }
 

@@ -49,7 +49,7 @@ private:
 	void RemoveCacheForEntry(FFaerieEntryKey Key);
 
 protected:
-	// The maximum number of instances the storage can contain, summed across all entries/stacks.
+	// The maximum number of items the storage can contain, summed across all entries/stacks.
 	UPROPERTY(EditAnywhere, Category = "CountLimit", meta = (ClampMin = 0))
 	int32 MaxInstanceCount = 0;
 
@@ -97,7 +97,7 @@ struct FAE_API FFaerieItemContainerPerEntryCountLimit final : public FFaerieItem
 	void SetPerStackMaxCount(int32 Count);
 
 protected:
-	// The maximum number of instances a single entry can contain, summed across all stacks.
+	// The maximum number of items a single entry can contain, summed across all stacks.
 	UPROPERTY(EditAnywhere, Category = "CountLimit", meta = (ClampMin = 0))
 	int32 PerEntryMaxInstanceCount = 0;
 

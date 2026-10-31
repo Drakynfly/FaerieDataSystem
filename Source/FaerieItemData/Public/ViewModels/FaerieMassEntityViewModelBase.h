@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include "FaerieMassFragment.h"
+#include "Mass/EntityFragments.h"
+#include "Mass/EntityHandle.h"
 #include "MVVMViewModelBase.h"
 #include "FaerieMassEntityViewModelBase.generated.h"
 

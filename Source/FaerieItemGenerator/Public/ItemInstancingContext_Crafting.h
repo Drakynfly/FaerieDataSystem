@@ -18,7 +18,7 @@ struct FAERIEITEMGENERATOR_API FFaerieItemInstancingContext_Crafting : public FF
 	UPROPERTY()
 	FFaerieCraftingFilledSlots InputEntryData;
 
-	// Used to fill Required & Optional Slots (generated instances)
+	// Used to fill Required & Optional Slots (generated items)
 	UPROPERTY()
 	TMap<FFaerieItemSlotHandle, Faerie::ItemData::FItemDataBuilder> GeneratedChildren;
 

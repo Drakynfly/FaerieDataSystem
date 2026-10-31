@@ -3,7 +3,7 @@
 #pragma once
 
 #include "FaerieItemContainerStructs.h"
-#include "FaerieItemInstance.h"
+#include "FaerieMassEntity.h"
 #include "ItemContainerEvent.h"
 #include "Mass/EntityElementTypes.h"
 #include "Mass/ExternalSubsystemTraits.h"

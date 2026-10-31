@@ -3,6 +3,7 @@
 #pragma once
 
 #include "FaerieMassFragment.h"
+#include "Mass/EntityHandle.h"
 #include "FaerieStackLimitFragment.generated.h"
 
 USTRUCT(Blueprintable)

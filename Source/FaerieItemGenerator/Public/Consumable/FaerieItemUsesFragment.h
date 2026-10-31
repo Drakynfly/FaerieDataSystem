@@ -4,6 +4,7 @@
 
 #include "FaerieMassFragment.h"
 #include "FaerieItemSource.h"
+#include "FaerieMassTypeTraits.h"
 
 #include "FaerieItemUsesFragment.generated.h"
 
@@ -36,7 +37,7 @@ struct FFaerieItemLastUseLogic_Destroy : public FFaerieItemLastUseLogicBase
 	static void OnLastUse_Destroy(const FFaerieItemLastUseLogicBase* ThisBase, FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy, bool ProcessAsync);
 };
 
-// Swaps an item for a new instance on last use.
+// Swaps an item for a new item on last use.
 USTRUCT()
 struct FFaerieItemLastUseLogic_Replace : public FFaerieItemLastUseLogicBase
 {

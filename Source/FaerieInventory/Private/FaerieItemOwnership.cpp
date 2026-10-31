@@ -2,7 +2,7 @@
 
 #include "FaerieItemOwnership.h"
 #include "FaerieContainerIterator.h"
-#include "FaerieItem.h"
+#include "FaerieMassFragmentAccessors.h"
 #include "FaerieItemContainerBase.h"
 #include "FaerieSubObjectFilter.h"
 #include "MassCommandBuffer.h"
@@ -111,23 +111,11 @@ namespace Faerie::Container
 		template <bool IsSubItem>
 		void TakeOwnership_Impl(FMassEntityManager& EntityManager, const TNotNull<AActor*> RegisteringActor, const TNotNull<UFaerieItemContainerBase*> Owner, const FMassEntityHandle Item)
 		{
-			/*
-			if (EntityManager.IsEntityValid(Entity) && EntityManager.IsEntityBuilt(Entity))
-			{
-				checkfSlow(!EntityManager.GetConstSharedFragmentDataPtr<FFaerieMassItemOwningContainer>(Entity), TEXT("This should always have been removed by the previous owner!"))
-			}
-			else
-			{
-				Instance.InitializeMassEntity(EntityManager);
-				Entity = Instance.GetMassEntityHandle();
-			}
-			*/
-
 			// Make sure we are already build and do not already have an owner bound to this item.
 			check(EntityManager.IsEntityValid(Item) && EntityManager.IsEntityBuilt(Item))
 			checkfSlow(!EntityManager.GetConstSharedFragmentDataPtr<FFaerieMassItemOwningContainer>(Item), TEXT("This should always have been removed by the previous owner!"))
 
-			// Mark the instance with an owner fragment.
+			// Mark the item with an owner fragment.
 			const FConstSharedStruct SharedOwner = EntityManager.GetOrCreateConstSharedFragment<FFaerieMassItemOwningContainer>(Owner);
 			if (EntityManager.IsProcessing())
 			{
@@ -212,7 +200,7 @@ namespace Faerie::Container
 
 		if (!ensure(IsValid(RegisteringActor)))
 		{
-			UE_LOGF(LogFaerieInventory, Error, "Unable to find owning Actor for container (%ls). Unable to take ownership of item instance!", *Owner->GetName())
+			UE_LOGF(LogFaerieInventory, Error, "Unable to find owning Actor for container (%ls). Unable to take ownership of the item!", *Owner->GetName())
 			return;
 		}
 

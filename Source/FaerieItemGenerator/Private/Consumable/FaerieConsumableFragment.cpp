@@ -2,7 +2,7 @@
 
 #include "Consumable/FaerieConsumableFragment.h"
 #include "Consumable/FaerieItemUsesFragment.h"
-#include "FaerieItem.h"
+#include "FaerieMassFragmentAccessors.h"
 
 #include "GameFramework/Actor.h"
 
@@ -13,7 +13,7 @@ namespace Faerie::Generation
 	bool CanConsume(const FFaerieItemProxy& Proxy, const TNotNull<const UScriptStruct*> FragmentType,
 		const TNotNull<const AActor*> Consumer, const int32 Cost)
 	{
-		const FConstStructView Fragment = ItemData::GetEntityFragmentOrDefault(Proxy, FragmentType);
+		const FConstStructView Fragment = ItemData::GetItemFragmentOrDefault(Proxy, FragmentType);
 		if (Fragment.IsValid())
 		{
 			if (const FFaerieConsumableFragment* ConsumableFragment = Fragment.GetPtr<FFaerieConsumableFragment>())
@@ -30,7 +30,7 @@ namespace Faerie::Generation
 
 	bool TryConsume(const FFaerieItemProxy& Proxy, const TNotNull<const UScriptStruct*> FragmentType, const TNotNull<AActor*> Consumer, const int32 Cost)
 	{
-		const FConstStructView Fragment = ItemData::GetEntityFragmentOrDefault(Proxy, FragmentType);
+		const FConstStructView Fragment = ItemData::GetItemFragmentOrDefault(Proxy, FragmentType);
 		if (Fragment.IsValid())
 		{
 			if (const FFaerieConsumableFragment* ConsumableFragment = Fragment.GetPtr<FFaerieConsumableFragment>())

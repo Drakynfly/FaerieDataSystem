@@ -212,7 +212,7 @@ const UFaerieItemStackContainer* UFaerieEquipmentManager::FindSubSlotImpl(const 
 	const FMassEntityHandle SlotItem = ParentSlot->GetEntityHandle();
 	if (!SlotItem.IsSet() || !ItemData::IsMutable(EntityManager, SlotItem))
 	{
-		// If the instance is not mutable, it will never contain children.
+		// If the item is not mutable, it will never contain children.
 		return nullptr;
 	}
 

@@ -4,9 +4,9 @@
 
 #include "FaerieItemDataEnums.h"
 #include "FaerieMassFragment.h"
-#include "MassElement.h"
 
 #include "Mass/EntityHandle.h"
+#include "MassElement.h"
 
 #include "StructUtils/InstancedStruct.h"
 
@@ -25,20 +25,28 @@ struct FMassEntityManager;
 
 namespace Faerie::ItemData
 {
-	/*
-	 * Import mass fragments to this item instance.
-	 */
+	//~								~//
+	//~		ITEM ENTITY LIFECYCLE	~//
+	//~								~//
+	//
+	// Create a new item entity from export data
 	[[nodiscard]] FAE_API FMassEntityHandle ImportFragmentData(FMassEntityManager& EntityManager, const FFaerieItemExportData& ExportData);
 
-	/*
-	 * Export a list of all mass fragments for this item instance.
-	 */
+	// Create export data from an item entity.
 	FAE_API void ExportFragmentData(const FMassEntityManager& EntityManager, FMassEntityHandle Item, FFaerieItemExportData& ExportData, EMassFragmentExportOptions Options);
 
-
+	// Create a new item entity from a list of tags/fragments.
 	[[nodiscard]] FAE_API FMassEntityHandle InitializeItemEntity(FMassEntityManager& EntityManager, const FMassTagBitSet& Tags, TArray<FInstancedStruct>&& Fragments);
 	[[nodiscard]] FAE_API FMassEntityHandle InitializeItemEntity(FMassEntityManager& EntityManager, const FMassTagBitSet& Tags, TConstArrayView<FInstancedStruct> Fragments);
 
+	// Note: Destroying entities is not part of the core entity API. The built-in destruction utility is provided by UFaerieItemDestructionProcessor.
+
+
+	//~								~//
+	//~		ITEM ENTITY MUTATION	~//
+	//~								~//
+
+	// Is an item entity allowed to mutate (add/remove/change fragments)? Must be disallowed for containers to stack this item.
 	FAE_API bool IsMutable(const FMassEntityManager& EntityManager, FMassEntityHandle Item);
 
 	FAE_API void PostMutationEvent(FMassEntityManager& EntityManager, const FMutationEvent& Event);

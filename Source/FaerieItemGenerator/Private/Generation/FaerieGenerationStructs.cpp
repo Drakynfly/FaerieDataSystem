@@ -49,7 +49,6 @@ ItemData::FItemDataBuilder FFaerieTableDrop::Resolve(const FFaerieItemInstancing
 		if (ItemData::FItemDataBuilder StaticInstanceItem = ChildDrop.Resolve(ChildContext);
 			StaticInstanceItem.IsValid())
 		{
-			// We have to initialize these instanced immediately as their data could be needed by the source they are being generated as context of.
 			TempContext.GeneratedChildren.Add(StaticResourceSlot.Key, StaticInstanceItem);
 		}
 	}

@@ -7,7 +7,7 @@
 #include "FaerieEquipmentManager.h"
 #include "FaerieItemStackContainer.h"
 #include "EntityManagerHelpers.h"
-#include "FaerieItemInstance.h"
+#include "FaerieMassEntity.h"
 #include "FaerieItemOwnership.h"
 
 #include "Actors/FaerieProxyActorBase.h"
@@ -353,10 +353,17 @@ void UEquipmentVisualizer::CreateVisualImpl(FMassEntityManager& EntityManager, T
 	}
 
 	// Step 1: Figure out what we are attaching to.
-	const TOptional<FFaerieVisualSlotElement> VisualSlotDataOpt = FindVisualSlotDataFromProxy(EntityManager, Proxy);
+
+	const UFaerieItemContainerBase* OwningContainer = Container::GetItemOwner(Proxy);
+	if (!IsValid(OwningContainer))
+	{
+		UE_LOGF(LogFaerieEquipment, Error, "CreateVisualImpl called for proxy %ls which has no owning container. Skipping!", *GetNameSafe(ValidGet(Proxy).GetProxyObject()))
+		return;
+	}
+	const TOptional<FFaerieVisualSlotElement> VisualSlotDataOpt = FindVisualSlotData(EntityManager, OwningContainer);
 	FFaerieVisualSlotElement VisualSlotData = VisualSlotDataOpt.IsSet() ? VisualSlotDataOpt.GetValue() : GetDefaultVisualSlotElement();
 	bool WantsToWaitForParentVisual = false;
-	USceneComponent* AttachTo = GetComponentToAttachTo(EntityManager, Proxy, VisualSlotData.ComponentTag, WantsToWaitForParentVisual);
+	USceneComponent* AttachTo = GetComponentToAttachTo(EntityManager, OwningContainer, VisualSlotData.ComponentTag, WantsToWaitForParentVisual);
 	if (WantsToWaitForParentVisual)
 	{
 		UE_LOGF(LogFaerieEquipment, Log, "CreateVisualImpl called for proxy %ls which has a parent to wait for. Skipping!", *GetNameSafe(ValidGet(Proxy).GetProxyObject()))
@@ -671,11 +678,17 @@ bool UEquipmentVisualizer::DestroyVisualByKey(const FFaerieVisualKey Key, const 
 
 FFaerieVisualAttachment UEquipmentVisualizer::FindAttachment(const FFaerieItemProxy& Proxy) const
 {
+	UFaerieItemContainerBase* OwningContainer = Container::GetItemOwner(Proxy);
+	if (!IsValid(OwningContainer))
+	{
+		return FFaerieVisualAttachment();
+	}
+
 	FMassEntityManager& EntityManager = ItemData::GetFaerieEntityManagerChecked(GetWorld());
-	TOptional<FFaerieVisualSlotElement> SlotDataOpt = FindVisualSlotDataFromProxy(EntityManager, Proxy);
+	TOptional<FFaerieVisualSlotElement> SlotDataOpt = FindVisualSlotData(EntityManager, OwningContainer);
 	const FFaerieVisualSlotElement SlotData = SlotDataOpt.IsSet() ? SlotDataOpt.GetValue() : GetDefaultVisualSlotElement();
 	bool WantsToWaitForParentVisual;
-	USceneComponent* AttachTo = GetComponentToAttachTo(EntityManager, Proxy, SlotData.ComponentTag, WantsToWaitForParentVisual);
+	USceneComponent* AttachTo = GetComponentToAttachTo(EntityManager, OwningContainer, SlotData.ComponentTag, WantsToWaitForParentVisual);
 	return BuildAttachmentData(AttachTo, SlotData);
 }
 
@@ -688,27 +701,22 @@ FFaerieVisualAttachment UEquipmentVisualizer::BuildAttachmentData(USceneComponen
 	return Attachment;
 }
 
-TOptional<FFaerieVisualSlotElement> UEquipmentVisualizer::FindVisualSlotDataFromProxy(const FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy)
+TOptional<FFaerieVisualSlotElement> UEquipmentVisualizer::FindVisualSlotData(const FMassEntityManager& EntityManager, const TNotNull<const UFaerieItemContainerBase*> Container)
 {
-	if (const UFaerieItemContainerBase* Container = Container::GetItemOwner(Proxy))
+	auto* Updater = Container->ReadContainerData<FFaerieContainerExtensionVisualUpdater>(EntityManager, true);
+	auto& SlotTag = Container->ReadContainerDataChecked<FFaerieContainerDataSlotTag>(EntityManager).SlotTag;
+	if (Updater && Updater->Config)
 	{
-		auto* Updater = Container->ReadContainerData<FFaerieContainerExtensionVisualUpdater>(EntityManager, true);
-		auto& SlotTag = Container->ReadContainerDataChecked<FFaerieContainerDataSlotTag>(EntityManager).SlotTag;
-		if (Updater && Updater->Config)
+		if (const FFaerieVisualSlotElement* Element = Updater->Config->GetElements().Find(SlotTag))
 		{
-			if (const FFaerieVisualSlotElement* Element = Updater->Config->GetElements().Find(SlotTag))
-			{
-				return *Element;
-			}
+			return *Element;
 		}
 	}
 	return NullOpt;
 }
 
-USceneComponent* UEquipmentVisualizer::GetComponentToAttachTo(FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy, const FName& ComponentTag, bool& WantsToWaitForParentVisual) const
+USceneComponent* UEquipmentVisualizer::GetComponentToAttachTo(const FMassEntityManager& EntityManager, const TNotNull<const UFaerieItemContainerBase*> Container, const FName& ComponentTag, bool& WantsToWaitForParentVisual) const
 {
-	const UFaerieItemContainerBase* Container = Container::GetItemOwner(Proxy);
-
 	AActor* ParentActor = nullptr;
 	USceneComponent* ParentComponent = nullptr;
 

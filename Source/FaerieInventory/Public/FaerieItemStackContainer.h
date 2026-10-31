@@ -3,7 +3,7 @@
 #pragma once
 
 #include "FaerieInventoryTag.h"
-#include "FaerieItem.h"
+#include "FaerieMassFragmentAccessors.h"
 #include "FaerieItemContainerBase.h"
 #include "FaerieItemExportData.h"
 #include "FaerieItemProxyBase.h"
@@ -22,7 +22,6 @@ struct FFaerieSimpleItemStackSaveData : public FFaerieItemFragmentSaveData
 	UPROPERTY()
 	int32 Copies = 0;
 
-	// Additional data stored with this item instance.
 	UPROPERTY()
 	FFaerieItemExportData ExportData;
 
@@ -120,6 +119,11 @@ public:
 	void SetStoredItem_Impl(FMassEntityManager& EntityManager, const FFaerieUnownedItemStack& ValidStack);
 
 public:
+#if WITH_EDITOR
+	// Lets the editor clear data out of persistent containers.
+	void Editor_ClearData();
+#endif
+
 	Faerie::ItemData::FProxyChangeEvent::RegistrationType& GetOnContainerEvent() { return OnItemChangedNative; }
 
 	Faerie::ItemData::FScopeProxy GetView() const;
@@ -194,6 +198,6 @@ protected:
 	FFaerieStackContainerContent ItemStack;
 
 	// Locally assigned item entity handle.
-	UPROPERTY(VisibleInstanceOnly, Category = "State")
+	UPROPERTY()
 	FMassEntityHandle ItemEntity;
 };

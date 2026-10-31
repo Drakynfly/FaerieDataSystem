@@ -2,6 +2,7 @@
 
 #include "Fragments/FaerieItemAssetFragment.h"
 #include "FaerieItemAsset.h"
+#include "FaerieMassTypeTraits.h"
 #include "MassEntityBuilder.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemAssetFragment)

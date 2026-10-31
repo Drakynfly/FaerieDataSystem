@@ -7,10 +7,10 @@
 #include "BinarySearchOptimizedArray.h"
 #include "FaerieContainerViewBases.h"
 #include "FaerieFastArraySerializerHack.h"
-#include "FaerieItem.h"
+#include "FaerieMassFragmentAccessors.h"
 #include "FaerieItemContainerStructs.h"
 #include "FaerieItemExportData.h"
-#include "FaerieItemInstance.h"
+#include "FaerieMassEntity.h"
 #include "FaerieItemKey.h"
 #include "MassReplication/FaerieItemReplicationTypes.h"
 #include "FaerieStorageStructs.generated.h"
@@ -104,7 +104,7 @@ public:
 	UE_REWRITE int32 GetCachedStackLimit() const { return CachedLimit; }
 
 	// Update the cached limit value for stacking mutable items. This usually doesn't need to be called, unless when
-	// changing or setting the value in an instance that already exists in storage. There is currently no plumbing for this.
+	// changing or setting the value in an item that already exists in storage. There is currently no plumbing for this.
 	void UpdateCachedStackLimit(const FMassEntityManager& EntityManager);
 
 	bool Contains(FFaerieStackKey Key) const;

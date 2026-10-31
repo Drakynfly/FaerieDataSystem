@@ -5,7 +5,7 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemSource)
 
-FFaerieUnownedItemStack Faerie::ItemData::FItemDataBuilder::GetForRuntime() const
+FFaerieUnownedItemStack Faerie::ItemData::FItemDataBuilder::GetItemStack() const
 {
 	return FFaerieUnownedItemStack(RuntimeItem, Copies);
 }

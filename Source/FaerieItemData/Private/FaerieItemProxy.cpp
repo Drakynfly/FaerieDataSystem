@@ -1,10 +1,10 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieItemProxy.h"
-#include "FaerieItem.h"
+#include "FaerieMassFragmentAccessors.h"
 #include "FaerieItemAsset.h"
 #include "FaerieItemDataView.h"
-#include "FaerieItemInstance.h"
+#include "FaerieMassEntity.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemProxy)
 

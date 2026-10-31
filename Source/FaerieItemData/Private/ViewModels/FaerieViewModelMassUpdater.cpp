@@ -2,7 +2,7 @@
 
 #include "ViewModels/FaerieViewModelMassUpdater.h"
 
-#include "FaerieItem.h"
+#include "FaerieMassFragmentAccessors.h"
 
 #include "MassExecutionContext.h"
 

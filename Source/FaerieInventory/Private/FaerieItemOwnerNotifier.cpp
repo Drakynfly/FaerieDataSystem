@@ -1,7 +1,7 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieItemOwnerNotifier.h"
-#include "FaerieItem.h"
+#include "FaerieMassFragmentAccessors.h"
 #include "FaerieItemContainerBase.h"
 #include "FaerieItemEvent.h"
 #include "MassExecutionContext.h"

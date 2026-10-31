@@ -2,9 +2,9 @@
 
 #include "FaerieItemAsset.h"
 
-#include "FaerieItem.h"
+#include "FaerieMassFragmentAccessors.h"
 #include "FaerieItemDataView.h"
-#include "FaerieItemInstance.h"
+#include "FaerieMassEntity.h"
 #include "FaerieItemTemplate.h"
 #include "FaerieItemInstancingContext.h"
 
@@ -161,7 +161,7 @@ ItemData::FItemDataBuilder UFaerieItemAsset::CreateItemStack(const FFaerieItemIn
 #endif
 	{
 		check(Context.EntityManager);
-		return ItemData::FItemDataBuilder(CreateReferencingInstance_Runtime(*Context.EntityManager), OutCopies);
+		return ItemData::FItemDataBuilder(CreateReferencingInstance(*Context.EntityManager), OutCopies);
 	}
 }
 
@@ -173,7 +173,7 @@ UFaerieItemAsset* UFaerieItemAsset::CreateReferencingInstance_Editor(const TNotN
 }
 #endif
 
-FMassEntityHandle UFaerieItemAsset::CreateReferencingInstance_Runtime(FMassEntityManager& EntityManager) const
+FMassEntityHandle UFaerieItemAsset::CreateReferencingInstance(FMassEntityManager& EntityManager) const
 {
 	FInstancedStruct FragmentStruct;
 	FragmentStruct.InitializeAs<FFaerieItemDataDefaults>();
@@ -184,7 +184,7 @@ FMassEntityHandle UFaerieItemAsset::CreateReferencingInstance_Runtime(FMassEntit
 	return ItemData::InitializeItemEntity(EntityManager, FMassTagBitSet(), MakeConstArrayView(&FragmentStruct, 1));
 }
 
-bool UFaerieItemAsset::HasDefaultFragment(const TNotNull<const UScriptStruct*> StructType, const UScriptStruct* ReferenceType) const
+bool UFaerieItemAsset::HasDefaultFragment(const TNotNull<const UScriptStruct*> StructType, const TSubScriptStructOf<FFaerieMassItemObject>& ReferenceType) const
 {
 	for (auto&& DefaultFragment : MassFragments)
 	{
@@ -218,7 +218,7 @@ bool UFaerieItemAsset::HasDefaultFragment(const TNotNull<const UScriptStruct*> S
 	return false;
 }
 
-FConstStructView UFaerieItemAsset::GetDefaultFragment(const TNotNull<const UScriptStruct*> StructType, const UScriptStruct* ReferenceType) const
+FConstStructView UFaerieItemAsset::GetDefaultFragment(const TNotNull<const UScriptStruct*> StructType, const TSubScriptStructOf<FFaerieMassItemObject>& ReferenceType) const
 {
 	for (auto&& DefaultFragment : MassFragments)
 	{

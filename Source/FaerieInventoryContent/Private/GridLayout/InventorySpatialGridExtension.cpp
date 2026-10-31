@@ -535,7 +535,7 @@ void UInventorySpatialGridExtension::RebuildOccupiedCells(const FFaerieContainer
 
 FFaerieGridShapeConstView UInventorySpatialGridExtension::GetItemShape_Impl(const FMassEntityManager& EntityManager, const FMassEntityHandle Item) const
 {
-	if (const FFaerieShapeFragment* const ShapeFragment = ItemData::GetEntityFragment<FFaerieShapeFragment>(EntityManager, Item))
+	if (const FFaerieShapeFragment* const ShapeFragment = ItemData::GetItemFragment<FFaerieShapeFragment>(EntityManager, Item))
 	{
 		return ShapeFragment->Shape;
 	}

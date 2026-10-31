@@ -242,7 +242,7 @@ void UFaerieStorageLibrary::GetItemChildren(const FFaerieItemProxy& Proxy, TArra
 		return;
 	}
 
-	// Only mutable instances have children, so we can early-out if it's not.
+	// Only mutable items have children, so we can early-out if it's not.
 	if (!Proxy.IsMutable()) return;
 
 	const TSharedPtr<const FMassEntityManager>& EntityManager = Proxy.GetEntityManager();

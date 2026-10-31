@@ -3,7 +3,7 @@
 #include "FaerieItemStorage.h"
 #include "FaerieContainerEvent.h"
 #include "FaerieInventoryLog.h"
-#include "FaerieItem.h"
+#include "FaerieMassFragmentAccessors.h"
 #include "FaerieItemDestructionProcessor.h"
 #include "FaerieItemStorageIterators.h"
 #include "FaerieItemOwnership.h"
@@ -406,7 +406,7 @@ UObject* UFaerieItemStorage::GetEntryProxyImpl(const FMassEntityManager& EntityM
 	// Note: Optimization
 	// If the entry is mutable, then there is only ever one stack proxy, and we can use that as our entry proxy,
 	// saving an extra object creation, and providing extra data to the receiving end.
-	// We also can then safely restrict EntryProxies to only describing immutable instances, lightening their API surface.
+	// We also can then safely restrict EntryProxies to only describing immutable items, lightening their API surface.
 	if (const FFaerieStorageEntry* EntryPtr = GetEntrySafe(Key))
 	{
 		if (ItemData::IsMutable(EntityManager, EntryPtr->GetEntityHandle()))

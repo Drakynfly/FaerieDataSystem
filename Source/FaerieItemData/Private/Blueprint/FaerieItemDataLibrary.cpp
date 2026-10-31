@@ -3,9 +3,9 @@
 #include "FaerieItemDataLibrary.h"
 #include "BasicItemFilters.h"
 #include "EntityManagerHelpers.h"
-#include "FaerieItem.h"
+#include "FaerieMassFragmentAccessors.h"
 #include "FaerieItemAsset.h"
-#include "FaerieItemInstance.h"
+#include "FaerieMassEntity.h"
 #include "FaerieItemProxy.h"
 #include "Fragments/FaerieAssetInfo.h"
 #include "Fragments/ModificationDateFragment.h"
@@ -27,7 +27,7 @@ FDateTime UFaerieItemDataLibrary::GetItemLastModified(const FFaerieItemProxy& Pr
 		return FDateTime();
 	}
 
-	if (const FFaerieItemModificationDate* ModificationData = Faerie::ItemData::GetEntityFragment<FFaerieItemModificationDate>(Proxy))
+	if (const FFaerieItemModificationDate* ModificationData = Faerie::ItemData::GetItemFragment<FFaerieItemModificationDate>(Proxy))
 	{
 		return ModificationData->LastModified;
 	}
@@ -76,7 +76,7 @@ bool UFaerieItemDataLibrary::HasItemFragment(const FFaerieItemProxy& Proxy, UScr
 		return false;
 	}
 
-	return ItemData::HasEntityFragmentOrDefault(Proxy, FragmentType);
+	return ItemData::HasItemFragmentOrDefault(Proxy, FragmentType);
 }
 
 bool UFaerieItemDataLibrary::FindFragment(const FFaerieItemProxy& Proxy, UScriptStruct* FragmentType,
@@ -94,7 +94,7 @@ bool UFaerieItemDataLibrary::FindFragment(const FFaerieItemProxy& Proxy, UScript
 		return false;
 	}
 
-	FoundFragment = ItemData::GetEntityFragmentOrDefault(Proxy, FragmentType);
+	FoundFragment = ItemData::GetItemFragmentOrDefault(Proxy, FragmentType);
 	return FoundFragment.IsValid();
 }
 
@@ -182,8 +182,8 @@ bool UFaerieItemDataLibrary::ItemLexicographicNameComparator(const FFaerieItemPr
 
 bool UFaerieItemDataLibrary::ItemDateModifiedComparator(const FFaerieItemProxy& ProxyA, const FFaerieItemProxy& ProxyB)
 {
-	const FFaerieItemModificationDate* ModificationDataA = ItemData::GetEntityFragment<FFaerieItemModificationDate>(ProxyA);
-	const FFaerieItemModificationDate* ModificationDataB = ItemData::GetEntityFragment<FFaerieItemModificationDate>(ProxyB);
+	const FFaerieItemModificationDate* ModificationDataA = ItemData::GetItemFragment<FFaerieItemModificationDate>(ProxyA);
+	const FFaerieItemModificationDate* ModificationDataB = ItemData::GetItemFragment<FFaerieItemModificationDate>(ProxyB);
 	const FDateTime DataA = ModificationDataA ? ModificationDataA->LastModified : FDateTime();
 	const FDateTime DataB = ModificationDataB ? ModificationDataB->LastModified : FDateTime();
 	return DataA < DataB;

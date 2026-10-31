@@ -1,7 +1,7 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "FaerieItemMeshLoader.h"
-#include "FaerieItem.h"
+#include "FaerieMassFragmentAccessors.h"
 #include "FaerieItemAsset.h"
 
 #include "FaerieItemMeshLog.h"
@@ -68,7 +68,7 @@ TSharedPtr<FStreamableHandle> UFaerieItemMeshLoader::LoadMeshFromProxyAsynchrono
 {
 	if (!InProxy.HasValidStack())
 	{
-		UE_LOGF(LogFaerieItemMesh, Error, "%hs: Invalid proxy/instance!", __FUNCTION__)
+		UE_LOGF(LogFaerieItemMesh, Error, "%hs: Invalid proxy/item!", __FUNCTION__)
 		(void)Callback.ExecuteIfBound(false, {});
 		return nullptr;
 	}

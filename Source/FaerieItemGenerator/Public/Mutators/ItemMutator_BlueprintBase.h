@@ -30,7 +30,7 @@ ____FAERIE_MUTATOR_DECL(FFaerieItemMutator_Blueprint)
 
 /*
  * Base class for defining mutators in Blueprint.
- * @Note for now this class does not support the ability to swap the item instance out for a new one.
+ * @Note for now this class does not support the ability to swap the item out for a new one.
  */
 UCLASS(Abstract, Blueprintable, const)
 class FAERIEITEMGENERATOR_API UFaerieItemMutator_BlueprintBase : public UObject

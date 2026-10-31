@@ -2,8 +2,8 @@
 
 #include "Capacity/FaerieCapacityHelper.h"
 
-#include "FaerieItem.h"
-#include "FaerieItemInstance.h"
+#include "FaerieMassFragmentAccessors.h"
+#include "FaerieMassEntity.h"
 #include "MassCommandBuffer.h"
 #include "MassCommands.h"
 #include "MassEntityManager.h"
@@ -38,14 +38,14 @@ namespace Faerie::ItemData
 	FCapacityHelper::FCapacityHelper(const FMassEntityManager& EntityManager, const FMassEntityHandle Item)
 	  : EntityManager(&EntityManager), EntityHandle(Item)
 	{
-		FragmentPtr = ItemData::GetEntityFragment<FFaerieItemCapacity>(EntityManager, Item);
+		FragmentPtr = ItemData::GetItemFragment<FFaerieItemCapacity>(EntityManager, Item);
 		Defaults_FragmentPtr = ItemData::GetDefaultFragment<FFaerieItemCapacity>(EntityManager, Item).GetPtr();
 	}
 
 	FCapacityHelper::FCapacityHelper(const FFaerieItemProxy& Item)
 	  : EntityManager(Item.GetEntityManager().Get()), EntityHandle(Item.GetEntityHandle())
 	{
-		FragmentPtr = ItemData::GetEntityFragment<FFaerieItemCapacity>(Item);
+		FragmentPtr = ItemData::GetItemFragment<FFaerieItemCapacity>(Item);
 		Defaults_FragmentPtr = ItemData::GetDefaultFragment<FFaerieItemCapacity>(Item).GetPtr();
 	}
 
@@ -67,7 +67,7 @@ namespace Faerie::ItemData
 		FInstancedStruct Fragment;
 		Fragment.InitializeAs<FFaerieItemCapacity>(Capacity);
 		ItemData::AddFragment(InEntityManager, EntityHandle, MoveTemp(Fragment));
-		if (const FFaerieItemCapacity* CapacityStruct = ItemData::GetEntityFragment<FFaerieItemCapacity>(InEntityManager, EntityHandle))
+		if (const FFaerieItemCapacity* CapacityStruct = ItemData::GetItemFragment<FFaerieItemCapacity>(InEntityManager, EntityHandle))
 		{
 			FragmentPtr = CapacityStruct;
 		}

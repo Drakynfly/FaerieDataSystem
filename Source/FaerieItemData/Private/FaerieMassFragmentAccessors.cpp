@@ -1,27 +1,22 @@
 ﻿// Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
-#include "FaerieItem.h"
+#include "FaerieMassFragmentAccessors.h"
 #include "FaerieItemAsset.h"
 #include "FaerieItemProxy.h"
 #include "MassEntityView.h"
 
 namespace Faerie::ItemData
 {
-	namespace Tags
-	{
-		UE_DEFINE_GAMEPLAY_TAG(FragmentAdd, "Fae.Token.Add")
-		UE_DEFINE_GAMEPLAY_TAG(FragmentRemove, "Fae.Token.Remove")
-		UE_DEFINE_GAMEPLAY_TAG(FragmentGenericPropertyEdit, "Fae.Token.GenericPropertyEdit")
-	}
-
 	bool HasDefaultFragment(const FFaerieItemProxy& Item, const TNotNull<const UScriptStruct*> FragmentType,
-		const UScriptStruct* ReferenceType)
+		const TSubScriptStructOf<FFaerieMassItemObject>& ReferenceType)
 	{
 		if (Item.HasEntityManager() && Item.GetEntityManager()->IsEntityValid(Item.GetEntityHandle()))
 		{
-			if (auto&& ItemAssetFragment = Item.GetEntityManager()->GetConstSharedFragmentDataPtr<FFaerieItemDataDefaults>(Item.GetEntityHandle()))
+			if (FConstStructView&& ItemAssetFragment = Item.GetEntityManager()->GetConstSharedFragmentDataStruct(
+					Item.GetEntityHandle(), ReferenceType);
+				ItemAssetFragment.IsValid())
 			{
-				if (ItemAssetFragment->ItemAsset->HasDefaultFragment(FragmentType))
+				if (ItemAssetFragment.Get<FFaerieMassItemObject>().ItemAsset->HasDefaultFragment(FragmentType))
 				{
 					return true;
 				}
@@ -40,7 +35,7 @@ namespace Faerie::ItemData
 
 	bool HasItemElement(const FFaerieItemProxy& Item, const TNotNull<const UScriptStruct*> FragmentType)
 	{
-		if (Item.HasEntityManager() && Item.GetEntityManager()->IsEntityValid(Item.GetEntityHandle()))
+		if (Item.HasEntityManager())
 		{
 			if (const FMassEntityView View = FMassEntityView::TryMakeView(*Item.GetEntityManager(), Item.GetEntityHandle());
 				View.IsValid())
@@ -52,8 +47,8 @@ namespace Faerie::ItemData
 		return false;
 	}
 
-	bool HasEntityFragmentOrDefault(const FFaerieItemProxy& Item, const TNotNull<const UScriptStruct*> FragmentType,
-		const UScriptStruct* ReferenceType)
+	bool HasItemFragmentOrDefault(const FFaerieItemProxy& Item, const TNotNull<const UScriptStruct*> FragmentType,
+		const TSubScriptStructOf<FFaerieMassItemObject>& ReferenceType)
 	{
 		// Look for a live fragment of the given type.
 		if (HasItemElement(Item, FragmentType))
@@ -65,14 +60,19 @@ namespace Faerie::ItemData
 	}
 
 	FConstStructView GetDefaultFragment(const FMassEntityManager& EntityManager, const FMassEntityHandle Item,
-		const TNotNull<const UScriptStruct*> FragmentType, const UScriptStruct* ReferenceType)
+		const TNotNull<const UScriptStruct*> FragmentType, const TSubScriptStructOf<FFaerieMassItemObject>& ReferenceType)
 	{
-		if (auto&& ItemAssetFragment = EntityManager.GetConstSharedFragmentDataPtr<FFaerieItemDataDefaults>(Item))
+		if (EntityManager.IsEntityValid(Item))
 		{
-			if (const FConstStructView Fragment = ItemAssetFragment->ItemAsset->GetDefaultFragment(FragmentType, ReferenceType);
-				Fragment.IsValid())
+			if (auto&& ItemAssetFragment = EntityManager.GetConstSharedFragmentDataStruct(Item, ReferenceType);
+				ItemAssetFragment.IsValid())
 			{
-				return Fragment;
+				if (const FConstStructView Fragment = ItemAssetFragment.Get<FFaerieMassItemObject>().ItemAsset->GetDefaultFragment(
+					FragmentType, ReferenceType);
+					Fragment.IsValid())
+				{
+					return Fragment;
+				}
 			}
 		}
 
@@ -80,11 +80,16 @@ namespace Faerie::ItemData
 	}
 
 	FConstStructView GetDefaultFragment(const FFaerieItemProxy& Item, const TNotNull<const UScriptStruct*> FragmentType,
-		const UScriptStruct* ReferenceType)
+		const TSubScriptStructOf<FFaerieMassItemObject>& ReferenceType)
 	{
 		if (Item.HasEntityManager())
 		{
-			return GetDefaultFragment(*Item.GetEntityManager(), Item.GetEntityHandle(), FragmentType, ReferenceType);
+			if (const FConstStructView Fragment = GetDefaultFragment(*Item.GetEntityManager(), Item.GetEntityHandle(),
+					FragmentType, ReferenceType);
+				Fragment.IsValid())
+			{
+				return Fragment;
+			}
 		}
 
 #if WITH_EDITOR
@@ -97,7 +102,7 @@ namespace Faerie::ItemData
 		return FConstStructView();
 	}
 
-	FConstStructView GetEntityFragment(const FMassEntityManager& EntityManager, const FMassEntityHandle ItemHandle,
+	FConstStructView GetItemFragment(const FMassEntityManager& EntityManager, const FMassEntityHandle ItemHandle,
 		const TNotNull<const UScriptStruct*> FragmentType)
 	{
 		if (EntityManager.IsEntityValid(ItemHandle))
@@ -119,21 +124,21 @@ namespace Faerie::ItemData
 		return FConstStructView();
 	}
 
-	FConstStructView GetEntityFragment(const FFaerieItemProxy& Item, const TNotNull<const UScriptStruct*> FragmentType)
+	FConstStructView GetItemFragment(const FFaerieItemProxy& Item, const TNotNull<const UScriptStruct*> FragmentType)
 	{
 		if (Item.HasEntityManager())
 		{
-			return GetEntityFragment(*Item.GetEntityManager(), Item.GetEntityHandle(), FragmentType);
+			return GetItemFragment(*Item.GetEntityManager(), Item.GetEntityHandle(), FragmentType);
 		}
 		return FConstStructView();
 	}
 
-	FConstStructView GetEntityFragmentOrDefault(const FMassEntityManager& EntityManager, const FMassEntityHandle Item, const TNotNull<const UScriptStruct*> FragmentType, const UScriptStruct* ReferenceType)
+	FConstStructView GetItemFragmentOrDefault(const FMassEntityManager& EntityManager, const FMassEntityHandle Item, const TNotNull<const UScriptStruct*> FragmentType, const TSubScriptStructOf<FFaerieMassItemObject>& ReferenceType)
 	{
 		if (EntityManager.IsEntityValid(Item))
 		{
 			// Look for a live fragment of the given type.
-			if (const FConstStructView View = GetEntityFragment(EntityManager, Item, FragmentType);
+			if (const FConstStructView View = GetItemFragment(EntityManager, Item, FragmentType);
 				View.IsValid())
 			{
 				return View;
@@ -143,11 +148,11 @@ namespace Faerie::ItemData
 		return GetDefaultFragment(EntityManager, Item, FragmentType, ReferenceType);
 	}
 
-	FConstStructView GetEntityFragmentOrDefault(const FFaerieItemProxy& Item, const TNotNull<const UScriptStruct*> FragmentType, const UScriptStruct* ReferenceType)
+	FConstStructView GetItemFragmentOrDefault(const FFaerieItemProxy& Item, const TNotNull<const UScriptStruct*> FragmentType, const TSubScriptStructOf<FFaerieMassItemObject>& ReferenceType)
 	{
 		if (Item.HasEntityManager())
 		{
-			if (const FConstStructView View = GetEntityFragment(*Item.GetEntityManager(), Item.GetEntityHandle(), FragmentType);
+			if (const FConstStructView View = GetItemFragment(*Item.GetEntityManager(), Item.GetEntityHandle(), FragmentType);
 				View.IsValid())
 			{
 				return View;

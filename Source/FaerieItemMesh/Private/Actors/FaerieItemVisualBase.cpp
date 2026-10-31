@@ -1,7 +1,7 @@
 // Copyright Guy (Drakynfly) Lundvall. All Rights Reserved.
 
 #include "Actors/FaerieItemVisualBase.h"
-#include "FaerieItem.h"
+#include "FaerieMassFragmentAccessors.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(FaerieItemVisualBase)
 

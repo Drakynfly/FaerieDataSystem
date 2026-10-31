@@ -8,7 +8,7 @@
 class IFaerieItemSource;
 
 /**
- * A wrapper around an item source that requires being fed crafting data to generate an item instance
+ * A wrapper around an item source that requires being fed crafting data to generate items
  */
 UCLASS()
 class FAERIEITEMGENERATOR_API UFaerieItemRecipe : public UObject, public IFaerieItemSlotInterface
