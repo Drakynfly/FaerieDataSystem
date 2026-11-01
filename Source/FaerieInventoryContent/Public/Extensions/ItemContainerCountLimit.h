@@ -21,7 +21,7 @@ struct FAE_API FFaerieItemContainerCountLimit final : public FFaerieItemContaine
 	GENERATED_BODY()
 
 	//~ FFaerieItemContainerExtensionBase
-	virtual void InitializeExtension(FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container) override;
+	virtual void CacheTransientData(FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container) override;
 	virtual EFaerieExtensionResponse AllowsAddition(const FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args, bool RecursingCall) const override;
 	//~ FFaerieItemContainerExtensionBase
 
@@ -30,8 +30,9 @@ struct FAE_API FFaerieItemContainerCountLimit final : public FFaerieItemContaine
 	UE_REWRITE int32 GetMaxInstanceCount() const { return MaxInstanceCount; }
 	UE_REWRITE int32 GetMaxEntryCount() const { return MaxEntryCount; }
 
-	void SetMaxInstanceCount(int32 Count);
-	void SetMaxEntryCount(int32 Count);
+	FFaerieItemContainerCountLimit& SetMaxInstanceCount(int32 Count);
+	FFaerieItemContainerCountLimit& SetMaxEntryCount(int32 Count);
+	FFaerieItemContainerCountLimit& SetCountChildItems(bool Enable);
 
 	// Retrieve the number of items that this inventory contains.
 	int32 GetTotalItemCount() const;
@@ -56,6 +57,10 @@ protected:
 	// The maximum number of entries the storage can contain.
 	UPROPERTY(EditAnywhere, Category = "CountLimit", meta = (ClampMin = 0))
 	int32 MaxEntryCount = 0;
+
+	// Enable to count children recursively, rather then only top-level contents.
+	UPROPERTY(EditAnywhere, Category = "CountLimit")
+	bool CountChildItems = false;
 
 private:
 	TCompactMap<FFaerieEntryKey, int32> EntryAmountCache;
@@ -89,7 +94,7 @@ struct FAE_API FFaerieItemContainerPerEntryCountLimit final : public FFaerieItem
 	GENERATED_BODY()
 
 	//~ FFaerieItemContainerExtensionBase
-	virtual void InitializeExtension(FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container) override;
+	virtual void CacheTransientData(FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container) override;
 	virtual EFaerieExtensionResponse AllowsAddition(const FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args, bool RecursingCall) const override;
 	//~ FFaerieItemContainerExtensionBase
 

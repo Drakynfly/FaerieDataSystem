@@ -16,7 +16,7 @@
 
 using namespace Faerie;
 
-void FFaerieItemContainerCapacityData::InitializeExtension(FMassEntityManager& EntityManager, const TNotNull<const UFaerieItemContainerBase*> Container)
+void FFaerieItemContainerCapacityData::CacheTransientData(FMassEntityManager& EntityManager, const TNotNull<const UFaerieItemContainerBase*> Container)
 {
 	for (auto It = Container::KeyRange(&EntityManager, Container); It; ++It)
 	{
@@ -26,7 +26,7 @@ void FFaerieItemContainerCapacityData::InitializeExtension(FMassEntityManager& E
 
 EFaerieExtensionResponse FFaerieItemContainerCapacityData::AllowsAddition(const FMassEntityManager& EntityManager,
 	const TNotNull<const UFaerieItemContainerBase*> Container, const Utils::TArrayAdapter<FFaerieItemProxy>& Proxies,
-	FFaerieExtensionAllowsAdditionArgs Args, bool RecursingCall) const
+	FFaerieExtensionAllowsAdditionArgs Args, const bool RecursingCall) const
 {
 	// @todo Args.AddStackBehavior is not used at all.
 	// Because CanContain doesnt check for Efficiency, there is no differance, but its technically incorrect.

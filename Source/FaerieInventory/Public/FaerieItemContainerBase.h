@@ -99,6 +99,7 @@ public:
 	FConstStructView Find(TNotNull<const UScriptStruct*> Type, bool RecurseParents) const;
 	FStructView Find(TNotNull<const UScriptStruct*> Type, bool RecurseParents);
 
+	void InstallExtension(FMassEntityManager& EntityManager, FConstStructView Value);
 	enum EWriteContainerDataFlag
 	{
 		None,
@@ -265,7 +266,7 @@ public:
 	void SetParentExtensions(TNotNull<IFaerieTempInterfaceForGettingParentExtensions*> Obj);
 	void ClearParentExtensions();
 
-	void InitializeExtensions(FMassEntityManager& EntityManager);
+	void RefreshExtensionTransientData(FMassEntityManager& EntityManager);
 
 	[[nodiscard]] bool AllowsAddition(const FMassEntityManager& EntityManager, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, const FFaerieExtensionAllowsAdditionArgs Args, const bool DefaultResult) const;
 

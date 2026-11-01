@@ -110,6 +110,9 @@ bool UFaerieItemStackContainer::LoadSaveData(FMassEntityManager& EntityManager, 
 	if (!SaveData)
 	{
 		UE_LOGF(LogFaerieInventory, Error, "Invalid data to load from. Must be FFaerieSimpleItemStackSaveData.")
+
+		// Continue call with empty ExportData, so items/extensions get reset according to Params.
+		LoadSaveData(EntityManager, FFaerieSimpleItemStackSaveData(), Params);
 		return false;
 	}
 
@@ -355,6 +358,10 @@ void UFaerieItemStackContainer::LoadSaveData(FMassEntityManager& EntityManager, 
 		}
 	}
 
+	// This will rebuild and re-cache all initial extension state. The SetStoredItem call below will emit a PostEvent
+	// that extensions can finish rebuilding state from.
+	UnravelExtensionData(EntityManager, SaveData.ExtensionData);
+
 	if (SaveData.Copies > 0)
 	{
 		// Rebuild item from save data
@@ -368,6 +375,17 @@ void UFaerieItemStackContainer::LoadSaveData(FMassEntityManager& EntityManager, 
 		{
 			// If it validated, store in slot.
 			const FFaerieUnownedItemStack Stack(Item, SaveData.Copies);
+
+#if FAERIE_DEBUG
+			{
+				ItemData::FScopeProxy Proxy(Stack.Item, Stack.Copies);
+				if (!CanSetInSlot(EntityManager, FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, EntityManager.AsShared(), &Proxy)))
+				{
+					UE_LOGF(LogFaerieInventory, Error, "Stack being loaded into stack container '%ls' fails CanSetInSlot. Loading anyway, but this needs a repair strategy!", *GetPathName())
+				}
+			}
+#endif
+
 			SetStoredItem_Impl(EntityManager, Stack);
 		}
 		else
@@ -378,9 +396,6 @@ void UFaerieItemStackContainer::LoadSaveData(FMassEntityManager& EntityManager, 
 			ItemStack.StoredKey = FFaerieEntryKey::InvalidKey;
 		}
 	}
-
-	UnravelExtensionData(EntityManager, SaveData.ExtensionData);
-	InitializeExtensions(EntityManager);
 }
 
 FFaerieAddress UFaerieItemStackContainer::GetAddress() const
@@ -490,8 +505,7 @@ bool UFaerieItemStackContainer::CouldSetInSlot(const FMassEntityManager& EntityM
 	return AllowsAddition(EntityManager, MakeConstArrayView(&Proxy, 1), Args, true);
 }
 
-bool UFaerieItemStackContainer::CanSetInSlot(const FMassEntityManager& EntityManager,
-	const FFaerieItemProxy& Proxy) const
+bool UFaerieItemStackContainer::CanSetInSlot(const FMassEntityManager& EntityManager, const FFaerieItemProxy& Proxy) const
 {
 	if (!Proxy.HasValidStack()) return false;
 
@@ -574,9 +588,10 @@ FFaerieUnownedItemStack UFaerieItemStackContainer::TakeItemFromSlot(FMassEntityM
 	{
 		ItemStack.StoredKey = FFaerieEntryKey::InvalidKey;
 
-		// Our local Item ptr must be nullptr before calling ReleaseOwnership so that extensions don't see that we have
+		// Our local Item must be nullptr before calling ReleaseOwnership so that extensions don't see that we have
 		// this item. Extension logic is triggered by ReleaseOwnership as it calls ClearParentGroup on any subobjects.
 		ItemStack = FFaerieStackContainerContent();
+		ItemEntity.Reset();
 
 		// Release ownership of this item.
 		if (ItemData::IsMutable(EntityManager, Event.Item))

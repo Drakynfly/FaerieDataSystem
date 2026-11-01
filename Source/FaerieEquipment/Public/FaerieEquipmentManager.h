@@ -31,9 +31,8 @@ struct FFaerieEquipmentSaveData
 	UPROPERTY()
 	TArray<FFaerieSimpleItemStackSaveData> PerSlotData;
 
-	// @Todo unused currently...
 	UPROPERTY()
-	FFaerieItemContainerExtensionSaveData ExtensionData;
+	TArray<FInstancedStruct> ExtensionData;
 };
 
 namespace Faerie::Equipment
@@ -74,6 +73,7 @@ public:
 	virtual void InitializeComponent() override;
 	virtual void OnComponentCreated() override;
 	virtual void ReadyForReplication() override;
+	virtual void BeginPlay() override;
 	//~ UActorComponent
 
 	//~ IFaerieTempInterfaceForGettingParentExtensions

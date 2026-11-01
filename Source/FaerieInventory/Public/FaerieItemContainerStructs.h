@@ -118,12 +118,3 @@ namespace Faerie::Container
 		bool ExportItemData = true;
 	};
 }
-
-USTRUCT()
-struct FFaerieItemContainerExtensionSaveData
-{
-	GENERATED_BODY()
-
-	UPROPERTY()
-	TMap<uint32, FInstancedStruct> Data;
-};

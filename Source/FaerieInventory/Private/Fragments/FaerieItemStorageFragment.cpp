@@ -59,7 +59,7 @@ bool FFaerieItemStorageFragment::InitializeRuntime(UE::Mass::FEntityBuilder& Bui
 			[this, Item](const FStructView Element)
 			{
 				check(Item.IsValid())
-				UE_LOGF(LogFaerieInventory, Log, "Assigned nested container item handle %ls to Storage '%ls'", *LexToString(Item), *GetNameSafe(Storage.Storage))
+				UE_LOGF(LogFaerieInventory, Verbose, "Assigned nested container item handle %ls to Storage '%ls'", *LexToString(Item), *GetNameSafe(Storage.Storage))
 				Element.Get<Container::FNestedContainer>().ItemHandle = Item;
 			}, true);
 	}
@@ -76,9 +76,7 @@ bool FFaerieItemStorageFragment::SaveDataConverter(FMassEntityManager& EntityMan
 		if (!IsValid(Storage.Storage))
 		{
 			Storage.Storage = NewObject<UFaerieItemStorage>(GetTransientPackageAsObject());
-
-			// We probably don't need to call this, because LoadSaveData also runs InitializeExtensions, so we can probably remove this
-			Storage.Storage->InitializeContainer(EntityManager);
+			// LoadSaveData will call InitializeContainer, so we don't need to here.
 		}
 
 		return Storage.Storage->LoadSaveData(EntityManager, SaveData, Params);
@@ -140,7 +138,7 @@ bool FFaerieChildStackFragment::InitializeRuntime(UE::Mass::FEntityBuilder& Buil
 				[&, Item](const FStructView Element)
 				{
 					check(Item.IsValid())
-					UE_LOGF(LogFaerieInventory, Log, "Assigned nested container item handle %ls to Stack '%ls'", *LexToString(Item), *GetNameSafe(InlineStack.Stack))
+					UE_LOGF(LogFaerieInventory, Verbose, "Assigned nested container item handle %ls to Stack '%ls'", *LexToString(Item), *GetNameSafe(InlineStack.Stack))
 					Element.Get<Container::FNestedContainer>().ItemHandle = Item;
 				}, true);
 		}
@@ -164,11 +162,8 @@ bool FFaerieChildStackFragment::SaveDataConverter(FMassEntityManager& EntityMana
 		Slots.Empty(SaveDataArray.Stacks.Num());
 		for (const FInstancedStruct& Stack : SaveDataArray.Stacks)
 		{
-			// @Todo do we need to pass the Instance in here as well...
 			UFaerieItemStackContainer* NewStack = NewObject<UFaerieItemStackContainer>(GetTransientPackageAsObject());
-
-			// We probably don't need to call this, because LoadSaveData also runs InitializeExtensions, so we can probably remove this
-			NewStack->InitializeContainer(EntityManager);
+			// LoadSaveData will call InitializeContainer, so we don't need to here.
 
 			if (NewStack->LoadSaveData(EntityManager, Stack, Params))
 			{

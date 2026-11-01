@@ -115,7 +115,7 @@ struct FFaerieItemContainerExtensionBase : public FFaerieItemContainerData
 	GENERATED_BODY()
 
 	/* Called at begin play or when the extension is created during runtime. Server-only. */
-	virtual void InitializeExtension(FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container) {}
+	virtual void CacheTransientData(FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container) {}
 
 	/* Does this extension allow a stack of items, or multiple stacks, to be added to the container? */
 	virtual EFaerieExtensionResponse AllowsAddition(const FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container, const Faerie::Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args, bool RecursingCall) const { return EFaerieExtensionResponse::NoExplicitResponse; }

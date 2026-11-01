@@ -11,7 +11,7 @@
 
 using namespace Faerie;
 
-void FFaerieItemContainerCountLimit::InitializeExtension(FMassEntityManager& EntityManager, const TNotNull<const UFaerieItemContainerBase*> Container)
+void FFaerieItemContainerCountLimit::CacheTransientData(FMassEntityManager& EntityManager, const TNotNull<const UFaerieItemContainerBase*> Container)
 {
 	EntryAmountCache.Reset();
 	CurrentTotalItemCopies = 0;
@@ -24,15 +24,19 @@ void FFaerieItemContainerCountLimit::InitializeExtension(FMassEntityManager& Ent
 
 EFaerieExtensionResponse FFaerieItemContainerCountLimit::AllowsAddition(const FMassEntityManager& EntityManager,
 	const TNotNull<const UFaerieItemContainerBase*> Container, const Utils::TArrayAdapter<FFaerieItemProxy>& Proxies,
-	const FFaerieExtensionAllowsAdditionArgs Args, bool RecursingCall) const
+	const FFaerieExtensionAllowsAdditionArgs Args, const bool RecursingCall) const
 {
+	if (RecursingCall && !CountChildItems)
+	{
+		return EFaerieExtensionResponse::NoExplicitResponse;
+	}
+
 	int32 TestCount = 0;
 
 	// Sum all stacks
 	for (int32 i = 0; i < Proxies.Num(); ++i)
 	{
-		const FFaerieItemProxy Proxy = Proxies[i];
-		TestCount += Proxy.GetCopies();
+		TestCount += Proxies[i].GetCopies();
 	}
 
 	if (!CanContain(TestCount))
@@ -49,33 +53,37 @@ EFaerieExtensionResponse FFaerieItemContainerCountLimit::AllowsAddition(const FM
 
 void FFaerieItemContainerCountLimit::PostEvent(const Container::FContainerEventPayload& Event)
 {
-	if (Event.EntryRemoved)
+	if (Event.Copies == -1) return;
+
+	if (Event.IsNewStackEvent() ||
+		Event.Type == Inventory::Tags::AddedCopies)
 	{
-		// Entry was removed, delete cache.
-		RemoveCacheForEntry(Event.EntryTouched);
+		UpdateCacheForEntry(Event.EntryTouched, Event.Copies);
 	}
-	else
+	else if (Event.IsRemovalEvent() ||
+		Event.Type == Inventory::Tags::RemovedCopies)
 	{
-		if (Event.IsRemovalEvent())
-		{
-			// Event is removal, pass negative Copies as delta
-			UpdateCacheForEntry(Event.EntryTouched, -Event.Copies);
-		}
-		else
-		{
-			UpdateCacheForEntry(Event.EntryTouched, Event.Copies);
-		}
+		// Event is removal, pass negative Copies as delta
+		UpdateCacheForEntry(Event.EntryTouched, -Event.Copies);
 	}
 }
 
-void FFaerieItemContainerCountLimit::SetMaxInstanceCount(const int32 Count)
+FFaerieItemContainerCountLimit& FFaerieItemContainerCountLimit::SetMaxInstanceCount(const int32 Count)
 {
 	MaxInstanceCount = Count;
+	return *this;
 }
 
-void FFaerieItemContainerCountLimit::SetMaxEntryCount(const int32 Count)
+FFaerieItemContainerCountLimit& FFaerieItemContainerCountLimit::SetMaxEntryCount(const int32 Count)
 {
 	MaxEntryCount = Count;
+	return *this;
+}
+
+FFaerieItemContainerCountLimit& FFaerieItemContainerCountLimit::SetCountChildItems(const bool Enable)
+{
+	CountChildItems = Enable;
+	return *this;
 }
 
 int32 FFaerieItemContainerCountLimit::GetTotalItemCount() const
@@ -126,6 +134,7 @@ bool FFaerieItemContainerCountLimit::CanContain(const int32 Count) const
 
 void FFaerieItemContainerCountLimit::UpdateCacheForEntry(const FFaerieEntryKey Key, const int32 Delta)
 {
+	check(Delta != 0);
 	int32 EntryAmount = 0;
 	if (auto&& ExistingCache = EntryAmountCache.Find(Key))
 	{
@@ -133,9 +142,15 @@ void FFaerieItemContainerCountLimit::UpdateCacheForEntry(const FFaerieEntryKey K
 	}
 
 	EntryAmount += Delta;
-	check(EntryAmount > 0);
 
-	EntryAmountCache.Add(Key, EntryAmount);
+	if (EntryAmount == 0)
+	{
+		EntryAmountCache.Remove(Key);
+	}
+	else
+	{
+		EntryAmountCache.Add(Key, EntryAmount);
+	}
 	CurrentTotalItemCopies += Delta;
 }
 
@@ -188,12 +203,12 @@ void UFaerieItemContainerCountLimitUpdater::Execute(FMassEntityManager& EntityMa
 	});
 }
 
-void FFaerieItemContainerPerEntryCountLimit::InitializeExtension(FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container)
+void FFaerieItemContainerPerEntryCountLimit::CacheTransientData(FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container)
 {
 	unimplemented();
 }
 
-EFaerieExtensionResponse FFaerieItemContainerPerEntryCountLimit::AllowsAddition(const FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container, const Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args, bool RecursingCall) const
+EFaerieExtensionResponse FFaerieItemContainerPerEntryCountLimit::AllowsAddition(const FMassEntityManager& EntityManager, TNotNull<const UFaerieItemContainerBase*> Container, const Utils::TArrayAdapter<FFaerieItemProxy>& Proxies, FFaerieExtensionAllowsAdditionArgs Args, const bool RecursingCall) const
 {
 	unimplemented();
 	return EFaerieExtensionResponse::NoExplicitResponse;

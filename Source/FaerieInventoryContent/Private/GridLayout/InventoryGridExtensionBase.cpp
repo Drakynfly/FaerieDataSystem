@@ -139,22 +139,27 @@ void UFaerieContainerGridWrapper::GetLifetimeReplicatedProps(TArray<class FLifet
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, GridSize, SharedParams)
 }
 
-void FFaerieContainerGridData::InitializeExtension(FMassEntityManager& EntityManager,
+void FFaerieContainerGridData::CacheTransientData(FMassEntityManager& EntityManager,
 	const TNotNull<const UFaerieItemContainerBase*> Container)
 {
 	UFaerieItemStorage* Storage = const_cast<UFaerieItemStorage*>(CastChecked<UFaerieItemStorage>(Container));
-	GridWrapper = NewObject<UFaerieContainerGridWrapper>();
+	if (!IsValid(GridWrapper))
+	{
+		GridWrapper = NewObject<UFaerieContainerGridWrapper>();
+	}
 	GridWrapper->Storage = Storage;
 	GridWrapper->Logic = GetGridLogic();
-
 
 	return GetGridLogic()->InitializeGrid(GetWriteContext(EntityManager));
 }
 
 EFaerieExtensionResponse FFaerieContainerGridData::AllowsAddition(const FMassEntityManager& EntityManager,
 	const TNotNull<const UFaerieItemContainerBase*> Container, const Utils::TArrayAdapter<FFaerieItemProxy>& Proxies,
-	const FFaerieExtensionAllowsAdditionArgs Args, bool RecursingCall) const
+	const FFaerieExtensionAllowsAdditionArgs Args, const bool RecursingCall) const
 {
+	// GridData doesn't care about items stored in other items.
+	if (RecursingCall) return EFaerieExtensionResponse::NoExplicitResponse;
+
 	check(Container == GridWrapper->Storage);
 	return GetGridLogic()->AllowsAddition(GetReadContext(EntityManager), Proxies, Args);
 }

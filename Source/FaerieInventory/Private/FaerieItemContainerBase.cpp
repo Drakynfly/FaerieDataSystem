@@ -91,33 +91,66 @@ FStructView FFaerieItemContainerExtensions::Find(const TNotNull<const UScriptStr
 	return FStructView();
 }
 
-FInstancedStruct& FFaerieItemContainerExtensions::AddOrGetRef(FMassEntityManager& EntityManager, const TNotNull<const UScriptStruct*> Type, EWriteContainerDataFlag* OutFlag)
+void FFaerieItemContainerExtensions::InstallExtension(FMassEntityManager& EntityManager, const FConstStructView Value)
 {
-	for (FFaerieItemContainerExtensionStorageElement& Element : Items)
+	auto& Element = [this, &Value]() -> FFaerieItemContainerExtensionStorageElement&
 	{
-		if (Element.ExtensionStruct.GetScriptStruct() == Type)
+		for (FFaerieItemContainerExtensionStorageElement& Element : Items)
 		{
-			MarkItemDirty(Element);
-			if (OutFlag)
+			if (Element.ExtensionStruct.GetScriptStruct() == Value.GetScriptStruct())
 			{
-				*OutFlag = None;
+				return Element;
 			}
-			return Element.ExtensionStruct;
+		}
+		return Items.AddDefaulted_GetRef();
+	}();
+
+	Element.ExtensionStruct = Value;
+
+	if (FFaerieItemContainerExtensionBase* Extension = Element.ExtensionStruct.GetMutablePtr<FFaerieItemContainerExtensionBase>())
+	{
+		// We need to re-initialize transient data after writing over the value with a new struct.
+		if (ChangeListener) // @Todo ChangeListener should always be valid, this is temporary until the EquipmentManager situation is resolved
+		{
+			Extension->CacheTransientData(EntityManager, ChangeListener);
 		}
 	}
 
-	FFaerieItemContainerExtensionStorageElement& NewElement = Items.AddDefaulted_GetRef();
-	NewElement.ExtensionStruct.InitializeAs(Type);
-	if (FFaerieItemContainerExtensionBase* Extension = NewElement.ExtensionStruct.GetMutablePtr<FFaerieItemContainerExtensionBase>())
+	MarkItemDirty(Element);
+}
+
+FInstancedStruct& FFaerieItemContainerExtensions::AddOrGetRef(FMassEntityManager& EntityManager, const TNotNull<const UScriptStruct*> Type, EWriteContainerDataFlag* OutFlag)
+{
+	auto& Element = [this, Type, &OutFlag]() -> FFaerieItemContainerExtensionStorageElement&
 	{
-		Extension->InitializeExtension(EntityManager, ChangeListener);
-	}
-	MarkItemDirty(NewElement);
-	if (OutFlag)
+		for (FFaerieItemContainerExtensionStorageElement& Element : Items)
+		{
+			if (Element.ExtensionStruct.GetScriptStruct() == Type)
+			{
+				if (OutFlag)
+				{
+					*OutFlag = None;
+				}
+				return Element;
+			}
+		}
+		if (OutFlag)
+		{
+			*OutFlag = Created;
+		}
+		return Items.AddDefaulted_GetRef();
+	}();
+
+	Element.ExtensionStruct.InitializeAs(Type);
+
+	if (FFaerieItemContainerExtensionBase* Extension = Element.ExtensionStruct.GetMutablePtr<FFaerieItemContainerExtensionBase>())
 	{
-		*OutFlag = Created;
+		// Initialize transient data after creating the extension.
+		Extension->CacheTransientData(EntityManager, ChangeListener);
 	}
-	return NewElement.ExtensionStruct;
+	MarkItemDirty(Element);
+
+	return Element.ExtensionStruct;
 }
 
 void FFaerieItemContainerExtensions::Remove(const int32 Index)
@@ -245,7 +278,7 @@ void UFaerieItemContainerBase::InitializeContainer(FMassEntityManager& EntityMan
 		TEXT("Containers must not be assets loaded from disk. (DuplicateObjectFromDiskForReplication or ClearLoadFlags can fix this)"
 			LINE_TERMINATOR
 			"	Failing Container: '%s'"), *GetFullName());
-	InitializeExtensions(EntityManager);
+	RefreshExtensionTransientData(EntityManager);
 }
 
 FFaerieItemExportData UFaerieItemContainerBase::ExportItemData(const FMassEntityManager& EntityManager, const FMassEntityHandle Item) const
@@ -292,10 +325,9 @@ void UFaerieItemContainerBase::RavelExtensionData(const FMassEntityManager& Enti
 
 void UFaerieItemContainerBase::UnravelExtensionData(FMassEntityManager& EntityManager, const TConstArrayView<FInstancedStruct> SaveData)
 {
-	for (auto&& Element : SaveData)
+	for (const FInstancedStruct& Element : SaveData)
 	{
-		FInstancedStruct& Extension = ExtensionData.AddOrGetRef(EntityManager, Element.GetScriptStruct());
-		Extension.InitializeAs(Element.GetScriptStruct(), Element.GetMemory());
+		ExtensionData.InstallExtension(EntityManager, Element);
 	}
 }
 
@@ -318,7 +350,7 @@ void UFaerieItemContainerBase::WriteContainerData(FMassEntityManager& EntityMana
 	FFaerieItemContainerExtensions::EWriteContainerDataFlag DataFlag;
 	if (CreateIfMissing)
 	{
-		auto& Element = ExtensionData.AddOrGetRef(EntityManager, Type, &DataFlag);
+		FInstancedStruct& Element = ExtensionData.AddOrGetRef(EntityManager, Type, &DataFlag);
 		Functor(Element, DataFlag);
 	}
 	else
@@ -336,7 +368,7 @@ void UFaerieItemContainerBase::WriteContainerData(FMassEntityManager& EntityMana
 	FFaerieItemContainerExtensions::EWriteContainerDataFlag DataFlag;
 	if (CreateIfMissing)
 	{
-		auto& Element = ExtensionData.AddOrGetRef(EntityManager, Type, &DataFlag);
+		FInstancedStruct& Element = ExtensionData.AddOrGetRef(EntityManager, Type, &DataFlag);
 		Functor(Element);
 	}
 	else
@@ -383,14 +415,14 @@ void UFaerieItemContainerBase::ClearParentExtensions()
 	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, ParentThatImplementsExtensions, this);
 }
 
-void UFaerieItemContainerBase::InitializeExtensions(FMassEntityManager& EntityManager)
+void UFaerieItemContainerBase::RefreshExtensionTransientData(FMassEntityManager& EntityManager)
 {
 	// Note: Not recursive, we only init *our* own extensions, not our parents.
 	ExtensionData.ForEachMutable([this, &EntityManager](const FStructView Element)
 		{
 			if (FFaerieItemContainerExtensionBase* AsExtensionBase = Element.GetPtr<FFaerieItemContainerExtensionBase>())
 			{
-				AsExtensionBase->InitializeExtension(EntityManager, this);
+				AsExtensionBase->CacheTransientData(EntityManager, this);
 			}
 			return Utils::Continue;
 		});

@@ -3,7 +3,6 @@
 #include "FaerieItemStorage.h"
 #include "FaerieContainerEvent.h"
 #include "FaerieInventoryLog.h"
-#include "FaerieMassFragmentAccessors.h"
 #include "FaerieItemDestructionProcessor.h"
 #include "FaerieItemStorageIterators.h"
 #include "FaerieItemOwnership.h"
@@ -150,12 +149,17 @@ FInstancedStruct UFaerieItemStorage::MakeSaveData(const FMassEntityManager& Enti
 
 bool UFaerieItemStorage::LoadSaveData(FMassEntityManager& EntityManager, const FConstStructView ItemData, const Container::FLoadParams Params)
 {
-	if (ItemData.GetScriptStruct() != FFaerieStorageExportData::StaticStruct())
+	const FFaerieStorageExportData* SaveData = ItemData.GetPtr<const FFaerieStorageExportData>();
+	if (!SaveData)
 	{
 		UE_LOGF(LogFaerieInventory, Error, "Invalid data to load from. Must be FFaerieStorageExportData.")
+
+		// Continue call with empty ExportData, so items/extensions get reset according to Params.
+		LoadSaveData(EntityManager, FFaerieStorageExportData(), Params);
 		return false;
 	}
-	LoadSaveData(EntityManager, ItemData.Get<const FFaerieStorageExportData>(), Params);
+
+	LoadSaveData(EntityManager, *SaveData, Params);
 	return true;
 }
 
@@ -990,6 +994,10 @@ void UFaerieItemStorage::LoadSaveData(FMassEntityManager& EntityManager, const F
 		Clear(EntityManager, Inventory::Tags::RemovalDeletion);
 	}
 
+	// This will rebuild and re-cache all initial extension state. The PostEventBatch call below will emit the data
+	// needed for extensions to finish rebuilding state from.
+	UnravelExtensionData(EntityManager, InItemData.ExtensionData);
+
 	// See Footnote1
 	//KeyGen.Reset();
 
@@ -1014,15 +1022,25 @@ void UFaerieItemStorage::LoadSaveData(FMassEntityManager& EntityManager, const F
 		for (const int32 Count : ExportEntry.Counts)
 		{
 			const FFaerieUnownedItemStack ItemStack{ Item, Count };
+
+#if FAERIE_DEBUG
+			{
+				const ItemData::FScopeProxy Proxy(Item, Count);
+				if (!CanAddStack(EntityManager, FFaerieItemProxy(FFaerieItemProxy::ESingleFrame, EntityManager.AsShared(), &Proxy), EFaerieStorageAddStackBehavior::OnlyNewStacks))
+				{
+					UE_LOGF(LogFaerieInventory, Error, "Stack being loaded into storage '%ls' fails CanAddStack. Loading anyway, but this needs a repair strategy!", *GetPathName())
+				}
+			}
+#endif
+
 			Events.Add(AddStackImplNoBroadcast(EntityManager, ItemStack, true));
 		}
 	}
 
-	// Rebuild extension state
-	UnravelExtensionData(EntityManager, InItemData.ExtensionData);
-	InitializeExtensions(EntityManager);
-
-	PostEventBatch(EntityManager, Events);
+	if (!Events.IsEmpty())
+	{
+		PostEventBatch(EntityManager, Events);
+	}
 }
 
 FFaerieAddress UFaerieItemStorage::MakeAddress(const FFaerieEntryKey Entry, const FFaerieStackKey Stack)
@@ -1711,7 +1729,10 @@ void UFaerieItemStorage::Clear(FMassEntityManager& EntityManager, FFaerieInvento
 		Events.Add(RemoveFromEntryImplNoBroadcast(EntityManager, Entry, ItemData::EntireStack, Reason));
 	}
 
-	PostEventBatch(EntityManager, Events);
+	if (!Events.IsEmpty())
+	{
+		PostEventBatch(EntityManager, Events);
+	}
 
 	if (Reason == Inventory::Tags::RemovalDeletion)
 	{
@@ -1771,7 +1792,10 @@ void UFaerieItemStorage::Dump(FMassEntityManager& EntityManager, UFaerieItemStor
 		Stacks.Emplace(Event.Item, Event.Copies);
 	}
 
-	PostEventBatch(EntityManager, Events);
+	if (!Events.IsEmpty())
+	{
+		PostEventBatch(EntityManager, Events);
+	}
 
 	ToStorage->AddItemStacks(EntityManager, Stacks, DumpBehavior, false);
 }

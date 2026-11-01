@@ -137,7 +137,7 @@ namespace Faerie::Container
 			SubObject::GetContainersInInstanceDirect<UFaerieItemContainerBase>(EntityManager, Item, Containers);
 			for (TNotNull<UFaerieItemContainerBase*> Container : Containers)
 			{
-				UE_LOGF(LogFaerieInventory, Log, "Sub-container (%ls) found. Recursing TakeOwnership!", *Container->GetName())
+				UE_LOGF(LogFaerieInventory, Verbose, "Sub-container (%ls) found. Recursing TakeOwnership!", *Container->GetName())
 
 				if (Container->GetOuter() != Owner)
 				{
