@@ -37,21 +37,21 @@ namespace Faerie::Equipment
 		false
 	};
 
-	void UpdateActorAttachment(AActor* Visual, const FFaerieVisualAttachment& Metadata)
+	void UpdateActorAttachment(AActor* Visual, const FFaerieVisualAttachment& Entry)
 	{
-		if (IsValid(Metadata.Parent.Get()))
+		if (IsValid(Entry.Parent.Get()))
 		{
-			Visual->AttachToComponent(Metadata.Parent.Get(), TempTransformRules, Metadata.ParentSocket);
+			Visual->AttachToComponent(Entry.Parent.Get(), TempTransformRules, Entry.ParentSocket);
 
 			USceneComponent* SelfComponent = Visual->GetDefaultAttachComponent();
-			if (SelfComponent->DoesSocketExist(Metadata.ChildSocket))
+			if (SelfComponent->DoesSocketExist(Entry.ChildSocket))
 			{
-				const FVector Offset = -SelfComponent->GetSocketTransform(Metadata.ChildSocket, RTS_Component).GetTranslation();
+				const FVector Offset = -SelfComponent->GetSocketTransform(Entry.ChildSocket, RTS_Component).GetTranslation();
 				SelfComponent->SetRelativeLocation(FVector::Zero()); // Reset offset before adding so it doesn't drift from re-runs.
 				SelfComponent->AddLocalOffset(Offset);
 			}
 
-			Visual->SetActorHiddenInGame(Metadata.Hidden);
+			Visual->SetActorHiddenInGame(Entry.Hidden);
 		}
 		else
 		{
@@ -59,20 +59,20 @@ namespace Faerie::Equipment
 		}
 	}
 
-	void UpdateComponentAttachment(USceneComponent* Visual, const FFaerieVisualAttachment& Metadata)
+	void UpdateComponentAttachment(USceneComponent* Visual, const FFaerieVisualAttachment& Entry)
 	{
-		if (IsValid(Metadata.Parent.Get()))
+		if (IsValid(Entry.Parent.Get()))
 		{
-			Visual->AttachToComponent(Metadata.Parent.Get(), TempTransformRules, Metadata.ParentSocket);
+			Visual->AttachToComponent(Entry.Parent.Get(), TempTransformRules, Entry.ParentSocket);
 
-			if (Visual->DoesSocketExist(Metadata.ChildSocket))
+			if (Visual->DoesSocketExist(Entry.ChildSocket))
 			{
-				const FVector Offset = -Visual->GetSocketTransform(Metadata.ChildSocket, RTS_Component).GetTranslation();
+				const FVector Offset = -Visual->GetSocketTransform(Entry.ChildSocket, RTS_Component).GetTranslation();
 				Visual->SetRelativeLocation(FVector::Zero()); // Reset offset before adding so it doesn't drift from re-runs.
 				Visual->AddLocalOffset(Offset);
 			}
 
-			Visual->SetVisibility(!Metadata.Hidden, true);
+			Visual->SetVisibility(!Entry.Hidden, true);
 		}
 		else
 		{
@@ -88,20 +88,16 @@ UEquipmentVisualizer::UEquipmentVisualizer()
 
 void UEquipmentVisualizer::OnComponentDestroyed(const bool bDestroyingHierarchy)
 {
-	for (auto&& Element : SpawnedActors)
+	for (auto&& Element : VisualData)
 	{
-		if (IsValid(Element.Value))
+		if (USceneComponent* VisualComponent = Cast<USceneComponent>(Element.Value.Visual))
 		{
-			Element.Value->OnDestroyed.RemoveAll(this);
-			Element.Value->Destroy();
+			VisualComponent->DestroyComponent();
 		}
-	}
-
-	for (auto&& Element : SpawnedComponents)
-	{
-		if (IsValid(Element.Value))
+		else if (AActor* VisualActor = Cast<AActor>(Element.Value.Visual))
 		{
-			Element.Value->DestroyComponent();
+			VisualActor->OnDestroyed.RemoveAll(this);
+			VisualActor->Destroy();
 		}
 	}
 
@@ -122,94 +118,87 @@ USkinnedMeshComponent* UEquipmentVisualizer::GetLeaderComponent() const
 
 bool UEquipmentVisualizer::HasVisualForKey(const FFaerieVisualKey& Key) const
 {
-	return SpawnedActors.Contains(Key) || SpawnedComponents.Contains(Key);
+	if (const FFaerieVisualizationEntry* Entry = VisualData.Find(Key))
+	{
+		return IsValid(Entry->Visual);
+	}
+	return false;
 }
 
-void UEquipmentVisualizer::ResetAttachment(const FFaerieVisualKey& Key, const FFaerieVisualAttachment& Attachment)
+void UEquipmentVisualizer::ResetAttachment(const FFaerieVisualizationEntry& Entry)
 {
-	if (AActor* Visual = GetSpawnedActorByKey(Key))
+	if (AActor* VisualActor = Cast<AActor>(Entry.Visual))
 	{
-		Equipment::UpdateActorAttachment(Visual, Attachment);
+		Equipment::UpdateActorAttachment(VisualActor, Entry.Attachment);
 	}
-	else if (USceneComponent* VisualComponent = GetSpawnedComponentByKey(Key))
+	else if (USceneComponent* VisualComponent = Cast<USceneComponent>(Entry.Visual))
 	{
-		Equipment::UpdateComponentAttachment(VisualComponent, Attachment);
+		Equipment::UpdateComponentAttachment(VisualComponent, Entry.Attachment);
 	}
 }
 
 void UEquipmentVisualizer::PostVisualComponentLoaded(const FFaerieVisualKey& Key, const TNotNull<UFaerieItemMeshComponent*> Component)
 {
-	bool FoundSelf = false;
+	// There are multiple possible attachments to update after a component load. Ourself obviously, but also any children
+	// that waiting for us, so they can be offset correctly.
 
-	for (auto&& It = Pending.CreateIterator(); It; ++It)
+	for (auto&& It = VisualData.CreateIterator(); It; ++It)
 	{
+		FFaerieVisualizationEntry& Val = It.Value();
+
 		// Find the pending attachment for ourself
 		if (It->Key == Key)
 		{
-			It->ChildReady = true;
-			FoundSelf = true;
+			Val.SelfReady = true;
+			Val.ChangeCallback.Broadcast(Key, Val.Visual);
 		}
 
 		// Find a pending attachment with ourself as its parent.
-		if (It->Attachment.Parent == Component)
+		if (Val.Attachment.Parent == Component)
 		{
 			// Update the parent with our correct component.
-			It->Attachment.Parent = Component->GetGeneratedMeshComponent();
-			It->ParentReady = true;
+			Val.Attachment.Parent = Component->GetGeneratedMeshComponent();
+			Val.ParentReady = true;
 		}
 
-		if (It->ParentReady && It->ChildReady)
+		// If both sides are ready now update the attachment.
+		if (Val.ParentReady && Val.SelfReady)
 		{
-			It->Attachment.Hidden = false;
-			UpdateAttachment(It->Key, It->Attachment);
-			It.RemoveCurrentSwap();
+			Val.Attachment.Hidden = false;
+			ResetAttachment(Val);
 		}
-	}
-
-	if (!FoundSelf)
-	{
-		// If we were not a pending child attachment, then it's safe to just immediately fixup our attachment.
-		FFaerieVisualMetadata& Metadata = KeyedMetadata.FindOrAdd(Key);
-		Metadata.Attachment.Hidden = false;
-		ResetAttachment(Key, Metadata.Attachment);
 	}
 }
 
 void UEquipmentVisualizer::PostVisualActionLoaded(const FFaerieVisualKey& Key, const TNotNull<AFaerieProxyActorBase*> Actor)
 {
-	bool FoundSelf = false;
+	// There are multiple possible attachments to update after a component load. Ourself obviously, but also any children
+	// that waiting for us, so they can be offset correctly.
 
-	for (auto&& It = Pending.CreateIterator(); It; ++It)
+	for (auto&& It = VisualData.CreateIterator(); It; ++It)
 	{
+		FFaerieVisualizationEntry& Val = It.Value();
+
 		// Find the pending attachment for ourself
 		if (It->Key == Key)
 		{
-			It->ChildReady = true;
-			FoundSelf = true;
+			Val.SelfReady = true;
+			Val.ChangeCallback.Broadcast(Key, Val.Visual);
 		}
 
 		// Find a pending attachment with ourself as its parent.
-		if (It->Attachment.Parent->GetOwner() == Actor)
+		if (Val.Attachment.Parent->GetOwner() == Actor)
 		{
 			// Update the parent with our correct component.
-			It->Attachment.Parent = Actor->GetDefaultAttachComponent();
-			It->ParentReady = true;
+			Val.Attachment.Parent = Actor->GetDefaultAttachComponent();
+			Val.ParentReady = true;
 		}
 
-		if (It->ParentReady && It->ChildReady)
+		if (Val.ParentReady && Val.SelfReady)
 		{
-			It->Attachment.Hidden = false;
-			UpdateAttachment(It->Key, It->Attachment);
-			It.RemoveCurrentSwap();
+			Val.Attachment.Hidden = false;
+			ResetAttachment(Val);
 		}
-	}
-
-	if (!FoundSelf)
-	{
-		// If we were not a pending child attachment, then it's safe to just immediately fixup our attachment.
-		FFaerieVisualMetadata& Metadata = KeyedMetadata.FindOrAdd(Key);
-		Metadata.Attachment.Hidden = false;
-		ResetAttachment(Key, Metadata.Attachment);
 	}
 }
 
@@ -231,12 +220,12 @@ AActor* UEquipmentVisualizer::GetSpawnedActorByClass(const TSubclassOf<AActor> C
 {
 	if (!IsValid(Class)) return nullptr;
 
-	for (auto&& SpawnedActor : SpawnedActors)
+	for (auto&& Entry : VisualData)
 	{
-		if (SpawnedActor.Value && SpawnedActor.Value.IsA(Class))
+		if (Entry.Value.Visual.IsA(Class))
 		{
-			Key = SpawnedActor.Key;
-			return SpawnedActor.Value;
+			Key = Entry.Key;
+			return Cast<AActor>(Entry.Value.Visual);
 		}
 	}
 	return nullptr;
@@ -246,12 +235,12 @@ USceneComponent* UEquipmentVisualizer::GetSpawnedComponentByClass(const TSubclas
 {
 	if (!IsValid(Class)) return nullptr;
 
-	for (auto&& SpawnedComponent : SpawnedComponents)
+	for (auto&& Entry : VisualData)
 	{
-		if (SpawnedComponent.Value && SpawnedComponent.Value.IsA(Class))
+		if (Entry.Value.Visual.IsA(Class))
 		{
-			Key = SpawnedComponent.Key;
-			return SpawnedComponent.Value;
+			Key = Entry.Key;
+			return Cast<USceneComponent>(Entry.Value.Visual);
 		}
 	}
 	return nullptr;
@@ -259,52 +248,53 @@ USceneComponent* UEquipmentVisualizer::GetSpawnedComponentByClass(const TSubclas
 
 UObject* UEquipmentVisualizer::GetSpawnedVisualByKey(const FFaerieVisualKey& Key) const
 {
-	UObject* Out = GetSpawnedActorByKey(Key);
-
-	if (!IsValid(Out))
+	if (const FFaerieVisualizationEntry* Entry = VisualData.Find(Key))
 	{
-		Out = GetSpawnedComponentByKey(Key);
+		return Entry->Visual;
 	}
-
-	return Out;
+	return nullptr;
 }
 
 AActor* UEquipmentVisualizer::GetSpawnedActorByKey(const FFaerieVisualKey& Key) const
 {
-	if (const TObjectPtr<AActor>* Found = SpawnedActors.Find(Key))
-	{
-		return *Found;
-	}
-	return nullptr;
+	return Cast<AActor>(GetSpawnedVisualByKey(Key));
 }
 
 USceneComponent* UEquipmentVisualizer::GetSpawnedComponentByKey(const FFaerieVisualKey& Key) const
 {
-	if (const TObjectPtr<USceneComponent>* Found = SpawnedComponents.Find(Key))
-	{
-		return *Found;
-	}
-	return nullptr;
+	return Cast<USceneComponent>(GetSpawnedVisualByKey(Key));
 }
 
 TArray<AActor*> UEquipmentVisualizer::GetSpawnedActors() const
 {
 	TArray<AActor*> Array;
-	SpawnedActors.GenerateValueArray(ObjectPtrWrap(Array));
+	for (auto&& Entry : VisualData)
+	{
+		if (AActor* Actor = Cast<AActor>(Entry.Value.Visual))
+		{
+			Array.Add(Actor);
+		}
+	}
 	return Array;
 }
 
 TArray<USceneComponent*> UEquipmentVisualizer::GetSpawnedComponents() const
 {
 	TArray<USceneComponent*> Array;
-	SpawnedComponents.GenerateValueArray(ObjectPtrWrap(Array));
+	for (auto&& Entry : VisualData)
+	{
+		if (USceneComponent* Component = Cast<USceneComponent>(Entry.Value.Visual))
+		{
+			Array.Add(Component);
+		}
+	}
 	return Array;
 }
 
 void UEquipmentVisualizer::FlushInvalid(FMassEntityManager& EntityManager)
 {
 	TArray<FFaerieVisualKey> InvalidKeys;
-	for (auto It = SpawnedComponents.CreateConstIterator(); It; ++It)
+	for (auto It = VisualData.CreateConstIterator(); It; ++It)
 	{
 		if (!It.Key().GetProxy().IsValid())
 		{
@@ -329,7 +319,6 @@ void UEquipmentVisualizer::RefreshVisual(FMassEntityManager& EntityManager, cons
 		if (HasVisualForKey(Proxy))
 		{
 			RemoveVisualImpl(EntityManager, Proxy);
-			return;
 		}
 		CreateVisualImpl(EntityManager, Proxy);
 	}
@@ -338,19 +327,6 @@ void UEquipmentVisualizer::RefreshVisual(FMassEntityManager& EntityManager, cons
 void UEquipmentVisualizer::CreateVisualImpl(FMassEntityManager& EntityManager, TValid<const FFaerieItemProxy&> Proxy, TOptional<const FFaerieItemProxy*> Parent)
 {
 	const FFaerieVisualKey Key{Proxy};
-	if (HasVisualForKey(Key))
-	{
-		static constexpr bool RemoveThisBoolAndActuallyTrackDownThisWarningLater = true;
-		if (RemoveThisBoolAndActuallyTrackDownThisWarningLater)
-		{
-			RemoveVisualImpl(EntityManager, Key);
-		}
-		else
-		{
-			UE_LOGF(LogFaerieEquipment, Warning, "Container already has an visual spawned. Existing visuals must be removed before creating new ones!");
-			return;
-		}
-	}
 
 	// Step 1: Figure out what we are attaching to.
 
@@ -370,15 +346,12 @@ void UEquipmentVisualizer::CreateVisualImpl(FMassEntityManager& EntityManager, T
 		return;
 	}
 
-	FFaerieVisualAttachment Attachment = BuildAttachmentData(AttachTo, VisualSlotData);
+	FFaerieVisualizationEntry& Entry = VisualData.FindOrAdd(Key);
 
-	// GetComponentToAttachTo will return a UFaerieItemMeshComponent when it wants us to defer for a pending attaching.
-	if (IsValid(AttachTo) && AttachTo->IsA<UFaerieItemMeshComponent>())
-	{
-		// Enable hidden while in Pending. This allows this attachment to still start async loading itself, even while not attached.
-		Attachment.Hidden = true;
-		Pending.Emplace(Key, Attachment);
-	}
+	Entry.Attachment = BuildAttachmentData(AttachTo, VisualSlotData);
+
+	// Enable hidden while pending load. This allows this attachment to still start async loading itself, even while not attached.
+	Entry.Attachment.Hidden = true;
 
 #if FAERIE_DEBUG
 	if (GetOwner()->GetLocalRole() == ROLE_Authority)
@@ -394,54 +367,67 @@ void UEquipmentVisualizer::CreateVisualImpl(FMassEntityManager& EntityManager, T
 	// If a parent was passed in, set it into metadata for this key.
 	if (Parent.IsSet())
 	{
-		KeyedMetadata.FindOrAdd(Key).Parent = *Parent.GetValue();
+		Entry.Parent = *Parent.GetValue();
+	}
+	if (FFaerieVisualizationEntry* ParentEntry = VisualData.Find(Entry.Parent))
+	{
+		Entry.ParentReady = ParentEntry->SelfReady;
+	}
+	else
+	{
+		// If we have no parent, we don't need to wait for them to be ready.
+		Entry.ParentReady = true;
 	}
 
 	// Step 2: What are we creating as a visual.
 
 	// Path 1: A Visual Actor
 	{
-		TSoftClassPtr<AFaerieProxyActorBase> ActorClass = nullptr;
-
-		auto ProxyClassFragment = Faerie::ItemData::GetItemDataOrDefault<FFaerieProxyActorFragment>(Proxy);
+		const TConstStructView<FFaerieProxyActorFragment> ProxyClassFragment = Faerie::ItemData::GetItemDataOrDefault<FFaerieProxyActorFragment>(Proxy);
 		if (ProxyClassFragment.IsValid())
 		{
-			ActorClass = ProxyClassFragment->ProxyActorClass;
-		}
-
-		if (!ActorClass.IsNull())
-		{
 			// @todo implement async path here
-			const TSubclassOf<AFaerieProxyActorBase> VisualClass = ActorClass.LoadSynchronous();
-			if (!IsValid(VisualClass))
+			TSubclassOf<AFaerieProxyActorBase> ActorClass = ProxyClassFragment->ProxyActorClass.LoadSynchronous();
+
+			if (!IsValid(ActorClass))
 			{
 				UE_LOGF(LogFaerieEquipment, Warning, "VisualClass failed to load!")
 				return;
 			}
 
-			AFaerieProxyActorBase* NewVisual = SpawnVisualActorNative<AFaerieProxyActorBase>(
-				Key, VisualClass, Attachment);
-			if (IsValid(NewVisual))
+			AFaerieProxyActorBase* NewVisual = SpawnVisualActorNative<AFaerieProxyActorBase>(Key, ActorClass);
+			if (!IsValid(NewVisual))
 			{
-				NewVisual->GetOnDisplayFinished().AddWeakLambda(this,
-					[this, Key, Visual = TWeakObjectPtr<AFaerieProxyActorBase>(NewVisual)](bool Success)
-					{
-						if (AFaerieProxyActorBase* Actor = Visual.Get())
-						{
-							PostVisualActionLoaded(Key, Actor);
-						}
-					});
-				NewVisual->SetSourceProxy(Proxy);
+				UE_LOGF(LogFaerieEquipment, Error, "SpawnVisualActorNative failed for class '%ls'", *GetNameSafe(ActorClass))
 				return;
 			}
+
+			Entry.Visual = NewVisual;
+
+			NewVisual->GetOnDisplayFinished().AddWeakLambda(this,
+				[this, Key, Visual = TWeakObjectPtr<AFaerieProxyActorBase>(NewVisual)](bool Success)
+				{
+					if (AFaerieProxyActorBase* Actor = Visual.Get())
+					{
+						PostVisualActionLoaded(Key, Actor);
+					}
+				});
+			NewVisual->SetSourceProxy(Proxy);
 		}
 	}
 
 	// Path 2: A Visual Component
+	if (Entry.Visual == nullptr)
 	{
 		FGameplayTag CompPreferredTag = Mesh::Tags::MeshPurpose_Default;
-		if (PreferredTag.IsValid() &&
-			ensure(PreferredTag.GetTagName().IsValid()))
+
+		// If the slot overrides which tag is used to visualize it, use that tag.
+		if (VisualSlotData.PreferredTag.IsValid())
+		{
+			CompPreferredTag = VisualSlotData.PreferredTag;
+		}
+		// Otherwise, use the tag that this visualizer defaults to.
+		else if (PreferredTag.IsValid())
 		{
 			CompPreferredTag = PreferredTag;
 		}
@@ -450,49 +436,66 @@ void UEquipmentVisualizer::CreateVisualImpl(FMassEntityManager& EntityManager, T
 		if (VisualSlotData.AllowLeaderPose)
 		{
 			// Reset attachment location to main mesh when using LeaderPose.
-			Attachment.Parent = Cast<ACharacter>(GetOwner())->GetMesh();
-			Attachment.ParentSocket = NAME_None;
-			Attachment.ChildSocket = NAME_None;
-		}
-
-		if (VisualSlotData.PreferredTag.IsValid() &&
-			ensure(VisualSlotData.PreferredTag.GetTagName().IsValid()))
-		{
-			CompPreferredTag = VisualSlotData.PreferredTag;
+			Entry.Attachment.Parent = Cast<ACharacter>(GetOwner())->GetMesh();
+			Entry.Attachment.ParentSocket = NAME_None;
+			Entry.Attachment.ChildSocket = NAME_None;
 		}
 
 		UFaerieItemMeshComponent* NewVisual = SpawnVisualComponentNative<UFaerieItemMeshComponent>(Key,
-			UFaerieItemMeshComponent::StaticClass(), Attachment);
-		if (IsValid(NewVisual))
+			UFaerieItemMeshComponent::StaticClass());
+		if (!IsValid(NewVisual))
 		{
-			// If there is no AnimClass on the mesh, it would prefer using LeaderPose as a fallback
-			if (VisualSlotData.AllowLeaderPose)
-			{
-				NewVisual->SetSkeletalMeshLeaderPoseComponent(GetLeaderComponent());
-			}
-
-			NewVisual->SetPreferredTag(CompPreferredTag);
-			NewVisual->SetIsReplicated(false); // Do not replicate mesh components. Server and client should each create their own.
-			NewVisual->GetOnMeshRebuilt().AddWeakLambda(this,
-				[this, Key](const TNotNull<UFaerieItemMeshComponent*> ItemMeshComponent)
-				{
-					PostVisualComponentLoaded(Key, ItemMeshComponent);
-				});
-			NewVisual->SetItemMeshFromProxy(Proxy);
+			UE_LOGF(LogFaerieEquipment, Error, "SpawnVisualComponentNative failed for class '%ls'", *GetNameSafe(UFaerieItemMeshComponent::StaticClass()))
+			return;
 		}
+
+		Entry.Visual = NewVisual;
+
+		// If there is no AnimClass on the mesh, it would prefer using LeaderPose as a fallback
+		if (VisualSlotData.AllowLeaderPose)
+		{
+			NewVisual->SetSkeletalMeshLeaderPoseComponent(GetLeaderComponent());
+		}
+
+		NewVisual->SetPreferredTag(CompPreferredTag);
+		NewVisual->SetIsReplicated(false); // Do not replicate mesh components. Server and client should each create their own.
+		NewVisual->GetOnMeshRebuilt().AddWeakLambda(this,
+			[this, Key](const TNotNull<UFaerieItemMeshComponent*> ItemMeshComponent)
+			{
+				PostVisualComponentLoaded(Key, ItemMeshComponent);
+			});
+		NewVisual->SetItemMeshFromProxy(Proxy);
 	}
+
+	ensureAlwaysMsgf(IsValid(Entry.Visual), TEXT("Failed to create visual object!"));
 
 	// Step 3: Recurse over children
 	if (ValidGet(Proxy).IsMutable())
 	{
 		const FMassEntityHandle Entity = ValidGet(Proxy).GetEntityHandle();
 
-		for (auto SubContainer : Equipment::SlotFilter.Iterate(EntityManager, Entity))
+		for (TNotNull<UFaerieItemStackContainer*> SubContainer : Equipment::SlotFilter.Iterate(EntityManager, Entity))
 		{
 			const FFaerieEntryKey EntryKey = SubContainer->GetCurrentKey();
 			if (EntryKey.IsValid())
 			{
-				CreateVisualImpl(EntityManager, FFaerieItemProxy(EntityManager.AsShared(), SubContainer), &ValidGet(Proxy));
+				FFaerieItemProxy ChildProxy(EntityManager.AsShared(), SubContainer);
+
+				if (HasVisualForKey(ChildProxy))
+				{
+					static constexpr bool RemoveThisBoolAndActuallyTrackDownThisWarningLater = true;
+					if (RemoveThisBoolAndActuallyTrackDownThisWarningLater)
+					{
+						RemoveVisualImpl(EntityManager, ChildProxy);
+					}
+					else
+					{
+						UE_LOGF(LogFaerieEquipment, Warning, "Container already has an visual spawned. Existing visuals must be removed before creating new ones!");
+						return;
+					}
+				}
+
+				CreateVisualImpl(EntityManager, ChildProxy, &ValidGet(Proxy));
 			}
 		}
 	}
@@ -501,7 +504,7 @@ void UEquipmentVisualizer::CreateVisualImpl(FMassEntityManager& EntityManager, T
 void UEquipmentVisualizer::RemoveVisualImpl(FMassEntityManager& EntityManager, const FFaerieVisualKey& Key)
 {
 	// Before we remove a visual, we should remove its children first.
-	for (auto&& Metadatum : KeyedMetadata)
+	for (auto&& Metadatum : VisualData)
 	{
 		if (Metadatum.Value.Parent == Key)
 		{
@@ -513,7 +516,7 @@ void UEquipmentVisualizer::RemoveVisualImpl(FMassEntityManager& EntityManager, c
 	DestroyVisualByKey(Key);
 }
 
-AActor* UEquipmentVisualizer::SpawnVisualActor(const FFaerieVisualKey Key, const TSubclassOf<AActor>& Class, const FFaerieVisualAttachment& Attachment)
+AActor* UEquipmentVisualizer::SpawnVisualActor(const FFaerieVisualKey Key, const TSubclassOf<AActor>& Class)
 {
 	if (!Key.GetProxy().IsValid())
 	{
@@ -525,7 +528,7 @@ AActor* UEquipmentVisualizer::SpawnVisualActor(const FFaerieVisualKey Key, const
 		UE_LOGF(LogFaerieEquipment, Error, "Attempted to spawn a VisualActor with an invalid class!")
 		return nullptr;
 	}
-	if (SpawnedActors.Contains(Key))
+	if (HasVisualForKey(Key))
 	{
 		UE_LOGF(LogFaerieEquipment, Error, "Attempted to spawn a VisualActor using a key already in use!")
 		return nullptr;
@@ -542,29 +545,13 @@ AActor* UEquipmentVisualizer::SpawnVisualActor(const FFaerieVisualKey Key, const
 	if (AActor* NewActor = World->SpawnActor(Class, &FTransform::Identity, Params))
 	{
 		NewActor->OnDestroyed.AddDynamic(this, &ThisClass::OnVisualActorDestroyed);
-
-		SpawnedActors.Add(Key, NewActor);
-		ReverseMap.Add(NewActor, Key);
-
-		if (Attachment.Parent.IsValid())
-		{
-			Equipment::UpdateActorAttachment(NewActor, Attachment);
-
-			KeyedMetadata.FindOrAdd(Key).Attachment = Attachment;
-		}
-
-		KeyedMetadata.FindOrAdd(Key).ChangeCallback.Broadcast(Key, NewActor);
-		OnAnyVisualSpawnedNative.Broadcast(Key, NewActor);
-		OnAnyVisualSpawned.Broadcast(Key, NewActor);
-
 		return NewActor;
 	}
 
 	return nullptr;
 }
 
-USceneComponent* UEquipmentVisualizer::SpawnVisualComponent(const FFaerieVisualKey Key, const TSubclassOf<USceneComponent>& Class,
-	const FFaerieVisualAttachment& Attachment)
+USceneComponent* UEquipmentVisualizer::SpawnVisualComponent(const FFaerieVisualKey Key, const TSubclassOf<USceneComponent>& Class)
 {
 	if (!Key.GetProxy().IsValid())
 	{
@@ -576,7 +563,7 @@ USceneComponent* UEquipmentVisualizer::SpawnVisualComponent(const FFaerieVisualK
 		UE_LOGF(LogFaerieEquipment, Error, "Attempted to spawn a VisualComponent with an invalid class!")
 		return nullptr;
 	}
-	if (SpawnedComponents.Contains(Key))
+	if (HasVisualForKey(Key))
 	{
 		UE_LOGF(LogFaerieEquipment, Error, "Attempted to spawn a VisualComponent using a key already in use!")
 		return nullptr;
@@ -587,93 +574,65 @@ USceneComponent* UEquipmentVisualizer::SpawnVisualComponent(const FFaerieVisualK
 	{
 		GetOwner()->AddInstanceComponent(NewComponent);
 		NewComponent->RegisterComponent();
-
-		SpawnedComponents.Add(Key, NewComponent);
-		ReverseMap.Add(NewComponent, Key);
-
-		KeyedMetadata.FindOrAdd(Key).Attachment = Attachment;
-
-		Equipment::UpdateComponentAttachment(NewComponent, Attachment);
-
-		KeyedMetadata.FindOrAdd(Key).ChangeCallback.Broadcast(Key, NewComponent);
-		OnAnyVisualSpawnedNative.Broadcast(Key, NewComponent);
-		OnAnyVisualSpawned.Broadcast(Key, NewComponent);
-
 		return NewComponent;
 	}
 
 	return nullptr;
 }
 
-bool UEquipmentVisualizer::DestroyVisual(UObject* Visual, const bool ClearMetadata)
+void UEquipmentVisualizer::DestroyVisual(UObject* Visual, const bool ClearMetadata)
 {
-	const FFaerieVisualKey Key = ReverseMap.FindAndRemoveChecked(Visual);
-
-	if (ClearMetadata)
+	TPair<FFaerieVisualKey, FFaerieVisualizationEntry>* VisualEntry = nullptr;
+	for (auto&& Entry : VisualData)
 	{
-		KeyedMetadata.Remove(Key);
+		if (Entry.Value.Visual == Visual)
+		{
+			VisualEntry = &Entry;
+		}
 	}
+	if (!VisualEntry)
+	{
+		return;
+	}
+	const FFaerieVisualKey& Key = VisualEntry->Key;
+
+	VisualEntry->Value.Visual = nullptr;
 
 	if (AActor* VisualActor = Cast<AActor>(Visual))
 	{
 		VisualActor->Destroy();
-		SpawnedActors.Remove(Key);
-
-		OnAnyVisualDestroyedNative.Broadcast(Key);
-		OnAnyVisualDestroyed.Broadcast(Key);
-
-		return true;
 	}
-
-	if (USceneComponent* VisualComponent = Cast<USceneComponent>(Visual))
+	else if (USceneComponent* VisualComponent = Cast<USceneComponent>(Visual))
 	{
 		VisualComponent->DestroyComponent();
-		SpawnedComponents.Remove(Key);
-
-		OnAnyVisualDestroyedNative.Broadcast(Key);
-		OnAnyVisualDestroyed.Broadcast(Key);
-
-		return true;
 	}
 
-	return false;
-}
-
-bool UEquipmentVisualizer::DestroyVisualByKey(const FFaerieVisualKey Key, const bool ClearMetadata)
-{
 	if (ClearMetadata)
 	{
-		KeyedMetadata.Remove(Key);
+		VisualData.Remove(Key);
 	}
+}
 
-	if (AActor* Visual = GetSpawnedActorByKey(Key))
+void UEquipmentVisualizer::DestroyVisualByKey(const FFaerieVisualKey Key, const bool ClearMetadata)
+{
+	if (FFaerieVisualizationEntry* Entry = VisualData.Find(Key))
 	{
-		// This will clear from SpawnedActors and ReverseMap via OnDestroyed
-		Visual->Destroy();
-		SpawnedActors.Remove(Key);
-
-		OnAnyVisualDestroyedNative.Broadcast(Key);
-		OnAnyVisualDestroyed.Broadcast(Key);
-
-		ReverseMap.Remove(Visual);
-
-		return true;
+		if (AActor* VisualActor = Cast<AActor>(Entry->Visual))
+		{
+			VisualActor->OnDestroyed.RemoveAll(this);
+			VisualActor->Destroy();
+		}
+		else if (USceneComponent* VisualComponent = Cast<USceneComponent>(Entry->Visual))
+		{
+			VisualComponent->DestroyComponent();
+		}
+		Entry->Visual = nullptr;
 	}
 
-	if (USceneComponent* VisualComponent = GetSpawnedComponentByKey(Key))
+	if (ClearMetadata)
 	{
-		VisualComponent->DestroyComponent();
-		SpawnedComponents.Remove(Key);
-
-		OnAnyVisualDestroyedNative.Broadcast(Key);
-		OnAnyVisualDestroyed.Broadcast(Key);
-
-		ReverseMap.Remove(VisualComponent);
-
-		return true;
+		VisualData.Remove(Key);
 	}
-
-	return false;
 }
 
 FFaerieVisualAttachment UEquipmentVisualizer::FindAttachment(const FFaerieItemProxy& Proxy) const
@@ -734,15 +693,20 @@ USceneComponent* UEquipmentVisualizer::GetComponentToAttachTo(const FMassEntityM
 		}
 	}
 
-	// If we have a parent, see if a visual already exists
-	if (UObject* Visual = GetSpawnedVisualByKey({ ParentItem });
-		IsValid(Visual))
+	UObject* ParentVisual = nullptr;
+	if (ParentItem.HasValidStack())
 	{
-		if (AActor* Actor = Cast<AActor>(Visual))
+		ParentVisual = GetSpawnedVisualByKey({ ParentItem });
+	}
+
+	// If we have a parent, see if a visual already exists
+	if (IsValid(ParentVisual))
+	{
+		if (AActor* Actor = Cast<AActor>(ParentVisual))
 		{
 			ParentActor = Actor;
 		}
-		else if (USceneComponent* Component = Cast<USceneComponent>(Visual))
+		else if (USceneComponent* Component = Cast<USceneComponent>(ParentVisual))
 		{
 			ParentComponent = Component;
 		}
@@ -809,9 +773,10 @@ USceneComponent* UEquipmentVisualizer::GetComponentToAttachTo(const FMassEntityM
 
 void UEquipmentVisualizer::ResetAttachment(const FFaerieVisualKey Key)
 {
-	const FFaerieVisualMetadata* Metadata = KeyedMetadata.Find(Key);
-	if (!Metadata) return;
-	ResetAttachment(Key, Metadata->Attachment);
+	if (const FFaerieVisualizationEntry* Entry = VisualData.Find(Key))
+	{
+		ResetAttachment(*Entry);
+	}
 }
 
 void UEquipmentVisualizer::MoveAttachment(const FFaerieVisualKey Key, const FFaerieVisualAttachment& Attachment)
@@ -828,22 +793,23 @@ void UEquipmentVisualizer::MoveAttachment(const FFaerieVisualKey Key, const FFae
 
 void UEquipmentVisualizer::UpdateAttachment(const FFaerieVisualKey Key, const FFaerieVisualAttachment& Attachment)
 {
-	if (FFaerieVisualMetadata* Metadata = KeyedMetadata.Find(Key))
+	if (FFaerieVisualizationEntry* Entry = VisualData.Find(Key))
 	{
-		Metadata->Attachment = Attachment;
-		ResetAttachment(Key, Metadata->Attachment);
+		Entry->Attachment = Attachment;
+		ResetAttachment(*Entry);
 	}
 }
 
 void UEquipmentVisualizer::AwaitOrReceiveUpdate(const FFaerieVisualKey Key, const FEquipmentVisualizerCallback Callback)
 {
+	FFaerieVisualizationEntry& Entry = VisualData.FindOrAdd(Key);
 	// Set callback for any future changes to this key
-	KeyedMetadata.FindOrAdd(Key).ChangeCallback.Add(Callback);
+	Entry.ChangeCallback.Add(Callback);
 
 	// If a visual by this already exists, execute the callback right now.
-	if (auto&& Visual = GetSpawnedVisualByKey(Key))
+	if (Entry.Visual && Entry.SelfReady)
 	{
-		Callback.Execute(Key, Visual);
+		Callback.Execute(Key, Entry.Visual);
 	}
 }
 
@@ -867,37 +833,17 @@ void UEquipmentVisualizer::DumpDebugLog() const
 	UE_LOGF(LogFaerieEquipment, Log, "PreferredTag: %ls", *PreferredTag.ToString())
 	UE_LOGF(LogFaerieEquipment, Log, "LeaderComponent: '%ls'", *GetNameSafe(GetLeaderComponent()))
 
-	UE_LOGF(LogFaerieEquipment, Log, "Num SpawnedActors: '%i'", SpawnedActors.Num())
-	for (auto&& SpawnedActor : SpawnedActors)
+	UE_LOGF(LogFaerieEquipment, Log, "Num Visuals: '%i'", VisualData.Num())
+	for (auto&& Entry : VisualData)
 	{
-		FFaerieVisualKey Key = SpawnedActor.Key;
-		TObjectPtr<AActor> Value = SpawnedActor.Value;
-		UE_LOGF(LogFaerieEquipment, Log, "--- Visual Actor: '%ls' spawned for '%ls'", *GetNameSafe(Value), *GetNameSafe(Key.GetProxy().GetProxyObject()))
-		if (const FFaerieVisualMetadata* Metadata = KeyedMetadata.Find(Key))
-		{
-			UE_LOGF(LogFaerieEquipment, Log, "    Parent: '%ls'", *GetNameSafe(Metadata->Parent.GetProxy().GetProxyObject()))
-			UE_LOGF(LogFaerieEquipment, Log, "    Attachment: '%ls'", *GetAttachmentString(Metadata->Attachment))
-		}
-	}
-
-	UE_LOGF(LogFaerieEquipment, Log, "Num SpawnedComponents: '%i'", SpawnedComponents.Num())
-	for (auto&& SpawnedComponent : SpawnedComponents)
-	{
-		FFaerieVisualKey Key = SpawnedComponent.Key;
-		TObjectPtr<USceneComponent> Value = SpawnedComponent.Value;
-		UE_LOGF(LogFaerieEquipment, Log, "--- Visual Component: '%ls' spawned for '%ls'", *GetNameSafe(Value), *GetNameSafe(Key.GetProxy().GetProxyObject()))
-		if (const FFaerieVisualMetadata* Metadata = KeyedMetadata.Find(Key))
-		{
-			UE_LOGF(LogFaerieEquipment, Log, "      Parent: '%ls'", *GetNameSafe(Metadata->Parent.GetProxy().GetProxyObject()))
-			UE_LOGF(LogFaerieEquipment, Log, "      Attachment: '%ls'", *GetAttachmentString(Metadata->Attachment))
-		}
-	}
-
-	UE_LOGF(LogFaerieEquipment, Log, "Num Pending Attachments: '%i'", Pending.Num())
-	for (const FPendingAttachment& PendingAttachment : Pending)
-	{
-		UE_LOGF(LogFaerieEquipment, Log, "--- Pending: '%ls'", *GetNameSafe(PendingAttachment.Key.GetProxy().GetProxyObject()))
-		UE_LOGF(LogFaerieEquipment, Log, "      Attachment: '%ls'", *GetAttachmentString(PendingAttachment.Attachment))
+		FFaerieVisualKey Key = Entry.Key;
+		TObjectPtr<UObject> Value = Entry.Value.Visual;
+		UE_LOGF(LogFaerieEquipment, Log, "--- Visual: '%ls' spawned for '%ls'", *GetNameSafe(Value), *GetNameSafe(Key.GetProxy().GetProxyObject()))
+		UE_LOGF(LogFaerieEquipment, Log, "    Attachment: '%ls'", *GetAttachmentString(Entry.Value.Attachment))
+		UE_LOGF(LogFaerieEquipment, Log, "    Parent: '%ls', IsReady: '%ls', IsParentReady: '%ls'",
+			*GetNameSafe(Entry.Value.Parent.GetProxy().GetProxyObject()),
+			Entry.Value.SelfReady ? TEXT("true") : TEXT("false"),
+			Entry.Value.ParentReady ? TEXT("true") : TEXT("false"))
 	}
 
 	UE_LOGF(LogFaerieEquipment, Warning, "End Equipment Visualizer debug log")
@@ -906,34 +852,13 @@ void UEquipmentVisualizer::DumpDebugLog() const
 
 void UEquipmentVisualizer::RefreshAllAttachments()
 {
-	for (auto&& Metadata : KeyedMetadata)
+	for (auto&& Entry : VisualData)
 	{
-		ResetAttachment(Metadata.Key);
+		ResetAttachment(Entry.Value);
 	}
 }
 
 void UEquipmentVisualizer::OnVisualActorDestroyed(AActor* DestroyedActor)
 {
-	if (const FFaerieVisualKey* Key = ReverseMap.Find(DestroyedActor))
-	{
-		SpawnedActors.Remove(*Key);
-		OnAnyVisualDestroyedNative.Broadcast(*Key);
-		OnAnyVisualDestroyed.Broadcast(*Key);
-	}
-
-	ReverseMap.Remove(DestroyedActor);
+	DestroyVisual(DestroyedActor);
 }
-
-/*
-void UEquipmentVisualizer::OnVisualComponentDestroyed(USceneComponent* DestroyedComponent)
-{
-	if (const auto Key = ReverseMap.Find(DestroyedComponent))
-	{
-		SpawnedComponents.Remove(*Key);
-		OnAnyVisualDestroyedNative.Broadcast(*Key);
-		OnAnyVisualDestroyed.Broadcast(*Key);
-	}
-
-	ReverseMap.Remove(DestroyedComponent);
-}
-*/

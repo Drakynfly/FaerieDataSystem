@@ -14,7 +14,7 @@ struct FFaerieNetItemID
 	UPROPERTY()
 	uint64 ID = 0;
 
-	bool IsSet() const { return ID > 0; }
+	UE_REWRITE bool IsSet() const { return ID > 0; }
 
 	[[nodiscard]] UE_REWRITE bool UEOpEquals(const FFaerieNetItemID& Other) const
 	{

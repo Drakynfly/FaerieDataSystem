@@ -161,7 +161,7 @@ TSharedPtr<FStreamableHandle> UFaerieItemMeshLoader::LoadMeshFromProxyAsynchrono
 	}
 
 	UE_LOGF(LogFaerieItemMesh, Error, "%hs: Asset does not contain a mesh suitable for the purpose.", __FUNCTION__)
-	(void)Callback.ExecuteIfBound(false, {});
+	(void)LoadRequest.Callback.ExecuteIfBound(false, {});
 	return nullptr;
 }
 

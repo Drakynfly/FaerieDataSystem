@@ -242,8 +242,7 @@ bool FFaerieItemContainerCapacityData::UpdateCacheForEntry(const FMassEntityMana
 	FFaerieWeightAndVolume Total;
 
 	// @todo we need to calculate the recursive capacity, not just the direct capacity.
-	const FFaerieItemProxy Proxy(FFaerieItemProxy::ESingleFrame, EntityManager.AsShared(), &View);
-	const ItemData::FCapacityHelper Capacity(Proxy);
+	const ItemData::FCapacityHelper Capacity(EntityManager, View.LiveItem);
 	if (Capacity.HasFragmentValue())
 	{
 		// Get the weight of the sum of all stacks.
