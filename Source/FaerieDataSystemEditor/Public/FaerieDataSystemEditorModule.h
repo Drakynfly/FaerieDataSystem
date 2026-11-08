@@ -8,7 +8,7 @@
 
 namespace Faerie::Editor
 {
-    static void StaticUnregisterCustomizations(const TConstArrayView<FName>& ClassNames, const TConstArrayView<FName>& PropertyTypeNames);
+    FAERIEDATASYSTEMEDITOR_API void StaticUnregisterCustomizations(const TConstArrayView<FName>& ClassNames, const TConstArrayView<FName>& PropertyTypeNames);
 }
 
 class FAERIEDATASYSTEMEDITOR_API IFaerieDataSystemEditorModuleBase : public IModuleInterface
